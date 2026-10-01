@@ -37,6 +37,16 @@ const biology: Folder = {
   created_at: "2026-03-04T00:00:00.000Z",
 };
 
+/* A second subject, used where a test needs the folder under test to not be
+   the first one the create dialog would default to. */
+const chemistry: Folder = {
+  id: "folder-2",
+  user_id: "user-1",
+  name: "Chemistry",
+  color: "#E24A90",
+  created_at: "2026-03-03T00:00:00.000Z",
+};
+
 function material(overrides: Partial<Material> = {}): Material {
   return {
     id: "mat-1",
@@ -75,11 +85,31 @@ function quiz(overrides: Partial<Quiz> = {}): Quiz {
   };
 }
 
+function notebook(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "nb-1",
+    user_id: "user-1",
+    folder_id: "folder-1",
+    title: "Cell division notebook",
+    subject: "Biology",
+    color: "#4A90E2",
+    description: null,
+    notes: "",
+    created_at: "2026-03-08T00:00:00.000Z",
+    updated_at: "2026-03-08T00:00:00.000Z",
+    notebook_sources: [],
+    notebook_artifacts: [],
+    notebook_messages: [],
+    ...overrides,
+  };
+}
+
 function serveSubject({
   folders = [biology] as Folder[],
   materials = [] as Material[],
   decks = [] as FlashcardDeck[],
   quizzes = [] as Quiz[],
+  notebooks = [] as Record<string, unknown>[],
   flashcards = [] as {
     id: string;
     deck_id: string;
@@ -100,6 +130,7 @@ function serveSubject({
     }),
     http.get(rest("flashcard_decks"), () => HttpResponse.json(decks)),
     http.get(rest("quizzes"), () => HttpResponse.json(quizzes)),
+    http.get(rest("notebooks"), () => HttpResponse.json(notebooks)),
     http.get(rest("flashcards"), () => HttpResponse.json(flashcards)),
   );
 }
@@ -109,6 +140,7 @@ function renderSubject(folderId = "folder-1") {
     <Routes>
       <Route path="/folders/:folderId" element={<SubjectDetailPage />} />
       <Route path="/library" element={<h1>Library</h1>} />
+      <Route path="/notebooks/:notebookId" element={<h1>Notebook studio</h1>} />
       <Route path="/notes/:materialId" element={<h1>Notes editor</h1>} />
       <Route path="/review/:deckId" element={<h1>Deck review</h1>} />
       <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
@@ -143,8 +175,16 @@ describe("SubjectDetailPage", () => {
     expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
   });
 
-  it("shows only this folder's materials, decks and quizzes", async () => {
+  it("shows only this folder's notebooks, materials, decks and quizzes", async () => {
     serveSubject({
+      notebooks: [
+        notebook(),
+        notebook({
+          id: "nb-2",
+          folder_id: "folder-2",
+          title: "Other notebook",
+        }),
+      ],
       materials: [
         material(),
         material({ id: "mat-2", folder_id: "folder-2", title: "Elsewhere" }),
@@ -160,13 +200,31 @@ describe("SubjectDetailPage", () => {
     });
     renderSubject();
 
-    expect(await screen.findByText("Cell division")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Cell division notebook"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Cell division")).toBeInTheDocument();
     expect(screen.getByText("Mitosis basics")).toBeInTheDocument();
     expect(screen.getByText("Cell division quiz")).toBeInTheDocument();
 
+    expect(screen.queryByText("Other notebook")).not.toBeInTheDocument();
     expect(screen.queryByText("Elsewhere")).not.toBeInTheDocument();
     expect(screen.queryByText("Other deck")).not.toBeInTheDocument();
     expect(screen.queryByText("Other quiz")).not.toBeInTheDocument();
+  });
+
+  it("links to a subject's notebook", async () => {
+    const user = userEvent.setup();
+    serveSubject({ notebooks: [notebook()] });
+    renderSubject();
+
+    await user.click(
+      await screen.findByRole("link", { name: "Cell division notebook" }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Notebook studio" }),
+    ).toBeInTheDocument();
   });
 
   it("shows a per-section empty state when a section has nothing in it", async () => {
@@ -174,6 +232,11 @@ describe("SubjectDetailPage", () => {
     renderSubject();
 
     await screen.findByText("Cell division");
+    expect(
+      within(section("Notebooks")).getByText(
+        "No notebooks in this subject yet.",
+      ),
+    ).toBeInTheDocument();
     expect(
       within(section("Flashcard Decks")).getByText("No flashcard decks yet."),
     ).toBeInTheDocument();
@@ -316,19 +379,27 @@ describe("SubjectDetailPage", () => {
 
   it("opens the create dialog with this folder pre-selected", async () => {
     const user = userEvent.setup();
-    serveSubject();
+    /* Biology is deliberately NOT first in the list. MaterialPanel falls back
+       to folders[0] when it is given no folderId, so with Biology first this
+       assertion passes whether or not the page actually passes its folder
+       through — which is how it survived the create-dialog rewrite asserting
+       a heading and a landmark that no longer exist. */
+    serveSubject({ folders: [chemistry, biology] });
     renderSubject();
 
     await user.click(await screen.findByRole("button", { name: "+ Create" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Build study resources" }),
+      await screen.findByRole("heading", { name: "What do you want to learn?" }),
     ).toBeInTheDocument();
+
+    /* "Pre-selected" means the destination Subject select already holds this
+       page's folder, so the student never re-picks the subject they are
+       already looking at. Asserted on the select's value rather than on rendered
+       text: the folder name also appears in the page behind the modal, so a
+       plain getByText("Biology") passes whether or not the wiring works. */
     await waitFor(() => {
-      const summary = screen.getByRole("complementary", {
-        name: "Creation summary",
-      });
-      expect(within(summary).getByText("Biology")).toBeInTheDocument();
+      expect(screen.getByLabelText("Subject")).toHaveValue("folder-1");
     });
   });
 

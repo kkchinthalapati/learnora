@@ -1,9 +1,14 @@
+import { learningEventsApi } from "../../api/learningEvents";
+import { useToast } from "../../context/toast";
+import { normaliseTopicKey } from "../../lib/topicKey";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import {
-  PERSONA_PROFILES,
+  getPersonaProfile,
+  ANALOGY_STYLE_PROFILES,
+  EXPLANATION_DEPTH_PROFILES,
   type FeynmanSessionState,
   type Misconception,
   loadFeynmanSession,
@@ -13,7 +18,12 @@ import {
   getActiveFeynmanSessionId,
   setActiveFeynmanSessionId,
 } from "../../api/aiFeynman";
+import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
+/* Imported as a function only: `Misconception` above is Feynman's own planted
+   -error type, which is a different thing from a ledger row. */
+import { candidatesFromTeachingTurn } from "../../lib/misconceptions";
 import styles from "./FeynmanStudioView.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 /* Why a turn scored nothing. Without this the studio showed a reply and no
    change to the bar, which reads as the app having lost the message. */
@@ -28,6 +38,10 @@ const SKIPPED_TURN_LABELS: Record<string, string> = {
 export function FeynmanStudioView() {
   const { sessionId: paramSessionId } = useParams<{ sessionId?: string }>();
   const navigate = useNavigate();
+  /* Above the `if (!session)` early return below — a hook after it changes the
+     hook order between renders. */
+  const recordMisconceptions = useRecordMisconceptions();
+  const { showToast } = useToast();
 
   const [session, setSession] = useState<FeynmanSessionState | null>(null);
   const [explanationText, setExplanationText] = useState("");
@@ -66,7 +80,7 @@ export function FeynmanStudioView() {
           <p style={{ color: "var(--text-muted)", marginTop: "8px", marginBottom: "20px" }}>
             It may have been deleted, or it was from a while ago.
           </p>
-          <Button variant="primary" onClick={() => navigate("/feynman")}>
+          <Button variant="primary" onClick={() => navigate(newSessionHref("teach"))}>
             <Icon name="chevron-down" size={16} style={{ transform: "rotate(90deg)" }} /> Back
           </Button>
         </div>
@@ -74,11 +88,24 @@ export function FeynmanStudioView() {
     );
   }
 
-  const persona = PERSONA_PROFILES[session.persona];
+  const persona = getPersonaProfile(session.persona, session.customAudience);
+  const analogyProfile = session.analogyStyle ? ANALOGY_STYLE_PROFILES[session.analogyStyle] : null;
+  const depthProfile = session.depth ? EXPLANATION_DEPTH_PROFILES[session.depth] : null;
   const lastTurn =
     session.turns.length > 0 ? session.turns[session.turns.length - 1] : null;
   const currentEmotion = lastTurn?.emotion ?? "confused";
   const currentScore = session.currentScore;
+
+  /* The apprentice asks a fresh question on every turn, but this pane used to
+     render `draft.challengeQuestion` — their *opening* question — forever. So
+     after a reply the left pane, which is where the instructions point the
+     student ("Read what they wrote on the left, then explain it below"), still
+     showed a question they had already answered, while the conversation pane
+     right next to it showed the new one. Two panes, one screen, disagreeing
+     about what is being asked. Falls back to the opening question before the
+     first turn, and for a turn that produced no follow-up. */
+  const currentChallengeQuestion =
+    lastTurn?.feedback?.followUpQuestion ?? session.draft.challengeQuestion;
 
   // Track which misconceptions have been addressed across all turns
   const allSolvedConcepts = new Set<string>();
@@ -118,6 +145,7 @@ export function FeynmanStudioView() {
     }
   };
 
+
   const handleTeachSubmit = async () => {
     if (!explanationText.trim() || isSubmitting) return;
 
@@ -127,7 +155,10 @@ export function FeynmanStudioView() {
         session.draft,
         session.turns,
         explanationText.trim(),
-        session.persona
+        session.persona,
+        session.analogyStyle,
+        session.depth,
+        session.customAudience
       );
 
       const updatedTurns = [...session.turns, turn];
@@ -141,6 +172,19 @@ export function FeynmanStudioView() {
       setSession(updatedSession);
       saveFeynmanSession(updatedSession);
       setExplanationText("");
+
+      /* Both halves of the turn go to the ledger: what the apprentice was
+         still confused about is evidence, what the student explained well is a
+         correction. The draft is passed only to name the subject and topic —
+         the extractor deliberately ignores its planted misconceptions, which
+         are the app's inventions rather than the student's beliefs. */
+      if (turn.scoredBy === "local") {
+        showToast(
+          "Learnora's AI couldn't be reached, so a simple built-in checker marked that. It isn't saved to your progress.",
+        );
+      } else {
+        recordMisconceptions(candidatesFromTeachingTurn(turn, session.draft));
+      }
     } catch (err) {
       console.error("Evaluation failed", err);
     } finally {
@@ -192,6 +236,11 @@ export function FeynmanStudioView() {
 
       setSession(completedSession);
       saveFeynmanSession(completedSession);
+      /* Evidence only from AI-marked teaching; a session the built-in checker
+         marked is practice, not a measurement. */
+      if (session.turns.length && !session.turns.some((t) => t.scoredBy === "local")) void learningEventsApi.record({ source: "feynman", topicKey: normaliseTopicKey(session.topic),
+        score: Math.max(0, Math.min(1, debrief.overallMastery / 100)), clientId: `feynman:${session.id}`,
+        payload: { sessionId: session.id, subject: session.subject } }).catch(err => console.warn("[feynman] evidence:", err));
       navigate(`/feynman/debrief/${completedSession.id}`);
     } catch (err) {
       console.error("Failed to generate debrief", err);
@@ -201,6 +250,41 @@ export function FeynmanStudioView() {
     }
   };
 
+  const analogyShortcut = (() => {
+    switch (session.analogyStyle) {
+      case "sports_cricket":
+        return {
+          label: "Cricket comparison",
+          text: "Think of it like a cricket pitch: imagine the bowler delivers a ball where...",
+        };
+      case "cooking_kitchen":
+        return {
+          label: "Kitchen comparison",
+          text: "Think of it like cooking a recipe: imagine when ingredients react in a pan and...",
+        };
+      case "gaming_tech":
+        return {
+          label: "Gaming or tech comparison",
+          text: "Think of it like a game engine loop: imagine when player input updates and...",
+        };
+      case "physical_machinery":
+        return {
+          label: "Machinery comparison",
+          text: "Think of it like interlocking gears and valves: imagine a mechanism where...",
+        };
+      case "storytelling":
+        return {
+          label: "Story metaphor",
+          text: "Picture a royal courier carrying an urgent scroll through castles: imagine...",
+        };
+      default:
+        return {
+          label: "Use a comparison",
+          text: "Think of it like this analogy: imagine...",
+        };
+    }
+  })();
+
   return (
     <div className={styles.container}>
       {/* Header and quick actions */}
@@ -209,20 +293,30 @@ export function FeynmanStudioView() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => navigate("/feynman")}
-            aria-label="Back to Explain It Simply"
+            onClick={() => navigate(newSessionHref("teach"))}
+            aria-label="Back to Explain it simply"
           >
             <Icon name="x" size={14} /> Back
           </Button>
           <div className={styles.headerTitleGroup}>
             <span className={styles.headerEyebrow}>
-              {session.subject} • {session.difficulty}
+              {session.subject} • {depthProfile ? depthProfile.label : session.difficulty}
             </span>
             <div className={styles.headerTitle}>
               {session.topic}
-              <span className={styles.personaBadge}>
+              <span className={styles.personaBadge} data-testid="active-persona-badge">
                 {persona.avatar} {persona.name}
               </span>
+              {analogyProfile && (
+                <span className={styles.analogyBadge} data-testid="active-analogy-badge">
+                  {analogyProfile.icon} {analogyProfile.label}
+                </span>
+              )}
+              {depthProfile && (
+                <span className={styles.depthBadge} data-testid="active-depth-badge">
+                  ⏱ {depthProfile.estimatedMinutes}m
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -335,7 +429,7 @@ export function FeynmanStudioView() {
               <Icon name="help-circle" size={16} /> {persona.shortName} asks:
             </div>
             <div className={styles.challengeText}>
-              &quot;{session.draft.challengeQuestion}&quot;
+              &quot;{currentChallengeQuestion}&quot;
             </div>
           </div>
 
@@ -440,8 +534,49 @@ export function FeynmanStudioView() {
 
                     {/* What they said back */}
                     <div className={styles.apprenticeReplyBubble} data-testid="apprentice-turn-bubble">
-                      <strong>{persona.name}:</strong>
+                      <strong>{persona.shortName}:</strong>
                       <p>{turn.apprenticeReaction}</p>
+
+                      {/* Creative apprentice feedback breakdown */}
+                      {turn.feedback && (
+                        <div className={styles.feedbackBreakdown} data-testid="turn-feedback-breakdown">
+                          {turn.feedback.whatMadeSense && turn.feedback.whatMadeSense.length > 0 && (
+                            <div className={styles.feedbackSense} data-testid="feedback-what-made-sense">
+                              <div className={styles.feedbackSenseTitle}>
+                                <Icon name="check" size={13} /> Crystal clear:
+                              </div>
+                              <ul className={styles.feedbackList}>
+                                {turn.feedback.whatMadeSense.map((item, sIdx) => (
+                                  <li key={sIdx}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {turn.feedback.followUpQuestion && (
+                            <div className={styles.feedbackQuestion} data-testid="feedback-follow-up-question">
+                              <div className={styles.feedbackQuestionTitle}>
+                                <Icon name="help-circle" size={13} /> {persona.shortName} asks:
+                              </div>
+                              <div className={styles.feedbackQuestionText}>
+                                &quot;{turn.feedback.followUpQuestion}&quot;
+                              </div>
+                            </div>
+                          )}
+                          {turn.feedback.remainingGaps && turn.feedback.remainingGaps.length > 0 && (
+                            <div className={styles.feedbackGaps} data-testid="feedback-remaining-gaps">
+                              <div className={styles.feedbackGapsTitle}>
+                                <Icon name="alert-triangle" size={13} /> Points to clarify:
+                              </div>
+                              <ul className={styles.feedbackList}>
+                                {turn.feedback.remainingGaps.map((item, gIdx) => (
+                                  <li key={gIdx}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {(turn.solvedPoints.length > 0 ||
                         (turn.quality && turn.quality !== "substantive")) && (
                         <div className={styles.turnFeedbackPills}>
@@ -470,18 +605,20 @@ export function FeynmanStudioView() {
 
           {/* Where you type */}
           <div className={styles.consoleCard}>
-            {/* Starter phrases */}
+            {/* Starter phrases. Labelled because unlabelled chips above a
+                textarea read as filters rather than as text they insert. */}
+            <span className={styles.shortcutsLabel}>Insert a prompt</span>
             <div className={styles.shortcutsRow}>
               <button
                 type="button"
                 className={styles.shortcutBtn}
                 onClick={() =>
                   handleApplyShortcut(
-                    "Think of it like this analogy: imagine..."
+                    analogyShortcut.text
                   )
                 }
               >
-                💡 Use a comparison
+                <Icon name="sparkles" size={13} /> {analogyShortcut.label}
               </button>
               <button
                 type="button"
@@ -492,7 +629,7 @@ export function FeynmanStudioView() {
                   )
                 }
               >
-                ⚠️ Point out the mistake
+                <Icon name="alert-triangle" size={13} /> Point out the mistake
               </button>
               <button
                 type="button"
@@ -503,7 +640,7 @@ export function FeynmanStudioView() {
                   )
                 }
               >
-                🪜 Go step by step
+                <Icon name="list-checks" size={13} /> Go step by step
               </button>
               <button
                 type="button"
@@ -514,7 +651,7 @@ export function FeynmanStudioView() {
                   )
                 }
               >
-                🔬 Give an example that breaks it
+                <Icon name="bug" size={13} /> Give an example that breaks it
               </button>
             </div>
 

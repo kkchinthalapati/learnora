@@ -23,7 +23,8 @@ export function isLibrarySection(pathname: string): boolean {
     pathname.startsWith("/folders/") ||
     pathname.startsWith("/notes/") ||
     pathname.startsWith("/quiz/") ||
-    pathname.startsWith("/review/")
+    pathname.startsWith("/review/") ||
+    pathname.startsWith("/decks/")
   );
 }
 
@@ -33,32 +34,44 @@ export function isNotebooksSection(pathname: string): boolean {
 
 export type PrimaryDestination =
   | "dashboard"
-  | "notebooks"
   | "library"
   | "plan"
-  | "focus"
-  | "progress";
+  | "progress"
+  | "study_lab";
 
 export function primaryDestinationForPath(
   pathname: string,
 ): PrimaryDestination | null {
+  /* Five destinations (2026-09 redesign). /dashboard redirects to Today, and
+     the focus timer is a Plan page now — it was a destination of its own. */
   if (pathname === "/") return "dashboard";
-  if (isNotebooksSection(pathname)) return "notebooks";
+  if (isNotebooksSection(pathname)) return "library";
   if (isLibrarySection(pathname)) return "library";
   if (
     pathname.startsWith("/plan") ||
+    pathname.startsWith("/my-week") ||
     pathname.startsWith("/tasks") ||
-    pathname.startsWith("/exams")
+    pathname.startsWith("/exams") ||
+    pathname.startsWith("/timer")
   ) {
     return "plan";
   }
-  if (pathname.startsWith("/timer")) return "focus";
-  if (pathname.startsWith("/analytics")) return "progress";
+  if (
+    pathname.startsWith("/analytics") ||
+    pathname.startsWith("/trajectory")
+  )
+    return "progress";
+  if (isStudyLabSection(pathname)) return "study_lab";
   return null;
 }
 
 export function isStudyLabSection(pathname: string): boolean {
-  return ["/graph", "/debugger", "/feynman", "/premortem"].some((routePrefix) =>
+  /* Canonical routes only. /debugger, /sparring, /premortem, /exam-traps and
+     /ai-tutor are <Navigate> redirects, so the router replaces them before any
+     of this runs — matching on them here could never fire. */
+  /* /solver, /feynman, /viva and /exam-detective redirect into a Session
+     now; only the debrief page survives under /feynman. */
+  return ["/study", "/feynman/debrief"].some((routePrefix) =>
     pathname.startsWith(routePrefix),
   );
 }
@@ -71,20 +84,31 @@ export function sectionLabel(
   pathname: string,
   t: (key: TranslationKey) => string,
 ): string {
-  if (pathname === "/") return t("nav_dashboard");
+  if (pathname === "/") return "Today";
+  if (pathname.startsWith("/dashboard")) return t("nav_dashboard");
   if (isNotebooksSection(pathname)) return "Notebooks";
+  /* A quiz or a review session is an activity, not the Library page; the
+     header saying "Library" mid-quiz told the student they were somewhere
+     else. The sidebar still lights Library via isLibrarySection. */
+  if (pathname.startsWith("/quiz/")) return "Quiz";
+  if (pathname.startsWith("/review/")) return "Flashcard review";
+  /* The deck editor was in no section at all: the header read "Learnora"
+     and no sidebar item was lit, so a student editing cards had no idea
+     where in the app they were. */
+  if (pathname.startsWith("/decks/")) return "Flashcards";
   if (isLibrarySection(pathname)) return t("nav_library");
+  /* Same words as the sidebar row. It said "Focus" there and "Timer" here. */
   if (pathname.startsWith("/timer")) return t("nav_timer");
   if (pathname.startsWith("/tasks")) return t("nav_tasks");
   /* "Progress" everywhere — it is the rail's label and the student's own
      word for this. The page header used to say "Analytics", so one
      destination had two names depending on where you read it. */
   if (pathname.startsWith("/analytics")) return "Progress";
-  if (pathname.startsWith("/graph")) return "How Topics Connect";
-  if (pathname.startsWith("/feynman")) return "Explain It Simply";
-  if (pathname.startsWith("/debugger")) return "Find My Mistake";
-  if (pathname.startsWith("/premortem")) return "What Could Go Wrong";
-  if (pathname.startsWith("/plan")) return "This week's plan";
+  if (pathname.startsWith("/trajectory")) return "Trajectory";
+  if (pathname.startsWith("/study")) return "Study";
+  if (pathname.startsWith("/feynman/debrief")) return "Teach debrief";
+  if (pathname.startsWith("/my-week")) return "Availability";
+  if (pathname.startsWith("/plan")) return "Plan";
   if (pathname.startsWith("/exams")) return "Exams";
   if (pathname.startsWith("/room")) return "Study Room";
   /* Covers /friends/add/:code too, so an invite link keeps the sidebar's
@@ -101,18 +125,18 @@ export function sectionLabel(
  * exactly what shipped: `/notebooks` rendered the word "Notebooks" as the
  * shell <h1> and again 150px below as the hub <h1>, and four more routes
  * printed a shell title above a longer restatement of the same thing
- * ("Explain It Simply" over the hub's own longer hero title, "Study Room" over
+ * ("Explain it simply" over the hub's own longer hero title, "Study Room" over
  * "Virtual Study Circle", and so on).
  *
  * Two <h1>s per document is also an accessibility defect independent of how
  * it looks. The rule here is that a page has exactly one title: either the
  * shell supplies it (the common case, for views that are just content) or
- * the view does (these five, whose heroes carry more than a name). */
+ * the view does (these routes, whose heroes carry more than a name). */
 const HERO_ROUTES = [
-  "/notebooks",
+  "/",
+  "/library",
+  "/study",
   "/feynman",
-  "/premortem",
-  "/debugger",
   "/room",
 ];
 

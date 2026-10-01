@@ -10,7 +10,11 @@
  */
 
 import { supabase, SUPABASE_URL } from "../lib/supabase";
+import { AI_CONSENT_DECLINED_MESSAGE, ensureAiConsent } from "../lib/aiConsent";
 import type { Settings } from "../lib/settings";
+import type { AiToolId } from "../lib/entitlements";
+import { queryClient } from "../lib/queryClient";
+import { aiUsageKeys } from "./aiUsage";
 
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
 
@@ -44,14 +48,42 @@ export interface FilePayload {
 }
 
 /** `undefined` means free-form chat; the rest map to the edge function's
- *  `modeInstructions` switch (supabase/functions/learnora-ai/index.ts:383-397). */
-export type EdgeMode = "plan" | "quiz" | "flashcards" | "notes" | "rewrite";
+ *  `modeInstructions` switch (supabase/functions/learnora-ai/index.ts). */
+export type EdgeMode =
+  "plan" | "quiz" | "flashcards" | "notes" | "rewrite" | "solver" | "image";
 
 export interface EdgePayload {
   history: ChatMessage[];
   mode?: EdgeMode;
   file?: FilePayload | null;
   settings?: Settings;
+  /** Which metered AI tool this call counts against (see `AI_TOOLS` in
+   *  entitlements.ts). Distinct from `mode`, which is only the response-shape
+   *  contract — several product features share a `mode` (pre-mortem, feynman
+   *  and the exam deconstructor all send `mode: "quiz"` purely for its JSON
+   *  parsing) but must still be billed as separate tools. Optional only for
+   *  callers not yet migrated; the edge function falls back to "chat". */
+  tool?: AiToolId;
+  /** App-authored instructions and workspace data for a conversational turn.
+   *  The edge function places this in the system instruction, apart from the
+   *  student's own words in `history`. It used to be prefixed to the student's
+   *  message as "[SYSTEM — …]", which left a student's "ignore the above"
+   *  with exactly the same standing as the app's own rules. */
+  context?: string;
+  /** The Study session this call belongs to. The edge function bills a
+   *  session's calls once against the daily allowance (see
+   *  checkAndLogRateLimit). Set automatically while a session is open. */
+  sessionKey?: string;
+}
+
+/* The open Study session, if any. Module state rather than a parameter on
+   every AI function, because a session's calls come from a dozen helpers
+   (plan, check, sparring, Feynman grading…) that should not each need to
+   know they are inside one. SessionView sets and clears it. */
+let activeSessionKey: string | null = null;
+
+export function setActiveAiSession(key: string | null): void {
+  activeSessionKey = key && /^[A-Za-z0-9_-]{6,80}$/.test(key) ? key : null;
 }
 
 export interface EdgeResult {
@@ -66,6 +98,9 @@ export interface EdgeResult {
    *  to show; anything that treats `text` as data to save (`generateNotes`)
    *  must check it first. */
   refused?: boolean;
+  /** `mode: "image"` only: the storage key of the generated picture in the
+   *  private `chat-media` bucket (see api/aiImage.ts). */
+  imagePath?: string;
 }
 
 /** Error carrying the two flags the vanilla attached to its thrown errors, so
@@ -74,18 +109,24 @@ export interface EdgeResult {
 export class AiError extends Error {
   readonly retryable: boolean;
   readonly refused: boolean;
+  /** The HTTP status the edge function answered with, when it answered.
+   *  429 is the daily allowance or the burst limit — never an outage, and
+   *  never a reason to fall back to canned content. */
+  readonly status?: number;
 
   constructor(
     message: string,
     {
       retryable = true,
       refused = false,
-    }: { retryable?: boolean; refused?: boolean } = {},
+      status,
+    }: { retryable?: boolean; refused?: boolean; status?: number } = {},
   ) {
     super(message);
     this.name = "AiError";
     this.retryable = retryable;
     this.refused = refused;
+    this.status = status;
   }
 }
 
@@ -93,6 +134,16 @@ const GENERIC_FAILURE =
   "AI is temporarily unavailable. Please try again in a moment.";
 const TIMEOUT_MESSAGE =
   "That took longer than expected and timed out. Please try again in a moment.";
+/** Not a failure: the student pressed Stop. Non-retryable so no caller
+ *  quietly starts the request again on their behalf. */
+export const CANCELLED_MESSAGE = "Stopped.";
+/** The fetch never reached the server. Browsers word this as "Failed to
+ *  fetch" / "Load failed" / "NetworkError…", none of which a student should
+ *  have to decode. */
+export const OFFLINE_MESSAGE =
+  "You seem to be offline, so Learnora couldn't reach its AI. Check your connection and try again.";
+export const NETWORK_MESSAGE =
+  "The connection dropped before Learnora's AI could answer. Please try again.";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -107,54 +158,128 @@ export async function callEdge(
   payload: EdgePayload,
   onText?: (text: string) => void | Promise<void>,
   retries = MAX_RETRIES,
+  /** Lets the caller give up before the deadline does. A first answer takes
+   *  around thirty seconds against the live chain, most of it invisible, so
+   *  a student who has changed their mind needs a way out that actually
+   *  stops the request rather than hiding it. */
+  externalSignal?: AbortSignal,
 ): Promise<EdgeResult> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  const body = JSON.stringify(payload);
+  const body = JSON.stringify(
+    activeSessionKey && !payload.sessionKey ? { ...payload, sessionKey: activeSessionKey } : payload,
+  );
+
+  /* Every AI feature funnels through here, so this is the one gate. A student
+     who has not agreed is asked now, and the request carries on if they say
+     yes (lib/aiConsent.ts). */
+  if (!(await ensureAiConsent(data.session?.user?.user_metadata))) {
+    throw new AiError(AI_CONSENT_DECLINED_MESSAGE, { retryable: false });
+  }
 
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    /* A cancelled request must not start another attempt. Checked before
+       each one rather than only at the fetch, so pressing Stop during the
+       backoff between retries ends it there. */
+    if (externalSignal?.aborted) throw new AiError(CANCELLED_MESSAGE, { retryable: false });
+
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      // Without a deadline a stalled connection leaves the UI on its loading
-      // spinner indefinitely, with no error and no way back.
-      const response = await fetch(EDGE_URL, {
-        method: "POST",
-        headers,
-        body,
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
+      /* Two ways to end this call: the deadline, without which a stalled
+         connection leaves the UI spinning forever with no error and no way
+         back, and the caller. Combined by hand rather than with
+         AbortSignal.any, which jsdom does not implement in the versions
+         this suite runs under. */
+      const attemptController = new AbortController();
+      const onExternalAbort = () => attemptController.abort();
+      const deadline = setTimeout(() => attemptController.abort(), REQUEST_TIMEOUT_MS);
+      externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
+
+      let response: Response;
+      try {
+        response = await fetch(EDGE_URL, {
+          method: "POST",
+          headers,
+          body,
+          signal: attemptController.signal,
+        });
+      } finally {
+        clearTimeout(deadline);
+        externalSignal?.removeEventListener("abort", onExternalAbort);
+      }
+
+      if (externalSignal?.aborted) {
+        throw new AiError(CANCELLED_MESSAGE, { retryable: false });
+      }
+
+      /* The server has just ruled on this user's daily allowance, so whatever
+         the usage meter is showing is now behind: a 2xx spent one generation,
+         and a 429 means they are at the ceiling. Every AI call in the app
+         funnels through here, so this one line keeps the meter honest for all
+         of them. Deliberately not awaited — the meter is cosmetic, and must
+         never delay a generation or fail one by throwing. */
+      if (response.ok || response.status === 429) {
+        void queryClient.invalidateQueries({ queryKey: aiUsageKeys.today });
+      }
 
       if (!response.ok) {
         const errorBody = (await response.json().catch(() => ({}))) as {
           error?: string;
+          text?: string;
           refused?: boolean;
         };
-        throw new AiError(errorBody.error || GENERIC_FAILURE, {
-          // 4xx means the request itself is wrong (bad/expired token, bad
-          // payload) — retrying it just burns another round trip.
-          retryable: response.status >= 500 || response.status === 429,
-          // A content refusal carries its own explanation and must be shown
-          // verbatim rather than flattened into "generation failed".
-          refused: errorBody.refused === true,
-        });
+        /* `text` as well as `error`, because the edge function's rate-limit
+           replies are not shaped alike: `rateLimitResponse` puts the message
+           under `error` for the JSON modes (quiz, flashcards, plan) and under
+           `text` for everything else — chat, notes, the tutor. Reading only
+           `error` meant the modes a student uses most answered a spent daily
+           allowance with the generic failure line, and the copy that actually
+           explains it ("They reset at midnight — or Learnora Pro raises the
+           limit") never reached anyone. */
+        throw new AiError(
+          /* A 5xx body is the server talking to itself ("Internal error"),
+             not to the student. Only 4xx bodies — rate limits, refusals,
+             bad input — carry copy written for a person. */
+          response.status >= 500
+            ? GENERIC_FAILURE
+            : errorBody.error || errorBody.text || GENERIC_FAILURE,
+          {
+            // 4xx means the request itself is wrong (bad/expired token, bad
+            // payload) — retrying it just burns another round trip.
+            //
+            // 429 included: both ceilings behind it are measured in hours (a
+            // daily allowance that resets at midnight UTC) or minutes (the
+            // burst window), so a 2-second replay cannot clear either. It only
+            // delayed the message by the retry backoff and spent a second
+            // round trip proving the server meant it.
+            retryable: response.status >= 500,
+            // A content refusal carries its own explanation and must be shown
+            // verbatim rather than flattened into "generation failed".
+            refused: errorBody.refused === true,
+            status: response.status,
+          },
+        );
       }
 
       const fullText = await response.text();
       let text = fullText;
       let refused = false;
+      let imagePath: string | undefined;
       try {
         const parsed = JSON.parse(fullText) as {
           text?: string;
           refused?: boolean;
+          imagePath?: string;
         };
         if (parsed && typeof parsed.text === "string") text = parsed.text;
         if (parsed?.refused === true) refused = true;
+        if (typeof parsed?.imagePath === "string") imagePath = parsed.imagePath;
       } catch {
         /* Not JSON — the body is already the reply text. */
       }
@@ -162,19 +287,38 @@ export async function callEdge(
       if (onText) await onText(text);
       // Omitted rather than `false` when not refused, so a caller asserting
       // the plain `{ text }` shape isn't broken by an always-present field.
-      return refused ? { text, refused } : { text };
+      return {
+        text,
+        ...(refused ? { refused } : {}),
+        ...(imagePath ? { imagePath } : {}),
+      };
     } catch (err) {
       // Hitting our own deadline means the server already spent its whole
       // budget walking the provider chain. Replaying that costs another
       // minute of spinner to almost certainly time out again.
+      //
+      // A cancel aborts the same controller and so arrives here as the same
+      // AbortError. The signal is what tells them apart, and it matters:
+      // telling a student their own Stop press "timed out" reads as a
+      // failure they should retry.
       const name = (err as Error)?.name;
       if (name === "TimeoutError" || name === "AbortError") {
-        throw new AiError(TIMEOUT_MESSAGE, { retryable: false });
+        throw externalSignal?.aborted
+          ? new AiError(CANCELLED_MESSAGE, { retryable: false })
+          : new AiError(TIMEOUT_MESSAGE, { retryable: false });
       }
 
       lastError = err;
       const isLast = attempt === retries;
-      if (isLast || (err instanceof AiError && !err.retryable)) throw err;
+      if (err instanceof AiError && !err.retryable) throw err;
+      if (isLast) {
+        if (err instanceof AiError) throw err;
+        throw new AiError(
+          typeof navigator !== "undefined" && navigator.onLine === false
+            ? OFFLINE_MESSAGE
+            : NETWORK_MESSAGE,
+        );
+      }
       console.warn(
         `[AI] Retry ${attempt + 1}/${retries}: ${(err as Error)?.message}`,
       );
@@ -195,7 +339,3 @@ export function trimHistory(history: ChatMessage[]): ChatMessage[] {
 /** A user-facing message for any error out of this layer. A refusal and a
  *  timeout both carry their own wording; anything else gets the fallback the
  *  caller supplies. */
-export function aiErrorMessage(err: unknown, fallback: string): string {
-  if (err instanceof AiError) return err.message;
-  return fallback;
-}

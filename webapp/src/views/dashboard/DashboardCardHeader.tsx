@@ -15,7 +15,9 @@ export function DashboardCardHeader({
 }: DashboardCardHeaderProps) {
   return (
     <div className={styles.cardHead}>
-      <span className={styles.eyebrow}>{eyebrow}</span>
+      <span className={styles.eyebrow} data-card-eyebrow="">
+        {eyebrow}
+      </span>
       {action ? (
         <Link to={action.to} className={styles.link}>
           {action.label}

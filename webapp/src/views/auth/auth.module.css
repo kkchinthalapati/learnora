@@ -115,6 +115,34 @@
   margin-top: var(--s-4);
 }
 
+/* --- AI-provider consent checkbox (sign-up only) --- */
+
+.consentGroup {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+
+.consentCheckbox {
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.consentLabel {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.consentLabel a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
 .toggleText {
   text-align: center;
   color: var(--text-muted);
@@ -340,4 +368,20 @@
   .spinner {
     animation-duration: 3s;
   }
+}
+
+.consentHint {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+/* Why the student is on this screen when they didn't choose to be — shown
+   after a session that could not be renewed (lib/sessionRecovery.ts). Stays
+   until they sign in, unlike the 6-second form status above. */
+.statusNotice {
+  background: var(--accent-soft);
+  color: var(--text);
+  border: 1px solid var(--accent-soft);
 }

@@ -7,7 +7,8 @@ import { useAuth } from "./auth";
 import { useSettings } from "./settings";
 import { useTimerIntervention } from "../hooks/useTimerIntervention";
 import { useFolders } from "../hooks/useFolders";
-import { Storage } from "../lib/storage";
+import { appUrl } from "../lib/appUrl";
+import { appendLocalSession, readLocalSessions, type LocalSession } from "../lib/localSessions";
 import { recordFocusGoal, saveStudySnapshot } from "../lib/continuity";
 import {
   QUOTES,
@@ -36,6 +37,10 @@ import {
 } from "../lib/timer";
 import { TimerContext, type TimerApi } from "./timer";
 
+function randomClientId(): string {
+  return crypto.randomUUID();
+}
+
 /* Drives js/timer.js's state machine (lib/timer.ts) and owns the one live
  * interval. Mounted above the router because a running timer has to survive
  * navigating away from /timer, and the mini-timer is docked on every route.
@@ -46,22 +51,6 @@ import { TimerContext, type TimerApi } from "./timer";
  * is swallowed with a warning, so a flaky connection never loses a logged
  * session. */
 
-const LOCAL_SESSIONS_KEY = "sessions";
-const MAX_LOCAL_SESSIONS = 500;
-/* The vanilla dispatches this after every local write (js/timer.js:463) so
- * the dashboard's session log and "today" total repaint live even though the
- * timer that logged them can be running on a different route — FocusStudyHUD
- * keeps ticking app-wide. A `storage` event won't do it: that only fires in
- * *other* tabs, never the one that made the write. */
-export const SESSION_LOGGED_EVENT = "learnora:sessionLogged";
-
-interface LocalSession {
-  id: number;
-  timestamp: string;
-  minutes: number;
-  task: string;
-}
-
 export function TimerProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
   const { settings } = useSettings();
@@ -69,6 +58,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [smartDefaultsFetchedFor, setSmartDefaultsFetchedFor] = useState<
     string | null
   >(null);
+  /* Set when the focus length was changed to match the student's usual
+     session, so the timer can say why it isn't the 25 they expect. */
+  const [adaptedFocusMins, setAdaptedFocusMins] = useState<number | null>(null);
   const { session } = useAuth();
   const { data: folders } = useFolders();
 
@@ -85,6 +77,14 @@ export function TimerProvider({ children }: { children: ReactNode }) {
      does the logging, holds them. */
   const [activeTask, setActiveTask] = useState("None");
   const [activeFolderId, setActiveFolderId] = useState("");
+  const [activeDeckId, setActiveDeckId] = useState<string | null>(null);
+  const [sessionNote, setSessionNote] = useState("");
+  const sessionNoteRef = useRef("");
+  sessionNoteRef.current = sessionNote;
+
+  const [completedFocus, setCompletedFocus] = useState<LocalSession | null>(null);
+  const dismissCompletedFocus = useCallback(() => setCompletedFocus(null), []);
+  useEffect(() => setCompletedFocus(null), [session?.user.id]);
 
   const pause = useCallback(() => setState((s) => pauseT(s)), []);
 
@@ -96,6 +96,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     settings.timerFocusWatchdog,
   );
 
+  /** The last session written, so a re-run of the updater that scheduled it
+   *  cannot write it a second time. See the guard in `applyEffects`. */
+  const lastLoggedRef = useRef<{ key: string; at: number } | null>(null);
+
   /* Effects are applied outside the state updater — running them inside would
      fire them twice under StrictMode's double-invoked reducers. */
   const applyEffects = useCallback(
@@ -105,33 +109,81 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         const task = activeTask !== "None" ? activeTask : "General Study";
         const folderId = activeFolderId || null;
 
+        /* One finished session must produce exactly one logged session.
+         *
+         * Every path that can produce `logMinutes` schedules this from
+         * inside a `setState` updater (`reset`, the tick's end-of-timer
+         * branch). React is free to run an updater more than once — it
+         * does so on every render under StrictMode — and each run queues
+         * another microtask, so a single "Stop & log" was writing the
+         * session twice: once with the student's note, then again with
+         * `notes: null` after the line below clears the ref. The duplicate
+         * double-counted the minutes and, because the completion panel
+         * reads the newest row, replaced the finished-session screen with
+         * the note-less one that offers no quick check.
+         *
+         * Guarding here rather than restructuring all nine dispatch sites:
+         * this is the only effect that writes anything, and the guard holds
+         * whichever path fired it — including a count-down that expires in
+         * a background tab at the same moment the tick handler notices. */
+        const logKey = `${minutes}|${task}|${folderId}|${state.type}`;
+        const now = Date.now();
+        const previous = lastLoggedRef.current;
+        if (previous && previous.key === logKey && now - previous.at < 2_000) {
+          return;
+        }
+        lastLoggedRef.current = { key: logKey, at: now };
+
         /* Local history first, synchronously — see the note above. */
-        const stored = Storage.get<LocalSession[]>(LOCAL_SESSIONS_KEY, []);
-        const sessions = Array.isArray(stored) ? stored : [];
-        sessions.unshift({
-          id: Date.now(),
-          timestamp: new Date().toLocaleString([], {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+        const notes = sessionNoteRef.current.trim() || null;
+        appendLocalSession({
           minutes,
           task,
+          folderId,
+          timerType: state.type,
+          isGuest: !session,
+          deckId: activeDeckId,
+          notes,
         });
-        Storage.set(LOCAL_SESSIONS_KEY, sessions.slice(0, MAX_LOCAL_SESSIONS));
-        window.dispatchEvent(new Event(SESSION_LOGGED_EVENT));
 
-        logSession.mutate(
-          { minutes, task, folderId, timerType: state.type },
-          {
-            onError: (err) =>
-              console.warn(
-                "[Timer] Supabase session log failed (local copy preserved):",
-                err,
-              ),
-          },
-        );
+        setCompletedFocus(readLocalSessions()[0] ?? null);
+        sessionNoteRef.current = "";
+        setSessionNote("");
+        setActiveDeckId(null);
+        if (session) {
+          logSession.mutate(
+            {
+              minutes,
+              task,
+              folderId,
+              timerType: state.type,
+              notes,
+              deckId: activeDeckId,
+              clientId: randomClientId(),
+            },
+            {
+              onError: (err) =>
+                console.warn(
+                  "[Timer] Supabase session log failed (local copy preserved):",
+                  err,
+                ),
+            },
+          );
+        } else {
+          showToast(
+            "Guest session saved on this device. Sign up to sync across devices.",
+            {
+              actionLabel: "Sign Up",
+              /* A full page load rather than router navigation: TimerProvider
+                 is mounted above <BrowserRouter> (App.tsx), so there is no
+                 navigate() to call here. appUrl applies the deployed path
+                 prefix the router would otherwise have added. */
+              onAction: () => {
+                window.location.href = appUrl("/signup");
+              },
+            },
+          );
+        }
 
         /* Every logged phase is a finished focus phase (breaks never emit
          * logMinutes) — there's nothing left on the clock to resume, so drop
@@ -160,7 +212,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [
       activeTask,
       activeFolderId,
+      activeDeckId,
       logSession,
+      session,
       settings.notifyTimerAlerts,
       showToast,
       state.type,
@@ -295,7 +349,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     sessionsApi
       .fetchAverageSessionLengths(14)
       .then((averages) => {
-        const avgPomo = averages["pomodoro"];
+        /* Rounded to the nearest 5: an average of 41 showed "41:00", which
+           read as a glitch rather than a choice. */
+        const avgPomo = averages["pomodoro"]
+          ? Math.max(5, Math.round(averages["pomodoro"] / 5) * 5)
+          : averages["pomodoro"];
         const avgCount = averages["countdown"];
         let newDraft: Partial<TimerConfig> | null = null;
 
@@ -308,6 +366,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           draftConfig.focus === 25
         ) {
           newDraft = { ...draftConfig, focus: avgPomo };
+          setAdaptedFocusMins(avgPomo);
         }
         if (
           avgCount &&
@@ -382,7 +441,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
      only `focus` left a student on the Countdown type staring at an unchanged
      duration with no indication the button had done anything. */
   const prepareFocus = useCallback(
-    (mins: number, task?: string, folderId?: string | null) => {
+    (
+      mins: number,
+      task?: string,
+      folderId?: string | null,
+      deckId?: string | null,
+    ) => {
       const partial: Partial<TimerConfig> = { focus: mins, countdown: mins };
       setDraft((prev) => ({ ...prev, ...partial }));
       setState((s) => {
@@ -407,6 +471,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           setActiveFolderId(matched.id);
         }
       }
+      setActiveDeckId(deckId ?? null);
     },
     [folders],
   );
@@ -461,6 +526,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<TimerApi>(
     () => ({
+      completedFocus, dismissCompletedFocus,
       state,
       draftConfig,
       setDraftConfig,
@@ -479,16 +545,25 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       setActiveTask,
       activeFolderId,
       setActiveFolderId,
+      activeDeckId,
+      setActiveDeckId,
+      sessionNote,
+      setSessionNote,
       favs,
       saveFav,
       deleteFav,
       applyFav,
       quote: QUOTES[quoteIndex],
       newQuote,
+      adaptedFocusMins,
     }),
     [
+      adaptedFocusMins,
+      completedFocus, dismissCompletedFocus,
       activeTask,
       activeFolderId,
+      activeDeckId,
+      sessionNote,
       state,
       draftConfig,
       setDraftConfig,

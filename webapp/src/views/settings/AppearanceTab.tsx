@@ -2,6 +2,7 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
+import { ProGate } from "../../components/ProGate";
 import { useAppearance } from "../../context/appearance";
 import { useToast } from "../../context/toast";
 import {
@@ -151,59 +152,64 @@ export function AppearanceTab() {
           </div>
         </div>
 
-        <div className={`${settings.field} ${settings.fieldStack}`}>
-          <div className={settings.fieldLabel}>
-            <span className={settings.labelText}>Accent Colour</span>
-            <p className={settings.fieldDesc}>Choose an accent preset.</p>
-          </div>
-          <div
-            className={styles.swatchGrid}
-            role="group"
-            aria-label="Colour presets"
-          >
-            {THEME_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                className={styles.swatchCard}
-                data-theme={preset.id}
-                aria-pressed={appearance.accent === preset.id}
-                onClick={() => setAppearance({ accent: preset.id })}
-              >
-                <span className={styles.swatchPreview} aria-hidden="true">
-                  <span className={styles.swatchDot} />
-                </span>
-                <span className={styles.swatchInfo}>
-                  <span className={styles.swatchName}>{preset.name}</span>
-                  <span className={styles.swatchActiveIcon} aria-hidden="true">
-                    <Icon name="check" size={14} strokeWidth={2.25} />
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={`${settings.field} ${settings.fieldStack}`}>
-          <div className={`${settings.fieldLabel} ${styles.studioHeading}`}>
-            <div>
-              <span className={settings.labelText}>Custom Colours</span>
-              <p className={settings.fieldDesc}>
-                Build an accent from up to three colours.
-              </p>
+        <ProGate feature="customAppearance" loadingHeight={340}>
+          <div className={`${settings.field} ${settings.fieldStack}`}>
+            <div className={settings.fieldLabel}>
+              <span className={settings.labelText}>Accent Colour</span>
+              <p className={settings.fieldDesc}>Choose an accent preset.</p>
             </div>
-            <span
-              className={`${styles.studioBadge}${
-                appearance.accent === "custom"
-                  ? ` ${styles.studioBadgeActive}`
-                  : ""
-              }`}
+            <div
+              className={styles.swatchGrid}
+              role="group"
+              aria-label="Colour presets"
             >
-              ACTIVE
-            </span>
+              {THEME_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={styles.swatchCard}
+                  data-theme={preset.id}
+                  aria-pressed={appearance.accent === preset.id}
+                  onClick={() => setAppearance({ accent: preset.id })}
+                >
+                  <span className={styles.swatchPreview} aria-hidden="true">
+                    <span className={styles.swatchDot} />
+                  </span>
+                  <span className={styles.swatchInfo}>
+                    <span className={styles.swatchName}>{preset.name}</span>
+                    <span
+                      className={styles.swatchActiveIcon}
+                      aria-hidden="true"
+                    >
+                      <Icon name="check" size={14} strokeWidth={2.25} />
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-          <CustomThemeStudio />
-        </div>
+
+          <div className={`${settings.field} ${settings.fieldStack}`}>
+            <div className={`${settings.fieldLabel} ${styles.studioHeading}`}>
+              <div>
+                <span className={settings.labelText}>Custom Colours</span>
+                <p className={settings.fieldDesc}>
+                  Build an accent from up to three colours.
+                </p>
+              </div>
+              <span
+                className={`${styles.studioBadge}${
+                  appearance.accent === "custom"
+                    ? ` ${styles.studioBadgeActive}`
+                    : ""
+                }`}
+              >
+                ACTIVE
+              </span>
+            </div>
+            <CustomThemeStudio />
+          </div>
+        </ProGate>
 
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>

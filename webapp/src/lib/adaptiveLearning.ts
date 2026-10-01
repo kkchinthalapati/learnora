@@ -10,6 +10,7 @@ import type {
   WeakTopic,
 } from "../api/types";
 import { daysUntil } from "../views/dashboard/analytics";
+import { calendarDayOf, localDateStr } from "./date";
 
 export type HealthGrade = "optimal" | "good" | "needs-attention" | "at-risk";
 
@@ -260,7 +261,7 @@ export function calculateRetentionRisk(
     };
   }
 
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const todayStr = localDateStr(now);
 
   let overdueCount = 0;
   let dueTodayCount = 0;
@@ -272,7 +273,10 @@ export function calculateRetentionRisk(
       continue;
     }
 
-    const reviewDateStr = card.next_review_date.slice(0, 10);
+    /* The student's calendar day, not the first ten characters: slicing a
+       stored local-midnight instant read cards due today as a day overdue
+       anywhere east of Greenwich. */
+    const reviewDateStr = calendarDayOf(card.next_review_date);
     if (reviewDateStr < todayStr) {
       overdueCount++;
       if (card.ease_factor < 2.0 || card.srs_interval <= 1) {

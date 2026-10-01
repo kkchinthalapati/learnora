@@ -1,24 +1,48 @@
-import { useId } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Combobox } from "../../components/Combobox";
 import { Icon } from "../../components/Icon";
+import { ToggleSwitch } from "../../components/ToggleSwitch";
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import { useTranslation } from "../../hooks/useTranslation";
 import { profileApi } from "../../api/profile";
+import {
+  FRAMEWORKS,
+  REGIONS,
+  REGION_IDS,
+  detectRegion,
+  getRegion,
+  isFrameworkId,
+  isRegionId,
+} from "../../lib/region";
+import {
+  GRADE_SCALES,
+  GRADE_SCALE_IDS,
+  isGradeScaleId,
+} from "../../lib/gradeScale";
 import { examsApi } from "../../api/exams";
 import { plansApi } from "../../api/plans";
 import { generateICS, downloadICS } from "../../lib/ics";
 import {
+  useProfileDetails,
+  useUpdateStudyProfile,
+} from "../../hooks/useProfileDetails";
+import {
+  AI_DEPTH_OPTIONS,
   AI_LANGUAGE_OPTIONS,
   AI_LENGTH_OPTIONS,
   AI_PERSONA_OPTIONS,
+  AI_STYLE_OPTIONS,
   UI_LANGUAGE_OPTIONS,
   type AiConciseness,
   type AiPersona,
+  type PersonaDepth,
+  type StudyStyle,
 } from "../../lib/settings";
 import type { TranslationKey } from "../../lib/i18n";
+import { SetupCard } from "./SetupCard";
 import styles from "./settings.module.css";
 
 const PERSONA_KEYS: Record<AiPersona, TranslationKey> = {
@@ -34,6 +58,24 @@ const LENGTH_KEYS: Record<AiConciseness, TranslationKey> = {
   detailed: "opt_long",
 };
 
+const EXAM_TYPE_OPTIONS = [
+  { value: "", label: "Not set" },
+  { value: "ap", label: "AP" },
+  { value: "ib", label: "IB" },
+  { value: "a_level", label: "A-Level" },
+  { value: "gcse", label: "GCSE" },
+  { value: "sat", label: "SAT" },
+  { value: "act", label: "ACT" },
+  { value: "other", label: "Other" },
+] as const;
+
+const STUDY_PACE_OPTIONS = [
+  { value: "", label: "Not set" },
+  { value: "light", label: "Light — short, infrequent sessions" },
+  { value: "balanced", label: "Balanced — the default pace" },
+  { value: "intensive", label: "Intensive — longer, frequent sessions" },
+] as const;
+
 const ALL_TIMEZONES =
   typeof Intl !== "undefined" && typeof Intl.supportedValuesOf === "function"
     ? Intl.supportedValuesOf("timeZone")
@@ -46,9 +88,57 @@ export function PreferencesTab() {
 
   const personaId = useId();
   const lengthId = useId();
+  const aiDepthId = useId();
+  const aiStyleId = useId();
+  const autoAdaptId = useId();
+  const webAccessId = useId();
+  const spokenRepliesId = useId();
   const uiLangId = useId();
   const aiLangId = useId();
   const tzId = useId();
+  const regionId = useId();
+  const frameworkId = useId();
+  const gradeScaleId = useId();
+  const subjectId = useId();
+  const examTypeId = useId();
+  const targetGradeId = useId();
+  const studyPaceId = useId();
+
+  const profileDetails = useProfileDetails();
+  const updateStudyProfile = useUpdateStudyProfile();
+
+  const [subject, setSubject] = useState("");
+  const [examType, setExamType] = useState("");
+  const [targetGrade, setTargetGrade] = useState("");
+  const [studyPace, setStudyPace] = useState("");
+  const [savingPreferences, setSavingPreferences] = useState(false);
+
+  /* Seeded once the query resolves, then left to the fields — re-syncing on
+   * every refetch would stomp an in-progress edit each time the query
+   * revalidates in the background. */
+  useEffect(() => {
+    if (!profileDetails.data) return;
+    setSubject(profileDetails.data.subject ?? "");
+    setExamType(profileDetails.data.examType ?? "");
+    setTargetGrade(profileDetails.data.targetGrade ?? "");
+    setStudyPace(profileDetails.data.studyPace ?? "");
+  }, [profileDetails.data]);
+
+  function saveStudyProfile() {
+    updateStudyProfile.mutate(
+      {
+        subject: subject || null,
+        examType: examType || null,
+        targetGrade: targetGrade || null,
+        studyPace: studyPace || null,
+      },
+      {
+        onSuccess: () => showToast("Study focus saved."),
+        onError: (err: Error) =>
+          showToast(`Could not save that. ${err.message}`, { error: true }),
+      },
+    );
+  }
 
   const handleExportICS = async () => {
     try {
@@ -67,6 +157,7 @@ export function PreferencesTab() {
 
   return (
     <>
+      <SetupCard />
       <Card
         as="section"
         variant="elevated"
@@ -80,8 +171,10 @@ export function PreferencesTab() {
             <Icon name="brain" size={18} />
           </span>
           <div>
-            <h3 id="settings-ai-heading">{t("set_ai_brain")}</h3>
-            <p>Set the tone and length of AI responses.</p>
+            <h3 id="settings-ai-heading">Response voice</h3>
+            <p>
+              Choose how Learnora AI chat should sound and how much it says.
+            </p>
           </div>
         </div>
 
@@ -89,7 +182,7 @@ export function PreferencesTab() {
           <div className={styles.fieldLabel}>
             <label htmlFor={personaId}>{t("set_persona")}</label>
             <p className={styles.fieldDesc}>
-              Choose the teaching style for AI responses.
+              The tone used in Learnora AI chat and generated study material.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -131,6 +224,249 @@ export function PreferencesTab() {
               ))}
             </select>
           </div>
+        </div>
+      </Card>
+
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
+        className={styles.card}
+        aria-labelledby="settings-persona-web-heading"
+      >
+        <div className={styles.cardHeader}>
+          <span className={styles.cardIcon}>
+            <Icon name="sparkles" size={18} />
+          </span>
+          <div>
+            <h3 id="settings-persona-web-heading">
+              Study behaviour and sources
+            </h3>
+            <p>
+              Set the depth of AI chat and whether it may search the live web.
+            </p>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={aiDepthId}>Depth Level</label>
+            <p className={styles.fieldDesc}>
+              From a quick intuition to a deeper academic explanation.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={aiDepthId}
+              value={settings.aiDepth}
+              onChange={(e) =>
+                setSettings({ aiDepth: Number(e.target.value) as PersonaDepth })
+              }
+            >
+              {AI_DEPTH_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={aiStyleId}>Study Style</label>
+            <p className={styles.fieldDesc}>
+              The kind of help Learnora AI prioritises in chat.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={aiStyleId}
+              value={settings.aiStyle}
+              onChange={(e) =>
+                setSettings({ aiStyle: e.target.value as StudyStyle })
+              }
+            >
+              {AI_STYLE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText} id={autoAdaptId}>
+              Auto-Adapt Persona
+            </span>
+            <p className={styles.fieldDesc}>
+              Let Learnora AI chat adjust its next reply when your follow-up
+              shows confusion.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <ToggleSwitch
+              labelledBy={autoAdaptId}
+              label="Auto-Adapt Persona"
+              checked={settings.aiAutoAdapt}
+              onChange={(checked) => setSettings({ aiAutoAdapt: checked })}
+            />
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText} id={webAccessId}>
+              Live Web Intelligence
+            </span>
+            <p className={styles.fieldDesc}>
+              Allow live academic search when you choose web sources in chat.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <ToggleSwitch
+              labelledBy={webAccessId}
+              label="Live Web Intelligence"
+              checked={settings.webAccess}
+              onChange={(checked) => setSettings({ webAccess: checked })}
+            />
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText} id={spokenRepliesId}>
+              Read chat replies aloud
+            </span>
+            <p className={styles.fieldDesc}>
+              Speak Learnora AI chat answers using your browser's voice. Off by
+              default, so nothing plays out loud unless you ask.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <ToggleSwitch
+              labelledBy={spokenRepliesId}
+              label="Read chat replies aloud"
+              checked={settings.aiSpokenReplies}
+              onChange={(checked) => setSettings({ aiSpokenReplies: checked })}
+            />
+          </div>
+        </div>
+      </Card>
+
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
+        className={styles.card}
+        aria-labelledby="settings-study-focus-heading"
+      >
+        <div className={styles.cardHeader}>
+          <span className={styles.cardIcon}>
+            <Icon name="graduation-cap" size={18} />
+          </span>
+          <div>
+            <h3 id="settings-study-focus-heading">Study Focus</h3>
+            <p>
+              What you're studying for. The weekly planner reads this — it never
+              overrides measured quiz performance, only shapes how it paces the
+              plan around it.
+            </p>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={subjectId}>Subject</label>
+            <p className={styles.fieldDesc}>What you're mainly studying</p>
+          </div>
+          <div className={styles.fieldAction}>
+            <input
+              id={subjectId}
+              type="text"
+              placeholder="e.g. AP Chemistry"
+              maxLength={80}
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={examTypeId}>Exam Board</label>
+            <p className={styles.fieldDesc}>
+              Which qualification you're preparing for
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={examTypeId}
+              value={examType}
+              onChange={(e) => setExamType(e.target.value)}
+            >
+              {EXAM_TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={targetGradeId}>Target Grade</label>
+            <p className={styles.fieldDesc}>
+              Whatever scale your syllabus uses (e.g. "A", "7", "85%")
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <input
+              id={targetGradeId}
+              type="text"
+              placeholder="e.g. 7"
+              maxLength={20}
+              value={targetGrade}
+              onChange={(e) => setTargetGrade(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={studyPaceId}>Study Pace</label>
+            <p className={styles.fieldDesc}>
+              How much the weekly plan should ask of you
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={studyPaceId}
+              value={studyPace}
+              onChange={(e) => setStudyPace(e.target.value)}
+            >
+              {STUDY_PACE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.actionsRight}>
+          <Button
+            variant="primary"
+            onClick={saveStudyProfile}
+            disabled={updateStudyProfile.isPending}
+          >
+            {updateStudyProfile.isPending ? "Saving..." : "Save Study Focus"}
+          </Button>
         </div>
       </Card>
 
@@ -213,6 +549,103 @@ export function PreferencesTab() {
             />
           </div>
         </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={regionId}>Region</label>
+            <p className={styles.fieldDesc}>
+              Sets your currency, curriculum presets and privacy rights.
+              Timezone is a clock, not a passport — change this if we guessed
+              wrong.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={regionId}
+              value={settings.region}
+              onChange={(e) => {
+                const region = isRegionId(e.target.value)
+                  ? e.target.value
+                  : "auto";
+                setSettings({ region });
+              }}
+            >
+              <option value="auto">
+                Detect automatically (
+                {REGIONS[detectRegion(settings.timezone)].label})
+              </option>
+              {REGION_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {REGIONS[id].label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={frameworkId}>Exam framework</label>
+            <p className={styles.fieldDesc}>
+              Which board the AI examiners imitate and whose syllabus terms they
+              check for.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={frameworkId}
+              value={settings.framework}
+              onChange={(e) => {
+                const framework = isFrameworkId(e.target.value)
+                  ? e.target.value
+                  : "auto";
+                setSettings({ framework });
+              }}
+            >
+              <option value="auto">
+                Follow region (
+                {
+                  getRegion(settings.region === "auto" ? null : settings.region)
+                    .framework.boardLabel
+                }
+                )
+              </option>
+              {Object.values(FRAMEWORKS).map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.boardLabel}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={gradeScaleId}>Grade scale</label>
+            <p className={styles.fieldDesc}>
+              How readiness and forecasts are shown.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={gradeScaleId}
+              value={settings.gradeScale}
+              onChange={(e) => {
+                const gradeScale = isGradeScaleId(e.target.value)
+                  ? e.target.value
+                  : "auto";
+                setSettings({ gradeScale });
+              }}
+            >
+              <option value="auto">Follow framework</option>
+              {GRADE_SCALE_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {GRADE_SCALES[id].label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </Card>
 
       <Card
@@ -251,16 +684,37 @@ export function PreferencesTab() {
       <div className={styles.actionsRight}>
         <Button
           variant="primary"
-          onClick={() => {
+          disabled={savingPreferences}
+          onClick={async () => {
             save();
-            profileApi.updateTimezone(settings.timezone).catch((err) => {
-              if (!(
-                err instanceof Error && err.message === "Not authenticated"
-              )) {
-                console.error("Failed to sync timezone", err);
+            setSavingPreferences(true);
+            try {
+              await Promise.all([
+                profileApi.updateTimezone(settings.timezone),
+                profileApi.updateRegion({
+                  region: settings.region === "auto" ? null : settings.region,
+                  framework_id:
+                    settings.framework === "auto" ? null : settings.framework,
+                  grade_scale_id:
+                    settings.gradeScale === "auto" ? null : settings.gradeScale,
+                }),
+              ]);
+              showToast("Preferences saved.");
+            } catch (error) {
+              if (
+                error instanceof Error &&
+                error.message === "Not authenticated"
+              ) {
+                showToast("Preferences saved.");
+              } else {
+                showToast(
+                  "Saved on this device. Could not sync preferences; try Save Changes again when connected.",
+                  { error: true },
+                );
               }
-            });
-            showToast("Preferences saved.");
+            } finally {
+              setSavingPreferences(false);
+            }
           }}
         >
           {t("btn_save_config")}

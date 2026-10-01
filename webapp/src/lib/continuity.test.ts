@@ -5,10 +5,13 @@ import {
   recordMaterialVisit,
   recordDeckReview,
   recordQuizProgress,
+  clearQuizProgress,
   recordFocusGoal,
   clearStudySnapshot,
   subscribeContinuity,
   getResumeAction,
+  recordStudySession,
+  pausedStudySession,
   getRecentContinuityItems,
   CONTINUITY_STORAGE_KEY,
   type StudySnapshot,
@@ -133,6 +136,14 @@ describe("continuity", () => {
           totalQuestions: 10,
         }),
       );
+    });
+
+    it("clears only the quiz that just finished", () => {
+      recordQuizProgress({ id: "q-2", title: "Current", questionIndex: 1, totalQuestions: 3 });
+      clearQuizProgress("q-1");
+      expect(getStudySnapshot().lastQuizDraft?.id).toBe("q-2");
+      clearQuizProgress("q-2");
+      expect(getStudySnapshot().lastQuizDraft).toBeNull();
     });
 
     it("records focus goal", () => {
@@ -313,5 +324,40 @@ describe("continuity", () => {
       expect(items[1].title).toBe("Quiz C"); // 12:00
       expect(items[2].title).toBe("Material A"); // 10:00
     });
+  });
+});
+
+describe("study session continuity", () => {
+  it("surfaces an unfinished session as the resume action and the paused card", () => {
+    recordStudySession({
+      id: "s1",
+      objective: "Electron transport chain",
+      mode: "explain",
+      stepIndex: 2,
+      totalSteps: 5,
+      minutesLeft: 12,
+      status: "paused",
+    });
+    const snapshot = getStudySnapshot();
+    expect(pausedStudySession(snapshot)?.id).toBe("s1");
+    const action = getResumeAction(snapshot);
+    expect(action?.type).toBe("session");
+    expect(action?.subtitle).toBe("Step 3 of 5 · 12 min left");
+    expect(action?.targetUrl).toBe("/study/s1?mode=explain");
+  });
+
+  it("drops a finished session from both", () => {
+    recordStudySession({
+      id: "s2",
+      objective: "Done",
+      mode: "recall",
+      stepIndex: 5,
+      totalSteps: 5,
+      minutesLeft: 0,
+      status: "done",
+    });
+    const snapshot = getStudySnapshot();
+    expect(pausedStudySession(snapshot)).toBeNull();
+    expect(getResumeAction(snapshot)?.type).not.toBe("session");
   });
 });

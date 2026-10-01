@@ -11,6 +11,7 @@ interface CardProps extends ComponentPropsWithRef<"div"> {
   padding?: Padding;
   radius?: Radius;
   hoverElevation?: boolean;
+  interactive?: boolean;
   // Deliberately narrow, not general polymorphism: "div" (default) or
   // "section" only. DashboardView.test.tsx:528 needs a div root (see below);
   // settings' six `<section aria-labelledby>` cards needed a real landmark
@@ -41,6 +42,7 @@ export function Card({
   padding = "md",
   radius,
   hoverElevation = false,
+  interactive = false,
   as: As = "div",
   className,
   ...rest
@@ -52,6 +54,7 @@ export function Card({
     styles[`padding-${padding}`],
     styles[`radius-${resolvedRadius}`],
     hoverElevation ? styles.hoverElevation : null,
+    interactive ? styles.interactive : null,
     className,
   ]
     .filter(Boolean)

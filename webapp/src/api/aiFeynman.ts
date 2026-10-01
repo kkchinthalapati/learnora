@@ -5,13 +5,41 @@
  */
 
 import { callEdge } from "./ai";
+import { isLimitOrRefusal } from "./aiLimit";
+import { extractJSON } from "../lib/aiJson";
+import { getFramework } from "../lib/region";
+import { collection } from "../lib/storage";
+import { fenceUntrusted } from "../lib/actionTags";
+/* Aliased: `Misconception` is already this module's own type for a planted
+   draft flaw, which is a different thing from a ledger row. */
+import {
+  rankMisconceptions,
+  type Misconception as LedgerMisconception,
+} from "../lib/misconceptions";
 
 export type ApprenticePersona =
+  | "eli10"
+  | "ninth_grader"
+  | "skeptical_buddy"
+  | "cbse_examiner"
+  | "custom"
   | "curious_beginner"
   | "overconfident_peer"
   | "struggling_student";
 
 export type FeynmanDifficulty = "beginner" | "intermediate" | "advanced";
+
+export type AnalogyStyle =
+  | "sports_cricket"
+  | "cooking_kitchen"
+  | "gaming_tech"
+  | "physical_machinery"
+  | "storytelling";
+
+export type ExplanationDepth =
+  | "quick_intuition"
+  | "core_mechanism"
+  | "deep_dive";
 
 export type ApprenticeEmotion =
   | "confused"
@@ -29,9 +57,233 @@ export interface PersonaProfile {
   traits: string[];
   challengeStyle: string;
   badgeColor: string;
+  systemPromptPersona: string;
 }
 
+export interface AnalogyStyleProfile {
+  id: AnalogyStyle;
+  name: string;
+  label: string;
+  icon: string;
+  tagline: string;
+  description: string;
+  starterPhrases: string[];
+}
+
+export interface ExplanationDepthProfile {
+  id: ExplanationDepth;
+  name: string;
+  label: string;
+  timeEstimate: string;
+  estimatedMinutes: number;
+  tagline: string;
+  description: string;
+  difficultyEquivalent: FeynmanDifficulty;
+}
+
+export const ANALOGY_STYLE_PROFILES: Record<AnalogyStyle, AnalogyStyleProfile> = {
+  sports_cricket: {
+    id: "sports_cricket",
+    name: "Cricket & Sports Analogies",
+    label: "Sport",
+    icon: "🏏",
+    tagline: "Pitches, deliveries, team tactics, and athletic momentum",
+    description: "Explain concepts using cricket deliveries, field placements, batting timing, football strikers, or track races.",
+    starterPhrases: [
+      "Think of it like a cricket delivery: the bowler...",
+      "In sports terms, imagine a striker timing their run...",
+      "Picture a tennis rally where each stroke...",
+    ],
+  },
+  cooking_kitchen: {
+    id: "cooking_kitchen",
+    name: "Everyday Kitchen & Cooking Analogies",
+    label: "Cooking & everyday life",
+    icon: "🍳",
+    tagline: "Recipes, baking chemistry, boiling kettles, and chef workflows",
+    description: "Break it down using cooking recipes, boiling points, spice balances, dough rising, and kitchen prep.",
+    starterPhrases: [
+      "Picture a busy restaurant kitchen where the head chef...",
+      "Think of this like baking bread: the yeast and flour...",
+      "It's like boiling water in a pressure cooker...",
+    ],
+  },
+  gaming_tech: {
+    id: "gaming_tech",
+    name: "Video Game & Tech Metaphors",
+    label: "Games & tech",
+    icon: "🎮",
+    tagline: "Boss battles, inventory slots, refresh rates, and server packets",
+    description: "Map the topic to game physics, cooldown timers, mana pools, rendering buffers, or network routers.",
+    starterPhrases: [
+      "Think of this like a game engine rendering frames...",
+      "It's like managing inventory slots and cooldown timers...",
+      "Imagine a multiplayer server packet being routed...",
+    ],
+  },
+  physical_machinery: {
+    id: "physical_machinery",
+    name: "Visual & Physical Machinery",
+    label: "Machines & how things move",
+    icon: "⚙️",
+    tagline: "Gears, hydraulic pumps, conveyor belts, and engine pistons",
+    description: "Model the concept with interconnected mechanical parts, levers, pistons, water pipes, and pulleys.",
+    starterPhrases: [
+      "Picture a system of interlocking gears: when gear A turns...",
+      "Think of it as a hydraulic pump pushing fluid through pipes...",
+      "Imagine an automated factory conveyor belt with sensors...",
+    ],
+  },
+  storytelling: {
+    id: "storytelling",
+    name: "Real-world Storytelling",
+    label: "Stories",
+    icon: "📖",
+    tagline: "Character journeys, historical dramas, and bustling city scenes",
+    description: "Weave the explanation into an engaging narrative with relatable characters, quests, and daily drama.",
+    starterPhrases: [
+      "Imagine a courier in a bustling medieval city who must...",
+      "Picture two rival kingdoms negotiating trade at the border...",
+      "Once upon a time, in a busy train terminal...",
+    ],
+  },
+};
+
+export const EXPLANATION_DEPTH_PROFILES: Record<ExplanationDepth, ExplanationDepthProfile> = {
+  quick_intuition: {
+    id: "quick_intuition",
+    name: "Quick Intuition (2 mins)",
+    label: "The big idea",
+    timeEstimate: "2 mins",
+    estimatedMinutes: 2,
+    tagline: "High-level mental model and the 'aha!' punchline",
+    description: "Focus purely on the core intuition and the main analogy without getting bogged down in edge cases.",
+    difficultyEquivalent: "beginner",
+  },
+  core_mechanism: {
+    id: "core_mechanism",
+    name: "Core Working Mechanism (5 mins)",
+    label: "How it works",
+    timeEstimate: "5 mins",
+    estimatedMinutes: 5,
+    tagline: "Step-by-step causal chain and key interacting parts",
+    description: "Walk through the sequential stages, how cause leads to effect, and why the system behaves the way it does.",
+    difficultyEquivalent: "intermediate",
+  },
+  deep_dive: {
+    id: "deep_dive",
+    name: "Deep Dive & Edge Cases (10 mins)",
+    label: "Deep dive",
+    timeEstimate: "10 mins",
+    estimatedMinutes: 10,
+    tagline: "Rigorous boundaries, limiting factors, and counter-examples",
+    description: "Thorough breakdown including boundary conditions, common traps, edge cases, and mathematical/scientific nuances.",
+    difficultyEquivalent: "advanced",
+  },
+};
+
+export const PRIMARY_PERSONAS: ApprenticePersona[] = [
+  "eli10",
+  "ninth_grader",
+  "skeptical_buddy",
+  "cbse_examiner",
+  "custom",
+];
+
+export const PRIMARY_ANALOGY_STYLES: AnalogyStyle[] = [
+  "sports_cricket",
+  "cooking_kitchen",
+  "gaming_tech",
+  "physical_machinery",
+  "storytelling",
+];
+
+export const PRIMARY_DEPTHS: ExplanationDepth[] = [
+  "quick_intuition",
+  "core_mechanism",
+  "deep_dive",
+];
+
+/* Read per call, never snapshotted: the Settings region override (lib/region.ts)
+   must reach a persona the student opens after changing it. */
+const fw = () => getFramework();
+const FW = new Proxy({} as ReturnType<typeof fw>, { get: (_t, k) => fw()[k as keyof ReturnType<typeof fw>] });
+
 export const PERSONA_PROFILES: Record<ApprenticePersona, PersonaProfile> = {
+  eli10: {
+    id: "eli10",
+    name: "Explain Like I'm 10",
+    shortName: "Leo (10yo)",
+    avatar: "🧒",
+    tagline: "Simple language, vivid analogies, zero unexplained jargon.",
+    description:
+      "Leo is a curious 10-year-old. Big words make his eyes glaze over, but vivid comparisons make concepts stick instantly!",
+    traits: ["Zero unexplained jargon", "Loves vivid analogies", "Asks 'Wait, why?'"],
+    challengeStyle: "Playground & daily logic",
+    badgeColor: "var(--accent)",
+    systemPromptPersona:
+      "You are role-playing Leo, a curious 10-year-old apprentice. Speak like an enthusiastic 10-year-old in simple, vivid language. Do not accept technical buzzwords without a clear metaphor. Ask 'Wait, what happens if...?' questions.",
+  },
+  ninth_grader: {
+    id: "ninth_grader",
+    name: "Curious 9th Grader",
+    shortName: "Alex",
+    avatar: "🌱",
+    tagline: "Keen, energetic, building real mental models, loves relatable comparisons.",
+    description:
+      "Alex understands basic science and math, but mixes up cause and effect. Plain words and relatable analogies go a long way.",
+    traits: ["Solid fundamentals", "Mixes cause & coincidence", "Loves relatable comparisons"],
+    challengeStyle: "Everyday mix-ups",
+    badgeColor: "var(--success)",
+    systemPromptPersona:
+      "You are role-playing Alex, a curious 14-year-old 9th grade student. You are keen to learn but occasionally confuse cause and effect. You appreciate clear step-by-step reasoning.",
+  },
+  skeptical_buddy: {
+    id: "skeptical_buddy",
+    name: "Skeptical Study Buddy",
+    shortName: "Jordan",
+    avatar: "⚡",
+    tagline: "Challenges assumptions, points out gaps, doesn't easily buy hand-wavy claims.",
+    description:
+      "Jordan is sharp and won't just nod along. If you skip steps, hand-wave boundary conditions, or contradict yourself, they will call it out immediately.",
+    traits: ["Challenges assumptions", "Catches hand-waving", "Pushes for proof"],
+    challengeStyle: "Counter-examples & edge cases",
+    badgeColor: "var(--warning)",
+    systemPromptPersona:
+      "You are role-playing Jordan, a sharp and skeptical study buddy. You challenge hand-wavy claims, demand clear logic, point out missing edge cases, and ask 'Wait, what if temperature/pressure/variables change?'.",
+  },
+  /* id is persisted in saved drafts, so it keeps its historical name; the
+     copy is regional (lib/region.ts) so every student meets their own
+     board's marker. */
+  cbse_examiner: {
+    id: "cbse_examiner",
+    name: `Strict ${FW.boardLabel} Examiner`,
+    shortName: "The Examiner",
+    avatar: "📝",
+    tagline: "Demands exact keywords, formal definitions, and mark scheme rigor.",
+    description:
+      "The Examiner evaluates according to the official board marking scheme. Analogies are fine for intuition, but correct scientific terminology and equations are mandatory.",
+    traits: ["Strict mark scheme", "Keywords matter", "No hand-waving"],
+    challengeStyle: `${FW.syllabusLabel} & board rigor`,
+    badgeColor: "var(--danger)",
+    systemPromptPersona:
+      `You are role-playing a strict ${FW.boardLabel} examiner. You strictly assess whether ${FW.syllabusLabel} keywords, balanced definitions, and sequential steps are provided. Point out missing scientific terms.`,
+  },
+  custom: {
+    id: "custom",
+    name: "Custom Audience",
+    shortName: "Apprentice",
+    avatar: "🎨",
+    tagline: "You define the listener.",
+    description:
+      "Teach anyone you imagine — a grandparent, a fantasy wizard, an alien explorer, or an investor.",
+    traits: ["Fully flexible", "Tailored feedback", "Creative roleplay"],
+    challengeStyle: "Custom audience roleplay",
+    badgeColor: "var(--accent)",
+    systemPromptPersona:
+      "You are role-playing a custom audience defined by the student. Embody the specified persona faithfully and respond in character.",
+  },
+  // Legacy aliases
   curious_beginner: {
     id: "curious_beginner",
     name: "Alex, the beginner",
@@ -42,7 +294,9 @@ export const PERSONA_PROFILES: Record<ApprenticePersona, PersonaProfile> = {
       "Alex is keen but mixes up a neat comparison with how something actually works. Plain words and a good comparison go a long way.",
     traits: ["Always asks why", "Mixes up cause and coincidence", "Loves a good comparison"],
     challengeStyle: "Everyday mix-ups",
-    badgeColor: "#10b981",
+    badgeColor: "var(--success)",
+    systemPromptPersona:
+      "You are role-playing Alex, a beginner who takes things literally and loves comparisons.",
   },
   overconfident_peer: {
     id: "overconfident_peer",
@@ -54,7 +308,9 @@ export const PERSONA_PROFILES: Record<ApprenticePersona, PersonaProfile> = {
       "Jordan sounds convincing but skips the conditions and the working. You'll need a proper reason or an example that breaks their argument.",
     traits: ["Uses big words", "Ignores the awkward cases", "Won't back down easily"],
     challengeStyle: "Convincing half-truths",
-    badgeColor: "#f59e0b",
+    badgeColor: "var(--warning)",
+    systemPromptPersona:
+      "You are role-playing Jordan, an overconfident peer who needs counter-examples to be convinced.",
   },
   struggling_student: {
     id: "struggling_student",
@@ -66,9 +322,31 @@ export const PERSONA_PROFILES: Record<ApprenticePersona, PersonaProfile> = {
       "Taylor finds heavy notation off-putting and gets lost when there are lots of steps. Take it slowly, one step at a time.",
     traits: ["Put off by symbols", "Muddles similar words", "Needs it step by step"],
     challengeStyle: "One step at a time",
-    badgeColor: "#8b5cf6",
+    badgeColor: "var(--accent)",
+    systemPromptPersona:
+      "You are role-playing Taylor, a student who needs step-by-step guidance without dense symbols.",
   },
 };
+
+export function getPersonaProfile(
+  persona: ApprenticePersona,
+  customAudience?: string,
+): PersonaProfile {
+  const base = PERSONA_PROFILES[persona] || PERSONA_PROFILES.eli10;
+  if (persona === "custom" && customAudience?.trim()) {
+    const trimmed = customAudience.trim();
+    const short = trimmed.split(/\s+/)[0];
+    return {
+      ...base,
+      name: `Custom: ${trimmed.slice(0, 24)}${trimmed.length > 24 ? "…" : ""}`,
+      shortName: short.length <= 12 ? short : "Apprentice",
+      tagline: trimmed,
+      description: `Tailored audience: ${trimmed}`,
+      systemPromptPersona: `You are role-playing the following audience: ${trimmed}. Stay faithfully in character as this persona.`,
+    };
+  }
+  return base;
+}
 
 export interface Misconception {
   id: string;
@@ -81,15 +359,26 @@ export interface Misconception {
 }
 
 export interface ApprenticeDraft {
+  /** Built from a generic template because the AI gave no usable draft. */
+  fromTemplate?: boolean;
   id: string;
   subject: string;
   topic: string;
   persona: ApprenticePersona;
   difficulty: FeynmanDifficulty;
+  depth?: ExplanationDepth;
+  analogyStyle?: AnalogyStyle;
+  customAudience?: string;
   draftText: string;
   hiddenMisconceptions: Misconception[];
   challengeQuestion: string;
   learningObjectives: string[];
+}
+
+export interface TurnFeedback {
+  whatMadeSense: string[];
+  followUpQuestion?: string;
+  remainingGaps: string[];
 }
 
 export interface TeachingTurn {
@@ -100,11 +389,18 @@ export interface TeachingTurn {
   delta: number;
   confusionPoints: string[];
   solvedPoints: string[];
+  remainingGaps?: string[];
   emotion: ApprenticeEmotion;
   /** How the submission was classified before scoring. Optional because
    *  sessions saved before the quality gate existed have no value for it. */
   quality?: ExplanationVerdict;
+  /** "local" when the AI could not be reached and the built-in scorer
+   *  marked the turn. The studio says so, and nothing it produced reaches
+   *  the misconception ledger or the learning evidence: a keyword scorer's
+   *  "confusion points" are guesses, not diagnoses. */
+  scoredBy?: "ai" | "local";
   timestamp: string;
+  feedback?: TurnFeedback;
 }
 
 export interface FeynmanFlashcardCandidate {
@@ -137,6 +433,9 @@ export interface FeynmanSessionState {
   topic: string;
   persona: ApprenticePersona;
   difficulty: FeynmanDifficulty;
+  depth?: ExplanationDepth;
+  analogyStyle?: AnalogyStyle;
+  customAudience?: string;
   draft: ApprenticeDraft;
   turns: TeachingTurn[];
   currentScore: number;
@@ -153,65 +452,35 @@ export interface FeynmanSessionState {
 const STORAGE_KEY_SESSIONS = "learnora_feynman_sessions";
 const STORAGE_KEY_ACTIVE_ID = "learnora_feynman_active_id";
 
+const sessionStore = collection<FeynmanSessionState>(
+  STORAGE_KEY_SESSIONS,
+  (session) => session.id,
+);
+
 export function listFeynmanSessions(): FeynmanSessionState[] {
-  if (typeof window === "undefined" || !window.localStorage) return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_SESSIONS);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    console.warn("Failed to load Feynman sessions from localStorage", err);
-    return [];
-  }
+  return sessionStore.list();
 }
 
-export function loadFeynmanSession(sessionId: string): FeynmanSessionState | null {
-  const sessions = listFeynmanSessions();
-  return sessions.find((s) => s.id === sessionId) ?? null;
+export function loadFeynmanSession(
+  sessionId: string,
+): FeynmanSessionState | null {
+  return sessionStore.find(sessionId);
 }
 
 export function saveFeynmanSession(session: FeynmanSessionState): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    const sessions = listFeynmanSessions();
-    const existingIndex = sessions.findIndex((s) => s.id === session.id);
-    const updated = {
-      ...session,
-      updatedAt: new Date().toISOString(),
-    };
-    if (existingIndex >= 0) {
-      sessions[existingIndex] = updated;
-    } else {
-      sessions.unshift(updated);
-    }
-    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
-  } catch (err) {
-    console.warn("Failed to save Feynman session to localStorage", err);
-  }
+  sessionStore.save({ ...session, updatedAt: new Date().toISOString() });
 }
 
 export function deleteFeynmanSession(sessionId: string): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    const sessions = listFeynmanSessions().filter((s) => s.id !== sessionId);
-    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
-    if (getActiveFeynmanSessionId() === sessionId) {
-      setActiveFeynmanSessionId(null);
-    }
-  } catch (err) {
-    console.warn("Failed to delete Feynman session from localStorage", err);
+  sessionStore.remove(sessionId);
+  if (getActiveFeynmanSessionId() === sessionId) {
+    setActiveFeynmanSessionId(null);
   }
 }
 
 export function clearFeynmanSessions(): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    localStorage.removeItem(STORAGE_KEY_SESSIONS);
-    localStorage.removeItem(STORAGE_KEY_ACTIVE_ID);
-  } catch (err) {
-    console.warn("Failed to clear Feynman sessions", err);
-  }
+  sessionStore.clear();
+  setActiveFeynmanSessionId(null);
 }
 
 export function getActiveFeynmanSessionId(): string | null {
@@ -241,17 +510,85 @@ export function setActiveFeynmanSessionId(id: string | null): void {
 /* -------------------------------------------------------------------------- */
 
 interface TopicCuratedData {
-  draftTemplates: Record<ApprenticePersona, {
+  draftTemplates: Partial<Record<ApprenticePersona, {
     draftText: string;
     misconceptions: Misconception[];
     challengeQuestion: string;
     learningObjectives: string[];
-  }>;
+  }>>;
 }
 
 const TOPIC_KNOWLEDGE_BASE: Record<string, TopicCuratedData> = {
   photosynthesis: {
     draftTemplates: {
+      eli10: {
+        draftText:
+          "Photosynthesis is how plants eat sunlight! Leaves are green because chlorophyll drinks up green light like green juice to make sweet sugar. Plants only do this during the day and sleep all night without breathing, and roots suck all the heavy wood and mass out of the soil like a milkshake straw.",
+        misconceptions: [
+          {
+            id: "misc-1",
+            snippet: "chlorophyll drinks up green light like green juice",
+            concept: "Light Absorption & Color Reflection",
+            explanation: "Chlorophyll absorbs blue and red light and bounces back (reflects) green light, which is why our eyes see leaves as green.",
+            misconception: "Believing green light is absorbed rather than reflected.",
+            correctedSnippet: "chlorophyll absorbs blue and red light (bouncing green light back) to power its food factory",
+            hint: "Think about what happens to the light that bounces off into our eyes!",
+          },
+          {
+            id: "misc-2",
+            snippet: "sleep all night without breathing",
+            concept: "Plant Cellular Respiration",
+            explanation: "Plant cells breathe and burn stored food 24 hours a day, day and night, just like we do.",
+            misconception: "Believing plants only breathe in daylight or do not respire continuously.",
+            correctedSnippet: "keep breathing and using energy 24/7 through cellular respiration",
+            hint: "Do living plant cells still need energy in the dark?",
+          },
+          {
+            id: "misc-3",
+            snippet: "roots suck all the heavy wood and mass out of the soil",
+            concept: "Carbon Fixation Source",
+            explanation: "A tree gets nearly all its heavy mass from carbon dioxide gas in the air, not the soil.",
+            misconception: "Thinking a tree's physical weight comes from soil rather than air.",
+            correctedSnippet: "the plant builds its physical body out of carbon dioxide gas captured from the air",
+            hint: "Where does the carbon in wood really come from?",
+          },
+        ],
+        challengeQuestion: "If leaves use sunlight like juice, why does the leaf look green to our eyes instead of black or red?",
+        learningObjectives: [
+          "Explain why leaves look green (reflection vs absorption)",
+          "Show that plants respire day and night",
+          "Explain how air provides the tree's heavy wood",
+        ],
+      },
+      cbse_examiner: {
+        draftText:
+          "In photosynthesis, photons directly synthesize hexose sugars in photosystem II without requiring an electron transport chain or intermediate coenzymes. Furthermore, the Calvin cycle functions independently of ATP and NADPH phosphorylation, and cellular respiration completely ceases during the photoperiod.",
+        misconceptions: [
+          {
+            id: "misc-1",
+            snippet: "directly synthesize hexose sugars in photosystem II without requiring an electron transport chain",
+            concept: "Photophosphorylation & Energy Intermediates",
+            explanation: "Light reactions generate ATP and NADPH via the thylakoid electron transport chain; glucose is not formed directly in PSII.",
+            misconception: "Conflating photochemical reactions directly with hexose synthesis.",
+            correctedSnippet: "powers photolysis and an electron transport chain to generate ATP and NADPH intermediates",
+            hint: "What chemical energy carriers link the light-dependent reactions in the thylakoid to the stroma?",
+          },
+          {
+            id: "misc-2",
+            snippet: "Calvin cycle functions independently of ATP and NADPH phosphorylation",
+            concept: "Calvin Cycle Energy Requirements",
+            explanation: "The Calvin cycle in the stroma consumes significant ATP and NADPH for 3-PGA reduction and RuBP regeneration catalyzed by RuBisCO.",
+            misconception: "Assuming the light-independent phase requires zero energetic inputs.",
+            correctedSnippet: "The Calvin cycle in the stroma consumes ATP and NADPH to reduce 3-PGA to G3P",
+            hint: "What role does ATP investment play in carbon fixation?",
+          },
+        ],
+        challengeQuestion: "State the specific cellular sites for the light reactions vs the Calvin cycle and explain why the dark reactions cease without light products.",
+        learningObjectives: [
+          "Differentiate thylakoid light reactions from stroma Calvin cycle",
+          "Identify ATP and NADPH as mandatory reducing agents in carbon fixation",
+        ],
+      },
       curious_beginner: {
         draftText:
           "Photosynthesis is how plants feed themselves! During the day, plant leaves turn green because chlorophyll absorbs sunlight to make sugar. Since plants only do photosynthesis in the daylight to breathe out oxygen, they sleep at night and don't do any respiration until the sun comes back up. Soil provides all the physical mass and organic carbon as the roots drink it up with water.",
@@ -433,7 +770,10 @@ export function generateDynamicDraft(
   subject: string,
   topic: string,
   persona: ApprenticePersona,
-  difficulty: FeynmanDifficulty = "intermediate"
+  difficulty: FeynmanDifficulty = "intermediate",
+  analogyStyle: AnalogyStyle = "sports_cricket",
+  depth: ExplanationDepth = "core_mechanism",
+  customAudience?: string,
 ): ApprenticeDraft {
   const normalizedKey = topic.trim().toLowerCase();
   const match = Object.keys(TOPIC_KNOWLEDGE_BASE).find(
@@ -441,18 +781,31 @@ export function generateDynamicDraft(
   );
 
   if (match) {
-    const curated = TOPIC_KNOWLEDGE_BASE[match].draftTemplates[persona];
-    return {
-      id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      subject,
-      topic,
-      persona,
-      difficulty,
-      draftText: curated.draftText,
-      hiddenMisconceptions: curated.misconceptions,
-      challengeQuestion: curated.challengeQuestion,
-      learningObjectives: curated.learningObjectives,
-    };
+    const templates = TOPIC_KNOWLEDGE_BASE[match].draftTemplates;
+    const template =
+      templates[persona] ||
+      (persona === "eli10" && templates.eli10) ||
+      (persona === "cbse_examiner" && templates.cbse_examiner) ||
+      ((persona === "skeptical_buddy" || persona === "overconfident_peer") && templates.overconfident_peer) ||
+      ((persona === "struggling_student") && templates.struggling_student) ||
+      templates.curious_beginner;
+
+    if (template) {
+      return {
+        id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        subject,
+        topic,
+        persona,
+        difficulty,
+        depth,
+        analogyStyle,
+        customAudience,
+        draftText: template.draftText,
+        hiddenMisconceptions: template.misconceptions,
+        challengeQuestion: template.challengeQuestion,
+        learningObjectives: template.learningObjectives,
+      };
+    }
   }
 
   // Procedural generator for custom arbitrary topics
@@ -461,35 +814,63 @@ export function generateDynamicDraft(
   let challengeQuestion = "";
   let learningObjectives: string[] = [];
 
-  if (persona === "curious_beginner") {
-    draftText = `I spent the morning studying ${topic} in ${subject}! From what I understand, ${topic} works because the primary mechanism automatically balances everything out on its own. For instance, when the main input increases, the output always multiplies proportionally without any resistance or limiting factors. Also, I assume this process only ever happens under ideal normal conditions and doesn't require any secondary regulation.`;
+  if (persona === "eli10") {
+    draftText = `I spent the morning learning about ${topic} in ${subject}! From what I understand, it works like magic: when you put stuff in, it just multiplies forever without any slowing down or limits! Also, I think it only happens on ideal sunny days and nobody ever has to regulate it or turn it down.`;
     misconceptions = [
       {
         id: "misc-gen-1",
-        snippet: "the output always multiplies proportionally without any resistance or limiting factors",
-        concept: "Rate Limiting & Boundary Conditions",
-        explanation: `In ${topic}, real systems experience saturation, diminishing returns, or negative feedback limits rather than infinite proportional growth.`,
-        misconception: "Assuming linear unconstrained scaling without saturation or constraints.",
-        correctedSnippet: "the response is subject to saturation thresholds, equilibrium constraints, and limiting factors",
-        hint: `What happens when you push the key variables of ${topic} to their maximum limit?`,
+        snippet: "it just multiplies forever without any slowing down or limits",
+        concept: "Rate Limiting & Saturation",
+        explanation: `In ${topic}, real systems experience natural saturation thresholds, friction, or resource exhaustion rather than endless unconstrained scaling.`,
+        misconception: "Assuming linear unconstrained scaling without saturation or limits.",
+        correctedSnippet: "growth is capped by saturation thresholds, friction, and resource limits",
+        hint: `What happens when you push ${topic} as fast or as far as it can physically go?`,
       },
       {
         id: "misc-gen-2",
-        snippet: "doesn't require any secondary regulation",
-        concept: "Feedback Mechanisms & Regulation",
-        explanation: `${topic} relies on precise regulatory feedback loops to maintain equilibrium and prevent runaways.`,
-        misconception: "Overlooking crucial regulatory controls and feedback pathways.",
-        correctedSnippet: "is regulated by dynamic feedback loops and governing boundary conditions",
-        hint: `How does the system know when to stop or adjust its behavior in ${topic}?`,
+        snippet: "nobody ever has to regulate it or turn it down",
+        concept: "Feedback Mechanisms & Self-Regulation",
+        explanation: `${topic} relies on negative feedback or governing loops to maintain equilibrium and stop it from running wild.`,
+        misconception: "Overlooking crucial regulatory controls and balancing feedback.",
+        correctedSnippet: "is regulated by dynamic balancing loops and natural boundary conditions",
+        hint: `How does the system know when to slow down or stop in ${topic}?`,
       },
     ];
-    challengeQuestion = `If ${topic} is as simple as that, why don't real-world systems just maximize this endlessly? What holds it in check?`;
+    challengeQuestion = `If ${topic} is as simple as that, what stops it from blowing up like an overfilled balloon? What holds it back?`;
     learningObjectives = [
-      `Say what actually makes ${topic} work`,
+      `Say what actually makes ${topic} work using simple, everyday language`,
       `Explain what limits it, and what happens at the extremes`,
-      `Give a real-world comparison, without the jargon`,
+      `Use a vivid comparison without confusing textbook jargon`,
     ];
-  } else if (persona === "overconfident_peer") {
+  } else if (persona === "cbse_examiner") {
+    draftText = `In evaluations of ${topic} in ${subject}, examinees routinely claim the primary mechanism functions unconditionally without prerequisite boundary constraints or specific steady-state requirements. Furthermore, candidates frequently invert dependent and independent variables and omit crucial ${FW.syllabusLabel} definitions.`;
+    misconceptions = [
+      {
+        id: "misc-gen-1",
+        snippet: "functions unconditionally without prerequisite boundary constraints",
+        concept: "Boundary Conditions & Preconditions",
+        explanation: `The textbook formula for ${topic} is strictly conditional on conservation laws, equilibrium boundaries, and standard temperature/pressure.`,
+        misconception: "Applying ideal formulas unconditionally in transient regimes.",
+        correctedSnippet: "is valid strictly within specified boundary constraints and equilibrium regimes",
+        hint: `What prerequisites must be satisfied before applying standard formulas in ${topic}?`,
+      },
+      {
+        id: "misc-gen-2",
+        snippet: "frequently invert dependent and independent variables",
+        concept: "Causal Directionality & Scientific Definitions",
+        explanation: `In ${topic}, identifying the driving independent variable versus the resulting dependent response is crucial for board evaluation marks.`,
+        misconception: "Confusing cause and effect or inverting driving variables.",
+        correctedSnippet: "the independent driving force directly determines the magnitude of the observed response",
+        hint: `Which variable is the root cause and which is the effect in ${topic}?`,
+      },
+    ];
+    challengeQuestion = `State the formal scientific definition of ${topic}, identify the key ${FW.syllabusLabel} keywords, and specify under what exact conditions this rule holds.`;
+    learningObjectives = [
+      `Provide the formal definition with mandatory scientific keywords`,
+      `Delineate strict boundary constraints and equilibrium conditions`,
+      `Explain step-by-step causality according to the board mark scheme`,
+    ];
+  } else if (persona === "skeptical_buddy" || persona === "overconfident_peer") {
     draftText = `${topic} in ${subject} is fundamentally an elementary concept that people overcomplicate. You just apply the foundational canonical formula and assume the standard steady-state holds unconditionally. Edge cases and transient dynamics don't meaningfully alter the outcome, so you can safely disregard microscopic fluctuations and boundary friction.`;
     misconceptions = [
       {
@@ -516,8 +897,7 @@ export function generateDynamicDraft(
       `Push past the big words and explain how it really works`,
       `Spell out the conditions it relies on, and where it breaks down`,
     ];
-  } else {
-    // struggling_student
+  } else if (persona === "struggling_student") {
     draftText = `I am trying to wrap my head around ${topic} in ${subject}, but the definitions get so tangled. I know there is an input and a result, but I keep mixing up the cause and the effect. I thought the second stage happened first, and I don't understand how the core variables interact with each other without getting overwhelmed.`;
     misconceptions = [
       {
@@ -544,6 +924,36 @@ export function generateDynamicDraft(
       `Turn the technical words into plain English`,
       `Lay out the steps in order, and why each one follows`,
     ];
+  } else {
+    // curious_beginner / ninth_grader / custom
+    const audienceDesc = customAudience ? ` (${customAudience})` : "";
+    draftText = `I spent the morning studying ${topic} in ${subject}${audienceDesc}! From what I understand, ${topic} works because the primary mechanism automatically balances everything out on its own. For instance, when the main input increases, the output always multiplies proportionally without any resistance or limiting factors. Also, I assume this process only ever happens under ideal normal conditions and doesn't require any secondary regulation.`;
+    misconceptions = [
+      {
+        id: "misc-gen-1",
+        snippet: "the output always multiplies proportionally without any resistance or limiting factors",
+        concept: "Rate Limiting & Boundary Conditions",
+        explanation: `In ${topic}, real systems experience saturation, diminishing returns, or negative feedback limits rather than infinite proportional growth.`,
+        misconception: "Assuming linear unconstrained scaling without saturation or constraints.",
+        correctedSnippet: "the response is subject to saturation thresholds, equilibrium constraints, and limiting factors",
+        hint: `What happens when you push the key variables of ${topic} to their maximum limit?`,
+      },
+      {
+        id: "misc-gen-2",
+        snippet: "doesn't require any secondary regulation",
+        concept: "Feedback Mechanisms & Regulation",
+        explanation: `${topic} relies on precise regulatory feedback loops to maintain equilibrium and prevent runaways.`,
+        misconception: "Overlooking crucial regulatory controls and feedback pathways.",
+        correctedSnippet: "is regulated by dynamic feedback loops and governing boundary conditions",
+        hint: `How does the system know when to stop or adjust its behavior in ${topic}?`,
+      },
+    ];
+    challengeQuestion = `If ${topic} is as simple as that, why don't real-world systems just maximize this endlessly? What holds it in check?`;
+    learningObjectives = [
+      `Say what actually makes ${topic} work`,
+      `Explain what limits it, and what happens at the extremes`,
+      `Give a real-world comparison, without the jargon`,
+    ];
   }
 
   return {
@@ -552,6 +962,9 @@ export function generateDynamicDraft(
     topic,
     persona,
     difficulty,
+    depth,
+    analogyStyle,
+    customAudience,
     draftText,
     hiddenMisconceptions: misconceptions,
     challengeQuestion,
@@ -788,10 +1201,73 @@ type RejectedVerdict = Exclude<ExplanationVerdict, "substantive">;
 /* What the apprentice says when the message was not an explanation. They stay
  * in character, but they say plainly that nothing landed — the student should
  * never be able to read a reaction as progress when the bar did not move. */
+/* What the apprentice says when the message was not an explanation. They stay
+ * in character, but they say plainly that nothing landed — the student should
+ * never be able to read a reaction as progress when the bar did not move. */
 const LOW_QUALITY_REACTIONS: Record<
   ApprenticePersona,
   Record<RejectedVerdict, (topic: string) => string>
 > = {
+  eli10: {
+    empty: (topic) =>
+      `🤔 "You didn't write anything yet! Tell me about ${topic} like a story or a fun game!"`,
+    gibberish: (topic) =>
+      `😕 "Huh? That doesn't look like real words to me! Can you explain ${topic} with words I can understand?"`,
+    too_short: (topic) =>
+      `🤔 "That's way too short! Can you tell me a whole sentence about ${topic}? I still don't get what my mistake was."`,
+    repeated: () =>
+      `😕 "You just copied what you already said! My brain is still confused — can you try a fun comparison?"`,
+    off_topic: (topic) =>
+      `😕 "Wait, what does that have to do with ${topic}? Can we get back to how that actually works?"`,
+  },
+  ninth_grader: {
+    empty: (topic) =>
+      `🤔 "You've not written anything yet! Tell me about ${topic} and I'll do my best to follow."`,
+    gibberish: (topic) =>
+      `😕 "Sorry, I can't read that — it isn't really words. Have another go at explaining ${topic} to me?"`,
+    too_short: (topic) =>
+      `🤔 "That's not much to go on! Can you give me a couple of sentences on ${topic}? I still don't see what's wrong with my version."`,
+    repeated: () =>
+      `😕 "You've said that already, word for word, and I'm still stuck. Could you put it a different way?"`,
+    off_topic: (topic) =>
+      `😕 "I'm not sure what that's got to do with ${topic}. Can you bring it back to the bit I got wrong?"`,
+  },
+  skeptical_buddy: {
+    empty: (topic) =>
+      `🤨 "Nothing at all? Then my version of ${topic} stands as written."`,
+    gibberish: (topic) =>
+      `🤨 "That's not an argument, that's keyboard mash. If my draft on ${topic} is wrong, say which part and why."`,
+    too_short: () =>
+      `🤨 "A handful of words isn't going to shift me. Give me a proper reason, or an example that breaks my version."`,
+    repeated: () =>
+      `🤨 "You've said that already, in exactly those words. Repeating it doesn't make it any more convincing — try another angle."`,
+    off_topic: (topic) =>
+      `🤨 "That's beside the point. We were on ${topic} — what in my draft is actually wrong?"`,
+  },
+  cbse_examiner: {
+    empty: (topic) =>
+      `📝 "Zero marks awarded. No response has been provided for ${topic}. Please present your explanation."`,
+    gibberish: (topic) =>
+      `📝 "Zero marks awarded. The response contains unreadable characters rather than scientific reasoning on ${topic}."`,
+    too_short: (topic) =>
+      `📝 "Insufficient response. Board examination criteria for ${topic} demand structured explanations with clear terminology."`,
+    repeated: () =>
+      `📝 "Repetition of previously submitted text. A valid re-attempt must clarify the conceptual deficiency."`,
+    off_topic: (topic) =>
+      `📝 "Irrelevant response. The candidate has deviated from ${topic}. Align your answer with the syllabus question."`,
+  },
+  custom: {
+    empty: (topic) =>
+      `🤔 "You haven't written anything yet! Please explain ${topic} to me."`,
+    gibberish: (topic) =>
+      `😕 "I couldn't make any sense of that. Could you try explaining ${topic} in clear words?"`,
+    too_short: (topic) =>
+      `🤔 "That's a bit too short for me to learn from. Could you share a fuller explanation of ${topic}?"`,
+    repeated: () =>
+      `😕 "You've shared that exact message already. Could you try rephrasing it?"`,
+    off_topic: (topic) =>
+      `😕 "That doesn't seem related to ${topic}. Could we refocus on the main topic?"`,
+  },
   curious_beginner: {
     empty: (topic) =>
       `🤔 "You've not written anything yet! Tell me about ${topic} and I'll do my best to follow."`,
@@ -849,20 +1325,20 @@ function buildRejectedTurn(
   verdict: RejectedVerdict,
   history: TeachingTurn[],
 ): TeachingTurn {
+  const reactions = LOW_QUALITY_REACTIONS[persona] || LOW_QUALITY_REACTIONS.eli10;
+  const isSkeptical =
+    persona === "overconfident_peer" ||
+    persona === "skeptical_buddy" ||
+    persona === "cbse_examiner";
   return {
     id: `turn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     userExplanation: explanation,
-    apprenticeReaction: LOW_QUALITY_REACTIONS[persona][verdict](draft.topic),
-    // The bar does not move. Not down either — the student has not taught
-    // anything, but they haven't untaught anything either.
+    apprenticeReaction: reactions[verdict](draft.topic),
     understandingScore: previousScore,
     delta: 0,
     confusionPoints: conceptsStillUnsolved(draft, history),
-    // Nothing was solved, so nothing is credited. This is the field that used
-    // to fall back to "Initial concept recognition" and put a green tick
-    // against a keyboard mash.
     solvedPoints: [],
-    emotion: persona === "overconfident_peer" ? "skeptical" : "confused",
+    emotion: isSkeptical ? "skeptical" : "confused",
     quality: verdict,
     timestamp: new Date().toISOString(),
   };
@@ -875,25 +1351,50 @@ function buildRejectedTurn(
 export async function generateApprenticeDraft(
   subject: string,
   topic: string,
-  persona: ApprenticePersona,
-  difficulty: FeynmanDifficulty = "intermediate"
+  persona: ApprenticePersona = "eli10",
+  difficulty: FeynmanDifficulty = "intermediate",
+  /** The student's own diagnosed misconceptions for this subject. */
+  studentMisconceptions: LedgerMisconception[] = [],
+  analogyStyle: AnalogyStyle = "sports_cricket",
+  depth: ExplanationDepth = "core_mechanism",
+  customAudience?: string,
 ): Promise<ApprenticeDraft> {
   const safeSubject = subject.trim() || "Science";
   const safeTopic = topic.trim() || "Core Concepts";
+  const profile = getPersonaProfile(persona, customAudience);
+  const analogyProfile = ANALOGY_STYLE_PROFILES[analogyStyle] || ANALOGY_STYLE_PROFILES.sports_cricket;
+  const depthProfile = EXPLANATION_DEPTH_PROFILES[depth] || EXPLANATION_DEPTH_PROFILES.core_mechanism;
+
+  const seeded = rankMisconceptions(
+    studentMisconceptions.filter((m) => m.subject.trim().length === 0
+      ? false
+      : m.subject.trim().toLowerCase() === safeSubject.trim().toLowerCase()),
+  ).slice(0, 2);
+
+  const seededBlock =
+    seeded.length > 0
+      ? `\nTHIS STUDENT'S OWN RECORDED MISCONCEPTIONS (diagnosed by this app from their real work):
+${seeded.map((m) => `- ${fenceUntrusted(m.concept)}: ${fenceUntrusted(m.summary)}`).join("\n")}
+- Where one of these genuinely fits ${safeTopic}, write it into the draft as one of the apprentice's flaws, in the apprentice's own words. The student must be able to find it by reading, so make it plausible rather than obviously wrong.
+- Never say, hint, or imply that a flaw came from the student's own record. The apprentice believes it; that is all the student should be able to tell.
+- If none of them fit this topic, ignore this list and invent typical misconceptions as usual. Do not force one in.\n`
+      : "";
 
   // Check if live edge call is available
   try {
     const prompt = `Generate an apprentice draft essay for the Feynman Technique teaching arena.
 Subject: ${safeSubject}
 Topic: ${safeTopic}
-Persona: ${persona} (${PERSONA_PROFILES[persona].name})
+Target Audience Persona: ${profile.name} (${profile.tagline})
+Target Analogy & Metaphor Preference: ${analogyProfile.name} (${analogyProfile.tagline})
+Explanation Depth Target: ${depthProfile.name}
 Difficulty: ${difficulty}
-
+${seededBlock}
 Rules:
-1. Write a 3-5 sentence draft representing the apprentice's flawed understanding of ${safeTopic}.
-2. Include 2-3 subtle, plausible conceptual misconceptions typical of this persona.
+1. Write a 3-5 sentence draft representing the apprentice's flawed understanding of ${safeTopic} written in character as ${profile.name}.
+2. Include 2-3 subtle, plausible conceptual misconceptions typical of this persona and topic. Each one must be wrong by the standard of a school exam syllabus: never flag something a school textbook teaches as correct (for example, that an enzyme has an optimum temperature), even if a university course would add nuance to it.
 3. Include an engaging challenge question the apprentice asks the user.
-4. Write everything in plain, everyday British English aimed at a 14-18 year old. Short sentences, no academic jargon in the explanations and hints.
+4. Write in everyday British English appropriate for ${profile.name}. Short sentences, relatable phrasing.
 5. Output in valid JSON matching this schema:
 {
   "draftText": "...",
@@ -915,12 +1416,12 @@ Rules:
     const res = await callEdge({
       history: [{ role: "user", content: prompt }],
       mode: "quiz", // JSON structured format
+      tool: "feynman",
     });
 
     if (res.text && !res.refused) {
-      const match = res.text.match(/\{[\s\S]*\}/);
-      if (match) {
-        const parsed = JSON.parse(match[0]);
+      const parsed = extractJSON<any>(res.text);
+      if (parsed) {
         if (parsed.draftText && Array.isArray(parsed.hiddenMisconceptions)) {
           return {
             id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -928,6 +1429,9 @@ Rules:
             topic: safeTopic,
             persona,
             difficulty,
+            depth,
+            analogyStyle,
+            customAudience,
             draftText: parsed.draftText,
             hiddenMisconceptions: parsed.hiddenMisconceptions.map((m: any, idx: number) => ({
               id: m.id || `misc-${idx + 1}`,
@@ -947,11 +1451,19 @@ Rules:
         }
       }
     }
-  } catch {
-    // Fall back to robust simulation knowledge base
+  } catch (err) {
+    /* The daily limit or a refusal is the server's ruling; a template draft
+       would hide it behind made-up "misconceptions". */
+    if (isLimitOrRefusal(err)) throw err;
   }
 
-  return generateDynamicDraft(safeSubject, safeTopic, persona, difficulty);
+  /* A generic template ("it multiplies forever… only on sunny days") with
+     the topic's name pasted in. Flagged so a caller can refuse to present it
+     as the AI's work; the Teach session does. */
+  return {
+    ...generateDynamicDraft(safeSubject, safeTopic, persona, difficulty, analogyStyle, depth, customAudience),
+    fromTemplate: true,
+  };
 }
 
 /** Keep only the concept names the draft actually defined, restored to the
@@ -972,10 +1484,9 @@ function toKnownConcepts(
 
 /** Ask the model to mark the explanation.
  *
- * This is the part that was missing entirely: the arena's "AI apprentice"
- * never called a model on the teaching turn, so it could only ever pattern
- * match on keywords and length. Returns `null` when the model is unavailable
- * or answers with something we can't trust, and the local scorer takes over.
+ * This marks the explanation in character according to the selected persona,
+ * analogy style, and depth. Returns `null` when the model is unavailable or
+ * produces invalid output, falling back to local scoring.
  */
 async function evaluateWithModel(
   draft: ApprenticeDraft,
@@ -983,8 +1494,15 @@ async function evaluateWithModel(
   explanation: string,
   persona: ApprenticePersona,
   previousScore: number,
+  analogyStyle: AnalogyStyle = draft.analogyStyle || "sports_cricket",
+  depth: ExplanationDepth = draft.depth || "core_mechanism",
+  customAudience?: string,
 ): Promise<TeachingTurn | null> {
-  const profile = PERSONA_PROFILES[persona];
+  const effectiveAudience = customAudience || draft.customAudience;
+  const profile = getPersonaProfile(persona, effectiveAudience);
+  const analogyProfile = ANALOGY_STYLE_PROFILES[analogyStyle] || ANALOGY_STYLE_PROFILES.sports_cricket;
+  const depthProfile = EXPLANATION_DEPTH_PROFILES[depth] || EXPLANATION_DEPTH_PROFILES.core_mechanism;
+
   const conceptList = draft.hiddenMisconceptions
     .map((m) => `- ${m.concept}: they currently believe "${m.misconception}"`)
     .join("\n");
@@ -996,7 +1514,9 @@ async function evaluateWithModel(
   const prompt = `You are marking one turn of a Feynman-technique teaching session and replying in character.
 
 Topic: ${draft.topic} (${draft.subject})
-You are role-playing: ${profile.name} — ${profile.description}
+You are role-playing: ${profile.name} — ${profile.systemPromptPersona}
+Target Analogy Style Preferred: ${analogyProfile.name} (${analogyProfile.tagline})
+Target Explanation Depth: ${depthProfile.name}
 
 Your flawed draft was:
 """${draft.draftText}"""
@@ -1009,12 +1529,21 @@ ${transcript ? `Conversation so far:\n${transcript}\n` : ""}Your understanding i
 The student has just said:
 """${explanation}"""
 
-Mark it honestly and strictly:
-1. Only raise the score for something that actually teaches the topic. Correct, clear, specific explanations move it a lot; vague, hand-wavy or padded ones barely move it.
-2. If the message is nonsense, off-topic, empty of meaning, or does not explain anything about ${draft.topic}, set "isSubstantive" to false, keep "understandingScore" the same as ${previousScore}, return an empty "solvedConcepts" array, and have ${profile.shortName} say plainly that they did not understand and ask for a real explanation. Never reward effort-free input.
-3. Only list a concept in "solvedConcepts" if this message genuinely put that specific misconception right. Copy the concept names exactly as written above.
-4. Never raise the score by more than ${MAX_SCORE_GAIN_PER_TURN} points in one turn.
-5. Write the reaction in ${profile.shortName}'s voice, in plain everyday British English, 1-3 sentences, aimed at a 14-18 year old.
+Mark it strictly and reply in character:
+1. Stay deeply in character as ${profile.name}.
+   - If Explain Like I'm 10: speak like an energetic 10-year-old in simple, vivid language.
+   - If Curious 9th Grader: speak like a 14-year-old student who connects concepts to real life.
+   - If Skeptical Study Buddy: challenge vague claims, ask about edge cases, and push for proof.
+   - If Strict ${FW.boardLabel} Examiner: maintain formal board examiner standards, check for ${FW.syllabusLabel} keywords.
+   - If Custom Audience: follow the custom audience description faithfully.
+2. In your response:
+   - Highlight what was crystal clear / what made sense from their explanation, especially if they used ${analogyProfile.name}.
+   - Point out any remaining gaps or what was confusing.
+   - Ask an insightful, creative follow-up question in character (e.g., 'Wait, if that's true, what happens if...?').
+3. Only raise the score for something that actually teaches the topic.
+4. If the message is nonsense, off-topic, empty of meaning, or does not explain anything about ${draft.topic}, set "isSubstantive" to false, keep "understandingScore" the same as ${previousScore}, return an empty "solvedConcepts" array, and have ${profile.shortName} say plainly that they did not understand.
+5. Only list a concept in "solvedConcepts" if this message genuinely put that specific misconception right. Copy the concept names exactly as written above.
+6. Never raise the score by more than ${MAX_SCORE_GAIN_PER_TURN} points in one turn.
 
 Output valid JSON only, matching this schema:
 {
@@ -1023,31 +1552,26 @@ Output valid JSON only, matching this schema:
   "solvedConcepts": ["..."],
   "remainingConfusions": ["..."],
   "emotion": "confused" | "skeptical" | "lightbulb" | "convinced",
-  "reaction": "..."
+  "reaction": "Conversational reply in full character...",
+  "whatMadeSense": ["1-2 points that were clear"],
+  "followUpQuestion": "Insightful follow-up question in character",
+  "remainingGaps": ["1-2 gaps or points to clarify"]
 }`;
 
-  /* No client-side retry on a teaching turn. The student is sat watching a
-   * spinner mid-conversation, and the local scorer below is a usable answer —
-   * waiting out a second round trip to maybe get a better one is the wrong
-   * trade here. */
   const res = await callEdge(
-    { history: [{ role: "user", content: prompt }], mode: "quiz" },
+    { history: [{ role: "user", content: prompt }], mode: "quiz", tool: "feynman" },
     undefined,
     0,
   );
 
   if (!res.text || res.refused) return null;
 
-  const match = res.text.match(/\{[\s\S]*\}/);
-  if (!match) return null;
+  const parsed = extractJSON<any>(res.text);
+  if (!parsed) return null;
 
-  const parsed = JSON.parse(match[0]);
   const reaction = typeof parsed.reaction === "string" ? parsed.reaction.trim() : "";
   if (!reaction) return null;
 
-  /* Everything below re-imposes the rules on the model's answer rather than
-   * trusting it. A model that ignores rule 2 and hands a keyboard mash 90%
-   * would put us straight back where we started. */
   const validConcepts = new Map(
     draft.hiddenMisconceptions.map((m) => [m.concept.toLowerCase(), m.concept]),
   );
@@ -1073,6 +1597,22 @@ Output valid JSON only, matching this schema:
 
   const remainingConfusions = toKnownConcepts(parsed.remainingConfusions, validConcepts);
 
+  const whatMadeSense = Array.isArray(parsed.whatMadeSense)
+    ? parsed.whatMadeSense.filter((s: any) => typeof s === "string" && s.trim())
+    : [];
+  const followUpQuestion =
+    typeof parsed.followUpQuestion === "string" && parsed.followUpQuestion.trim()
+      ? parsed.followUpQuestion.trim()
+      : undefined;
+  const remainingGaps = Array.isArray(parsed.remainingGaps)
+    ? parsed.remainingGaps.filter((s: any) => typeof s === "string" && s.trim())
+    : [];
+
+  const feedback: TurnFeedback | undefined =
+    isSubstantive && (whatMadeSense.length > 0 || followUpQuestion || remainingGaps.length > 0)
+      ? { whatMadeSense, followUpQuestion, remainingGaps }
+      : undefined;
+
   return {
     id: `turn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     userExplanation: explanation,
@@ -1087,8 +1627,18 @@ Output valid JSON only, matching this schema:
     emotion,
     quality: isSubstantive ? "substantive" : "off_topic",
     timestamp: new Date().toISOString(),
+    feedback,
   };
 }
+
+/* The rating as a sentence. Dropping it into "you're a …" produced "you're a
+   getting there" for two of the four ratings. */
+const RATING_SENTENCE: Record<FeynmanDebriefReport["pedagogicalRating"], string> = {
+  "Brilliant explainer": "On this showing, you're a brilliant explainer.",
+  "Good explainer": "On this showing, you're a good explainer.",
+  "Getting there": "On this showing, you're getting there.",
+  "Needs a bit more practice": "On this showing, it needs a bit more practice.",
+};
 
 /** Keyword-and-shape scorer, used when the model can't be reached.
  *
@@ -1102,9 +1652,15 @@ function scoreLocally(
   persona: ApprenticePersona,
   previousScore: number,
   assessment: ExplanationAssessment,
+  analogyStyle: AnalogyStyle = draft.analogyStyle || "sports_cricket",
+  depth: ExplanationDepth = draft.depth || "core_mechanism",
+  customAudience?: string,
 ): TeachingTurn {
   const lowerExp = explanation.toLowerCase();
   const wordCount = assessment.wordCount;
+  const effectiveAudience = customAudience || draft.customAudience;
+  const profile = getPersonaProfile(persona, effectiveAudience);
+  const analogyProfile = ANALOGY_STYLE_PROFILES[analogyStyle] || ANALOGY_STYLE_PROFILES.sports_cricket;
 
   const hasAnalogy =
     lowerExp.includes("like a") ||
@@ -1112,7 +1668,13 @@ function scoreLocally(
     lowerExp.includes("analogy") ||
     lowerExp.includes("similar to") ||
     lowerExp.includes("for example") ||
-    lowerExp.includes("think of");
+    lowerExp.includes("think of") ||
+    lowerExp.includes("cricket") ||
+    lowerExp.includes("kitchen") ||
+    lowerExp.includes("recipe") ||
+    lowerExp.includes("game") ||
+    lowerExp.includes("gear") ||
+    lowerExp.includes("story");
   const hasStepByStep =
     lowerExp.includes("first") ||
     lowerExp.includes("step") ||
@@ -1147,13 +1709,6 @@ function scoreLocally(
           .filter((w) => w.length > 4)
           .some((w) => lowerExp.includes(w)));
 
-    /* Was also `|| (wordCount > 35 && hasStepByStep)` — a long, sequenced-
-       sounding answer ("...then...because...") tripped that for every
-       misconception in this loop, independent of whether the answer said
-       anything about THIS one. A student explaining just the general
-       process at length got every listed misconception credited, including
-       ones they never touched. Credit now requires actual topical overlap
-       with this specific misconception's own terms or snippet. */
     if (hitCount >= 2 || (isSnippetMentioned && wordCount > 12)) {
       newlySolved.push(misc.concept);
     } else {
@@ -1161,10 +1716,6 @@ function scoreLocally(
     }
   });
 
-  /* A thin answer that happens to mention the topic earns very little. The
-   * points live in the things that make an explanation teach: a comparison,
-   * an ordered account, a stated contrast, and above all actually putting a
-   * specific misconception right. */
   let scoreDelta = wordCount >= 12 ? 6 : 2;
   if (wordCount > 25) scoreDelta += 3;
   if (assessment.topicOverlap >= 3) scoreDelta += 3;
@@ -1174,16 +1725,32 @@ function scoreLocally(
   if (newlySolved.length > 0) scoreDelta += newlySolved.length * 10;
 
   // Persona responsiveness adjustments
-  if (persona === "overconfident_peer" && !hasContrast && !hasStepByStep) {
-    scoreDelta = Math.max(0, scoreDelta - 8); // Jordan resists hand-wavy explanations
+  if (persona === "cbse_examiner") {
+    // Board markers reward step-by-step and contrast, penalize pure hand-waving
+    if (!hasStepByStep && !hasContrast) {
+      scoreDelta = Math.max(0, scoreDelta - 6);
+    } else {
+      scoreDelta += 4;
+    }
+  } else if (persona === "skeptical_buddy" || persona === "overconfident_peer") {
+    if (!hasContrast && !hasStepByStep) {
+      scoreDelta = Math.max(0, scoreDelta - 8);
+    }
+  } else if (persona === "eli10") {
+    if (hasAnalogy) scoreDelta += 8;
   } else if (persona === "struggling_student" && hasStepByStep) {
-    scoreDelta += 6; // Taylor loves step-by-step breakdowns
+    scoreDelta += 6;
   } else if (persona === "curious_beginner" && hasAnalogy) {
-    scoreDelta += 6; // Alex loves analogies
+    scoreDelta += 6;
   }
 
-  /* No floor. `Math.max(previousScore + 5, …)` used to sit here and is the
-   * single line that made an endless run of junk finish the session. */
+  // Adjust expectations based on depth
+  if (depth === "deep_dive" && wordCount < 25) {
+    scoreDelta = Math.max(0, scoreDelta - 4);
+  } else if (depth === "quick_intuition" && wordCount >= 10) {
+    scoreDelta += 2;
+  }
+
   const newScore = Math.min(
     100,
     previousScore + Math.min(Math.max(0, scoreDelta), MAX_SCORE_GAIN_PER_TURN),
@@ -1196,7 +1763,7 @@ function scoreLocally(
     emotion = "convinced";
   } else if (newScore >= 65) {
     emotion = "lightbulb";
-  } else if (persona === "overconfident_peer" && newScore < 60) {
+  } else if ((persona === "overconfident_peer" || persona === "skeptical_buddy" || persona === "cbse_examiner") && newScore < 60) {
     emotion = "skeptical";
   } else if (newScore >= 45) {
     emotion = "skeptical";
@@ -1204,32 +1771,59 @@ function scoreLocally(
     emotion = "confused";
   }
 
-  /* Craft the reaction in persona voice.
-   *
-   * The high-score lines quote the student and declare the penny dropped, so
-   * they are gated on this turn having earned something as well as on the
-   * running total — otherwise a session that had crept up to 85% greeted
-   * every later message, junk included, with "OHHH! It clicked!". */
+  // Construct creative follow-up question based on analogy style and persona
+  let followUpQuestion = "";
+  if (analogyStyle === "sports_cricket") {
+    followUpQuestion = `Wait, if that's like a bowler delivering the ball, what acts as the pitch friction or the wicketkeeper when the system slows down?`;
+  } else if (analogyStyle === "cooking_kitchen") {
+    followUpQuestion = `Wait, if that's like baking bread with yeast, what happens if the oven temperature gets pushed way too high?`;
+  } else if (analogyStyle === "gaming_tech") {
+    followUpQuestion = `Wait, if that's like a rendering buffer in a game engine, what happens when server latency spikes?`;
+  } else if (analogyStyle === "physical_machinery") {
+    followUpQuestion = `Wait, if gear A turns gear B, what provides the lubrication so the mechanism doesn't seize up under pressure?`;
+  } else {
+    followUpQuestion = `Wait, if the courier delivers the decree, what happens if the mountain pass is completely blocked?`;
+  }
+
+  if (persona === "cbse_examiner") {
+    followUpQuestion = `What is the precise ${FW.syllabusLabel} scientific term for this mechanism, and what prerequisite boundary conditions must be stated for ${FW.fullCreditLabel.toLowerCase()}?`;
+  } else if (persona === "eli10") {
+    followUpQuestion = `Wait, if that's true, what happens if you turn off the power or the temperature drops to freezing?`;
+  } else if (persona === "skeptical_buddy") {
+    followUpQuestion = `Hold on, does that logic hold if external variables drift away from steady state, or does your model collapse?`;
+  } else if (persona === "custom" && profile.name) {
+    followUpQuestion = `${profile.avatar} (As ${profile.name}): ${followUpQuestion}`;
+  }
+
+  // Craft in-character reaction
   const movedOn = effectiveDelta > 0;
   let reaction = "";
-  if (persona === "curious_beginner") {
+
+  if (persona === "eli10") {
     if (newScore >= 85 && movedOn) {
-      reaction = `💡 "OHHH! It clicked! When you said '${explanation.slice(0, 45)}...', that made total sense! So the real mechanism isn't what I originally drafted at all. I can see why ${draft.topic} works this way now!"`;
+      reaction = `💡 "WHOA! That makes so much sense! When you said '${explanation.slice(0, 45)}...', I could totally picture it! It's so cool how ${draft.topic} works!"`;
     } else if (newScore >= 60 && movedOn) {
-      reaction = `🌱 "Wait, that's fascinating! So you're saying that ${newlySolved[0] ? newlySolved[0] : "the process"} happens because of that mechanism? But wait, what about when ${draft.challengeQuestion.toLowerCase().slice(0, 50)}?"`;
+      reaction = `🎈 "Wait, that's super cool! So the first part works like that... but wait, ${followUpQuestion}"`;
     } else {
-      reaction = `🤔 "Hmm, I think I follow the general idea, but my brain is still a little fuzzy on why my original thought was wrong. Could you explain with a simple everyday metaphor or comparison?"`;
+      reaction = `🧒 "Hmm, my head is spinning with all those big textbook words. Can you explain it like I'm 10 with a fun everyday comparison, like a game or a sports match?"`;
     }
-  } else if (persona === "overconfident_peer") {
+  } else if (persona === "cbse_examiner") {
+    if (newScore >= 85 && movedOn) {
+      reaction = `🎓 "${FW.fullCreditLabel} awarded for this section. Your explanation of '${explanation.slice(0, 45)}...' meets ${FW.syllabusLabel} marking criteria and accurately defines the governing mechanism."`;
+    } else if (newScore >= 60 && movedOn) {
+      reaction = `📝 "Partial credit. You identified the primary mechanism, but you need to be explicit with formal keywords. ${followUpQuestion}"`;
+    } else {
+      reaction = `📝 "Minimal credit. Hand-wavy descriptions do not receive credit in ${FW.boardLabel} evaluations. Provide the exact scientific terminology, equations, and governing conditions."`;
+    }
+  } else if (persona === "skeptical_buddy" || persona === "overconfident_peer") {
     if (newScore >= 85 && movedOn) {
       reaction = `🎓 "Alright, I'll concede that. Your breakdown of '${explanation.slice(0, 45)}...' cleanly isolates the boundary conditions and edge cases I overlooked. That's a rigorous way to think about ${draft.topic}."`;
     } else if (newScore >= 60 && movedOn) {
-      reaction = `🤨 "Fair point on the underlying principle, but aren't you glossing over the edge case? How do you mathematically or logically reconcile that with ${draft.challengeQuestion.slice(0, 45)}?"`;
+      reaction = `🤨 "Fair point on the underlying principle, but aren't you glossing over the edge case? ${followUpQuestion}"`;
     } else {
       reaction = `🤨 "I'm still not convinced. That feels too hand-wavy. In my draft, the standard definition accounts for that unless you can prove a specific counter-example."`;
     }
-  } else {
-    // struggling_student
+  } else if (persona === "struggling_student") {
     if (newScore >= 85 && movedOn) {
       reaction = `💡 "Thank you so much! Breaking it down like that made the whole puzzle fall into place. I'm not scared of getting tested on ${draft.topic} now!"`;
     } else if (newScore >= 60 && movedOn) {
@@ -1237,7 +1831,42 @@ function scoreLocally(
     } else {
       reaction = `🤔 "I think I understand the words, but when I try to picture it, I get mixed up. Can you walk me through it step 1, step 2, step 3 without using too many complex terms?"`;
     }
+  } else {
+    // curious_beginner / ninth_grader / custom
+    if (newScore >= 85 && movedOn) {
+      reaction = `💡 "OHHH! It clicked! When you said '${explanation.slice(0, 45)}...', that made total sense! So the real mechanism isn't what I originally drafted at all. I can see why ${draft.topic} works this way now!"`;
+    } else if (newScore >= 60 && movedOn) {
+      reaction = `🌱 "Wait, that's fascinating! So you're saying that ${newlySolved[0] ? newlySolved[0] : "the process"} happens because of that mechanism? But wait: ${followUpQuestion}"`;
+    } else {
+      reaction = `🤔 "Hmm, I think I follow the general idea, but my brain is still a little fuzzy on why my original thought was wrong. Could you explain with a simple everyday metaphor or comparison?"`;
+    }
   }
+
+  // Structured breakdown
+  const whatMadeSense: string[] = [];
+  if (newlySolved.length > 0) {
+    whatMadeSense.push(`Clarified: ${newlySolved.join(", ")}`);
+  }
+  if (hasAnalogy) {
+    whatMadeSense.push(`Vivid use of ${analogyProfile.name.toLowerCase()}`);
+  }
+  if (hasStepByStep) {
+    whatMadeSense.push("Structured, sequential step-by-step reasoning");
+  }
+  if (whatMadeSense.length === 0 && wordCount >= 12) {
+    whatMadeSense.push(`Addressed core concepts of ${draft.topic}`);
+  }
+
+  const remainingGaps: string[] = remainingConfusion.map((c) => `Need to clarify: ${c}`);
+
+  const feedback: TurnFeedback | undefined =
+    whatMadeSense.length > 0 || followUpQuestion || remainingGaps.length > 0
+      ? {
+          whatMadeSense,
+          followUpQuestion,
+          remainingGaps,
+        }
+      : undefined;
 
   return {
     id: `turn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -1246,13 +1875,11 @@ function scoreLocally(
     understandingScore: newScore,
     delta: effectiveDelta,
     confusionPoints: remainingConfusion,
-    /* No "Initial concept recognition" fallback: an empty list is the honest
-       answer when the student solved nothing, and the studio's tick list
-       reads straight off this. */
     solvedPoints: newlySolved,
     emotion,
     quality: "substantive",
     timestamp: new Date().toISOString(),
+    feedback,
   };
 }
 
@@ -1260,9 +1887,13 @@ export async function evaluateTeachingExplanation(
   draft: ApprenticeDraft,
   history: TeachingTurn[],
   explanation: string,
-  persona: ApprenticePersona = draft.persona
+  persona: ApprenticePersona = draft.persona,
+  analogyStyle: AnalogyStyle = draft.analogyStyle || "sports_cricket",
+  depth: ExplanationDepth = draft.depth || "core_mechanism",
+  customAudience?: string,
 ): Promise<TeachingTurn> {
   const trimmed = explanation.trim();
+  const effectiveAudience = customAudience || draft.customAudience;
 
   // Prior score baseline
   const previousScore =
@@ -1289,13 +1920,30 @@ export async function evaluateTeachingExplanation(
       trimmed,
       persona,
       previousScore,
+      analogyStyle,
+      depth,
+      effectiveAudience,
     );
-    if (marked) return marked;
-  } catch {
+    if (marked) return { ...marked, scoredBy: "ai" };
+  } catch (err) {
+    // A daily limit is not an outage: say so instead of a keyword score.
+    if (isLimitOrRefusal(err)) throw err;
     // Fall back to the local scorer below.
   }
 
-  return scoreLocally(draft, trimmed, persona, previousScore, assessment);
+  return {
+    ...scoreLocally(
+      draft,
+      trimmed,
+      persona,
+      previousScore,
+      assessment,
+      analogyStyle,
+      depth,
+      effectiveAudience,
+    ),
+    scoredBy: "local",
+  };
 }
 
 export async function generateFeynmanDebrief(
@@ -1383,11 +2031,13 @@ export async function generateFeynmanDebrief(
     conceptsMastered.push(`Core structural definitions of ${draft.topic}`);
   }
 
+  const profile = getPersonaProfile(persona, draft.customAudience);
+
   // Strengths & Improvement Areas
   const strengths: string[] = [];
   if (analogyCount > 0) strengths.push("You used comparisons that made the idea easy to picture");
   if (stepByStepCount > 0) strengths.push("You took it in order, so the cause and effect were clear");
-  if (overallMastery >= 75) strengths.push(`You talked ${PERSONA_PROFILES[persona].shortName} round on things they were stuck on`);
+  if (overallMastery >= 75) strengths.push(`You talked ${profile.shortName} round on things they were stuck on`);
   if (strengths.length === 0) {
     strengths.push(
       totalTurns === 0
@@ -1404,9 +2054,11 @@ export async function generateFeynmanDebrief(
 
   // Targeted Flashcards based on session discoveries
   const generatedFlashcards: FeynmanFlashcardCandidate[] = draft.hiddenMisconceptions.map((m) => ({
-    front: `In ${draft.topic}, what is the common misconception regarding "${m.snippet}"?`,
+    /* A question a student can answer from memory. It used to ask "what is
+       the common misconception regarding …", which only restates the card. */
+    front: `${draft.topic}: what's wrong with saying "${m.snippet}"?`,
     back: `${m.explanation}\n\nAccurate understanding: ${m.correctedSnippet}`,
-    rationale: `From the session where you explained this to ${PERSONA_PROFILES[persona].name}.`,
+    rationale: `From the session where you explained this to ${profile.shortName}.`,
     concept: m.concept,
   }));
 
@@ -1421,13 +2073,13 @@ export async function generateFeynmanDebrief(
 
   const ignoredNote =
     ignoredTurns > 0
-      ? ` ${ignoredTurns} message${ignoredTurns === 1 ? " didn't" : "s didn't"} count — ${PERSONA_PROFILES[persona].shortName} couldn't make anything of ${ignoredTurns === 1 ? "it" : "them"}.`
+      ? ` ${ignoredTurns} message${ignoredTurns === 1 ? " didn't" : "s didn't"} count — ${profile.shortName} couldn't make anything of ${ignoredTurns === 1 ? "it" : "them"}.`
       : "";
 
   const summary =
     totalTurns === 0
-      ? `You didn't actually explain "${draft.topic}" to ${PERSONA_PROFILES[persona].name} — nothing you sent was something they could learn from, so they're still on ${finalScore}%. Start a fresh go and talk them through it in your own words.`
-      : `You explained "${draft.topic}" to ${PERSONA_PROFILES[persona].name}. Over ${totalTurns} message${totalTurns === 1 ? "" : "s"} you took them from 20% to ${finalScore}%. On this showing, you're a ${pedagogicalRating.toLowerCase()}.${ignoredNote}`;
+      ? `You didn't actually explain "${draft.topic}" to ${profile.shortName} — nothing you sent was something they could learn from, so they're still on ${finalScore}%. Start a fresh go and talk them through it in your own words.`
+      : `You explained "${draft.topic}" to ${profile.shortName}. Over ${totalTurns} message${totalTurns === 1 ? "" : "s"} you took them from 20% to ${finalScore}%. ${RATING_SENTENCE[pedagogicalRating]}${ignoredNote}`;
 
   return {
     overallMastery,

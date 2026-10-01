@@ -138,4 +138,29 @@ describe("ErrorBoundary", () => {
       screen.queryByRole("button", { name: "Reload Learnora" }),
     ).not.toBeInTheDocument();
   });
+
+  /* The docked overlays (chat panel, focus HUD) sat outside every boundary in
+     the tree, so a throw in either took the whole app to a blank tab. They get
+     their own boundary now, and it has to render nothing rather than the
+     full-page card — replacing the dashboard with an error screen because the
+     chat panel broke is the same crash from the student's point of view. */
+  it("renders a silent fallback instead of the recovery card when given one", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    renderWithProviders(
+      <>
+        <p>the dashboard</p>
+        <ErrorBoundary label="overlays" fallback={null}>
+          <Bomb armed />
+        </ErrorBoundary>
+      </>,
+      undefined,
+      { withRouter: true },
+    );
+
+    expect(screen.getByText("the dashboard")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /something went wrong/i }),
+    ).not.toBeInTheDocument();
+  });
 });

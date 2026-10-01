@@ -143,3 +143,51 @@ describe("prompt dialog", () => {
     await waitFor(() => expect(onResult).toHaveBeenCalledWith(null));
   });
 });
+
+describe("prompt dialog options", () => {
+  function OptionsHarness({
+    onResult,
+    options,
+  }: {
+    onResult: (value: unknown) => void;
+    options: Parameters<ReturnType<typeof useDialog>["promptText"]>[1];
+  }) {
+    const { promptText } = useDialog();
+    return (
+      <Button
+        onClick={async () => onResult(await promptText("Enter it", options))}
+      >
+        Ask
+      </Button>
+    );
+  }
+
+  /* Sign-in sends the password as typed, so the confirmation must too. */
+  it("returns a password exactly as typed, spaces included", async () => {
+    const user = userEvent.setup();
+    const onResult = vi.fn();
+    renderWithProviders(
+      <OptionsHarness
+        onResult={onResult}
+        options={{ inputType: "password" }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Ask" }));
+    const input = document.querySelector('input[type="password"]')!;
+    await user.type(input, " secret pass ");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onResult).toHaveBeenCalledWith(" secret pass "));
+  });
+
+  it("caps the value when a maxLength is given", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <OptionsHarness onResult={vi.fn()} options={{ maxLength: 80 }} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Ask" }));
+    expect(screen.getByRole("textbox")).toHaveAttribute("maxLength", "80");
+  });
+});

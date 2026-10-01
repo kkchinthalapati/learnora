@@ -10,11 +10,15 @@ import {
   type RichTextEditorHandle,
 } from "../../components/RichTextEditor";
 import { useUpdateNoteHtml } from "../../hooks/useNotes";
+import { NoteConflictError } from "../../api/notes";
 import { useRetryStudyPackage } from "../../hooks/useStudyPackage";
-import { useMaterialProcessing } from "../../lib/materialProcessing";
+import {
+  deriveMaterialStatus,
+  useMaterialProcessing,
+} from "../../lib/materialProcessing";
 import { renderMarkdown } from "../../lib/markdown";
 import { NotesAiSidebar } from "./NotesAiSidebar";
-import type { Note } from "../../api/types";
+import type { Material, Note } from "../../api/types";
 import { callEdge } from "../../api/ai";
 import { useMutation } from "@tanstack/react-query";
 import { useSettings } from "../../context/settings";
@@ -49,7 +53,13 @@ const COMPLEXITY_LABELS = {
 } as const;
 
 type SaveStatus =
-  "idle" | "unsaved" | "saving" | "saved" | "failed" | "readonly";
+  | "idle"
+  | "unsaved"
+  | "saving"
+  | "saved"
+  | "failed"
+  | "conflict"
+  | "readonly";
 
 interface ActiveSelection {
   range: EditorRange;
@@ -89,6 +99,7 @@ const STATUS_TEXT: Record<SaveStatus, string> = {
   saving: "Saving…",
   saved: "Saved",
   failed: "Failed to save",
+  conflict: "Changed elsewhere — not saved",
   readonly: "Notes aren't ready to edit yet",
 };
 
@@ -98,10 +109,12 @@ const STATUS_CLASS: Record<SaveStatus, string | undefined> = {
   saving: undefined,
   saved: styles.statusSaved,
   failed: styles.statusFailed,
+  conflict: styles.statusFailed,
   readonly: undefined,
 };
 
 interface NotesEditorPaneProps {
+  material?: Material;
   materialId: string;
   materialTitle: string;
   /** The open material's folder, passed through to the AI sidebar's
@@ -118,6 +131,7 @@ interface NotesEditorPaneProps {
  * knows how to hold a document — ports js/editor.js's `save`/`scheduleSave`/
  * `destroy` (:122-189). */
 export function NotesEditorPane({
+  material,
   materialId,
   materialTitle,
   folderId,
@@ -140,14 +154,41 @@ export function NotesEditorPane({
      keystroke — enough to ride out a blip, not enough to spin. */
   const retriedRef = useRef(false);
   const mountedRef = useRef(true);
+  /* The version of the note this editor's text is based on. Every save is
+     conditional on the row still being at it, so a second tab or device
+     can't be silently overwritten — the last writer used to win outright. */
+  const baseVersionRef = useRef<string | null>(note?.updated_at ?? null);
 
   const { settings } = useSettings();
   const { showToast } = useToast();
-  const processingRecord = useMaterialProcessing(materialId);
+  const localProcessingRecord = useMaterialProcessing(materialId);
+  const processingRecord = material?.processing_status
+    ? deriveMaterialStatus(material, note ? 1 : 0, localProcessingRecord)
+    : localProcessingRecord;
   const retryMutation = useRetryStudyPackage();
   const isRetrying = retryMutation.isPending;
+  const notesOmitted =
+    !note &&
+    ((processingRecord?.status === "completed" &&
+      material?.processing_status === "skipped") ||
+      localProcessingRecord?.notesRequested === false);
 
+  const baseNoteIdRef = useRef(note?.id);
   useEffect(() => {
+    /* A refetch issued after one save can land after the next save has
+       already returned a newer version; adopting its older stamp would make
+       the following save a false conflict. Only move forward, or reset when
+       it's a different note. */
+    const incoming = note?.updated_at ?? null;
+    const base = baseVersionRef.current;
+    if (
+      baseNoteIdRef.current !== note?.id ||
+      !base ||
+      (incoming && Date.parse(incoming) > Date.parse(base))
+    ) {
+      baseVersionRef.current = incoming;
+    }
+    baseNoteIdRef.current = note?.id;
     if (note && editorRef.current) {
       const html =
         note.html_content ||
@@ -210,6 +251,7 @@ ${fenceUntrusted(currentHtml)}
       return callEdge({
         history: [{ role: "user", content: prompt }],
         mode: "rewrite",
+        tool: "chat",
         settings,
       });
     },
@@ -224,7 +266,7 @@ ${fenceUntrusted(currentHtml)}
       const html = renderMarkdown(md);
       editorRef.current?.setHtml(html);
       handleUserChange(html);
-      showToast("Notes rewritten!");
+      showToast("Notes rewritten");
     },
     onError: (_err) => {
       showToast("Failed to rewrite notes.", { error: true });
@@ -257,10 +299,7 @@ ${fenceUntrusted(currentHtml)}
        that point would leave a timer running against a dead component. */
     if (!mountedRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(
-      () => flushRef.current(),
-      delayMs,
-    );
+    saveTimerRef.current = setTimeout(() => flushRef.current(), delayMs);
   }, []);
 
   const flush = useCallback(() => {
@@ -284,17 +323,35 @@ ${fenceUntrusted(currentHtml)}
     dirtyHtmlRef.current = null;
     setStatus("saving");
     updateHtml.mutate(
-      { id: note.id, htmlContent: html },
       {
-        onSuccess: () => {
+        id: note.id,
+        htmlContent: html,
+        expectedUpdatedAt: baseVersionRef.current,
+      },
+      {
+        onSuccess: (saved) => {
+          baseVersionRef.current = saved.updated_at ?? null;
           retriedRef.current = false;
           acknowledgeSaved();
         },
-        onError: () => {
+        onError: (error) => {
           /* Put the edit back so it is never dropped on the floor. A newer
              keystroke landing mid-request already owns the ref and wins —
              it's a superset of what this save was carrying. */
           if (dirtyHtmlRef.current === null) dirtyHtmlRef.current = html;
+          if (error instanceof NoteConflictError) {
+            /* Retrying can't succeed and overwriting would erase the other
+               edit. Keep this text in the editor (beforeunload still guards
+               it) and let the student decide. */
+            setStatus("conflict");
+            if (mountedRef.current) {
+              showToast(
+                "This note was changed in another tab or device. Copy anything you want to keep, then reload to see the latest version.",
+                { error: true },
+              );
+            }
+            return;
+          }
           if (retriedRef.current) {
             /* Second failure: stop retrying and say so. The text stays in
                the editor and beforeunload still guards the tab, so the
@@ -308,7 +365,7 @@ ${fenceUntrusted(currentHtml)}
         },
       },
     );
-  }, [note, updateHtml, acknowledgeSaved, scheduleSave]);
+  }, [note, updateHtml, acknowledgeSaved, scheduleSave, showToast]);
   flushRef.current = flush;
 
   const handleUserChange = useCallback(
@@ -329,7 +386,10 @@ ${fenceUntrusted(currentHtml)}
      prompt at all. */
   useEffect(() => {
     const unsaved =
-      status === "unsaved" || status === "saving" || status === "failed";
+      status === "unsaved" ||
+      status === "saving" ||
+      status === "failed" ||
+      status === "conflict";
     if (!unsaved) return;
     const handler = (e: BeforeUnloadEvent) => {
       // Custom message text is ignored by every modern browser — only
@@ -634,7 +694,9 @@ ${fenceUntrusted(currentHtml)}
     (note?.markdown_content ? renderMarkdown(note.markdown_content) : "") ||
     (note
       ? ""
-      : "<p>No notes yet — Learnora is still processing this material.</p>");
+      : notesOmitted
+        ? "<h2>Flashcards &amp; Quiz Only</h2><p>You chose not to create summary notes for this material. Your flashcards and quiz are ready in the Library.</p>"
+        : "<p>No notes yet — Learnora is still processing this material.</p>");
 
   return (
     <div className={styles.view}>
@@ -648,7 +710,9 @@ ${fenceUntrusted(currentHtml)}
         <div className={styles.toolbarRight}>
           <span
             className={`${styles.status}${STATUS_CLASS[status] ? ` ${STATUS_CLASS[status]}` : ""}`}
-            role={status === "failed" ? "alert" : "status"}
+            role={
+              status === "failed" || status === "conflict" ? "alert" : "status"
+            }
           >
             {STATUS_TEXT[status]}
           </span>
@@ -688,13 +752,27 @@ ${fenceUntrusted(currentHtml)}
         {undoStack.length > 0 && (
           <Button size="sm" variant="secondary" onClick={undoLastAiEdit}>
             {undoStack.at(-1)?.source === "inline"
-               ? "Undo Last AI Edit"
-               : "Undo Rewrite"}
+              ? "Undo Last AI Edit"
+              : "Undo Rewrite"}
           </Button>
         )}
       </div>
 
-      {isRetrying || processingRecord?.status === "processing" ? (
+      {notesOmitted ? (
+        <div className={styles.processingBanner} role="status">
+          <div className={styles.bannerContent}>
+            <span className={styles.bannerIcon} aria-hidden="true">
+              <Icon name="check" size={18} />
+            </span>
+            <div className={styles.bannerText}>
+              <strong className={styles.bannerTitle}>
+                Flashcards &amp; Quiz Only
+              </strong>
+              <span>Summary notes were not selected for this material.</span>
+            </div>
+          </div>
+        </div>
+      ) : isRetrying || processingRecord?.status === "processing" ? (
         <div className={styles.processingBanner} role="status">
           <div className={styles.bannerContent}>
             <span className={styles.bannerSpinner} aria-hidden="true" />
@@ -702,9 +780,7 @@ ${fenceUntrusted(currentHtml)}
               <strong className={styles.bannerTitle}>
                 Processing study notes…
               </strong>
-              <span>
-                Learnora is reading your material and writing notes.
-              </span>
+              <span>Learnora is reading your material and writing notes.</span>
             </div>
           </div>
         </div>
@@ -787,18 +863,23 @@ ${fenceUntrusted(currentHtml)}
 
       <div className={styles.splitLayout}>
         <Card variant="elevated" padding="none" className={styles.editorPane}>
-          <RichTextEditor
-            ref={editorRef}
-            initialHtml={initialHtml}
-            readOnly={!note}
-            placeholder="Start typing your notes here…"
-            onUserChange={note ? handleUserChange : undefined}
-          />
+          <div style={{ display: "flex", width: "100%", height: "100%" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <RichTextEditor
+                ref={editorRef}
+                initialHtml={initialHtml}
+                readOnly={!note}
+                placeholder="Start typing your notes here…"
+                onUserChange={note ? handleUserChange : undefined}
+              />
+            </div>
+          </div>
         </Card>
 
         <NotesAiSidebar
           materialId={materialId}
           folderId={folderId}
+          materialTitle={materialTitle}
           getDocumentText={() => editorRef.current?.getPlainText() ?? ""}
           onInsertText={
             note ? (text) => editorRef.current?.appendText(text) : undefined

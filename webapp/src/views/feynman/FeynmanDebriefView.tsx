@@ -16,6 +16,7 @@ import {
 import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar";
 import { renderMathText } from "../../lib/markdownToReact";
 import styles from "./FeynmanDebriefView.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 export function FeynmanDebriefView() {
   const { sessionId: paramSessionId } = useParams<{ sessionId?: string }>();
@@ -26,6 +27,7 @@ export function FeynmanDebriefView() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportedDeckId, setExportedDeckId] = useState<string | null>(null);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -99,7 +101,7 @@ export function FeynmanDebriefView() {
           <p style={{ color: "var(--text-muted)", marginTop: "8px", marginBottom: "20px" }}>
             It may have been deleted, or it was from a while ago.
           </p>
-          <Button variant="primary" onClick={() => navigate("/feynman")}>
+          <Button variant="primary" onClick={() => navigate(newSessionHref("teach"))}>
             <Icon name="chevron-down" size={16} style={{ transform: "rotate(90deg)" }} /> Back
           </Button>
         </div>
@@ -126,9 +128,10 @@ export function FeynmanDebriefView() {
     if (isExporting || report.generatedFlashcards.length === 0) return;
     setIsExporting(true);
     setExportMessage(null);
+    setExportError(null);
 
     try {
-      const deckTitle = `${session.topic} (from Explain It Simply)`;
+      const deckTitle = `${session.topic} (from Explain it simply)`;
       const deck = await decksApi.add(null, deckTitle);
       const cardsToAdd = report.generatedFlashcards.map((c) => ({
         front: c.front,
@@ -140,12 +143,18 @@ export function FeynmanDebriefView() {
       setExportMessage(
         `Added ${cardsToAdd.length} flashcards to "${deckTitle}".`
       );
-    } catch (err: any) {
-      console.warn("Deck save fell back to a local confirmation", err);
-      // Graceful fallback for demo or test environments
-      setExportedDeckId("local-exported");
-      setExportMessage(
-        `Made ${report.generatedFlashcards.length} flashcards for you.`
+    } catch (err) {
+      /* This used to `setExportMessage("Made N flashcards for you.")` from
+         inside the catch — a "graceful fallback for demo or test
+         environments". In practice the write fails against the real database,
+         so that reassuring sentence was the *only* message a student ever saw,
+         rendered under a ✓ in the success banner, while nothing was saved.
+         A save that did not happen has to look like one that did not happen. */
+      console.error("Could not save the Feynman deck", err);
+      setExportError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Something went wrong saving the deck.",
       );
     } finally {
       setIsExporting(false);
@@ -321,7 +330,7 @@ export function FeynmanDebriefView() {
         {exportMessage && (
           <div className={styles.exportSuccessBanner} data-testid="export-success-banner">
             <span>✓ {exportMessage}</span>
-            {exportedDeckId && exportedDeckId !== "local-exported" && (
+            {exportedDeckId && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -330,6 +339,18 @@ export function FeynmanDebriefView() {
                 Revise them now →
               </Button>
             )}
+          </div>
+        )}
+
+        {exportError && (
+          <div className={styles.exportErrorBanner} data-testid="export-error-banner" role="alert">
+            <span>
+              Couldn’t save these as a deck — nothing was added to your library.
+              The cards are still listed below. ({exportError})
+            </span>
+            <Button variant="secondary" size="sm" onClick={handleExportFlashcards}>
+              Try again
+            </Button>
           </div>
         )}
 
@@ -355,7 +376,7 @@ export function FeynmanDebriefView() {
       <div className={styles.actionsFooter}>
         <Button
           variant="secondary"
-          onClick={() => navigate("/feynman")}
+          onClick={() => navigate(newSessionHref("teach"))}
           data-testid="teach-another-btn"
         >
           <Icon name="zap" size={16} /> Explain something else

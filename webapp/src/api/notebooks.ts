@@ -21,6 +21,7 @@ interface NotebookRow {
   id: string;
   title: string;
   subject: string;
+  folder_id: string | null;
   color: string;
   description: string | null;
   notes: string;
@@ -92,6 +93,7 @@ function toNotebook(row: NotebookRow): Notebook {
     id: row.id,
     title: row.title,
     subject: row.subject,
+    folderId: row.folder_id ?? null,
     color: row.color,
     description: row.description ?? undefined,
     notes: row.notes,
@@ -119,6 +121,11 @@ export const notebooksApi = {
       .from("notebooks")
       .select(LIST_SELECT)
       .eq("user_id", userId)
+      // Stage 4 creates one internal ownership row per subject (plus an
+      // unfiled fallback). They keep Library content connected but are not
+      // student workspaces and would otherwise duplicate every subject as an
+      // empty-looking notebook card.
+      .is("system_key", null)
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map(toNotebook);
@@ -131,6 +138,7 @@ export const notebooksApi = {
       .select(DETAIL_SELECT)
       .eq("id", id)
       .eq("user_id", userId)
+      .is("system_key", null)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data ? toNotebook(data) : null;
@@ -139,13 +147,15 @@ export const notebooksApi = {
   async add(input: {
     title: string;
     subject?: string;
+    folderId?: string | null;
     color?: string;
     description?: string;
   }): Promise<Notebook> {
     const userId = await requireUserId();
+    const { folderId = null, ...notebook } = input;
     const { data, error } = await supabase
       .from("notebooks")
-      .insert([{ ...input, user_id: userId }])
+      .insert([{ ...notebook, folder_id: folderId, user_id: userId }])
       .select(LIST_SELECT)
       .single();
     if (error) throw new Error(error.message);
@@ -157,13 +167,20 @@ export const notebooksApi = {
   async update(
     id: string,
     patch: Partial<
-      Pick<Notebook, "title" | "subject" | "color" | "description" | "notes">
+      Pick<
+        Notebook,
+        "title" | "subject" | "folderId" | "color" | "description" | "notes"
+      >
     >,
   ): Promise<void> {
     const userId = await requireUserId();
+    const { folderId, ...notebookPatch } = patch;
     const { error } = await supabase
       .from("notebooks")
-      .update(patch)
+      .update({
+        ...notebookPatch,
+        ...(folderId !== undefined ? { folder_id: folderId } : {}),
+      })
       .eq("id", id)
       .eq("user_id", userId);
     if (error) throw new Error(error.message);

@@ -13,8 +13,6 @@ interface MicroRepairModalProps {
   onRepairSuccess: (traceId: string, repairId: string) => Promise<void> | void;
 }
 
-const TOTAL_SECONDS = 60;
-
 export function MicroRepairModal({
   open,
   onClose,
@@ -22,37 +20,27 @@ export function MicroRepairModal({
   traceId,
   onRepairSuccess,
 }: MicroRepairModalProps) {
-  const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [showErrorFeedback, setShowErrorFeedback] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset state whenever modal opens or challenge changes
   useEffect(() => {
     if (open) {
-      setTimeLeft(TOTAL_SECONDS);
       setSelectedOption(null);
       setIsVerified(false);
       setShowErrorFeedback(false);
+      setShowExplanation(false);
       setIsSubmitting(false);
     }
   }, [open, challenge?.id]);
 
-  // 60-second countdown ticker
-  useEffect(() => {
-    if (!open || isVerified || timeLeft <= 0) return;
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => Math.max(0, prev - 1));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [open, isVerified, timeLeft]);
 
   if (!challenge) return null;
 
   const exercise = challenge.interactiveExercise;
-  const progressPercent = (timeLeft / TOTAL_SECONDS) * 100;
-  const isUrgent = timeLeft <= 15;
 
   const handleSelectOption = (index: number) => {
     if (isVerified) return;
@@ -85,35 +73,11 @@ export function MicroRepairModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="60-second fix"
-      subtitle={`Getting "${challenge.rootConcept}" straight`}
-      closeLabel="Close the 60-second fix"
+      title="Quick check"
+      subtitle="One question on first principles. No timer."
+      closeLabel="Close the quick check"
     >
       <div className={styles.repairContainer}>
-        {/* 60-second timer bar */}
-        <div className={styles.timerBarWrapper} aria-label="Time left">
-          <div className={styles.timerHeader}>
-            <span>Go with your gut</span>
-            <span
-              className={styles.timerCounter}
-              aria-live="polite"
-              data-testid="repair-timer-display"
-            >
-              {timeLeft}s remaining
-            </span>
-          </div>
-          <div className={styles.progressBarBg}>
-            <div
-              className={`${styles.progressBarFill} ${isUrgent ? styles.progressUrgent : ""}`}
-              style={{ width: `${progressPercent}%` }}
-              role="progressbar"
-              aria-valuenow={timeLeft}
-              aria-valuemin={0}
-              aria-valuemax={TOTAL_SECONDS}
-            />
-          </div>
-        </div>
-
         {/* The plain-English idea */}
         <div className={styles.intuitionCard}>
           <div className={styles.intuitionHead}>
@@ -180,6 +144,18 @@ export function MicroRepairModal({
           </div>
         )}
 
+        {showExplanation && !isVerified && (
+          <div className={styles.feedbackCard} role="status">
+            <div className={styles.feedbackTitle}>
+              <Icon name="zap" size={18} />
+              <span>Here is the reasoning</span>
+            </div>
+            <p className={styles.feedbackDetail}>
+              {exercise.firstPrinciplesExplanation}
+            </p>
+          </div>
+        )}
+
         {showErrorFeedback && (
           <div className={`${styles.feedbackCard} ${styles.feedbackError}`} role="alert">
             <div className={styles.feedbackTitle}>
@@ -220,6 +196,20 @@ export function MicroRepairModal({
             </Button>
           )}
         </div>
+
+        {!isVerified && !showExplanation && (
+          <button
+            type="button"
+            className={styles.skipLink}
+            onClick={() => {
+              setShowExplanation(true);
+              setShowErrorFeedback(false);
+            }}
+            data-testid="skip-to-explanation-btn"
+          >
+            Skip — just show me the explanation
+          </button>
+        )}
       </div>
     </Modal>
   );

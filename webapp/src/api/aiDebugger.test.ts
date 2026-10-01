@@ -1,3 +1,5 @@
+import { learningEventsApi } from "./learningEvents";
+vi.mock("./learningEvents", () => ({ learningEventsApi: { record: vi.fn().mockResolvedValue(undefined) } }));
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/mocks/server";
@@ -49,7 +51,8 @@ describe("aiDebugger API", () => {
     it("builds a micro-repair prompt for a root concept", () => {
       const prompt = buildMicroRepairPrompt("Chain Rule Functional Composition");
       expect(prompt).toContain("Chain Rule Functional Composition");
-      expect(prompt).toContain("60-second");
+      expect(prompt).not.toContain("60-second");
+      expect(prompt).toContain("under 40 characters");
       expect(prompt).toContain("intuitionSummary");
     });
   });
@@ -165,6 +168,73 @@ describe("aiDebugger API", () => {
       expect(trace.layers[2].level).toBe(1);
       expect(trace.layers[2].status).toBe("severed");
     });
+
+    /* The stand-in has to announce itself. Without this flag the view shows
+       a template in the same clothes as a real diagnosis, and the ledger
+       writes two `critical` rows invented out of an outage. */
+    it("marks a fallback trace as degraded when the tutor cannot be reached", async () => {
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ error: "Internal Server Error" }, { status: 500 }),
+        ),
+      );
+
+      const trace = await diagnoseCognitiveGap("Physics", "Momentum in inelastic collision");
+      expect(trace.degraded?.reason).toBe("unavailable");
+      expect(trace.degraded?.message).toBeTruthy();
+    });
+
+    /* A 5xx body is whatever the server happened to say. It must not reach
+       a revision screen: the first run of this fix printed the stub's own
+       "server exploded" to the student. */
+    it("does not show the raw body of a server fault to the student", async () => {
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ error: "server exploded: ECONNRESET at pool.js:22" }, { status: 500 }),
+        ),
+      );
+
+      const trace = await diagnoseCognitiveGap("Physics", "Momentum question");
+      expect(trace.degraded?.message).not.toContain("ECONNRESET");
+      expect(trace.degraded?.message).toBe("We couldn't reach the tutor just now.");
+    });
+
+    /* A 429 is the common case, not a rare one: two Solver runs spend the
+       free plan's daily allowance. The server's own sentence says when it
+       comes back, so it is the one shown rather than a generic apology. */
+    it("carries the daily-allowance message through to the student", async () => {
+      const refusal =
+        "You've used today's allowance for this tool on the free plan. It resets at midnight — or Learnora Plus/Pro raises the limit.";
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ error: refusal, text: refusal }, { status: 429 }),
+        ),
+      );
+
+      const trace = await diagnoseCognitiveGap("Physics", "Momentum question");
+      expect(trace.degraded?.reason).toBe("unavailable");
+      expect(trace.degraded?.message).toContain("allowance");
+    });
+
+    it("leaves a real diagnosis unmarked", async () => {
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({
+            text: JSON.stringify({
+              rootCauseSummary: "Momentum is not conserved in the student's model.",
+              layers: [
+                { level: 3, concept: "Inelastic collisions", status: "severed", explanation: "a" },
+                { level: 2, concept: "Momentum conservation", status: "shaky", explanation: "b" },
+                { level: 1, concept: "Vector addition", status: "healthy", explanation: "c" },
+              ],
+            }),
+          }),
+        ),
+      );
+
+      const trace = await diagnoseCognitiveGap("Physics", "Momentum question");
+      expect(trace.degraded).toBeUndefined();
+    });
   });
 
   describe("generateMicroRepair", () => {
@@ -194,28 +264,94 @@ describe("aiDebugger API", () => {
         ),
       );
 
-      const repair = await generateMicroRepair("Functional Composition & Intermediate Change");
-      expect(repair.id).toBeDefined();
-      expect(repair.rootConcept).toBe("Functional Composition & Intermediate Change");
-      expect(repair.verified).toBe(false);
-      expect(repair.interactiveExercise.options).toHaveLength(4);
-      expect(repair.interactiveExercise.correctIndex).toBe(0);
+      const { challenge: repair, degraded } = await generateMicroRepair(
+        "Functional Composition & Intermediate Change",
+      );
+      expect(degraded).toBeUndefined();
+      expect(repair?.id).toBeDefined();
+      expect(repair?.rootConcept).toBe("Functional Composition & Intermediate Change");
+      expect(repair?.verified).toBe(false);
+      expect(repair?.interactiveExercise.options).toHaveLength(4);
+      expect(repair?.interactiveExercise.correctIndex).toBe(0);
 
       const savedRepairs = getSavedRepairs();
-      expect(savedRepairs[repair.id]).toBeDefined();
+      expect(savedRepairs[repair!.id]).toBeDefined();
     });
 
-    it("provides deterministic fallback repair when AI fails", async () => {
+    /* There used to be a template exercise here whose answer was always A.
+       Passing it closed the gap, credited the forecast and wrote a
+       correction to the ledger — so an outage could resolve a misconception
+       the tutor had just found. No exercise is better than that one. */
+    it("offers no exercise when the tutor can't be reached", async () => {
       server.use(
         http.post(EDGE_URL, () =>
           HttpResponse.json({ error: "Provider unavailable" }, { status: 503 }),
         ),
       );
 
-      const repair = await generateMicroRepair("Conservation of Momentum");
-      expect(repair.id).toBeDefined();
-      expect(repair.rootConcept).toBe("Conservation of Momentum");
-      expect(repair.interactiveExercise.options.length).toBeGreaterThan(1);
+      const result = await generateMicroRepair("Conservation of Momentum");
+      expect(result.challenge).toBeUndefined();
+      expect(result.degraded).toEqual({
+        reason: "unavailable",
+        message: "We couldn't reach the tutor just now.",
+      });
+      expect(getSavedRepairs()).toEqual({});
+    });
+
+    /* The free plan's two Debugger calls a day are spent by one diagnosis
+       and one repair, so "Go over it again" is where a 429 usually lands. */
+    it("carries the daily-allowance message through to the student", async () => {
+      const refusal =
+        "You've used today's allowance for this tool on the free plan. It resets at midnight — or Learnora Plus/Pro raises the limit.";
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ error: refusal, text: refusal }, { status: 429 }),
+        ),
+      );
+
+      const result = await generateMicroRepair("Conservation of Momentum");
+      expect(result.challenge).toBeUndefined();
+      expect(result.degraded?.message).toContain("allowance");
+    });
+
+    const exercise = {
+      prompt: "What is conserved?",
+      options: ["Total momentum", "Speed", "Kinetic energy", "Nothing"],
+      correctIndex: 0,
+      firstPrinciplesExplanation: "Momentum is conserved in every collision.",
+    };
+
+    it.each([
+      ["prose instead of JSON", "Sure! Momentum is always conserved."],
+      ["no exercise", JSON.stringify({ intuitionSummary: "Momentum stays." })],
+      [
+        "a single option",
+        JSON.stringify({
+          intuitionSummary: "Momentum stays.",
+          interactiveExercise: { ...exercise, options: ["Total momentum"] },
+        }),
+      ],
+      [
+        "no right answer named",
+        JSON.stringify({
+          intuitionSummary: "Momentum stays.",
+          interactiveExercise: { ...exercise, correctIndex: undefined },
+        }),
+      ],
+      [
+        "a right answer that isn't one of the options",
+        JSON.stringify({
+          intuitionSummary: "Momentum stays.",
+          interactiveExercise: { ...exercise, correctIndex: 4 },
+        }),
+      ],
+    ])("refuses a reply with %s, since passing it would prove nothing", async (_, text) => {
+      server.use(http.post(EDGE_URL, () => HttpResponse.json({ text })));
+
+      const result = await generateMicroRepair("Conservation of Momentum");
+      expect(result.challenge).toBeUndefined();
+      expect(result.degraded?.reason).toBe("unreadable");
+      expect(getSavedRepairs()).toEqual({});
     });
   });
 
@@ -265,6 +401,7 @@ describe("aiDebugger API", () => {
       saveRepair(challenge);
 
       await recordRepairSuccess("trace_test_123", "repair_test_456");
+      expect(learningEventsApi.record).toHaveBeenCalledWith(expect.objectContaining({ source: "solver", score: 1, clientId: "solver:trace_test_123:repair_test_456" }));
 
       const updatedRepairs = getSavedRepairs();
       expect(updatedRepairs["repair_test_456"].verified).toBe(true);

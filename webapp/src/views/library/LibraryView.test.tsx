@@ -92,9 +92,11 @@ function serveLibrary({
   materials = [] as Material[],
   decks = [] as FlashcardDeck[],
   quizzes = [] as Quiz[],
+  notebooks = [] as Record<string, unknown>[],
   dueCount = 0,
 } = {}) {
   server.use(
+    http.get(rest("notebooks"), () => HttpResponse.json(notebooks)),
     http.get(rest("folders"), () => HttpResponse.json(folders)),
     http.get(rest("materials"), ({ request }) => {
       const folderId = new URL(request.url).searchParams
@@ -125,7 +127,7 @@ function LocationProbe() {
   return <div data-testid="path">{location.pathname}</div>;
 }
 
-function renderLibrary(path = "/library") {
+function renderLibrary(path = "/library/folders") {
   return renderWithAuth(
     <>
       <LocationProbe />
@@ -156,21 +158,25 @@ describe("LibraryView shell", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders the four tabs with Folders selected on /library", async () => {
+  /* Subjects first: "one folder per class" is how students already sort
+     school. Each tab says what it holds. */
+  it("opens on Subjects, with Notebooks last, and says what the tab holds", async () => {
     serveLibrary({ folders: [folder()] });
-    renderLibrary();
+    renderLibrary("/library");
 
     const tabs = await screen.findAllByRole("tab");
     expect(tabs.map((t) => t.textContent)).toEqual([
-      "Folders",
-      "Materials",
+      "Subjects",
+      "Files & notes",
       "Flashcards",
       "Quizzes",
+      "Notebooks",
     ]);
-    expect(tab("Folders")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Subjects")).toHaveAttribute("aria-selected", "true");
     expect(
-      screen.queryByRole("heading", { name: "Library" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("heading", { name: "Your learning" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/One folder per class/)).toBeInTheDocument();
     expect(await screen.findByText("Biology")).toBeInTheDocument();
   });
 
@@ -191,7 +197,7 @@ describe("LibraryView shell", () => {
     );
 
     expect(
-      await screen.findByText("Materials", { selector: "h2" }),
+      await screen.findByText("Files & notes", { selector: "h2" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Quizzes", { selector: "h2" })).toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
@@ -245,10 +251,29 @@ describe("LibraryView shell", () => {
 
     expect(await screen.findByText("Cell division quiz")).toBeInTheDocument();
     expect(tab("Quizzes")).toHaveAttribute("aria-selected", "true");
-    expect(tab("Folders")).toHaveAttribute("aria-selected", "false");
+    expect(tab("Subjects")).toHaveAttribute("aria-selected", "false");
   });
 
-  it("redirects an unknown tab back to the Folders tab", async () => {
+  it("shows each quiz's latest score, or that it has not been taken", async () => {
+    serveLibrary({
+      quizzes: [quiz(), quiz({ id: "quiz-2", title: "Untouched quiz" })],
+    });
+    server.use(
+      http.get(rest("quiz_attempts"), () =>
+        HttpResponse.json([
+          { id: "a2", quiz_id: quiz().id, score: 4, total: 5, created_at: "2026-03-08T00:00:00Z" },
+          { id: "a1", quiz_id: quiz().id, score: 1, total: 5, created_at: "2026-03-07T00:00:00Z" },
+        ]),
+      ),
+    );
+    renderLibrary("/library/quizzes");
+
+    expect(await screen.findByText("4/5")).toBeInTheDocument();
+    expect(screen.queryByText("1/5")).not.toBeInTheDocument();
+    expect(screen.getByText("Not taken yet")).toBeInTheDocument();
+  });
+
+  it("redirects an unknown tab back to Subjects", async () => {
     serveLibrary({ folders: [folder()] });
     renderLibrary("/library/not-a-tab");
 
@@ -256,7 +281,7 @@ describe("LibraryView shell", () => {
       expect(screen.getByTestId("path")).toHaveTextContent("/library"),
     );
     expect(screen.getByTestId("path").textContent).toBe("/library");
-    expect(tab("Folders")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Subjects")).toHaveAttribute("aria-selected", "true");
   });
 
   it("switches tab and URL on click, mounting only that tab's panel", async () => {
@@ -265,7 +290,7 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    await user.click(tab("Materials"));
+    await user.click(tab("Files & notes"));
 
     expect(await screen.findByText("Cell division")).toBeInTheDocument();
     expect(screen.getByTestId("path")).toHaveTextContent("/library/materials");
@@ -279,15 +304,15 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    expect(tab("Folders")).toHaveAttribute("tabindex", "0");
-    expect(tab("Materials")).toHaveAttribute("tabindex", "-1");
+    expect(tab("Subjects")).toHaveAttribute("tabindex", "0");
+    expect(tab("Files & notes")).toHaveAttribute("tabindex", "-1");
 
-    tab("Folders").focus();
+    tab("Subjects").focus();
     await user.keyboard("{ArrowRight}");
 
     expect(await screen.findByText("Cell division")).toBeInTheDocument();
-    expect(tab("Materials")).toHaveAttribute("aria-selected", "true");
-    expect(tab("Materials")).toHaveFocus();
+    expect(tab("Files & notes")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Files & notes")).toHaveFocus();
   });
 
   it("wraps from the last tab back to the first with Home/End", async () => {
@@ -296,13 +321,15 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    tab("Folders").focus();
+    tab("Subjects").focus();
     await user.keyboard("{End}");
-    expect(tab("Quizzes")).toHaveAttribute("aria-selected", "true");
+    expect(
+      await screen.findByText("No study notebooks yet"),
+    ).toBeInTheDocument();
+    expect(tab("Notebooks")).toHaveAttribute("aria-selected", "true");
 
     await user.keyboard("{Home}");
-    expect(await screen.findByText("Biology")).toBeInTheDocument();
-    expect(tab("Folders")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Subjects")).toHaveAttribute("aria-selected", "true");
   });
 
   it("names the panel from its tab", async () => {
@@ -321,10 +348,14 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    await user.click(screen.getByRole("button", { name: "+ Create" }));
+    await user.click(
+      screen.getByRole("button", { name: "Add your notes" }),
+    );
 
     expect(
-      await screen.findByRole("heading", { name: "Create something new" }),
+      await screen.findByRole("heading", {
+        name: "What do you want to learn?",
+      }),
     ).toBeInTheDocument();
   });
 });
@@ -356,6 +387,56 @@ describe("Library — Folders tab", () => {
     expect(history).toHaveTextContent("1 material •");
   });
 
+  it("counts both materials and notebooks in each folder", async () => {
+    serveLibrary({
+      folders: [folder(), folder({ id: "folder-2", name: "History" })],
+      materials: [
+        material({ id: "m1" }),
+        material({ id: "m2", title: "Meiosis" }),
+        material({ id: "m3", folder_id: "folder-2" }),
+      ],
+      notebooks: [
+        {
+          id: "nb-1",
+          folder_id: "folder-1",
+          title: "Bio Notes",
+          subject: "Biology",
+          color: "#4A90E2",
+          notes: "",
+          created_at: "2026-03-08T00:00:00Z",
+          updated_at: "2026-03-08T00:00:00Z",
+        },
+        {
+          id: "nb-2",
+          folder_id: "folder-1",
+          title: "Genetics",
+          subject: "Biology",
+          color: "#4A90E2",
+          notes: "",
+          created_at: "2026-03-08T00:00:00Z",
+          updated_at: "2026-03-08T00:00:00Z",
+        },
+        {
+          id: "nb-3",
+          folder_id: "folder-2",
+          title: "Rome",
+          subject: "History",
+          color: "#4A90E2",
+          notes: "",
+          created_at: "2026-03-08T00:00:00Z",
+          updated_at: "2026-03-08T00:00:00Z",
+        },
+      ],
+    });
+    renderLibrary();
+
+    const biology = (await screen.findByText("Biology")).closest("li")!;
+    expect(biology).toHaveTextContent("2 materials • 2 notebooks");
+
+    const history = screen.getByText("History").closest("li")!;
+    expect(history).toHaveTextContent("1 material • 1 notebook •");
+  });
+
   it("links a folder card to its workspace", async () => {
     const user = userEvent.setup();
     serveLibrary({ folders: [folder()] });
@@ -373,8 +454,11 @@ describe("Library — Folders tab", () => {
     serveLibrary({ folders: [] });
     renderLibrary();
 
-    expect(await screen.findByText("No folders yet.")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "+ Create Folder" }));
+    expect(
+      await screen.findByText("Your notes become lessons, quizzes and flashcards."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add material" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "New subject" }));
 
     expect(
       await screen.findByRole("heading", { name: "Create a subject" }),
@@ -449,7 +533,7 @@ describe("Library — Folders tab", () => {
     );
     expect(
       screen.getByText(
-        /and everything inside it — materials, notes, flashcards, and quizzes — will be permanently deleted/,
+        /and everything inside it — notebooks, materials, notes, flashcards, and quizzes — will be permanently deleted/,
       ),
     ).toBeInTheDocument();
 
@@ -538,10 +622,10 @@ describe("Library — Materials tab", () => {
     renderLibrary("/library/materials");
 
     expect(await screen.findByText("No materials yet.")).toBeInTheDocument();
-    // The header opens the hub; this contextual action skips straight to the
-    // guided study-resource flow.
+    // Both the workspace action and this contextual empty-state action open
+    // the same source-first flow.
     expect(
-      screen.getByRole("button", { name: "+ Create" }),
+      screen.getByRole("button", { name: "Add your notes" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Create study resources" }),
@@ -648,6 +732,42 @@ describe("Library — Flashcards tab", () => {
     expect(screen.getByText("Mitosis basics")).toBeInTheDocument();
   });
 
+  it("links the banner to a review of every due card", async () => {
+    serveLibrary({ decks: [deck()], dueCount: 3 });
+    renderLibrary("/library/flashcards");
+
+    expect(
+      await screen.findByRole("link", { name: "Review due cards" }),
+    ).toHaveAttribute("href", "/review/daily-drill");
+  });
+
+  it("shows each deck's card and due counts", async () => {
+    serveLibrary({ decks: [deck()], dueCount: 1 });
+    const cardRow = (id: string, next: string | null) => ({
+      id,
+      user_id: "user-1",
+      deck_id: deck().id,
+      front: id,
+      back: id,
+      next_review_date: next,
+      srs_interval: next ? 3 : 0,
+      ease_factor: 2.5,
+    });
+    server.use(
+      http.get(rest("flashcards"), () =>
+        HttpResponse.json([
+          cardRow("a", null),
+          cardRow("b", "2099-01-01T00:00:00.000Z"),
+          cardRow("c", "2099-01-01T00:00:00.000Z"),
+        ]),
+      ),
+    );
+    renderLibrary("/library/flashcards");
+
+    expect(await screen.findByText("1 due")).toBeInTheDocument();
+    expect(screen.getByText(/3 cards/)).toBeInTheDocument();
+  });
+
   it("hides the banner when nothing is due", async () => {
     serveLibrary({ decks: [deck()], dueCount: 0 });
     renderLibrary("/library/flashcards");
@@ -698,13 +818,27 @@ describe("Library — Flashcards tab", () => {
     serveLibrary({ decks: [deck()] });
     renderLibrary("/library/flashcards");
 
+    /* The deck tile carries two links now — the tile itself opens the review
+       session, the pencil opens the deck's cards — so this has to name the
+       one it means. */
     await user.click(
-      await screen.findByRole("link", { name: /Mitosis basics/ }),
+      await screen.findByRole("link", { name: /^Mitosis basics/ }),
     );
 
     expect(
       await screen.findByRole("heading", { name: "Deck review" }),
     ).toBeInTheDocument();
+  });
+
+  it("links a deck to its cards for editing", async () => {
+    serveLibrary({ decks: [deck()] });
+    renderLibrary("/library/flashcards");
+
+    expect(
+      await screen.findByRole("link", {
+        name: "Edit cards in Mitosis basics",
+      }),
+    ).toHaveAttribute("href", "/decks/deck-1");
   });
 });
 
@@ -738,7 +872,7 @@ describe("Library — Quizzes tab", () => {
     serveLibrary({ quizzes: [quiz()] });
     renderLibrary("/library/quizzes");
 
-    await user.click(await screen.findByRole("link", { name: "Review" }));
+    await user.click(await screen.findByRole("link", { name: "See answers" }));
     expect(
       await screen.findByRole("heading", { name: "Quiz review" }),
     ).toBeInTheDocument();

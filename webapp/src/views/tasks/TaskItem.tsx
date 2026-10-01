@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
 import { useNavigate } from "react-router";
 import { Icon } from "../../components/Icon";
 import { useOptionalTimer } from "../../context/timer";
@@ -12,6 +11,7 @@ import {
   isRecurringWeekly,
   localDateStr,
 } from "../../lib/date";
+import { TASK_MAX } from "../../lib/fieldLimits";
 import styles from "./tasks.module.css";
 
 /* One row of the task list — ports js/main.js:1348-1570.
@@ -85,14 +85,6 @@ export function TaskItem({
     if (next && next !== task.text) onRename(task, next);
   }
 
-  function onRowKeyDown(e: KeyboardEvent<HTMLLIElement>) {
-    if (e.target !== e.currentTarget) return;
-    if (e.key === " " || e.key === "Enter") {
-      e.preventDefault();
-      onToggle(task);
-    }
-  }
-
   const dueClasses = [
     styles.due,
     !task.due_date ? styles.dueUnset : null,
@@ -103,13 +95,12 @@ export function TaskItem({
     .join(" ");
 
   return (
+    /* The row is a list item, not a checkbox: it holds its own buttons (due
+       date, recurrence, delete), and a checkbox containing other controls is
+       unreadable to a screen reader (axe: nested-interactive). The tick is
+       the real checkbox; clicking the row still toggles for mouse users. */
     <li
       className={`${styles.item}${task.is_done ? ` ${styles.done}` : ""}`}
-      role="checkbox"
-      aria-checked={task.is_done}
-      aria-label={task.text}
-      tabIndex={0}
-      onKeyDown={onRowKeyDown}
       onClick={(e) => {
         /* Clicks that landed on a nested control belong to that control —
            the vanilla checked tagName, which also caught the date input. */
@@ -119,15 +110,25 @@ export function TaskItem({
         onToggle(task);
       }}
     >
-      <span className={styles.check} aria-hidden="true">
-        {task.is_done ? <Icon name="check" size={14} /> : null}
-      </span>
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={task.is_done}
+        aria-label={task.text}
+        className={styles.checkBtn}
+        onClick={() => onToggle(task)}
+      >
+        <span className={styles.check} aria-hidden="true">
+          {task.is_done ? <Icon name="check" size={14} /> : null}
+        </span>
+      </button>
       {editingText ? (
         <input
           type="text"
           className={styles.editInput}
           aria-label="Edit task text"
           autoFocus
+          maxLength={TASK_MAX}
           value={draftText}
           onChange={(e) => setDraftText(e.target.value)}
           onBlur={commitText}

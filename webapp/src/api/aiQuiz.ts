@@ -14,10 +14,13 @@
  */
 
 import { callEdge } from "./ai";
+import { levelRules, studentLevel } from "../lib/studentLevel";
 import { quizzesApi } from "./quizzes";
-import { extractQuizJSON } from "../lib/aiJson";
+import { type QuizQuestion, extractQuizJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { AI_PERSONA_QUIZ_HOST, type Settings } from "../lib/settings";
+import { misconceptionsApi } from "./misconceptions";
+import { rankMisconceptions, type Misconception } from "../lib/misconceptions";
 import type { Quiz } from "./types";
 
 /** Applied whenever the caller omits a value — the vanilla's `CREATE_DEFAULTS`
@@ -62,28 +65,76 @@ export function difficultyGuidance(difficulty: QuizDifficulty): string {
 - Distractors should reflect typical student misunderstandings.`;
 }
 
+/**
+ * Turn the student's open misconceptions into a targeting instruction.
+ *
+ * Rule 3 below already asks for realistic distractors and the medium-difficulty
+ * guidance already asks them to "reflect typical student misunderstandings" —
+ * but "typical" is a generic model prior, identical for every user. The ledger
+ * makes it specific: these are the beliefs this student has actually
+ * demonstrated, so a distractor built from one is a trap they are known to fall
+ * into rather than one the model imagines a hypothetical student might.
+ *
+ * Returns "" when the ledger has nothing relevant, which leaves the prompt
+ * exactly as it was — the generic wording is the correct fallback, not a
+ * degraded one.
+ */
+export function buildMisconceptionFocus(
+  ledger: Misconception[],
+  topic: string,
+): string {
+  /* Ranked across the whole ledger rather than filtered to the topic string:
+     subjects here are free text and a topic like "Hydrolysis Quiz" will rarely
+     equal the subject a Debugger trace was filed under. Over-including is the
+     safer error — an irrelevant misconception simply goes unused by the model,
+     whereas filtering too hard silently reverts to the generic prompt. */
+  const relevant = rankMisconceptions(ledger).slice(0, 5);
+  if (relevant.length === 0) return "";
+
+  const lines = relevant.map((m) => {
+    const seen =
+      m.timesObserved > 1 ? ` (observed ${m.timesObserved} times)` : "";
+    return `   - ${fenceUntrusted(m.concept)}: ${fenceUntrusted(m.summary)}${seen}`;
+  });
+
+  return `
+TARGET THIS STUDENT'S KNOWN MISCONCEPTIONS (recorded by this app's own diagnostic tools from their real work, for the topic "${topic}" and their wider study):
+${lines.join("\n")}
+- Where a listed misconception is genuinely relevant to the material above, build at least one question whose most tempting WRONG option is exactly what someone holding that belief would pick. Do not label it as a known weakness anywhere in the question or feedback.
+- The feedback for such a question must explain why that specific belief is wrong, not merely why the right answer is right.
+- If none of the listed misconceptions fit this material, ignore them entirely and follow the generic rules. Never bend a question towards an irrelevant one, and never invent a misconception that is not listed.`;
+}
+
 export function buildQuizPrompt({
   sourceText,
   topic,
   difficulty,
   personality,
   count,
+  misconceptionFocus = "",
 }: {
   sourceText: string;
   topic: string;
   difficulty: QuizDifficulty;
   personality: string;
   count: number;
+  /** Rendered by `buildMisconceptionFocus`. Empty when the ledger has nothing
+   *  to say, which leaves this prompt byte-identical to what it was before. */
+  misconceptionFocus?: string;
 }): string {
+  /* A saved Create-dialog choice from before the rename still says
+     "Sarcastic Buddy"; it is sent under its new name. */
+  const host = personality === "Sarcastic Buddy" ? "Friendly Study Buddy" : personality;
   return `Generate a high-quality, non-repetitive multiple-choice quiz based on the provided material or topic.
 
 Configuration:
 - Topic: ${topic}
 - Difficulty Level: ${difficulty}
-- AI Host Personality: ${personality}
+- AI Host Personality: ${host}
 - Total Questions Required: ${count}
 
 ${difficultyGuidance(difficulty)}
+${misconceptionFocus}
 
 STRICT DIVERSITY & QUALITY RULES:
 1. ABSOLUTELY NO REPETITIVE QUESTIONS: Every single question MUST cover a completely DIFFERENT concept, sub-step, logical component, or angle. DO NOT ask back-to-back similar questions or rephrase the same premise.
@@ -94,11 +145,13 @@ STRICT DIVERSITY & QUALITY RULES:
    - Edge Cases & Counter-examples (Examining failure conditions or special cases)
    - Extensions & Applications (Applying the concept to related contexts or generalizations)
 3. DISTRACTORS: All wrong choices MUST be realistic, meaningful, and carefully crafted. No obvious filler or duplicate choices across options.
-4. FEEDBACK: For EACH question, include a comprehensive "feedback" string. The feedback MUST explain why the correct answer is right and why each incorrect option is wrong, written in the voice of the chosen AI Host Personality (${personality}). Address the student directly and engage them.
+4. FEEDBACK: For EACH question, include a comprehensive "feedback" string. The feedback MUST explain why the correct answer is right and why each incorrect option is wrong, written in the voice of the chosen AI Host Personality (${host}). Address the student directly and engage them.
 5. FEEDBACK NEUTRALITY (CRITICAL): The same "feedback" string is shown to every student, including those who answered INCORRECTLY. It is written before anyone answers, so it CANNOT know what the student chose.
    - NEVER open with or include praise or congratulation: no "Nice work!", "Great job!", "Exactly right!", "Correct!", "You got it", "Well done", or any equivalent.
    - NEVER assert or imply what the student picked: no "you chose", "you correctly identified", "you've got this one", "your answer".
    - Write it as a neutral explanation of the question itself — e.g. "The AAS criterion applies here because…", not "Nice work! You've got AAS here because…".
+6. TONE (CRITICAL): The student may be 13. Whatever the host personality, never mock, belittle, tease or use sarcasm about the student: no "Duh", "come on", "seriously?", "this is basic", or remarks about them struggling.
+7. ONE RIGHT ANSWER, NOTHING MISSING: Solve every question yourself before writing its key. Exactly one choice may be correct, and "correctIndex" must point at it. Every question must be answerable from its own text — never refer to a diagram, figure, graph or table that is not written out in the question.
 
 Material / Topic Content:
 """
@@ -117,6 +170,7 @@ export async function generateQuizFrom({
   title,
   materialId = null,
   folderId = null,
+  notebookId = null,
   settings,
   options = {},
 }: {
@@ -125,36 +179,13 @@ export async function generateQuizFrom({
   title: string;
   materialId?: string | null;
   folderId?: string | null;
+  notebookId?: string | null;
   settings: Settings;
   options?: QuizOptions;
 }): Promise<Quiz> {
-  const { text } = await callEdge({
-    history: [
-      {
-        role: "user",
-        content: buildQuizPrompt({
-          sourceText,
-          topic,
-          difficulty: options.difficulty ?? QUIZ_DEFAULTS.difficulty,
-          // Falls back to the student's own persona setting rather than a
-          // fixed "Friendly Tutor" — MaterialPanel's picker already does the
-          // same for the Create dialog (see AI_PERSONA_QUIZ_HOST); this is
-          // the same fix for the chat's <ADD_QUIZ> tag, which had no picker
-          // to seed from and so had been hardcoded regardless of persona.
-          personality:
-            options.personality ?? AI_PERSONA_QUIZ_HOST[settings.aiPersona],
-          count: options.questionCount ?? QUIZ_DEFAULTS.questionCount,
-        }),
-      },
-    ],
-    mode: "quiz",
-    settings,
-  });
+  const questions = await generateQuizQuestions({ sourceText, topic, settings, options });
 
-  const questions = extractQuizJSON(text);
-  if (questions.length === 0) throw new QuizShapeError();
-
-  return quizzesApi.add(materialId, folderId, title, questions);
+  return quizzesApi.add(materialId, folderId, title, questions, notebookId);
 }
 
 /** Generate and save a quiz on a bare topic — no material, no folder. The
@@ -179,4 +210,50 @@ export async function generateQuizFromTopic(
     settings,
     options,
   });
+}
+
+/** Generate a transient check without adding a quiz to the library. */
+export async function generateQuizQuestions({ sourceText, topic, settings, options = {} }: { sourceText: string; topic: string; settings: Settings; options?: QuizOptions }): Promise<QuizQuestion[]> {
+  /* Best-effort, like every other context read in this app: a quiz that is
+     merely generic is a far smaller loss than no quiz at all, so a failed
+     ledger read falls back to the prompt exactly as it was. */
+  let misconceptionFocus = "";
+  try {
+    misconceptionFocus = buildMisconceptionFocus(
+      await misconceptionsApi.fetchAll(),
+      topic,
+    );
+  } catch (err) {
+    console.warn("[quiz] Could not read misconception ledger:", err);
+  }
+
+  const { text } = await callEdge({
+    history: [
+      {
+        role: "user",
+        content: buildQuizPrompt({
+          sourceText,
+          topic,
+          difficulty: options.difficulty ?? QUIZ_DEFAULTS.difficulty,
+          // Falls back to the student's own persona setting rather than a
+          // fixed "Friendly Tutor" — MaterialPanel's picker already does the
+          // same for the Create dialog (see AI_PERSONA_QUIZ_HOST); this is
+          // the same fix for the chat's <ADD_QUIZ> tag, which had no picker
+          // to seed from and so had been hardcoded regardless of persona.
+          personality:
+            options.personality ?? AI_PERSONA_QUIZ_HOST[settings.aiPersona],
+          count: options.questionCount ?? QUIZ_DEFAULTS.questionCount,
+          misconceptionFocus,
+        }) + `\n\n${levelRules(await studentLevel().catch(() => "secondary school"))}`,
+      },
+    ],
+    mode: "quiz",
+    tool: "quiz",
+    settings,
+  });
+
+  const questions = extractQuizJSON(text);
+  if (questions.length === 0) throw new QuizShapeError();
+
+  return questions;
 }

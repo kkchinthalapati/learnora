@@ -227,7 +227,7 @@ describe("QuizReview", () => {
     renderReview();
 
     expect(
-      await screen.findByRole("heading", { name: "Quiz not found." }),
+      await screen.findByText("Quiz not found"),
     ).toBeInTheDocument();
   });
 

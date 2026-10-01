@@ -15,7 +15,8 @@ interface DayDetailModalProps {
   exams: Exam[];
   onClose: () => void;
   onEditExam: (exam: Exam) => void;
-  onAddExam: () => void;
+  /** Omitted for a past day, which can't take a new exam. */
+  onAddExam?: () => void;
   onOpenPrepRoadmap: (exam: Exam) => void;
 }
 
@@ -91,8 +92,8 @@ function DayExamRow({ exam, onEditExam, onOpenPrepRoadmap }: DayExamRowProps) {
             cursor: "pointer",
             color: "var(--text-muted)",
             display: "inline-flex",
-            padding: "4px",
           }}
+          className={styles.dayItemEditBtn}
           onClick={() => onEditExam(exam)}
           aria-label={`Edit ${exam.exam_name}`}
         >
@@ -120,9 +121,11 @@ export function DayDetailModal({
       footer={
         <>
           <Button onClick={onClose}>Close</Button>
-          <Button variant="primary" onClick={onAddExam}>
-            + Add exam
-          </Button>
+          {onAddExam && (
+            <Button variant="primary" onClick={onAddExam}>
+              + Add exam
+            </Button>
+          )}
         </>
       }
     >

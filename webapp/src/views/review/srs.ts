@@ -1,4 +1,9 @@
 import type { Flashcard } from "../../api/types";
+import {
+  conceptKey,
+  rankMisconceptions,
+  type Misconception,
+} from "../../lib/misconceptions";
 
 /**
  * FSRS (Free Spaced Repetition Scheduler) v4.5 Algorithm & Spaced Repetition 2.0 Engine.
@@ -46,6 +51,18 @@ export const DEFAULT_FSRS_PARAMETERS: FsrsParameters = {
 
 export const R_FACTOR = 19 / 81; // ~0.2345679 ensures R(S, S) = 0.90
 export const R_DECAY = 0.5;
+
+/** Longest gap the app will ever schedule, in days.
+ *
+ *  FSRS's own default ceiling is 36,500 days, which is a spec default rather
+ *  than a product decision: an unbroken run of Good answers compounds
+ *  stability by roughly 2.5x a review, so a card a student never fails
+ *  reaches "due in several decades" after a dozen reviews and effectively
+ *  leaves the rotation. Learnora's material is course- and exam-bound, so a
+ *  year is the longest gap that means anything here — past that the honest
+ *  behaviour is to ask again annually rather than to schedule a review the
+ *  student will never see. */
+export const MAX_REVIEW_INTERVAL_DAYS = 365;
 
 export interface SrsResult {
   interval: number;
@@ -228,21 +245,34 @@ export function nextForgetStability(
 export function computeFsrsCardState(params: FsrsCardParams): FsrsCardState {
   const {
     quality,
-    desiredRetention: _desiredRetention = DEFAULT_FSRS_PARAMETERS.requestRetention,
+    desiredRetention = DEFAULT_FSRS_PARAMETERS.requestRetention,
     now = new Date(),
   } = params;
 
   const clampedQuality = Math.min(4, Math.max(1, Math.round(quality)));
-  const isNewCard =
-    params.previousInterval === undefined ||
-    params.previousInterval === 0 ||
-    (!params.stability && !params.previousInterval);
+
+  /* Only "Again" is a lapse. "Hard" is a *successful* recall that happened to
+     be effortful — grading it as a miss (which this did) threw away every day
+     of scheduling a mature card had earned, so the button students press when
+     they got it but struggled was the most destructive one on the screen. */
+  const isLapse = clampedQuality === 1;
+
+  /* New means "no memory state at all". A lapsed card also has an interval
+     of 0 — "Again" schedules it for right now — but it carries the stability
+     and difficulty the lapse just computed. Treating interval 0 alone as new
+     threw both away on the very next grade: a card failed three times read as
+     average difficulty again after one Good, so the "struggling cards" signal
+     (ease < 2.1, fetchWeakDecks) never survived a relearn. Pre-FSRS rows have
+     no stability, so they still start fresh exactly as before. */
+  const hasStability =
+    typeof params.stability === "number" && params.stability > 0;
+  const hasInterval =
+    typeof params.previousInterval === "number" && params.previousInterval > 0;
+  const isNewCard = !hasStability && !hasInterval;
 
   let stability: number;
   let difficulty: number;
   let retrievability: number;
-  let interval: number;
-  let ease: number;
 
   const currentEase =
     typeof params.easeFactor === "number" && !isNaN(params.easeFactor) && params.easeFactor > 0
@@ -253,14 +283,6 @@ export function computeFsrsCardState(params: FsrsCardParams): FsrsCardState {
     stability = initialStability(clampedQuality);
     difficulty = initialDifficulty(clampedQuality);
     retrievability = 1.0;
-
-    if (clampedQuality < 3) {
-      interval = 0;
-      ease = Math.max(1.3, currentEase - 0.2);
-    } else {
-      interval = 1;
-      ease = currentEase + 0.1;
-    }
   } else {
     const currentStability = params.stability || params.previousInterval || 1.0;
     const currentDifficulty =
@@ -272,27 +294,36 @@ export function computeFsrsCardState(params: FsrsCardParams): FsrsCardState {
 
     retrievability = calculateRetrievability(elapsedDays, currentStability);
     difficulty = nextDifficulty(currentDifficulty, clampedQuality);
+    stability = isLapse
+      ? nextForgetStability(difficulty, currentStability, retrievability)
+      : nextRecallStability(
+          difficulty,
+          currentStability,
+          retrievability,
+          clampedQuality,
+        );
+  }
 
-    if (clampedQuality < 3) {
-      stability = nextForgetStability(difficulty, currentStability, retrievability);
-      interval = 0;
-      ease = Math.max(1.3, currentEase - 0.2);
-    } else {
-      stability = nextRecallStability(
-        difficulty,
-        currentStability,
-        retrievability,
-        clampedQuality,
+  /* The interval now comes from stability, which is the whole point of
+     modelling stability: the card is scheduled for the day retrievability is
+     predicted to fall to the target retention. The previous implementation
+     computed all of the above and then discarded it in favour of
+     `previousInterval * ease`, so Good and Easy produced identical dates and
+     ease compounded unboundedly (+0.1 a review, no cap) — ten Good answers
+     scheduled a card 21,362 days out. */
+  const interval = isLapse
+    ? 0
+    : calculateOptimalInterval(
+        stability,
+        desiredRetention,
+        MAX_REVIEW_INTERVAL_DAYS,
       );
 
-      if (params.previousInterval === 1) {
-        interval = 3;
-      } else {
-        interval = Math.round((params.previousInterval || 1) * currentEase);
-      }
-      ease = currentEase + 0.1;
-    }
-  }
+  /* `ease_factor` stays the persisted SM-2-shaped column (other reads depend
+     on it — `fetchWeakDecks` treats < 2.1 as struggling), but it is now
+     derived from difficulty rather than drifting on its own. That keeps it
+     bounded in [1.3, 3.5] and actually meaning "how hard this card is". */
+  const ease = difficultyToEase(difficulty);
 
   // Anchor due dates to local midnight for interval > 0, or exact instant for interval = 0
   const nextDate = new Date(now);
@@ -317,7 +348,12 @@ export function computeFsrsCardState(params: FsrsCardParams): FsrsCardState {
  */
 export function nextReviewState(
   card: Pick<Flashcard, "srs_interval" | "ease_factor"> &
-    Partial<Pick<Flashcard, "next_review_date" | "created_at">>,
+    Partial<
+      Pick<
+        Flashcard,
+        "next_review_date" | "created_at" | "stability" | "difficulty"
+      >
+    >,
   quality: number,
   now = new Date(),
   desiredRetention = DEFAULT_FSRS_PARAMETERS.requestRetention,
@@ -333,9 +369,17 @@ export function nextReviewState(
     elapsedDays = Math.max(0, previousInterval + overdueDays);
   }
 
+  /* Memory state carries across reviews now that the columns exist. A card
+     reviewed before they did has NULL for both, and falls back to the
+     interval/ease pair the way the pre-FSRS scheduler did — so an existing
+     library keeps working and converges on real FSRS state from its next
+     review onward. */
   const fsrs = computeFsrsCardState({
     previousInterval,
     easeFactor,
+    stability: typeof card.stability === "number" ? card.stability : undefined,
+    difficulty:
+      typeof card.difficulty === "number" ? card.difficulty : undefined,
     elapsedDays,
     quality,
     desiredRetention,
@@ -362,4 +406,86 @@ export function dueCardsFrom(
   return cards.filter(
     (c) => !c.next_review_date || new Date(c.next_review_date) <= now,
   );
+}
+
+/** Tokens too generic to identify a card by. A concept whose only distinctive
+ *  word is one of these would match half a deck. */
+const GENERIC_MATCH_TOKENS = new Set([
+  "define",
+  "definition",
+  "example",
+  "explain",
+  "formula",
+  "law",
+  "theory",
+  "value",
+  "process",
+  "type",
+  "types",
+  "name",
+]);
+
+/** How many distinct concept tokens a card must contain before it counts as
+ *  being about that misconception. Two rather than one because a single shared
+ *  word ("energy", "acid") is a coincidence at deck scale, and a queue
+ *  reordered on coincidences is worse than one left alone. Concepts with only
+ *  one usable token are matched on that token alone — there is nothing else to
+ *  ask of them — provided it is not generic. */
+const MIN_CONCEPT_TOKEN_MATCHES = 2;
+
+function cardMatchesConcept(card: Flashcard, tokens: string[]): boolean {
+  if (tokens.length === 0) return false;
+  const haystack = `${card.front} ${card.back}`.toLowerCase();
+  const hits = tokens.filter((t) => haystack.includes(t)).length;
+  const required = Math.min(MIN_CONCEPT_TOKEN_MATCHES, tokens.length);
+  return hits >= required;
+}
+
+/**
+ * Reorder a due queue so cards about an open misconception come first.
+ *
+ * Deliberately ordering, not scheduling. Changing FSRS intervals to chase the
+ * ledger would corrupt the memory model the whole algorithm depends on — a
+ * card's stability describes how that card decays, not how important it
+ * currently is — and the damage would outlast the misconception. Order is the
+ * honest lever: the same cards are due, the student simply meets the ones
+ * tied to a known-broken concept while they are still fresh, which is exactly
+ * when a repair has a chance of sticking.
+ *
+ * Cards carry no topic field, so the match is textual against the card's front
+ * and back. It is kept deliberately strict (see `MIN_CONCEPT_TOKEN_MATCHES`):
+ * a missed match costs nothing more than the previous behaviour, while a false
+ * one shuffles a student's session for no reason.
+ *
+ * Stable within each group — cards that match keep their relative order, as do
+ * cards that don't — so this never reshuffles a queue it has nothing to say
+ * about, and an empty ledger returns the input order exactly.
+ */
+export function prioritiseByMisconceptions(
+  cards: Flashcard[],
+  misconceptions: Misconception[],
+): Flashcard[] {
+  const open = misconceptions.filter((m) => m.status !== "resolved");
+  if (open.length === 0 || cards.length === 0) return cards;
+
+  /* Ranked once so the highest-priority misconception wins when a card matches
+     several — the card leads the queue on the most urgent thing it addresses,
+     not on whichever row happened to be checked first. */
+  const ranked = rankMisconceptions(open);
+  const tokenSets = ranked.map((m) =>
+    conceptKey(m.concept)
+      .split(" ")
+      .filter((t) => t.length > 2 && !GENERIC_MATCH_TOKENS.has(t)),
+  );
+
+  const scored = cards.map((card, index) => {
+    const rank = tokenSets.findIndex((tokens) =>
+      cardMatchesConcept(card, tokens),
+    );
+    return { card, index, rank: rank === -1 ? Number.MAX_SAFE_INTEGER : rank };
+  });
+
+  return scored
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map((entry) => entry.card);
 }

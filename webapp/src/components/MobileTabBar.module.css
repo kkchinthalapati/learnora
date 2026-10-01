@@ -1,0 +1,76 @@
+/* Phone-only bottom navigation. Its height is shared as
+   --mobile-tabbar-clearance (index.css) so the page, the docked focus timer
+   and toasts all sit above it rather than under it. */
+.bar,
+.ask {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--hairline);
+    background: var(--paper);
+  }
+
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 52px;
+    min-width: var(--touch-target-min);
+    padding: 4px 2px;
+    border: 0;
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .tab:focus-visible,
+  .ask:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Wash + a word in bold, so "current" isn't carried by hue alone. */
+  .active {
+    color: var(--text);
+    background: var(--accent-wash);
+  }
+
+  .ask {
+    position: fixed;
+    right: var(--s-4);
+    bottom: calc(var(--mobile-tabbar-clearance, 0px) + var(--s-4));
+    z-index: 31;
+    width: 56px;
+    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: var(--accent);
+    color: var(--accent-on);
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+  }
+
+  .ask:active {
+    background: var(--accent-press);
+  }
+}

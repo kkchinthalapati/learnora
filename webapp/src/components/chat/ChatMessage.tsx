@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Icon } from "../Icon";
 import { Button } from "../Button";
 import {
@@ -6,8 +7,17 @@ import {
   renderMathText,
   type MarkdownSegment,
 } from "../../lib/markdownToReact";
-import type { ActionWidget, ChatMessage as Message } from "../../context/chat";
+import type {
+  ActionWidget,
+  ChatImage,
+  ChatMessage as Message,
+  WebCitation,
+} from "../../context/chat";
+import { fetchChatImage } from "../../api/aiImage";
+import { sourceSnippet } from "../../lib/sourceSnippet";
 import styles from "./chat.module.css";
+import { useNavigate } from "react-router";
+import { AiErrorCard } from "../learning/AiErrorCard";
 
 /* One chat bubble — ports `_appendBubble` (js/ai.js:1276-1298) and the action
  * widgets from the replace pass at :1181-1240.
@@ -38,22 +48,154 @@ function ActionWidgetChip({ widget }: { widget: ActionWidget }) {
   );
 }
 
-function ThinkingDots() {
+/* Measured against the live provider chain on 2026-09-20: a first answer
+   takes about thirty seconds, roughly ten of it web research, and follow-ups
+   land in eight to eleven. Three unexplained dots for half a minute is what
+   made students think the app had hung, so the wait says what it is doing
+   and, once it is genuinely long, offers a way out. */
+const SLOW_AFTER_MS = 10_000;
+
+function ThinkingDots({
+  phase,
+  onCancel,
+}: {
+  phase?: "searching" | "thinking" | "drawing" | null;
+  onCancel?: () => void;
+}) {
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    const started = Date.now();
+    const id = setInterval(() => setElapsedMs(Date.now() - started), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const slow = elapsedMs >= SLOW_AFTER_MS;
+  const label =
+    phase === "searching"
+      ? "Looking things up…"
+      : phase === "drawing"
+        ? "Drawing your diagram…"
+        : slow
+        ? "Still writing your answer…"
+        : "Writing your answer…";
+
   /* The edge function returns one complete response, not a token stream, so
      this is an honest "thinking" state rather than a typing cursor implying
      text is arriving gradually (js/ai.js:1074-1078). */
   return (
-    <span className={styles.thinking} aria-label="Learnora AI is thinking">
-      <span className={styles.dot} />
-      <span className={styles.dot} />
-      <span className={styles.dot} />
+    <span className={styles.thinkingRow}>
+      <span className={styles.thinking} aria-label="Learnora AI is thinking">
+        <span className={styles.dot} />
+        <span className={styles.dot} />
+        <span className={styles.dot} />
+      </span>
+      {/* polite, not assertive: this updates while the student reads, and
+          should not interrupt whatever their screen reader is saying. */}
+      <span className={styles.thinkingLabel} aria-live="polite">
+        {label}
+      </span>
+      {slow && onCancel ? (
+        <button type="button" className={styles.stopBtn} onClick={onCancel}>
+          Stop
+        </button>
+      ) : null}
     </span>
   );
+}
+
+/* A generated picture, from its storage key. The bucket is private, so it
+   is read through a signed URL — fetched into an object URL rather than put
+   in `src`, because the same URL serves the Download link, and only a
+   same-origin URL like blob: makes that a real download rather than a
+   navigation. */
+function GeneratedImage({
+  image,
+  onSave,
+}: {
+  image: ChatImage;
+  onSave?: () => void;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+    fetchChatImage(image.path)
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [image.path]);
+
+  if (failed) {
+    return <em>This picture is no longer available.</em>;
+  }
+  if (!url) {
+    return <span className={styles.imageLoading}>Loading your diagram…</span>;
+  }
+  const ext = image.path.split(".").pop() || "png";
+  return (
+    <figure className={styles.generatedImage}>
+      <img src={url} alt={image.alt} loading="lazy" />
+      <figcaption className={styles.imageActions}>
+        <a
+          href={url}
+          className={styles.imageAction}
+          download={`learnora-diagram.${ext}`}
+        >
+          <Icon name="download" size={14} />
+          Download
+        </a>
+        {onSave ? (
+          image.savedDeckId ? (
+            <span className={styles.cardsSaved}>
+              <Icon name="check" size={14} />
+              Saved as a flashcard
+            </span>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              disabled={image.saving}
+              onClick={onSave}
+            >
+              <Icon name="layers" size={14} />
+              {image.saving ? "Saving…" : "Save as flashcard"}
+            </Button>
+          )
+        ) : null}
+      </figcaption>
+    </figure>
+  );
+}
+
+function extractDomain(url?: string): string {
+  if (!url) return "web";
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "web";
+  }
 }
 
 export function ChatMessageBubble({
   message,
   onSaveCards,
+  onSaveImage,
+  onAddToNotebook,
+  sendPhase,
+  onCancel,
+  onRetry,
 }: {
   message: Message;
   /** Persists `message.cards` as a real deck. Omitted where a cards-shaped
@@ -61,7 +203,23 @@ export function ChatMessageBubble({
    *  see NotesAiSidebar's header comment), so the button silently isn't
    *  offered rather than wired to nothing. */
   onSaveCards?: (messageId: string) => void;
+  /** Saves `message.image` as a flashcard; omitted where that isn't offered. */
+  onSaveImage?: (messageId: string) => void;
+  onAddToNotebook?: (citation: {
+    title: string;
+    url?: string;
+    snippet?: string;
+  }) => void | Promise<void>;
+  /** Which part of the wait this is, for the pending bubble only. */
+  sendPhase?: "searching" | "thinking" | "drawing" | null;
+  /** Abandons the answer in flight. Offered once the wait turns long. */
+  onCancel?: () => void;
+  /** Re-sends the question behind a failure notice. */
+  onRetry?: (message: Message) => void;
 }) {
+  const [addedCitations, setAddedCitations] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
+
   if (message.role === "user") {
     return (
       <div className={`${styles.bubble} ${styles.userBubble}`}>
@@ -84,9 +242,28 @@ export function ChatMessageBubble({
     .filter(Boolean)
     .join(" ");
 
+  /* Only metadata returned by the research endpoint becomes a source card.
+     Model-authored tags are not provenance and must never be promoted into
+     clickable citations. */
+  const webSources: WebCitation[] = message.webSources ?? [];
+
+  // Clean raw tags from message text for display
+  const cleanDisplayContent = message.text
+    ? message.text
+        .replace(/<WEB_CITATION>[\s\S]*?<\/WEB_CITATION>/gi, "")
+        .trim()
+    : "";
+
   let body;
   if (message.pending) {
-    body = <ThinkingDots />;
+    body = <ThinkingDots phase={sendPhase} onCancel={onCancel} />;
+  } else if (message.image) {
+    body = (
+      <GeneratedImage
+        image={message.image}
+        onSave={onSaveImage ? () => onSaveImage(message.id) : undefined}
+      />
+    );
   } else if (message.cards) {
     body = (
       <div>
@@ -134,18 +311,108 @@ export function ChatMessageBubble({
             node: <ActionWidgetChip key={`w-${i}`} widget={part.widget} />,
           },
     );
-    body = renderMarkdownSegments(segments);
-  } else if (message.text) {
-    body = renderMarkdownNodes(message.text);
+    body = renderMarkdownSegments(segments, { diagrams: true });
+  } else if (cleanDisplayContent) {
+    /* The tutor may answer with a ```mermaid diagram (lib/chatPrompt.ts). */
+    body = renderMarkdownNodes(cleanDisplayContent, { diagrams: true });
   } else {
     /* Every visible word was an action tag — the vanilla said the same
        (js/ai.js:1256). */
     body = <em>Action completed.</em>;
   }
 
+  const handleAddCitation = (citation: WebCitation) => {
+    setAddedCitations((prev) => new Set([...prev, citation.title]));
+    onAddToNotebook?.({
+      title: citation.title,
+      url: citation.url,
+      snippet: citation.snippet,
+    });
+  };
+
+  /* A failure that can be retried says what happened, what was kept and
+     that retrying is safe — the same card a Session uses. */
+  if (message.error && message.retryQuery && onRetry) {
+    return (
+      <AiErrorCard
+        detail={message.text}
+        onRetry={() => onRetry(message)}
+        onFallback={() => void navigate("/review/daily-drill")}
+      />
+    );
+  }
+
   return (
     <div className={classes} role={message.error ? "alert" : undefined}>
       {body}
+
+      {/* Web Citation Cards */}
+      {webSources.length > 0 && !message.pending && (
+        <div
+          className={styles.citationsWrapper}
+          data-testid="web-citations-container"
+        >
+          <div className={styles.citationsHeader}>
+            <Icon name="globe" size={12} />
+            <span>Web Sources ({webSources.length})</span>
+          </div>
+          <div className={styles.citationList}>
+            {webSources.map((citation, i) => {
+              const isAdded = addedCitations.has(citation.title);
+              const domain = citation.domain || extractDomain(citation.url);
+              return (
+                <div
+                  key={citation.id || `cit-${i}`}
+                  className={styles.citationCard}
+                  data-testid="web-citation-card"
+                >
+                  <div className={styles.citationHeader}>
+                    {citation.url ? (
+                      <a
+                        href={citation.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={styles.citationTitle}
+                      >
+                        {citation.title} ↗
+                      </a>
+                    ) : (
+                      <span className={styles.citationTitle}>
+                        {citation.title}
+                      </span>
+                    )}
+                    <span className={styles.citationDomainBadge}>
+                      🌐 {domain}
+                    </span>
+                  </div>
+
+                  {citation.snippet && (
+                    <p className={styles.citationSnippet}>{sourceSnippet(citation.snippet)}</p>
+                  )}
+
+                  <div className={styles.citationAction}>
+                    <button
+                      type="button"
+                      className={`${styles.addCitationBtn}${
+                        isAdded ? ` ${styles.addCitationBtnSuccess}` : ""
+                      }`}
+                      onClick={() => handleAddCitation(citation)}
+                      disabled={isAdded}
+                      aria-label={
+                        isAdded
+                          ? `Added ${citation.title} to Notebook`
+                          : `Add ${citation.title} to Notebook`
+                      }
+                    >
+                      {isAdded ? "✓ Added to Notebook" : "📥 Add to Notebook"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

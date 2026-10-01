@@ -6,7 +6,12 @@ import type {
   Flashcard,
   Material,
 } from "../api/types";
-import { localDateStr, parseLocalDate, formatDateStr } from "./date";
+import {
+  calendarDayOf,
+  localDateStr,
+  parseLocalDate,
+  formatDateStr,
+} from "./date";
 import { STREAK_MIN_MINUTES, computeStudyStreak } from "./streak";
 
 export interface HeatmapCell {
@@ -330,7 +335,7 @@ export function detectPeakFocusWindow(
   if (bestStartHour >= 5 && bestStartHour <= 9) {
     return {
       hasData: true,
-      label: `Early Bird Focus (${timeLabel})`,
+      label: `Mornings (${timeLabel})`,
       startHour: bestStartHour,
       endHour,
       description:
@@ -341,7 +346,7 @@ export function detectPeakFocusWindow(
   if (bestStartHour >= 10 && bestStartHour <= 13) {
     return {
       hasData: true,
-      label: `Mid-Day Peak (${timeLabel})`,
+      label: `Around midday (${timeLabel})`,
       startHour: bestStartHour,
       endHour,
       description:
@@ -352,7 +357,7 @@ export function detectPeakFocusWindow(
   if (bestStartHour >= 14 && bestStartHour <= 17) {
     return {
       hasData: true,
-      label: `Afternoon Flow (${timeLabel})`,
+      label: `Afternoons (${timeLabel})`,
       startHour: bestStartHour,
       endHour,
       description:
@@ -362,7 +367,7 @@ export function detectPeakFocusWindow(
 
   return {
     hasData: true,
-    label: `Night Owl Prime (${timeLabel})`,
+    label: `Evenings (${timeLabel})`,
     startHour: bestStartHour,
     endHour,
     description:
@@ -418,7 +423,10 @@ export function computeSubjectUrgencyMatrix(
 
       if (isRelated) {
         const examDate = parseLocalDate(exam.exam_date);
-        const diffDays = Math.ceil(
+        /* Round, not ceil: both ends are local midnights, so a span that
+           crosses the autumn clock change is 25 hours long for one day,
+           and ceil turned "5 days" into 6. */
+        const diffDays = Math.round(
           (examDate.getTime() - todayTime) / (1000 * 60 * 60 * 24),
         );
 
@@ -485,23 +493,29 @@ export function computeSubjectUrgencyMatrix(
 }
 
 /**
- * AI Study Insights Generator
+ * Study pattern notes, from fixed rules over the student's own history.
  *
- * Synthesizes cross-metric analysis into actionable, intelligent recommendations.
+ * Not AI output, and the page must not present it as such.
  */
 export function generateStudyInsights(
   sessions: StudySession[] = [],
   quizAttempts: QuizAttempt[] = [],
   heatData: HeatmapData,
-  hourly: HourlyStats[],
+  // Kept for callers; the best-time finding is no longer repeated here.
+  _hourly: HourlyStats[],
 ): string[] {
   const insights: string[] = [];
-  const peak = detectPeakFocusWindow(hourly);
 
   // 1. Streak & Consistency insight
   if (heatData.currentStreak >= 3) {
     insights.push(
       `You're on a ${heatData.currentStreak}-day streak. A short session every day beats one long cram.`,
+    );
+  } else if (heatData.currentStreak > 0) {
+    /* A 1–2 day run used to get "…and you'll start a streak", next to a
+       stat card reading "2d streak". */
+    insights.push(
+      `You're ${heatData.currentStreak} ${heatData.currentStreak === 1 ? "day" : "days"} into a streak. Study again tomorrow to keep it going.`,
     );
   } else if (heatData.activeDays > 0) {
     insights.push(
@@ -513,8 +527,9 @@ export function generateStudyInsights(
     );
   }
 
-  // 2. Chronotype & Peak window
-  insights.push(`When you focus best: ${peak.label}. ${peak.description}`);
+  /* The best-time-of-day finding is not repeated here: Progress already
+     shows it in the stat tile and under the hourly chart, and saying it a
+     third time in this list was noise. */
 
   // 3. Focus Volume & Pacing
   const hours = Math.floor(heatData.totalMinutes / 60);
@@ -630,7 +645,7 @@ export function computeUnifiedExamReadiness(params: {
       }
 
       if (card.next_review_date) {
-        const reviewDateStr = card.next_review_date.slice(0, 10);
+        const reviewDateStr = calendarDayOf(card.next_review_date);
         if (reviewDateStr < todayStr) {
           overdueCount++;
           if ((card.ease_factor && card.ease_factor < 2.0) || card.srs_interval <= 1) {
@@ -677,7 +692,7 @@ export function computeUnifiedExamReadiness(params: {
   } else if (score >= 70) {
     tier = "On track";
     summary =
-      "Good progress. Go back over the quiz topics you keep dropping marks on.";
+      "Good progress. Go back over the quiz topics you keep losing credit on.";
   } else if (score >= 50) {
     tier = "Needs review";
     summary =

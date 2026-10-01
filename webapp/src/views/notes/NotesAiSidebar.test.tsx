@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router";
@@ -306,29 +306,19 @@ describe("NotesAiSidebar", () => {
     expect(
       await screen.findByRole("heading", { name: "Quiz on this document" }),
     ).toBeInTheDocument();
-    // It skips the already-known source step and opens on the result choice.
     expect(
-      screen.getByRole("heading", { name: "What should Learnora make?" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("checkbox", { name: /Practice quiz/ }),
+      screen.getByRole("checkbox", { name: /Practice quiz/i }),
     ).toBeChecked();
     expect(
-      screen.getByRole("checkbox", { name: /Flashcards/ }),
+      screen.getByRole("checkbox", { name: /Flashcards/i }),
     ).not.toBeChecked();
-    // The persistent summary keeps the source and filing destination clear.
-    const summary = screen.getByRole("complementary", {
-      name: "Creation summary",
-    });
-    expect(within(summary).getByText("Cell division")).toBeInTheDocument();
-    expect(within(summary).getByText("Biology")).toBeInTheDocument();
 
-    // Going back confirms the exact saved material is selected.
-    await user.click(screen.getByRole("button", { name: "Add a source" }));
-    await waitFor(() =>
-      expect(screen.getByLabelText("Saved material")).toHaveValue("mat-1"),
+    // Source tab is directly selected to Saved Material with mat-1 selected
+    expect(screen.getByRole("tab", { name: /Saved Material/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
     );
-    expect(screen.getByRole("radio", { name: /Saved material/ })).toBeChecked();
+    expect(screen.getByLabelText("Saved material")).toHaveValue("mat-1");
   });
 
   it("pre-ticks flashcards instead when that card is used", async () => {
@@ -342,20 +332,16 @@ describe("NotesAiSidebar", () => {
         name: "Flashcards from this document",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: /Flashcards/ })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /Flashcards/i })).toBeChecked();
     expect(
-      screen.getByRole("checkbox", { name: /Practice quiz/ }),
+      screen.getByRole("checkbox", { name: /Practice quiz/i }),
     ).not.toBeChecked();
   });
 
-  it("says the podcast card does not exist yet rather than pretending", async () => {
-    const user = userEvent.setup();
+  it("offers only actions that exist — no 'coming soon' tiles", async () => {
     renderNotes();
-
-    await user.click(await screen.findByRole("button", { name: /Podcast/ }));
-
-    expect(
-      await screen.findByText("Podcast generation coming soon"),
-    ).toBeInTheDocument();
+    await screen.findByRole("button", { name: /Quiz me/ });
+    expect(screen.queryByRole("button", { name: /Podcast/ })).toBeNull();
+    expect(screen.queryByText(/soon/i)).toBeNull();
   });
 });

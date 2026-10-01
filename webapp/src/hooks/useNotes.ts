@@ -45,8 +45,15 @@ export function useAddNote() {
 export function useUpdateNoteHtml() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, htmlContent }: { id: string; htmlContent: string }) =>
-      notesApi.updateHtml(id, htmlContent),
+    mutationFn: ({
+      id,
+      htmlContent,
+      expectedUpdatedAt = null,
+    }: {
+      id: string;
+      htmlContent: string;
+      expectedUpdatedAt?: string | null;
+    }) => notesApi.updateHtml(id, htmlContent, expectedUpdatedAt),
     onSuccess: () => {
       // Same prefix sweep as useAddNote — covers the edited material's
       // list and the graph's global snapshot in one go.

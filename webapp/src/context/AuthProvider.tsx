@@ -9,7 +9,10 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { queryClient } from "../lib/queryClient";
+import { clearAppearance } from "../lib/appearance";
 import { AuthContext } from "./auth";
+import { migrateGuestSessions } from "../lib/guestSessionMigration";
+import { claimLocalStorageFor } from "../lib/userStorage";
 
 /* Port of Auth.getSession / Auth.logout from js/api.js.
  *
@@ -28,9 +31,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const nextUserId = nextSession?.user.id ?? null;
     if (lastUserId.current !== undefined && lastUserId.current !== nextUserId) {
       queryClient.clear();
+      clearAppearance();
     }
     lastUserId.current = nextUserId;
+    // Before the new session renders anything: a different student signing
+    // in on this browser must not see the last one's drafts or resume card.
+    if (nextUserId) claimLocalStorageFor(nextUserId);
     setSession(nextSession);
+    if (nextUserId) {
+      void migrateGuestSessions(nextUserId).catch((error) =>
+        console.warn(
+          "[Auth] Guest session import will retry next login:",
+          error,
+        ),
+      );
+    }
   }, []);
 
   useEffect(() => {

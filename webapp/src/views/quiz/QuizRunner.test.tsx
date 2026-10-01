@@ -8,6 +8,7 @@ import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { Storage } from "../../lib/storage";
+import { getStudySnapshot } from "../../lib/continuity";
 import { QuizRunner } from "./QuizRunner";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -72,7 +73,7 @@ describe("QuizRunner", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens on the first question with the host's welcome", async () => {
+  it("opens straight on the first question", async () => {
     serveQuiz();
     renderRunner();
 
@@ -82,12 +83,34 @@ describe("QuizRunner", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText("Question 1 of 2")).toBeInTheDocument();
-    expect(
-      screen.getByText("Welcome to the quiz. Let's see what you've got!"),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/Let's see what you've got/)).toBeNull();
     expect(
       screen.getAllByRole("button", { name: /Ribosome|Mitochondrion|Nucleus/ }),
     ).toHaveLength(3);
+  });
+
+  /* A maths question reached the student as raw "$x^2$" while the chat and
+     flashcards beside it typeset the same TeX. */
+  it("typesets maths in the question and the choices", async () => {
+    serveQuiz([
+      {
+        question: "What is the derivative of $x^2$?",
+        choices: ["$2x$", "$x$", "$2$"],
+        correctIndex: 0,
+      },
+    ]);
+    const { container } = renderRunner();
+
+    await screen.findByText(/What is the derivative of/);
+    /* KaTeX is a lazy chunk (lib/Math.tsx), so the text can paint before it
+       is typeset; on a busy run the first import is slow. Wait for it. */
+    await waitFor(
+      () => {
+        expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(4);
+        expect(screen.queryByText(/\$x\^2\$/)).toBeNull();
+      },
+      { timeout: 5000 },
+    );
   });
 
   it("hides the Next button until an answer is picked", async () => {
@@ -243,20 +266,23 @@ describe("QuizRunner", () => {
     it("scores the run and lists the topics that were missed", async () => {
       await playThrough("Dinitrogen acetate");
 
+      /* The headline is the finding; the score is a caption. */
       expect(
-        await screen.findByRole("heading", { name: /Quiz Complete/ }),
+        await screen.findByRole("heading", {
+          level: 2,
+          name: "Cell biology is solid. Genetics needs another look.",
+        }),
       ).toBeInTheDocument();
-      expect(screen.getByText("1 / 2 correct")).toBeInTheDocument();
-      expect(
-        screen.getByText("Topics to review: Genetics"),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/· 1 of 2$/)).toBeInTheDocument();
+      const genetics = screen.getByText("Genetics", { selector: "span" }).closest("li")!;
+      expect(genetics).toHaveTextContent("1 to review");
     });
 
     it("shows no weak topics on a perfect run", async () => {
       await playThrough("Deoxyribonucleic acid");
 
-      expect(await screen.findByText("2 / 2 correct")).toBeInTheDocument();
-      expect(screen.queryByText(/Topics to review/)).not.toBeInTheDocument();
+      expect(await screen.findByText(/· 2 of 2$/)).toBeInTheDocument();
+      expect(screen.queryByText(/to review$/)).not.toBeInTheDocument();
     });
 
     it("records the attempt with the score, answers and weak topics", async () => {
@@ -269,7 +295,7 @@ describe("QuizRunner", () => {
           }),
         );
       });
-      await screen.findByText("1 / 2 correct");
+      await screen.findByText(/· 1 of 2$/);
 
       await waitFor(() => expect(body).toBeDefined());
       expect(body?.[0]).toMatchObject({
@@ -286,6 +312,7 @@ describe("QuizRunner", () => {
           correct: true,
           topic: "Cell biology",
           secondsSpent: expect.any(Number),
+          confidence: null,
         },
         {
           questionId: "q2",
@@ -293,6 +320,7 @@ describe("QuizRunner", () => {
           correct: false,
           topic: "Genetics",
           secondsSpent: expect.any(Number),
+          confidence: null,
         },
       ]);
     });
@@ -308,10 +336,41 @@ describe("QuizRunner", () => {
         );
       });
 
-      expect(await screen.findByText("1 / 2 correct")).toBeInTheDocument();
+      expect(await screen.findByText(/· 1 of 2$/)).toBeInTheDocument();
       expect(
         await screen.findByText(/couldn't save this attempt/),
       ).toBeInTheDocument();
+    });
+
+    it("saves how sure the student was with each answer", async () => {
+      let body: Record<string, unknown>[] | undefined;
+      serveQuiz();
+      server.use(
+        http.post(rest("quiz_attempts"), async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>[];
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      renderRunner();
+      await screen.findByText("Question 1 of 2");
+      /* Optional, and asked before the answer: once the verdict shows it
+         could no longer be answered honestly. */
+      expect(screen.getByRole("group", { name: /optional/ })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Guess" }));
+      await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
+      expect(screen.queryByRole("group", { name: /optional/ })).toBeNull();
+      await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+      await userEvent.click(screen.getByRole("button", { name: "Certain" }));
+      await userEvent.click(screen.getByRole("button", { name: "Dinitrogen acetate" }));
+      await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+
+      await waitFor(() => expect(body).toBeDefined());
+      const answers = body![0].answers_json as Array<Record<string, unknown>>;
+      expect(answers.map((a) => a.confidence)).toEqual(["guess", "certain"]);
+      /* Sure and wrong leads the results; the right-but-guessed one is ochre. */
+      expect(await screen.findByText(/Confident but wrong/)).toBeInTheDocument();
+      expect(screen.getByText("Q2")).toBeInTheDocument();
+      expect(screen.getByText("Q1: correct, but guessed.")).toBeInTheDocument();
     });
 
     it("records the attempt exactly once", async () => {
@@ -324,7 +383,7 @@ describe("QuizRunner", () => {
           }),
         );
       });
-      await screen.findByText("1 / 2 correct");
+      await screen.findByText(/· 1 of 2$/);
       await waitFor(() => expect(posts).toBe(1));
 
       // Give any stray re-render a chance to fire a second write.
@@ -334,7 +393,7 @@ describe("QuizRunner", () => {
 
     it("offers the review page and the way back to the Library", async () => {
       await playThrough("Dinitrogen acetate");
-      await screen.findByText("1 / 2 correct");
+      await screen.findByText(/· 1 of 2$/);
 
       await userEvent.click(
         screen.getByRole("link", { name: /Review answers/ }),
@@ -351,8 +410,13 @@ describe("QuizRunner", () => {
       renderRunner();
 
       expect(
-        await screen.findByRole("heading", { name: "Quiz not found." }),
+        await screen.findByText("Quiz not found"),
       ).toBeInTheDocument();
+      /* It used to be a bare line of text with nowhere to go but the browser's
+         back button. */
+      expect(
+        screen.getByRole("link", { name: "Back to Quizzes" }),
+      ).toHaveAttribute("href", "/library/quizzes");
     });
 
     /* A stored question whose correctIndex is out of range would grade every
@@ -458,8 +522,9 @@ describe("QuizRunner draft autosave", () => {
       screen.getByRole("button", { name: "See results →" }),
     );
 
-    await screen.findByText("Quiz Complete! 🎉");
+    await screen.findByText("Nothing to fix.");
     expect(Storage.get(draftKey)).toBeNull();
+    expect(getStudySnapshot().lastQuizDraft).toBeNull();
   });
 
   it("offers to resume on a saved question, landing there with prior answers counted", async () => {
@@ -487,7 +552,7 @@ describe("QuizRunner draft autosave", () => {
       screen.getByRole("button", { name: "See results →" }),
     );
 
-    expect(await screen.findByText("2 / 2 correct")).toBeInTheDocument();
+    expect(await screen.findByText(/· 2 of 2$/)).toBeInTheDocument();
   });
 
   it("starting over drops the draft and begins again at question 1", async () => {
@@ -507,6 +572,17 @@ describe("QuizRunner draft autosave", () => {
     expect(Storage.get(draftKey)).toBeNull();
   });
 
+  it("does not offer to resume a quiz that was opened but never answered", async () => {
+    Storage.set(draftKey, { index: 0, answers: [] });
+    serveQuiz();
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    expect(
+      screen.queryByText(/Resume where you left off/),
+    ).not.toBeInTheDocument();
+  });
+
   it("ignores a draft whose saved index is out of range for the current quiz", async () => {
     Storage.set(draftKey, { index: 9, answers: [] });
     serveQuiz();
@@ -516,5 +592,213 @@ describe("QuizRunner draft autosave", () => {
     expect(
       screen.queryByText(/Resume where you left off/),
     ).not.toBeInTheDocument();
+  });
+  describe("study time", () => {
+    /* Date.now is stubbed rather than vi.useFakeTimers(): the clock has to
+       advance, but fake timers break MSW and userEvent pacing. */
+    function stubClock() {
+      let now = Date.now();
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+      return (ms: number) => {
+        now += ms;
+      };
+    }
+
+    async function playThroughTaking(perQuestionMs: number) {
+      const logged: Record<string, unknown>[] = [];
+      serveQuiz();
+      server.use(
+        http.post(rest("study_sessions"), async ({ request }) => {
+          logged.push(...((await request.json()) as Record<string, unknown>[]));
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      const advance = stubClock();
+      renderRunner();
+
+      await screen.findByText("Question 1 of 2");
+      advance(perQuestionMs);
+      await userEvent.click(
+        screen.getByRole("button", { name: "Mitochondrion" }),
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Next Question →" }),
+      );
+      advance(perQuestionMs);
+      await userEvent.click(
+        screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "See results →" }),
+      );
+      await screen.findByText(/· 2 of 2$/);
+      return logged;
+    }
+
+    it("credits the quiz with the time its questions took", async () => {
+      const logged = await playThroughTaking(90_000);
+
+      await waitFor(() => expect(logged).toHaveLength(1));
+      expect(logged[0]).toMatchObject({
+        minutes: 3,
+        task: "Biology basics",
+        timer_type: "quiz",
+      });
+    });
+
+    it("does not credit a question that was left open and abandoned", async () => {
+      const logged = await playThroughTaking(30 * 60_000);
+
+      await waitFor(() => expect(logged).toHaveLength(1));
+      // Both questions clipped to the 2-minute idle cap.
+      expect(logged[0]).toMatchObject({ minutes: 4 });
+    });
+
+    it("logs nothing for a quiz answered too fast to be worth a row", async () => {
+      const logged = await playThroughTaking(2_000);
+
+      expect(logged).toEqual([]);
+    });
+  });
+
+});
+
+/* A resumed draft can land the student back on a question its answers
+   array already covers — Back, Forward, Resume is the ordinary way there.
+   The answer store used to append blindly, so that question went in
+   twice: a two-question quiz submitted three rows. The score looked
+   right, because it counts correct entries, but `answers_json` is what
+   the evidence layer reads for per-topic accuracy, so the duplicate
+   quietly weighted one question twice in the misconception ledger. */
+describe("QuizRunner answer integrity", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("keeps one row per question, and a revealed answer stands, when resuming", async () => {
+    /* Resumed sitting on question 1 while already holding an answer for
+       it — exactly what Back/Forward/Resume produces. */
+    Storage.set("learnora_quiz_draft_quiz-1", {
+      index: 0,
+      answers: [
+        { questionId: "q1", chosenIndex: 0, correct: false, topic: "Cell biology" },
+      ],
+    });
+    let submitted: Record<string, unknown> | undefined;
+    serveQuiz();
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/quiz_attempts`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>[];
+        submitted = body[0];
+        return HttpResponse.json([{ id: "attempt-1" }]);
+      }),
+    );
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    /* The draft already holds a (revealed) answer for question 1, so the
+       verdict is restored rather than the question being offered fresh: a
+       refresh must not turn a seen wrong answer into a right one. */
+    expect(screen.getByRole("button", { name: "Mitochondrion" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await screen.findByText("Question 2 of 2");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+    await screen.findByRole("heading", { level: 2, name: /solid|look|fix/ });
+
+    await waitFor(() => expect(submitted).toBeDefined());
+    const answers = submitted!.answers_json as Array<Record<string, unknown>>;
+    expect(answers).toHaveLength(2);
+    expect(answers.filter((a) => a.questionId === "q1")).toHaveLength(1);
+    /* The first, revealed answer stands. */
+    expect(answers.find((a) => a.questionId === "q1")?.correct).toBe(false);
+  });
+});
+
+/* The results screen named the weak topics and then offered nothing to do
+   about them: "check your weak topics" pointed at a destination that was
+   not on the page. */
+describe("QuizRunner results routing", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("offers a route into the Solver carrying the weak topic", async () => {
+    serveQuiz();
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    /* Wrong on both, so there is something to fix. */
+    await userEvent.click(screen.getByRole("button", { name: "Nucleus" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await screen.findByText("Question 2 of 2");
+    await userEvent.click(screen.getByRole("button", { name: "Dinitrogen acetate" }));
+    await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+
+    const fix = await screen.findByRole("link", { name: /Work on/ });
+    expect(fix.getAttribute("href")).toContain("/study/new?mode=socratic&topic=");
+    /* No confetti, no emoji: the headline states what to fix. */
+    expect(screen.getByRole("heading", { level: 2, name: /need another look/ })).toHaveTextContent(
+      "need another look",
+    );
+  });
+
+  it("says there is nothing to fix on a clean sweep, and offers no fix-up", async () => {
+    serveQuiz();
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await screen.findByText("Question 2 of 2");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+
+    await screen.findByText("Nothing to fix.");
+    expect(screen.queryByRole("link", { name: /Work on/ })).toBeNull();
+  });
+
+  it("retakes the quiz from question 1 as a new attempt", async () => {
+    const keys: unknown[] = [];
+    serveQuiz();
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/quiz_attempts`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>[];
+        keys.push(body[0].attempt_key);
+        return HttpResponse.json([{ id: `attempt-${keys.length}` }]);
+      }),
+    );
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    await userEvent.click(screen.getByRole("button", { name: "Nucleus" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await screen.findByText("Question 2 of 2");
+    await userEvent.click(screen.getByRole("button", { name: "Dinitrogen acetate" }));
+    await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+    await screen.findByText(/· 0 of 2$/);
+    await waitFor(() => expect(keys).toHaveLength(1));
+
+    await userEvent.click(screen.getByRole("button", { name: /Retake test/ }));
+    await screen.findByText("Question 1 of 2");
+    expect(screen.getByRole("button", { name: "Mitochondrion" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Deoxyribonucleic acid" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+    await screen.findByText(/· 2 of 2$/);
+
+    await waitFor(() => expect(keys).toHaveLength(2));
+    expect(keys[0]).not.toEqual(keys[1]);
   });
 });

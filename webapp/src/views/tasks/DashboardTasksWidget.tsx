@@ -1,6 +1,7 @@
 import { useState, type Ref } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
+import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useOptionalTimer } from "../../context/timer";
 import { useAddTask, useTasks } from "../../hooks/useTasks";
@@ -9,10 +10,12 @@ import { sortTasksByUrgency } from "./sortTasks";
 import { useTaskActions } from "./useTaskActions";
 import {
   dateInDays,
+  localDateStr,
   formatDueDate,
   formatRecurrenceCleanText,
   isRecurringWeekly,
 } from "../../lib/date";
+import { TASK_MAX } from "../../lib/fieldLimits";
 import styles from "./tasks.module.css";
 
 /* The dashboard's compact task widget — ports js/main.js:2045-2100 (the list)
@@ -29,11 +32,13 @@ type DashboardTasksWidgetProps = {
   /* Lets OnboardingBanner focus the quick-add input without reaching across
    * components via document.getElementById — see DashboardView, which owns
    * the ref both components need. */
+  dueOnly?: boolean;
   inputRef?: Ref<HTMLInputElement>;
 };
 
 export function DashboardTasksWidget({
   inputRef,
+  dueOnly = false,
 }: DashboardTasksWidgetProps = {}) {
   const { data: tasks, isPending } = useTasks();
   const addTask = useAddTask();
@@ -54,8 +59,14 @@ export function DashboardTasksWidget({
     }
     setText("");
     /* The quick-add deliberately has no due-date field, matching the vanilla. */
+    /* `dueDate`, not `due_date`: the mutation takes the camelCase name and
+       maps it to the column itself. It used to spread in `due_date`, which a
+       spread hides from TypeScript's excess-property check — so the key was
+       silently dropped and every Today quick-add landed with no due date,
+       i.e. filtered straight back out of the list that created it. Passing
+       the field directly keeps that check switched on. */
     addTask.mutate(
-      { text: trimmed },
+      { text: trimmed, dueDate: dueOnly ? localDateStr() : null },
       {
         onError: (err) =>
           showToast(`Could not add task. ${err.message}`, { error: true }),
@@ -64,7 +75,7 @@ export function DashboardTasksWidget({
   }
 
   const all = tasks ? visible(tasks) : [];
-  const pending = sortTasksByUrgency(all.filter((t) => !t.is_done)).slice(
+  const pending = sortTasksByUrgency(all.filter((t) => !t.is_done && (!dueOnly || (t.due_date && t.due_date <= localDateStr())))).slice(
     0,
     MAX_VISIBLE,
   );
@@ -77,6 +88,7 @@ export function DashboardTasksWidget({
           ref={inputRef}
           className={shake ? styles.inputError : undefined}
           placeholder="Add a task..."
+          maxLength={TASK_MAX}
           autoComplete="off"
           aria-label="Quick add task"
           value={text}
@@ -91,7 +103,10 @@ export function DashboardTasksWidget({
             }
           }}
         />
-        <Button variant="primary" size="sm" onClick={submit}>
+        {/* Secondary: this widget sits on the dashboard beside Resume, which
+            is the screen's one primary action. Enter in the field submits
+            too, so the button is the affordance, not the call to action. */}
+        <Button variant="secondary" size="sm" onClick={submit}>
           Add
         </Button>
       </div>
@@ -107,7 +122,7 @@ export function DashboardTasksWidget({
         <ul className={styles.dashList}>
           {pending.length === 0 ? (
             <li className={styles.empty}>
-              {all.length
+              {dueOnly ? "Nothing due today. View all tasks to plan ahead." : all.length
                 ? "All caught up — nothing pending."
                 : "No tasks yet. Add your first above."}
             </li>
@@ -116,31 +131,46 @@ export function DashboardTasksWidget({
               const isRecurring = isRecurringWeekly(task.text);
               const displayText =
                 formatRecurrenceCleanText(task.text) || task.text;
+              /* A task left from days ago is not "due today" — it is late, and a
+                 returning student should see that at a glance rather than
+                 work it out from a date. */
+              const overdue = !!task.due_date && task.due_date < localDateStr();
               const dueLabel = task.due_date
-                ? formatDueDate(task.due_date)
+                ? overdue
+                  ? `Overdue since ${formatDueDate(task.due_date)}`
+                  : formatDueDate(task.due_date)
                 : null;
 
+              /* A negative id is the optimistic placeholder useAddTask shows
+                 while the save is in flight (or queued offline). It has no
+                 server row yet, so it cannot be ticked or moved. */
+              const pending = task.id < 0;
+
               return (
+                /* A plain list item holding a real checkbox — see TaskItem
+                   for why the row itself is not the checkbox. */
                 <li
                   key={task.id}
                   className={styles.dashTask}
-                  role="checkbox"
-                  aria-checked={false}
-                  aria-label={task.text}
-                  tabIndex={0}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
-                    if (target.closest("button")) return;
+                    if (pending || target.closest("button")) return;
                     toggle(task);
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === " " || e.key === "Enter") {
-                      e.preventDefault();
-                      toggle(task);
-                    }
-                  }}
                 >
-                  <span className={styles.dashCheck} aria-hidden="true" />
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={false}
+                    aria-label={task.text}
+                    aria-disabled={pending || undefined}
+                    className={styles.checkBtn}
+                    onClick={() => {
+                      if (!pending) toggle(task);
+                    }}
+                  >
+                    <span className={styles.dashCheck} aria-hidden="true" />
+                  </button>
                   <div className={styles.dashContent}>
                     <span className={styles.dashLabel}>{displayText}</span>
                     <div className={styles.dashMeta}>
@@ -154,10 +184,15 @@ export function DashboardTasksWidget({
                         </span>
                       )}
                       {dueLabel && (
-                        <span className={styles.dashDue}>{dueLabel}</span>
+                        <span className={overdue ? styles.dashOverdue : styles.dashDue}>
+                          {dueLabel}
+                        </span>
                       )}
                     </div>
                   </div>
+                  {pending ? (
+                    <span className={styles.dashDue}>Saving…</span>
+                  ) : (
                   <div className={styles.dashActions}>
                     <button
                       type="button"
@@ -170,33 +205,34 @@ export function DashboardTasksWidget({
                         navigate("/timer");
                       }}
                     >
-                      Focus
+                      <Icon name="play" size={11} /> Focus
                     </button>
                     <button
                       type="button"
                       className={styles.dashSnoozeBtn}
-                      aria-label="Tomorrow"
-                      title="Snooze to tomorrow"
+                      aria-label={`Move ${task.text} to tomorrow`}
+                      title="Move to tomorrow"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDueDate(task, dateInDays(1));
                       }}
                     >
-                      Tomorrow
+                      → Tomorrow
                     </button>
                     <button
                       type="button"
                       className={styles.dashSnoozeBtn}
-                      aria-label="Next week"
-                      title="Snooze to next week"
+                      aria-label={`Move ${task.text} to next week`}
+                      title="Move to next week"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDueDate(task, dateInDays(7));
                       }}
                     >
-                      Next week
+                      → Next week
                     </button>
                   </div>
+                  )}
                 </li>
               );
             })
@@ -206,4 +242,3 @@ export function DashboardTasksWidget({
     </div>
   );
 }
-

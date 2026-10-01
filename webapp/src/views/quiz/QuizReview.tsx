@@ -1,5 +1,7 @@
 import { Link, useParams } from "react-router";
+import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
 import { useLatestQuizAttempt, useQuiz } from "../../hooks/useQuizzes";
 import {
@@ -10,6 +12,7 @@ import {
   stripPraiseOpener,
 } from "./quizMeta";
 import { ExitLink, QUIZZES_PATH } from "./QuizRunner";
+import { renderMathText } from "../../lib/markdownToReact";
 import styles from "./quiz.module.css";
 
 /* Read-only walkthrough of the last attempt — ports js/router.js's
@@ -57,10 +60,20 @@ export function QuizReview() {
 
   const quiz = quizQuery.data;
   if (!quiz) {
+    /* Same dead end as QuizRunner had: a bare line of text with nowhere to go.
+       See the note there. */
     return (
       <div className={styles.view}>
         <ExitLink />
-        <h2>Quiz not found.</h2>
+        <EmptyState
+          icon="alert-circle"
+          title="Quiz not found"
+          message="It may have been deleted, or the link is out of date."
+        >
+          <Link to={QUIZZES_PATH}>
+            <Button variant="primary">Back to Quizzes</Button>
+          </Link>
+        </EmptyState>
       </div>
     );
   }
@@ -142,7 +155,9 @@ export function QuizReview() {
                       : "Not answered"}
                   </span>
                 </header>
-                <h2 className={styles.question}>{question.question}</h2>
+                <h2 className={styles.question}>
+                  {renderMathText(question.question)}
+                </h2>
                 <ul className={styles.reviewChoices}>
                   {question.choices.map((choice, i) => {
                     const isCorrect = i === question.correctIndex;
@@ -162,7 +177,7 @@ export function QuizReview() {
 
                     return (
                       <li key={i} className={classes}>
-                        <span>{choice}</span>
+                        <span>{renderMathText(choice)}</span>
                         {tag ? (
                           <span className={styles.reviewTag}>{tag}</span>
                         ) : null}

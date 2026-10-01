@@ -16,19 +16,24 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@sentry/react": "^10.73.0",
     "@supabase/supabase-js": "^2.111.0",
     "@tanstack/react-query": "^5.101.4",
+    "dompurify": "^3.4.16",
     "katex": "^0.16.28",
+    "mermaid": "^11.17.2",
+    "pdfjs-dist": "^6.3.289",
     "quill": "2.0.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router": "^8.3.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/katex": "^0.16.8",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

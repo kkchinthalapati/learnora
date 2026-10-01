@@ -36,3 +36,10 @@ supabase/.branches/
 # Temp files
 *.tmp
 *.temp
+
+# Playwright
+playwright-report/
+test-results/
+
+.vercel
+.env*

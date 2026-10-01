@@ -8,8 +8,11 @@
  * dropped silently, so the instructions and `ALLOWED_TAGS`/`ALLOWED_ATTRS`
  * have to be changed together.
  *
- * The same rules live in `supabase/functions/learnora-ai/index.ts` for the
- * plain chat surface — that runs on Deno and cannot import from here.
+ * The main tutor chat gets the same rules from `lib/chatPrompt.ts`, which also
+ * offers ```mermaid for the diagrams mermaid is good at. The two are
+ * complementary: mermaid draws processes, sequences, timelines and mindmaps;
+ * this draws the shapes mermaid cannot — geometry, graphs with axes, circuits,
+ * labelled structures.
  */
 
 export const DIAGRAM_INSTRUCTIONS = `HOW TO DRAW A DIAGRAM — the app renders these, so draw rather than describe:
@@ -25,7 +28,11 @@ export const DIAGRAM_INSTRUCTIONS = `HOW TO DRAW A DIAGRAM — the app renders t
 
 /** Appended to the tutor's system prompt so it knows drawing is on the table
  *  and reaches for it at the right moments — not on every reply. */
-export const DIAGRAM_CHAT_HINT = `You can draw diagrams, and should whenever a picture carries the idea better than a sentence — geometry, graphs, force or circuit sketches, number lines, Venn diagrams, flowcharts, timelines, concept maps, labelled structures. Never say you are unable to create or draw diagrams, and never tell the student to sketch it themselves instead.
+export const DIAGRAM_CHAT_HINT = `You can draw diagrams, and should whenever a picture carries the idea better than a sentence. Never say you are unable to create or draw diagrams, and never tell the student to sketch it themselves instead.
+
+For a process, a cycle, a sequence of steps, a timeline, or ideas branching from one topic, write a fenced block tagged mermaid holding a flowchart, sequenceDiagram, timeline or mindmap — about 12 nodes, short plain-text labels, no styling, click, links, HTML or %%{init}%% lines.
+
+For anything that is a SHAPE rather than a process — a geometry figure, a graph with axes, a circuit, a number line, a Venn diagram, a labelled structure — mermaid cannot draw it, so draw it as SVG:
 
 ${DIAGRAM_INSTRUCTIONS}`;
 

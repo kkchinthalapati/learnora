@@ -89,15 +89,38 @@ describe("callEdge", () => {
     expect(order).toEqual(["onText", "resolved"]);
   });
 
-  it("surfaces the server's own error message", async () => {
+  /* A 5xx body is written for logs, not students — the platform gateway in
+     front of the function answers crashes with "Internal error" and worker
+     limits with codes. The student gets one plain sentence instead. */
+  it("replaces a 5xx body with a plain message", async () => {
     server.use(
       http.post(EDGE_URL, () =>
-        HttpResponse.json({ error: "All providers are down" }, { status: 503 }),
+        HttpResponse.json({ error: "Internal error" }, { status: 500 }),
       ),
     );
 
     await expect(callEdge({ history: [] }, undefined, 0)).rejects.toThrow(
-      "All providers are down",
+      /temporarily unavailable/,
+    );
+  });
+
+  it("keeps a 4xx body, which is written for the student", async () => {
+    server.use(
+      http.post(EDGE_URL, () =>
+        HttpResponse.json({ error: "You've used today's allowance." }, { status: 429 }),
+      ),
+    );
+
+    await expect(callEdge({ history: [] }, undefined, 0)).rejects.toThrow(
+      "You've used today's allowance.",
+    );
+  });
+
+  it("turns a dropped connection into words a student can act on", async () => {
+    server.use(http.post(EDGE_URL, () => HttpResponse.error()));
+
+    await expect(callEdge({ history: [] }, undefined, 0)).rejects.toThrow(
+      /connection dropped|offline/,
     );
   });
 
@@ -120,13 +143,50 @@ describe("callEdge", () => {
     expect(calls).toBe(1);
   });
 
-  it("marks 429 and 5xx retryable", async () => {
-    for (const status of [429, 500, 503]) {
+  it("marks 5xx retryable", async () => {
+    for (const status of [500, 503]) {
       server.use(http.post(EDGE_URL, () => HttpResponse.json({}, { status })));
       await expect(
         callEdge({ history: [] }, undefined, 0),
       ).rejects.toMatchObject({ retryable: true });
     }
+  });
+
+  /* Both ceilings behind a 429 are measured in hours (the daily allowance,
+     which resets at midnight UTC) or minutes (the burst window). A 2-second
+     replay clears neither — it only delays the explanation by the backoff. */
+  it("does not retry a 429, and does not wait to say so", async () => {
+    let calls = 0;
+    server.use(
+      http.post(EDGE_URL, () => {
+        calls++;
+        return HttpResponse.json({ error: "Slow down" }, { status: 429 });
+      }),
+    );
+
+    await expect(callEdge({ history: [] })).rejects.toMatchObject({
+      retryable: false,
+    });
+    expect(calls).toBe(1);
+  });
+
+  /* The edge function's `rateLimitResponse` puts its message under `error` for
+     the JSON modes and under `text` for chat, notes and the tutor. Reading
+     only `error` meant the modes a student uses most answered a spent daily
+     allowance with the generic failure line. */
+  it("surfaces a rate-limit message sent as `text` rather than `error`", async () => {
+    const message =
+      "You've used today's AI generations on the free plan. They reset at midnight — or Learnora Pro raises the limit.";
+    server.use(
+      http.post(EDGE_URL, () =>
+        HttpResponse.json(
+          { text: message, refused: true, modelUsed: "rate-limit" },
+          { status: 429 },
+        ),
+      ),
+    );
+
+    await expect(callEdge({ history: [] })).rejects.toMatchObject({ message });
   });
 
   it("retries a retryable failure and returns the successful attempt", async () => {
@@ -247,5 +307,106 @@ describe("trimHistory", () => {
     expect(trimmed).toHaveLength(MAX_HISTORY);
     expect(trimmed[0].content).toBe("5");
     expect(trimmed.at(-1)?.content).toBe(String(MAX_HISTORY + 4));
+  });
+});
+
+/* Cancellation.
+ *
+ * A first answer takes about thirty seconds against the live provider
+ * chain, so "give up and ask something else" is an ordinary thing for a
+ * student to want, and it has to actually end the request rather than
+ * hide it and let the reply land later. */
+describe("callEdge cancellation", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("stops a request in flight and says it was stopped, not that it failed", async () => {
+    let aborted = false;
+    server.use(
+      http.post(EDGE_URL, async ({ request }) => {
+        request.signal.addEventListener("abort", () => {
+          aborted = true;
+        });
+        /* Never resolves on its own — only the abort ends this. */
+        await new Promise((resolve) => setTimeout(resolve, 10_000));
+        return HttpResponse.json({ text: "too late" });
+      }),
+    );
+
+    const controller = new AbortController();
+    const pending = callEdge({ history: [] } as never, undefined, 0, controller.signal);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    controller.abort();
+
+    await expect(pending).rejects.toThrow(/stopped/i);
+    expect(aborted, "the HTTP request was left running").toBe(true);
+  });
+
+  /* The same AbortError arrives whether the deadline or the student ended
+     it. Telling someone their own Stop press "timed out" reads as a fault
+     they should retry. */
+  it("does not report a cancel as a timeout", async () => {
+    server.use(
+      http.post(EDGE_URL, async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10_000));
+        return HttpResponse.json({ text: "too late" });
+      }),
+    );
+
+    const controller = new AbortController();
+    const pending = callEdge({ history: [] } as never, undefined, 0, controller.signal);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    controller.abort();
+
+    await expect(pending).rejects.toThrow(/stopped/i);
+    await expect(pending).rejects.not.toThrow(/timed out/i);
+  });
+
+  it("refuses to start when the signal is already aborted", async () => {
+    let calls = 0;
+    server.use(
+      http.post(EDGE_URL, () => {
+        calls += 1;
+        return HttpResponse.json({ text: "should not happen" });
+      }),
+    );
+
+    await expect(
+      callEdge({ history: [] } as never, undefined, 0, AbortSignal.abort()),
+    ).rejects.toThrow(/stopped/i);
+    expect(calls).toBe(0);
+  });
+
+  it("leaves an uncancelled request alone", async () => {
+    server.use(http.post(EDGE_URL, () => HttpResponse.json({ text: "fine" })));
+    const controller = new AbortController();
+    await expect(
+      callEdge({ history: [] } as never, undefined, 0, controller.signal),
+    ).resolves.toEqual({ text: "fine" });
+  });
+});
+
+describe("session key on AI calls", () => {
+  it("is attached while a Study session is open, and only a well-formed one", async () => {
+    const { setActiveAiSession, callEdge } = await import("./ai");
+    const { http, HttpResponse } = await import("msw");
+    const { server } = await import("../test/mocks/server");
+    const { SUPABASE_URL } = await import("../lib/supabase");
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ text: "ok" });
+      }),
+    );
+    setActiveAiSession("s-mupf7t3-a5347c87");
+    await callEdge({ history: [{ role: "user", content: "hi" }], tool: "debugger" });
+    setActiveAiSession("bad key with spaces");
+    await callEdge({ history: [{ role: "user", content: "hi" }], tool: "debugger" });
+    setActiveAiSession(null);
+    expect(bodies[0].sessionKey).toBe("s-mupf7t3-a5347c87");
+    expect(bodies[1].sessionKey).toBeUndefined();
   });
 });

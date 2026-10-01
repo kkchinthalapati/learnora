@@ -39,6 +39,12 @@
   margin: 0;
 }
 
+.saveHint {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
 .headerActions {
   display: flex;
   align-items: center;
@@ -133,11 +139,18 @@
   gap: 0.4rem;
 }
 
+/* 44px is the WCAG 2.5.5 / Apple HIG floor for anything a finger has to
+   hit. These measured 26px tall on a phone, and they sit right under the
+   field a student is aiming for, so a near-miss types into the wrong
+   place. Height rather than padding, so the text keeps its size. */
 .presetPill {
+  min-height: var(--touch-target-min, 44px);
+  display: inline-flex;
+  align-items: center;
   background: var(--surface-hover);
   border: 1px solid var(--glass-border-subtle);
-  border-radius: 9999px;
-  padding: 0.3rem 0.65rem;
+  border-radius: var(--r-pill);
+  padding: 0.3rem 0.85rem;
   font-size: var(--fs-xs);
   color: var(--text-muted);
   cursor: pointer;
@@ -150,9 +163,11 @@
   color: var(--accent-text);
 }
 
+/* Neutral, not red: these are leads to work on, and a danger-tinted box
+   after a single missed question read as a verdict. */
 .recentMistakesBox {
-  background: var(--danger-soft);
-  border: 1px dashed var(--danger-soft);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--r-xs);
   padding: 0.75rem;
   display: flex;
@@ -166,7 +181,7 @@
   align-items: center;
   background: var(--surface-active);
   border: 1px solid var(--surface-hover);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 0.4rem 0.6rem;
   font-size: var(--fs-sm);
   cursor: pointer;
@@ -209,7 +224,7 @@
 .scanningPulse {
   width: 56px;
   height: 56px;
-  border-radius: 9999px;
+  border-radius: var(--r-pill);
   background: var(--accent-ring);
   border: 2px solid var(--accent);
   display: flex;
@@ -280,7 +295,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 0.25rem 0.6rem;
-  border-radius: 9999px;
+  border-radius: var(--r-pill);
   background: var(--danger-soft);
   color: var(--danger-text);
   border: 1px solid var(--danger-soft);
@@ -342,7 +357,6 @@
 
 .layerCardSelected {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 16px var(--accent-ring);
 }
 
 .layerHeader {
@@ -358,7 +372,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.55rem;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   font-size: var(--fs-xs);
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -460,4 +474,67 @@
   padding: 3rem 1.5rem;
   text-align: center;
   gap: 1rem;
+}
+/* Touch sizing — see the note in Sidebar.module.css. The "or try one of
+ * these" presets measured 26px. They are how a first-time student starts a
+ * debug session without typing a mistake out on a phone keyboard, so they are
+ * the first thing a thumb goes for and the hardest thing to hit. */
+@media (pointer: coarse) {
+  .presetPill {
+    min-height: var(--touch-target-min);
+  }
+}
+
+/* Shown above a stand-in trace, when the tutor could not be reached or said
+   nothing usable. Deliberately louder than the diagnosis card it sits on
+   top of: the failure mode this exists to prevent is a student reading a
+   template as if it were worked out about them. */
+.degradedNotice {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  background: var(--warning-soft, var(--danger-soft));
+  border: 1px solid var(--warning, var(--danger));
+  border-left-width: 4px;
+  border-radius: var(--r-sm);
+  padding: 1rem 1.25rem;
+  color: var(--text);
+}
+
+.degradedNotice p {
+  margin: 0.35rem 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.degradedRetry {
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs, 6px);
+  cursor: pointer;
+}
+
+.degradedRetry:hover {
+  background: var(--surface-hover, var(--surface));
+}
+
+.recentMistakeCount {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.degradedChecklist {
+  margin: var(--s-2) 0 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: var(--s-2);
+  color: var(--text);
+  line-height: 1.5;
 }

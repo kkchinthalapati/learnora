@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   deriveTimerStatus,
+  MAX_GROUP_TIMER_MINUTES,
   MAX_MESSAGE_LENGTH,
   MAX_NAME_LENGTH,
   MAX_SYNC_MINUTES,
+  sanitizeGroupTimer,
   sanitizeParticipant,
   sanitizeRoomMessage,
   sanitizeRoomReaction,
@@ -342,6 +344,79 @@ describe("realtime payload sanitisers", () => {
         sanitizeTimerSync({ senderId: "u1", targetMinutes: 5, mode: "Party" })
           ?.mode,
       ).toBe("Focus");
+    });
+  });
+
+  describe("sanitizeGroupTimer", () => {
+    it("keeps a well-formed running group timer", () => {
+      expect(
+        sanitizeGroupTimer({
+          hostUserId: "u1",
+          hostName: "Ada",
+          mode: "focus",
+          durationMinutes: 25,
+          endsAtEpochMs: 123456,
+          pausedRemainingMs: null,
+          isRunning: true,
+          cycleIndex: 2,
+        }),
+      ).toEqual({
+        hostUserId: "u1",
+        hostName: "Ada",
+        mode: "focus",
+        durationMinutes: 25,
+        endsAtEpochMs: 123456,
+        pausedRemainingMs: null,
+        isRunning: true,
+        cycleIndex: 2,
+      });
+    });
+
+    it("keeps a paused group timer's frozen remainder", () => {
+      const gt = sanitizeGroupTimer({
+        hostUserId: "u1",
+        durationMinutes: 25,
+        endsAtEpochMs: null,
+        pausedRemainingMs: 90_000,
+        isRunning: false,
+      });
+      expect(gt?.isRunning).toBe(false);
+      expect(gt?.pausedRemainingMs).toBe(90_000);
+      expect(gt?.endsAtEpochMs).toBeNull();
+    });
+
+    it("drops a payload with no host or an unusable duration", () => {
+      expect(sanitizeGroupTimer({ durationMinutes: 25 })).toBeNull();
+      expect(sanitizeGroupTimer({ hostUserId: "u1" })).toBeNull();
+      expect(
+        sanitizeGroupTimer({ hostUserId: "u1", durationMinutes: NaN }),
+      ).toBeNull();
+    });
+
+    it("clamps an absurd block length instead of writing it to the banner", () => {
+      expect(
+        sanitizeGroupTimer({ hostUserId: "u1", durationMinutes: 99_999 })
+          ?.durationMinutes,
+      ).toBe(MAX_GROUP_TIMER_MINUTES);
+      expect(
+        sanitizeGroupTimer({ hostUserId: "u1", durationMinutes: -5 })
+          ?.durationMinutes,
+      ).toBe(1);
+    });
+
+    it("falls back to focus mode and a default host name", () => {
+      const gt = sanitizeGroupTimer({
+        hostUserId: "u1",
+        durationMinutes: 25,
+        mode: "party_mode",
+      });
+      expect(gt?.mode).toBe("focus");
+      expect(gt?.hostName).toBe("Room Host");
+    });
+
+    it("drops non-objects entirely", () => {
+      expect(sanitizeGroupTimer(null)).toBeNull();
+      expect(sanitizeGroupTimer("hello")).toBeNull();
     });
   });
 

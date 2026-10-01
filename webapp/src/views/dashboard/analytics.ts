@@ -1,5 +1,5 @@
 import type { Exam, Folder, StudySession } from "../../api/types";
-import type { LocalSessionEntry } from "./useLocalSessions";
+import type { LocalSession } from "../../lib/localSessions";
 import { computeStudyStreak } from "../../lib/streak";
 
 /* Pure functions behind the dashboard's numbers — ported out of
@@ -27,7 +27,7 @@ export interface FocusTotals {
 
 /* The local session log's `id` is `Date.now()` at log time (js/timer.js) —
  * a reliable "was this today" timestamp with no parsing involved. */
-export function localTotals(sessions: LocalSessionEntry[]): FocusTotals {
+export function localTotals(sessions: LocalSession[]): FocusTotals {
   const startMs = startOfToday().getTime();
   let total = 0;
   let today = 0;

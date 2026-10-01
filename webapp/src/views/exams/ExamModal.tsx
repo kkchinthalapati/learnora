@@ -1,9 +1,10 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
 import { useDeleteExam, useSaveExam } from "../../hooks/useExams";
+import { useFolders } from "../../hooks/useFolders";
 import { localDateStr } from "../../lib/date";
 import type { Exam } from "../../api/types";
 import { DIFFICULTIES, STATUSES } from "./examMeta";
@@ -36,20 +37,34 @@ export function ExamModal({
   const deleteExam = useDeleteExam();
   const { confirm } = useDialog();
   const { showToast } = useToast();
+  /* Folders are only needed to populate the optional subject picker, so a
+     slow or failed fetch simply hides it rather than blocking the dialog. */
+  const folders = useFolders().data ?? [];
 
   const nameId = useId();
   const dateId = useId();
   const statusId = useId();
+  const folderId = useId();
 
   const editing = exam !== null;
   const [name, setName] = useState(exam?.exam_name ?? "");
-  const [date, setDate] = useState(exam?.exam_date ?? initialDate ?? "");
+  const today = localDateStr();
+  /* A past pre-fill (a stale calendar cell) starts a new exam on today
+     instead, so the dialog never opens holding a date it will refuse. */
+  const [date, setDate] = useState(
+    exam?.exam_date ??
+      (initialDate && initialDate < today ? today : (initialDate ?? "")),
+  );
   const [difficulty, setDifficulty] = useState(exam?.difficulty ?? "Medium");
   const [status, setStatus] = useState(exam?.status ?? "Scheduled");
+  const [folder, setFolder] = useState(exam?.folder_id ?? "");
   const [dateInvalid, setDateInvalid] = useState(false);
   const [nameInvalid, setNameInvalid] = useState(false);
+  /* `saveExam.isPending` only flips after a re-render, so a double-click's
+     second submit lands before the button disables and inserts the exam
+     twice. A ref is set synchronously inside the first submit. */
+  const submittingRef = useRef(false);
 
-  const today = localDateStr();
   const maxDate = (() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() + 5);
@@ -66,6 +81,13 @@ export function ExamModal({
       return;
     }
 
+    if (!date) {
+      setDateInvalid(false);
+      requestAnimationFrame(() => setDateInvalid(true));
+      showToast("Pick a date for the exam.", { error: true });
+      return;
+    }
+
     /* Only a *new* exam is forced into the future — an existing one may
        legitimately sit in the past, e.g. being marked Completed after the
        fact (js/main.js:1758-1760). */
@@ -76,6 +98,19 @@ export function ExamModal({
       return;
     }
 
+    /* The form is noValidate, so the input's `max` is advisory only — a
+       mistyped year (2206 for 2026) would otherwise be saved as-is. */
+    if (date > maxDate && date !== exam?.exam_date) {
+      setDateInvalid(false);
+      requestAnimationFrame(() => setDateInvalid(true));
+      showToast("That date is more than five years away — check the year.", {
+        error: true,
+      });
+      return;
+    }
+
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     try {
       await saveExam.mutateAsync({
         payload: {
@@ -83,6 +118,7 @@ export function ExamModal({
           exam_date: date,
           difficulty,
           status: editing ? status : "Scheduled",
+          folder_id: folder || null,
         },
         id: exam?.id ?? null,
       });
@@ -91,6 +127,8 @@ export function ExamModal({
       showToast(`Could not save the exam. ${(err as Error).message}`, {
         error: true,
       });
+    } finally {
+      submittingRef.current = false;
     }
   }
 
@@ -157,6 +195,32 @@ export function ExamModal({
             onChange={(e) => setDate(e.target.value)}
           />
         </div>
+
+        {/* Optional, and last, because it is the only field a student can
+            safely ignore. It is also the one that makes readiness and the
+            forecast about *this* exam rather than about everything: without
+            it both fall back to guessing the subject from the exam's name,
+            and a miss there means the forecast quietly runs on the whole
+            library. Hidden entirely when there are no folders to choose. */}
+        {folders.length > 0 && (
+          <div className={styles.inputGroup}>
+            <label htmlFor={folderId}>
+              Subject (optional)
+            </label>
+            <select
+              id={folderId}
+              value={folder}
+              onChange={(e) => setFolder(e.target.value)}
+            >
+              <option value="">No subject</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className={styles.inputGroup}>
           <span>How tough is it?</span>

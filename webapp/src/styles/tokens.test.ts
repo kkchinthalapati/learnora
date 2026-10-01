@@ -98,6 +98,38 @@ describe("Visual Design System Tokens", () => {
     expect(tokens.get("--r-pill")).toBe("999px");
   });
 
+  /*
+   * The themes re-declare their ramps on `body.dark-theme` and on the
+   * `body[data-theme-color=...]` presets — never on :root. A custom property
+   * whose value is `var(--other)` substitutes --other as computed *on the
+   * element the alias is declared on*, so an alias sitting in :root can only
+   * ever see the light ramp, and then inherits that literal value down the
+   * whole tree.
+   *
+   * This shipped once: `--card-bg: var(--surface)` in :root pinned every Card
+   * to #ffffff in dark mode while --text stayed #f0ece4, which put notebook
+   * titles at 1.18:1. Aliases like that now live in the `body` block at the
+   * foot of tokens.css. This guard fails if one moves back.
+   */
+  it("declares no :root alias that points at a themed token", () => {
+    const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "");
+    const root = parseDeclarations(blockOf(strip(tokensCss), ":root"));
+
+    const themed = new Set<string>();
+    for (const m of strip(themesCss).matchAll(/(--[\w-]+)\s*:/g)) {
+      themed.add(m[1]);
+    }
+
+    const offenders: string[] = [];
+    for (const [name, value] of root) {
+      for (const ref of value.matchAll(/var\((--[\w-]+)/g)) {
+        if (themed.has(ref[1])) offenders.push(`${name} -> ${ref[1]}`);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
   it("defines modern glass highlights and eliminates glass-inner-bottom", () => {
     const rootTokens = parseDeclarations(blockOf(tokensCss, ":root"));
     const darkTokens = parseDeclarations(blockOf(themesCss, "body\\.dark-theme"));

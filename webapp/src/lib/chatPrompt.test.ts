@@ -3,6 +3,8 @@ import {
   activeContextForPath,
   buildSystemContext,
   DEFAULT_ACTIVE_CONTEXT,
+  GUESS_FIRST_INSTRUCTION,
+  looksConceptual,
   NOTES_CONTEXT_CHARS,
 } from "./chatPrompt";
 
@@ -36,6 +38,17 @@ describe("buildSystemContext", () => {
 
   /* Without these the model invents chapters and deadlines a student would
      then act on. */
+  it("offers mermaid diagrams, only of the four types the renderer is asked for", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain("DIAGRAMS:");
+    expect(prompt).toMatch(/language is mermaid/);
+    expect(prompt).toMatch(/flowchart .*sequenceDiagram, timeline, mindmap/);
+    expect(prompt).toMatch(/No styling, classDef, click, links, HTML or %%\{init\}%% lines/);
+    // Never a replacement for the explanation, and never for maths.
+    expect(prompt).toMatch(/still explain in words/);
+    expect(prompt).toMatch(/maths working \(write TeX instead\)/);
+  });
+
   it("keeps the grounding rules", () => {
     const prompt = buildSystemContext(base);
     expect(prompt).toContain("GROUNDING RULES");
@@ -101,6 +114,22 @@ describe("buildSystemContext", () => {
     expect(prompt).toContain(
       "Use ADD_QUIZ instead when they ask to be quizzed",
     );
+  });
+
+  /* The grounding rule used to tell the model to "offer to generate a quiz
+     (<ADD_QUIZ>Topic Name</ADD_QUIZ>)" while CAPABILITIES said emitting that
+     tag generates the quiz. The model followed both and wrote an offer with a
+     command inside it — "Would you like me to create a quiz on
+     <ADD_QUIZ>Photosynthesis</ADD_QUIZ>?" — which the app executed, and which
+     rendered as "Would you like me to create a quiz on ?" once the tag block
+     was stripped for display. */
+  it("does not tell the model to emit ADD_QUIZ while it is still offering", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).not.toContain(
+      "offer to generate a quiz (<ADD_QUIZ>Topic Name</ADD_QUIZ>)",
+    );
+    expect(prompt).toContain("do NOT emit the ADD_QUIZ tag while you are still asking");
+    expect(prompt).toContain("Emitting the tag *is* the action");
   });
 
   /* GRADE_FLASHCARD is real, wired capability (ReviewView registers a grader
@@ -219,5 +248,23 @@ describe("activeContextForPath", () => {
     expect(context).not.toContain("<SET_THEME>");
     /* The one remaining `"""` pair is the app's own fence. */
     expect(context.split('"""')).toHaveLength(3);
+  });
+});
+
+describe("guess first", () => {
+  it("asks the model for a guess-first question only when told to", () => {
+    const base = { pendingTasks: "None", upcomingExams: "None", activeContext: "Today", query: "why?" };
+    expect(buildSystemContext({ ...base, guessFirst: true })).toContain(GUESS_FIRST_INSTRUCTION);
+    expect(buildSystemContext(base)).not.toContain("GUESS FIRST");
+  });
+
+  it("recognises conceptual questions, not requests to act", () => {
+    expect(looksConceptual("Why does the electron transport chain need oxygen?")).toBe(true);
+    expect(looksConceptual("how do enzymes lower activation energy")).toBe(true);
+    expect(looksConceptual("Generate flashcards from my notes")).toBe(false);
+    expect(looksConceptual("What are my pending tasks?")).toBe(false);
+    expect(looksConceptual("just explain it")).toBe(false);
+    expect(looksConceptual("What should I study next?")).toBe(false);
+    expect(looksConceptual("ok")).toBe(false);
   });
 });

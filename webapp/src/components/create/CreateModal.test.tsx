@@ -31,18 +31,16 @@ describe("CreateModal", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens on a clear creation hub by default", async () => {
+  it("opens directly on the source-first study flow by default", async () => {
     const user = userEvent.setup();
     renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     expect(
-      screen.getByRole("dialog", { name: "Create something new" }),
+      screen.getByRole("dialog", { name: "What do you want to learn?" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Build study resources/ }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Task/ })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Upload/ })).toBeInTheDocument();
+    expect(screen.queryByText("Create something new")).not.toBeInTheDocument();
   });
 
   it("opens directly on the requested panel", async () => {
@@ -56,19 +54,18 @@ describe("CreateModal", () => {
     expect(screen.getByRole("textbox", { name: "Task" })).toBeInTheDocument();
   });
 
-  it("moves from the hub into a quick-create form without closing", async () => {
+  it("keeps explicit quick-create callers direct", async () => {
     const user = userEvent.setup();
-    renderModal(<Harness />);
+    renderModal(<Harness initial={{ type: "subject" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
-    await user.click(screen.getByRole("button", { name: /Subject/ }));
     expect(
       screen.getByRole("dialog", { name: "Create a subject" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "All create options" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("tab", { name: /Upload/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("resets to a fresh panel every time it's reopened", async () => {
@@ -77,14 +74,14 @@ describe("CreateModal", () => {
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     // Open Subject and type a name, then cancel.
-    await user.click(screen.getByRole("button", { name: /Subject/ }));
-    await user.type(screen.getByLabelText("Name"), "Half-typed name");
+    await user.click(screen.getByRole("tab", { name: "Topic" }));
+    await user.type(screen.getByLabelText("Topic"), "Half-typed topic");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     // Reopen — should be back on the hub, not Subject with stale text.
     await user.click(screen.getByRole("button", { name: "Open create" }));
     expect(
-      screen.getByRole("dialog", { name: "Create something new" }),
+      screen.getByRole("dialog", { name: "What do you want to learn?" }),
     ).toBeInTheDocument();
   });
 });
@@ -237,5 +234,137 @@ describe("TaskPanel", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
     expect(capturedBody?.[0].text).toBe("Read chapter 5");
+  });
+});
+
+/* `isPending` only disables the submit button after a re-render, so two
+   submits in the same tick each created a row. */
+describe("quick-create panels submit once", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function submitTwice(buttonName: string) {
+    const form = screen
+      .getByRole("button", { name: buttonName })
+      .closest("form")!;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+  }
+
+  it("creates one subject on a double submit", async () => {
+    let posts = 0;
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/folders`, async ({ request }) => {
+        posts += 1;
+        const body = (await request.json()) as Record<string, unknown>[];
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return HttpResponse.json(
+          {
+            id: "folder-1",
+            ...body[0],
+            created_at: "2026-01-01T00:00:00.000Z",
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderModal(<Harness initial={{ type: "subject" }} />);
+    await user.click(screen.getByRole("button", { name: "Open create" }));
+    await user.type(screen.getByLabelText("Name"), "Biology");
+
+    submitTwice("Create subject");
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(posts).toBe(1);
+  });
+
+  it("adds one exam on a double submit", async () => {
+    let posts = 0;
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/exams`, async () => {
+        posts += 1;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderModal(<Harness initial={{ type: "exam" }} />);
+    await user.click(screen.getByRole("button", { name: "Open create" }));
+    await user.type(screen.getByLabelText("Exam name"), "Final");
+    fireEvent.change(screen.getByLabelText("Date"), {
+      target: { value: "2027-06-15" },
+    });
+
+    submitTwice("Add exam");
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(posts).toBe(1);
+  });
+
+  it("adds one task on a double submit", async () => {
+    let posts = 0;
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/tasks`, async () => {
+        posts += 1;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderModal(<Harness initial={{ type: "task" }} />);
+    await user.click(screen.getByRole("button", { name: "Open create" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "Task" }),
+      "Read ch. 5",
+    );
+
+    submitTwice("Add task");
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(posts).toBe(1);
+  });
+
+  it("refuses an exam year typo past the five-year cap", async () => {
+    let posted = false;
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/exams`, () => {
+        posted = true;
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderModal(<Harness initial={{ type: "exam" }} />);
+    await user.click(screen.getByRole("button", { name: "Open create" }));
+    await user.type(screen.getByLabelText("Exam name"), "Final");
+    fireEvent.change(screen.getByLabelText("Date"), {
+      target: { value: "2206-06-15" },
+    });
+    await user.click(screen.getByRole("button", { name: "Add exam" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "more than five years away",
+    );
+    expect(posted).toBe(false);
+  });
+
+  it("caps a task at the shared task length", () => {
+    renderModal(<Harness initial={{ type: "task" }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open create" }));
+    expect(screen.getByRole("textbox", { name: "Task" })).toHaveAttribute(
+      "maxLength",
+      "300",
+    );
   });
 });

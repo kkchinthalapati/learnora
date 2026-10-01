@@ -1,10 +1,14 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Combobox } from "../../components/Combobox";
+import { TopicValueHint } from "./TopicValueHint";
 import { Icon } from "../../components/Icon";
+import { Modal } from "../../components/Modal";
+import { SessionCompletePanel } from "../today/SessionCompletePanel";
 import { useDialog } from "../../context/dialog";
+import { useOptionalAuth } from "../../context/auth";
 import { useTimer } from "../../context/timer";
 import { useFolders } from "../../hooks/useFolders";
 import { useTasks } from "../../hooks/useTasks";
@@ -12,7 +16,9 @@ import { useStudyRoom } from "../../hooks/useStudyRoom";
 import { useTranslation } from "../../hooks/useTranslation";
 import type { TranslationKey } from "../../lib/i18n";
 import { Storage } from "../../lib/storage";
-import { SESSION_LOGGED_EVENT } from "../../context/TimerProvider";
+import { SESSION_LOGGED_EVENT } from "../../lib/localSessions";
+import { ambianceEngine } from "../room/audioAmbiance";
+import type { AmbiancePreset } from "../room/types";
 import {
   WORKFLOW_PRESETS,
   format,
@@ -31,12 +37,22 @@ import styles from "./timer.module.css";
  * only the screen. That split is what replaces `Timer.updateUI()`, which
  * hand-wrote nine elements and toggled five `.hidden` classes on every tick. */
 
+/* Named for what they do. "Pomodoro" and "Flowtime" are study-hack jargon a
+   lot of students have never met; the one-line description under the
+   selector (TYPE_SUMMARY) says what the chosen one will actually do. */
 const TYPE_LABELS: ReadonlyArray<{ id: TimerType; label: string }> = [
-  { id: "pomodoro", label: "Pomodoro" },
+  { id: "pomodoro", label: "Focus & breaks" },
   { id: "countdown", label: "Countdown" },
   { id: "stopwatch", label: "Stopwatch" },
-  { id: "flowtime", label: "Flowtime" },
+  { id: "flowtime", label: "Flow" },
 ];
+
+const TYPE_SUMMARY: Record<TimerType, string> = {
+  pomodoro: "Focus, short break, repeat — a long break every few rounds (the Pomodoro method).",
+  countdown: "One block of focus that ends when the time runs out.",
+  stopwatch: "Counts up until you stop. Good when you don't know how long it'll take.",
+  flowtime: "Focus as long as you like; your break is about a fifth of that time.",
+};
 
 const TYPE_NOTES: Partial<
   Record<TimerType, { heading: string; note: string }>
@@ -50,7 +66,7 @@ const TYPE_NOTES: Partial<
     note: 'Open-ended count-up for flow sessions. Start it and focus — "Stop & log" records the minutes you studied.',
   },
   flowtime: {
-    heading: "Flowtime",
+    heading: "Flow",
     note: 'Focus as long as you like, then hit "Take a break". You\'ll get a break about a fifth as long, then it loops back to focus.',
   },
 };
@@ -58,12 +74,22 @@ const TYPE_NOTES: Partial<
 const RING_RADIUS = 90;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const RECENT_SESSION_LIMIT = 5;
+const FOCUS_SOUNDS: ReadonlyArray<{ id: AmbiancePreset; label: string }> = [
+  { id: "rain", label: "Rain" },
+  { id: "white_noise", label: "Soft static" },
+  { id: "cafe", label: "Café" },
+  { id: "waves", label: "Waves" },
+  /* "Alpha waves" promised a brain effect the sound can't deliver; it is a
+     low steady hum, so it says so. */
+  { id: "binaural", label: "Low hum" },
+];
 
 interface RecentFocusSession {
   id: number;
   timestamp: string;
   minutes: number;
   task: string;
+  notes?: string | null;
 }
 
 function readRecentFocusSessions(): RecentFocusSession[] {
@@ -73,8 +99,12 @@ function readRecentFocusSessions(): RecentFocusSession[] {
     : [];
 }
 
+const DOUBLE_CLICK_GRACE_MS = 500;
+
 export function TimerView() {
   const {
+    completedFocus: completedSession,
+    dismissCompletedFocus,
     state,
     draftConfig,
     setDraftConfig,
@@ -87,7 +117,10 @@ export function TimerView() {
     selectType,
     applyAndReset,
     activeTask,
-    setActiveTask,
+    setActiveTask: bindTask,
+    setActiveDeckId,
+    sessionNote,
+    setSessionNote,
     activeFolderId,
     setActiveFolderId,
     favs,
@@ -95,10 +128,14 @@ export function TimerView() {
     deleteFav,
     applyFav,
     quote,
+    adaptedFocusMins,
   } = useTimer();
+  const setActiveTask = (task: string) => { bindTask(task); setActiveDeckId(null); };
+  const auth = useOptionalAuth();
+  const session = auth?.session;
   const { confirm, promptText } = useDialog();
-  const { data: tasks } = useTasks();
-  const { data: folders } = useFolders();
+  const { data: tasks } = useTasks({ enabled: Boolean(session) });
+  const { data: folders } = useFolders({ enabled: Boolean(session) });
   const { focusParticipants, activeCount } = useStudyRoom();
   const t = useTranslation();
 
@@ -109,20 +146,69 @@ export function TimerView() {
   const countdownId = useId();
   const taskId = useId();
   const folderId = useId();
+  const sessionNoteId = useId();
   const recentSessionsTitleId = useId();
+  const displayRef = useRef<HTMLDivElement>(null);
+  /* Start and Pause occupy the same spot, so the second click of a
+     double-click on Start landed on Pause and the timer sat stopped while the
+     student assumed it was running. A pause within half a second of starting
+     is treated as that second click and ignored. */
+  const startedAtRef = useRef(0);
+  const startTimer = () => {
+    startedAtRef.current = Date.now();
+    start();
+  };
+  const pauseTimer = () => {
+    if (Date.now() - startedAtRef.current < DOUBLE_CLICK_GRACE_MS) return;
+    pause();
+  };
   const [recentSessions, setRecentSessions] = useState(readRecentFocusSessions);
+  const [focusSound, setFocusSound] = useState<AmbiancePreset>("none");
 
   useEffect(() => {
     const refreshRecentSessions = () => {
-      setRecentSessions(readRecentFocusSessions());
+      const latest = readRecentFocusSessions();
+      setRecentSessions(latest);
     };
-    window.addEventListener(SESSION_LOGGED_EVENT, refreshRecentSessions);
+    const offerSessionCheck = () => {
+      const latest = readRecentFocusSessions();
+      setRecentSessions(latest);
+    };
+    window.addEventListener(SESSION_LOGGED_EVENT, offerSessionCheck);
     window.addEventListener("storage", refreshRecentSessions);
     return () => {
-      window.removeEventListener(SESSION_LOGGED_EVENT, refreshRecentSessions);
+      window.removeEventListener(SESSION_LOGGED_EVENT, offerSessionCheck);
       window.removeEventListener("storage", refreshRecentSessions);
     };
   }, []);
+
+  useEffect(() => () => ambianceEngine.stop(), []);
+
+  const toggleFocusSound = (preset: AmbiancePreset) => {
+    if (focusSound === preset) {
+      ambianceEngine.stop();
+      setFocusSound("none");
+      return;
+    }
+    ambianceEngine.play(preset, 0.45);
+    setFocusSound(preset);
+  };
+
+  const openFocusScreen = async () => {
+    if (
+      !displayRef.current ||
+      document.fullscreenElement ||
+      typeof displayRef.current.requestFullscreen !== "function"
+    ) {
+      return;
+    }
+    try {
+      await displayRef.current.requestFullscreen();
+    } catch {
+      /* The browser can decline fullscreen because of a device policy. The
+         timer remains fully usable in-page, so this is a soft failure. */
+    }
+  };
 
   /* A bound task that isn't one of the fetched rows — see the note on the
      select below. Also covers a task renamed or completed since it was bound. */
@@ -183,6 +269,20 @@ export function TimerView() {
 
   return (
     <div className={styles.view}>
+      {!session && (
+        <div className={styles.guestBanner}>
+          <div className={styles.guestBannerInfo}>
+            <span className={styles.guestBannerBadge}>Guest Mode</span>
+            <span className={styles.guestBannerText}>
+              Focusing without an account. Your timer sessions are safely saved
+              locally on this browser.
+            </span>
+          </div>
+          <Link to="/signup" className={styles.guestBannerCta}>
+            Create free account to sync →
+          </Link>
+        </div>
+      )}
       <div className={styles.layout}>
         <Card variant="panel" padding="lg" className={styles.panel}>
           <div
@@ -203,6 +303,20 @@ export function TimerView() {
               </label>
             ))}
           </div>
+          <p className={styles.typeSummary}>{TYPE_SUMMARY[panelType]}</p>
+          {panelType === "pomodoro" && adaptedFocusMins && draftConfig.focus === adaptedFocusMins ? (
+            <p className={styles.typeSummary}>
+              Focus is set to {adaptedFocusMins} min — about how long your
+              sessions usually last.{" "}
+              <button
+                type="button"
+                className={styles.inlineLink}
+                onClick={() => setDraftConfig({ focus: 25 })}
+              >
+                Use 25 min
+              </button>
+            </p>
+          ) : null}
 
           {/* Staging a type mid-run needs saying out loud, or the timer looks
               like it ignored the click. role=status announces it. */}
@@ -226,6 +340,16 @@ export function TimerView() {
                 ).map(({ key, labelKey }) => (
                   <Button
                     key={key}
+                    aria-pressed={
+                      draftConfig.focus === WORKFLOW_PRESETS[key].focus &&
+                      draftConfig.short === WORKFLOW_PRESETS[key].short
+                    }
+                    className={
+                      draftConfig.focus === WORKFLOW_PRESETS[key].focus &&
+                      draftConfig.short === WORKFLOW_PRESETS[key].short
+                        ? styles.presetActive
+                        : undefined
+                    }
                     onClick={() => setDraftConfig(WORKFLOW_PRESETS[key])}
                   >
                     {t(labelKey)}
@@ -233,8 +357,15 @@ export function TimerView() {
                 ))}
               </div>
 
-              <hr className={styles.divider} />
-
+              {/* The presets cover most sessions; the four numbers are for the
+                  student who wants their own. Folded, with the current values
+                  in the summary, so the panel is not twelve controls deep
+                  before the Start button. */}
+              <details className={styles.customTimes}>
+                <summary>
+                  Custom times: {draftConfig.focus} min focus ·{" "}
+                  {draftConfig.short} min break · {draftConfig.maxCycles} rounds
+                </summary>
               <div className={styles.configRow}>
                 <label htmlFor={focusId}>{t("config_focus")}</label>
                 <input
@@ -290,6 +421,7 @@ export function TimerView() {
                   }
                 />
               </div>
+              </details>
             </div>
           )}
 
@@ -329,11 +461,35 @@ export function TimerView() {
               onChange={setActiveTask}
               options={[
                 { value: "None", label: "None" },
-                ...(unlistedTask ? [{ value: unlistedTask, label: unlistedTask }] : []),
+                ...(unlistedTask
+                  ? [{ value: unlistedTask, label: unlistedTask }]
+                  : []),
                 ...(tasks ?? [])
                   .filter((task) => !task.is_done)
                   .map((task) => ({ value: task.text, label: task.text })),
               ]}
+            />
+            {/* Under the binder rather than above it: the student's own list
+                is still the default answer, and this is the app's opinion
+                about it, offered once. */}
+            <TopicValueHint
+              activeTask={activeTask}
+              onUseTopic={setActiveTask}
+            />
+          </div>
+
+          <div className={styles.taskBinder}>
+            <label htmlFor={sessionNoteId}>
+              What did you cover? (optional)
+            </label>
+            <input
+              id={sessionNoteId}
+              type="text"
+              maxLength={280}
+              value={sessionNote}
+              onChange={(e) => setSessionNote(e.target.value)}
+              placeholder="e.g. Ch. 4 equilibrium problems 1–12"
+              autoComplete="off"
             />
           </div>
 
@@ -342,7 +498,7 @@ export function TimerView() {
             <select
               id={folderId}
               value={activeFolderId}
-              onChange={(e) => setActiveFolderId(e.target.value)}
+              onChange={(e) => { setActiveFolderId(e.target.value); setActiveDeckId(null); }}
             >
               <option value="">Unassigned</option>
               {(folders ?? []).map((f) => (
@@ -392,7 +548,7 @@ export function TimerView() {
         </Card>
 
         <div className={styles.focusColumn}>
-          <div className={styles.display}>
+          <div className={styles.display} ref={displayRef}>
             <p className={styles.quote}>&ldquo;{quote}&rdquo;</p>
 
             <div className={styles.ringWrapper}>
@@ -448,11 +604,11 @@ export function TimerView() {
 
             <div className={styles.controls}>
               {state.isRunning ? (
-                <Button variant="primary" onClick={pause}>
+                <Button variant="primary" onClick={pauseTimer}>
                   {t("btn_pause")}
                 </Button>
               ) : (
-                <Button variant="primary" onClick={start}>
+                <Button variant="primary" onClick={startTimer}>
                   {t("btn_start")}
                 </Button>
               )}
@@ -466,6 +622,31 @@ export function TimerView() {
                 onClick={() => void onReset()}
               >
                 {stopAndLog ? "Stop & log" : t("btn_reset")}
+              </Button>
+            </div>
+            <div className={styles.focusTools}>
+              <div
+                className={styles.soundChoices}
+                aria-label="Focus soundscape"
+              >
+                {FOCUS_SOUNDS.map((sound) => (
+                  <button
+                    type="button"
+                    key={sound.id}
+                    className={`${styles.soundButton}${focusSound === sound.id ? ` ${styles.soundButtonActive}` : ""}`}
+                    aria-pressed={focusSound === sound.id}
+                    onClick={() => toggleFocusSound(sound.id)}
+                  >
+                    {sound.label}
+                  </button>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void openFocusScreen()}
+              >
+                <Icon name="maximize" size={15} /> Focus screen
               </Button>
             </div>
           </div>
@@ -528,6 +709,11 @@ export function TimerView() {
                 {recentSessions.map((session) => (
                   <li key={session.id} className={styles.sessionRow}>
                     <span className={styles.sessionTask}>{session.task}</span>
+                    {session.notes && (
+                      <span className={styles.sessionMeta}>
+                        {session.notes}
+                      </span>
+                    )}
                     <span className={styles.sessionMeta}>
                       {session.minutes} min · {session.timestamp}
                     </span>
@@ -542,6 +728,10 @@ export function TimerView() {
           </Card>
         </div>
       </div>
+
+      <Modal open={Boolean(completedSession)} onClose={dismissCompletedFocus} title="Lock in what you learned">
+        {completedSession ? <SessionCompletePanel session={completedSession} onClose={dismissCompletedFocus} /> : null}
+      </Modal>
     </div>
   );
 }

@@ -29,6 +29,9 @@ export function SessionHistoryCard() {
                   {formatFocusTime(log.minutes)} Focus
                 </strong>
                 {log.task !== "General Study" ? ` on ${log.task}` : ""}
+                {log.notes && (
+                  <span className={styles.logTimestamp}> — {log.notes}</span>
+                )}
               </span>
               <span className={styles.logTimestamp}>{log.timestamp}</span>
             </li>

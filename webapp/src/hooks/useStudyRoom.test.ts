@@ -8,7 +8,13 @@ import { AuthContext, type AuthState } from "../context/auth";
 import { TimerContext, type TimerApi } from "../context/timer";
 import { ToastContext, type ToastApi } from "../context/toast";
 import { initialTimerState } from "../lib/timer";
-import type { StudyParticipant, RoomReaction, TimerSyncPayload } from "../api/studyRoom";
+import { MAX_ROOM_PARTICIPANTS } from "../api/studyRoom";
+import type {
+  StudyParticipant,
+  RoomReaction,
+  TimerSyncPayload,
+  GroupTimerSyncPayload,
+} from "../api/studyRoom";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface MockChannel {
@@ -23,6 +29,8 @@ interface MockChannel {
   _presenceSyncCb?: () => void;
   _reactionCb?: (event: { payload?: unknown }) => void;
   _syncTimerCb?: (event: { payload?: unknown }) => void;
+  _groupTimerUpdateCb?: (event: { payload?: unknown }) => void;
+  _groupTimerEndCb?: (event: { payload?: unknown }) => void;
   _subscribeCb?: (status: string) => void;
 }
 
@@ -65,7 +73,9 @@ describe("useStudyRoom", () => {
   };
 
   const createTimerApi = (overrides?: Partial<TimerApi>): TimerApi => ({
-    state: initialTimerState(),
+    completedFocus: null,
+  dismissCompletedFocus: vi.fn(),
+  state: initialTimerState(),
     draftConfig: initialTimerState().config,
     setDraftConfig: vi.fn(),
     panelType: "pomodoro",
@@ -83,12 +93,16 @@ describe("useStudyRoom", () => {
     setActiveTask: vi.fn(),
     activeFolderId: "",
     setActiveFolderId: vi.fn(),
+    activeDeckId: null,
+    setActiveDeckId: vi.fn(),
     favs: [],
     saveFav: vi.fn(),
     deleteFav: vi.fn(),
     applyFav: vi.fn(),
     quote: "Stay focused",
     newQuote: vi.fn(),
+    sessionNote: "",
+    setSessionNote: vi.fn(),
     ...overrides,
   });
 
@@ -140,6 +154,15 @@ describe("useStudyRoom", () => {
           this._reactionCb = cb as (event: { payload?: unknown }) => void;
         } else if (type === "broadcast" && filter.event === "sync_timer") {
           this._syncTimerCb = cb as (event: { payload?: unknown }) => void;
+        } else if (
+          type === "broadcast" &&
+          filter.event === "group_timer_update"
+        ) {
+          this._groupTimerUpdateCb = cb as (event: {
+            payload?: unknown;
+          }) => void;
+        } else if (type === "broadcast" && filter.event === "group_timer_end") {
+          this._groupTimerEndCb = cb as (event: { payload?: unknown }) => void;
         }
         return this;
       }),
@@ -337,6 +360,128 @@ describe("useStudyRoom", () => {
     expect(result.current.participants[0].userId).toBe("user-123");
   });
 
+  /* A room's invite link is a plain URL. One posted in a class group chat
+     admits everyone who clicks it, and presence is O(n²) chatter — so an
+     uncapped room degrades for the people who were studying in it first. */
+  describe("room capacity", () => {
+    function peer(index: number, joinedAt: number): StudyParticipant {
+      return {
+        userId: `peer-${index}`,
+        fullName: `Peer ${index}`,
+        avatarUrl: null,
+        timerStatus: "focus",
+        currentTask: "",
+        activeSubject: null,
+        targetEndTime: null,
+        elapsedSeconds: 0,
+        startedAt: null,
+        joinedAt,
+      };
+    }
+
+    /** A presence state of `peerCount` peers who all arrived before us. */
+    function crowdedRoom(peerCount: number, selfJoinedAt: number) {
+      const state: Record<string, StudyParticipant[]> = {
+        "user-123": [
+          { ...peer(0, selfJoinedAt), userId: "user-123", fullName: "Ada" },
+        ],
+      };
+      for (let i = 1; i <= peerCount; i++) {
+        // Every peer arrived earlier than us.
+        state[`peer-${i}`] = [
+          peer(i, selfJoinedAt - 1000 * (peerCount - i + 1)),
+        ];
+      }
+      return state;
+    }
+
+    it("admits everyone while the room is under capacity", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      channel!.presenceState.mockReturnValue(
+        crowdedRoom(MAX_ROOM_PARTICIPANTS - 1, Date.now()),
+      );
+      act(() => channel!._presenceSyncCb?.());
+
+      expect(result.current.isRoomFull).toBe(false);
+      expect(result.current.participants).toHaveLength(MAX_ROOM_PARTICIPANTS);
+    });
+
+    it("reports the room full to the person who arrived past the cap", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      channel!.presenceState.mockReturnValue(
+        crowdedRoom(MAX_ROOM_PARTICIPANTS, Date.now()),
+      );
+      act(() => channel!._presenceSyncCb?.());
+
+      expect(result.current.isRoomFull).toBe(true);
+    });
+
+    it("withdraws presence when full, so a latecomer does not occupy a seat", () => {
+      renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      channel!.presenceState.mockReturnValue(
+        crowdedRoom(MAX_ROOM_PARTICIPANTS, Date.now()),
+      );
+      act(() => channel!._presenceSyncCb?.());
+
+      expect(channel!.untrack).toHaveBeenCalled();
+    });
+
+    /* Arrival order, not sync order: whoever was here first keeps their seat
+       however many times presence re-syncs. */
+    it("keeps the earliest arrivals and never renders more than the cap", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      /* We arrived first; twenty peers piled in afterwards. */
+      const now = Date.now();
+      const state: Record<string, StudyParticipant[]> = {
+        "user-123": [{ ...peer(0, now - 999999), userId: "user-123" }],
+      };
+      for (let i = 1; i <= 20; i++) state[`peer-${i}`] = [peer(i, now + i)];
+
+      channel!.presenceState.mockReturnValue(state);
+      act(() => channel!._presenceSyncCb?.());
+
+      expect(result.current.isRoomFull).toBe(false);
+      expect(result.current.participants).toHaveLength(MAX_ROOM_PARTICIPANTS);
+      expect(result.current.participants[0].userId).toBe("user-123");
+    });
+
+    it("re-admits you once a seat frees up", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+      const now = Date.now();
+
+      channel!.presenceState.mockReturnValue(
+        crowdedRoom(MAX_ROOM_PARTICIPANTS, now),
+      );
+      act(() => channel!._presenceSyncCb?.());
+      expect(result.current.isRoomFull).toBe(true);
+
+      channel!.presenceState.mockReturnValue(
+        crowdedRoom(MAX_ROOM_PARTICIPANTS - 1, now),
+      );
+      act(() => channel!._presenceSyncCb?.());
+      expect(result.current.isRoomFull).toBe(false);
+    });
+  });
+
   it("sends reaction and handles incoming reactions", async () => {
     const { result } = renderHook(() => useStudyRoom("global"), {
       wrapper: createWrapper(),
@@ -435,6 +580,274 @@ describe("useStudyRoom", () => {
       "Charles Babbage started a 25m Focus session!",
       expect.objectContaining({ actionLabel: "Sync" }),
     );
+  });
+
+  describe("group timer", () => {
+    it("starting one makes you the host and broadcasts + tracks it in presence", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      act(() => {
+        result.current.startGroupFocus(25);
+      });
+
+      expect(result.current.isGroupTimerHost).toBe(true);
+      expect(result.current.groupTimerState).toMatchObject({
+        hostUserId: "user-123",
+        hostName: "Ada Lovelace",
+        mode: "focus",
+        durationMinutes: 25,
+        isRunning: true,
+        cycleIndex: 0,
+      });
+      expect(channel?.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "broadcast",
+          event: "group_timer_update",
+          payload: expect.objectContaining({ hostUserId: "user-123" }),
+        }),
+      );
+      expect(channel?.track).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          groupTimer: expect.objectContaining({ hostUserId: "user-123" }),
+        }),
+      );
+    });
+
+    it("freezes the remaining time on pause and resumes from it", () => {
+      vi.useFakeTimers();
+      const start = Date.now();
+      vi.setSystemTime(start);
+
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.startGroupFocus(10);
+      });
+
+      vi.setSystemTime(start + 60_000); // 1 minute elapsed
+      act(() => {
+        result.current.pauseGroupTimer();
+      });
+
+      expect(result.current.groupTimerState?.isRunning).toBe(false);
+      expect(result.current.groupTimerState?.pausedRemainingMs).toBe(
+        9 * 60_000,
+      );
+      expect(result.current.groupTimerState?.endsAtEpochMs).toBeNull();
+
+      vi.setSystemTime(start + 90_000); // paused for 30s more
+      act(() => {
+        result.current.pauseGroupTimer(); // resume
+      });
+
+      expect(result.current.groupTimerState?.isRunning).toBe(true);
+      expect(result.current.groupTimerState?.endsAtEpochMs).toBe(
+        start + 90_000 + 9 * 60_000,
+      );
+
+      vi.useRealTimers();
+    });
+
+    it("advances focus to break and back, remembering the original focus length", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.startGroupFocus(50);
+      });
+      expect(result.current.groupTimerState?.cycleIndex).toBe(0);
+
+      act(() => {
+        result.current.nextGroupPhase();
+      });
+      expect(result.current.groupTimerState?.mode).toBe("short_break");
+      expect(result.current.groupTimerState?.durationMinutes).toBe(5);
+      expect(result.current.groupTimerState?.cycleIndex).toBe(0);
+
+      act(() => {
+        result.current.nextGroupPhase();
+      });
+      expect(result.current.groupTimerState?.mode).toBe("focus");
+      expect(result.current.groupTimerState?.durationMinutes).toBe(50);
+      expect(result.current.groupTimerState?.cycleIndex).toBe(1);
+    });
+
+    it("learns a peer's group timer from presence sync, for a late joiner", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      const peerGroupTimer: GroupTimerSyncPayload = {
+        hostUserId: "user-456",
+        hostName: "Charles Babbage",
+        mode: "focus",
+        durationMinutes: 25,
+        endsAtEpochMs: Date.now() + 1_500_000,
+        pausedRemainingMs: null,
+        isRunning: true,
+        cycleIndex: 0,
+      };
+
+      channel!.presenceState.mockReturnValue({
+        "user-456": [
+          {
+            userId: "user-456",
+            fullName: "Charles Babbage",
+            groupTimer: peerGroupTimer,
+          },
+        ],
+      });
+
+      act(() => {
+        channel!._presenceSyncCb?.();
+      });
+
+      expect(result.current.isGroupTimerHost).toBe(false);
+      expect(result.current.groupTimerState).toMatchObject({
+        hostUserId: "user-456",
+        durationMinutes: 25,
+      });
+    });
+
+    it("takes a peer's broadcast update but ignores its own looped-back broadcast", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      act(() => {
+        result.current.startGroupFocus(25);
+      });
+      expect(result.current.groupTimerState?.hostUserId).toBe("user-123");
+
+      // A stray echo of our own broadcast must not overwrite our own state.
+      act(() => {
+        channel!._groupTimerUpdateCb?.({
+          payload: {
+            ...result.current.groupTimerState,
+            hostUserId: "user-123",
+          },
+        });
+      });
+      expect(result.current.isGroupTimerHost).toBe(true);
+
+      // A real peer update is picked up as the room's shared timer.
+      const peerUpdate: GroupTimerSyncPayload = {
+        hostUserId: "user-456",
+        hostName: "Charles Babbage",
+        mode: "focus",
+        durationMinutes: 50,
+        endsAtEpochMs: Date.now() + 3_000_000,
+        pausedRemainingMs: null,
+        isRunning: true,
+        cycleIndex: 0,
+      };
+      act(() => {
+        channel!._groupTimerUpdateCb?.({ payload: peerUpdate });
+      });
+      // We're still hosting our own — ours wins in our own view.
+      expect(result.current.groupTimerState?.hostUserId).toBe("user-123");
+    });
+
+    it("clears a peer's group timer once they broadcast that it ended", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      const peerUpdate: GroupTimerSyncPayload = {
+        hostUserId: "user-456",
+        hostName: "Charles Babbage",
+        mode: "focus",
+        durationMinutes: 25,
+        endsAtEpochMs: Date.now() + 1_500_000,
+        pausedRemainingMs: null,
+        isRunning: true,
+        cycleIndex: 0,
+      };
+      act(() => {
+        channel!._groupTimerUpdateCb?.({ payload: peerUpdate });
+      });
+      expect(result.current.groupTimerState?.hostUserId).toBe("user-456");
+
+      act(() => {
+        channel!._groupTimerEndCb?.({ payload: { hostUserId: "user-456" } });
+      });
+      expect(result.current.groupTimerState).toBeNull();
+    });
+
+    it("broadcasts group_timer_end on unmount if you were hosting", () => {
+      const { result, unmount } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      act(() => {
+        result.current.startGroupFocus(25);
+      });
+
+      unmount();
+
+      expect(channel?.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "broadcast",
+          event: "group_timer_end",
+          payload: { hostUserId: "user-123" },
+        }),
+      );
+    });
+
+    it("starting one also starts the host's own timer, so their desk is not idle", () => {
+      const timerApi = createTimerApi();
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState, timerApi),
+      });
+
+      act(() => {
+        result.current.startGroupFocus(30);
+      });
+
+      expect(timerApi.startPreset).toHaveBeenCalledWith({ focus: 30 }, "pomodoro");
+    });
+
+    it("leaves a timer the host already has running alone", () => {
+      const timerApi = createTimerApi({
+        state: { ...initialTimerState(), isRunning: true },
+      });
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState, timerApi),
+      });
+
+      act(() => {
+        result.current.startGroupFocus(30);
+      });
+
+      expect(timerApi.startPreset).not.toHaveBeenCalled();
+      expect(result.current.isGroupTimerHost).toBe(true);
+    });
+
+    it("syncs a personal timer to the group's remaining minutes", () => {
+      const timerApi = createTimerApi();
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState, timerApi),
+      });
+
+      act(() => {
+        result.current.syncMyTimerToGroup(18);
+      });
+
+      expect(timerApi.startPreset).toHaveBeenCalledWith(
+        { focus: 18 },
+        "pomodoro",
+      );
+    });
   });
 
   it("untracks and removes channel on unmount", () => {

@@ -6,9 +6,11 @@ import { useFlashcards } from "./useFlashcards";
 import { useAllDecks } from "./useDecks";
 import { useQuizAttempts, useQuizzes } from "./useQuizzes";
 import { useSessionsSince } from "./useSessions";
+import { useMisconceptions } from "./useMisconceptions";
 import {
   computeExamReadiness,
   generatePrepRoadmap,
+  matchExamFolder,
   type ExamReadiness,
   type PrepMilestonePhase,
 } from "../lib/examReadiness";
@@ -31,6 +33,11 @@ export function useExamReadiness(
   const { data: quizAttempts, isPending: quizAttemptsPending } =
     useQuizAttempts();
   const { data: sessions, isPending: sessionsPending } = useSessionsSince(90);
+  /* Not added to the pending gate below: readiness is a composite that already
+     renders from whichever inputs have arrived, and blocking the whole score
+     on the ledger would make a slow read look like a broken screen. An empty
+     ledger simply applies no penalty, which is the pre-ledger behaviour. */
+  const { all: ledger } = useMisconceptions();
 
   const isPending =
     materialsPending ||
@@ -41,18 +48,10 @@ export function useExamReadiness(
     quizAttemptsPending ||
     sessionsPending;
 
-  const matchingFolder = useMemo(() => {
-    if (!exam || !folders || folders.length === 0) return null;
-    const name = exam.exam_name.toLowerCase().trim();
-    return (
-      folders.find(
-        (f) =>
-          f.name.toLowerCase().trim() === name ||
-          name.includes(f.name.toLowerCase().trim()) ||
-          f.name.toLowerCase().trim().includes(name),
-      ) ?? null
-    );
-  }, [exam, folders]);
+  const matchingFolder = useMemo(
+    () => matchExamFolder(exam, folders),
+    [exam, folders],
+  );
 
   const scopedData = useMemo(() => {
     // An exam without a matching subject folder must not inherit account-wide
@@ -122,8 +121,9 @@ export function useExamReadiness(
       scopedData.quizAttempts,
       scopedData.sessions,
       now,
+      ledger,
     );
-  }, [exam, matchingFolder, scopedData, now]);
+  }, [exam, matchingFolder, scopedData, now, ledger]);
 
   const roadmap = useMemo(() => {
     if (!exam || !readiness) return [];

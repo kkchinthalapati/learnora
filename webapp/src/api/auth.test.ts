@@ -7,7 +7,7 @@ import { authApi } from "./auth";
 describe("authApi.signup", () => {
   it("rejects with no network call when dob is missing", async () => {
     await expect(
-      authApi.signup("Ada", "ada@example.com", "pw", ""),
+      authApi.signup("Ada", "ada@example.com", "pw", "", true),
     ).rejects.toThrow("date of birth");
   });
 
@@ -17,7 +17,7 @@ describe("authApi.signup", () => {
     const dob = twelveYearsAgo.toISOString().slice(0, 10);
 
     await expect(
-      authApi.signup("Ada", "ada@example.com", "pw", dob),
+      authApi.signup("Ada", "ada@example.com", "pw", dob, true),
     ).rejects.toThrow("at least 13 years old");
   });
 
@@ -25,7 +25,7 @@ describe("authApi.signup", () => {
      comparison — it needs rejecting on its own terms. */
   it("rejects an unparseable date of birth rather than waving it through", async () => {
     await expect(
-      authApi.signup("Ada", "ada@example.com", "pw", "not-a-date"),
+      authApi.signup("Ada", "ada@example.com", "pw", "not-a-date", true),
     ).rejects.toThrow("valid date of birth");
   });
 
@@ -50,7 +50,7 @@ describe("authApi.signup", () => {
 
   it("rejects someone whose 13th birthday is tomorrow", async () => {
     await expect(
-      authApi.signup("Ada", "ada@example.com", "pw", localDob(13, 1)),
+      authApi.signup("Ada", "ada@example.com", "pw", localDob(13, 1), true),
     ).rejects.toThrow("at least 13 years old");
   });
 
@@ -65,8 +65,55 @@ describe("authApi.signup", () => {
     );
 
     await expect(
-      authApi.signup("Ada", "ada@example.com", "password123", localDob(13)),
+      authApi.signup(
+        "Ada",
+        "ada@example.com",
+        "password123",
+        localDob(13),
+        true,
+      ),
     ).resolves.toBe("verification-sent");
+  });
+
+  /* Consent is optional at sign-up and asked for at first AI use, so an
+     account without it is allowed — but the refusal is written explicitly,
+     so the account is never mistaken for a legacy one with no flag. */
+  it("signs up without AI consent and records consent_given: false", async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${SUPABASE_URL}/auth/v1/signup`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          user: { id: "u1", identities: [{ id: "i1" }] },
+          session: null,
+        });
+      }),
+    );
+    await authApi.signup("Ada", "ada@example.com", "password123", "2000-01-01", false);
+    expect((body as unknown as { data: Record<string, unknown> }).data.consent_given).toBe(false);
+  });
+
+  it("sends consent_given in the signup metadata", async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${SUPABASE_URL}/auth/v1/signup`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          user: { id: "u1", identities: [{ id: "i1" }] },
+          session: null,
+        });
+      }),
+    );
+
+    await authApi.signup(
+      "Ada",
+      "ada@example.com",
+      "password123",
+      "2000-01-01",
+      true,
+    );
+
+    expect(body).toMatchObject({ data: { consent_given: true } });
   });
 
   it("returns 'verification-sent' when signup succeeds without a session", async () => {
@@ -84,6 +131,7 @@ describe("authApi.signup", () => {
       "ada@example.com",
       "password123",
       "2000-01-01",
+      true,
     );
     expect(result).toBe("verification-sent");
   });
@@ -109,6 +157,7 @@ describe("authApi.signup", () => {
       "ada@example.com",
       "password123",
       "2000-01-01",
+      true,
     );
     expect(result).toBe("ok");
   });
@@ -127,8 +176,67 @@ describe("authApi.signup", () => {
     );
 
     await expect(
-      authApi.signup("Ada", "ada@example.com", "password123", "2000-01-01"),
+      authApi.signup(
+        "Ada",
+        "ada@example.com",
+        "password123",
+        "2000-01-01",
+        true,
+      ),
     ).rejects.toThrow("already exists");
+  });
+
+  /* The three answers a real student got from production signup on
+   * 2026-09-27, replayed with GoTrue's actual bodies. */
+  describe("maps the server's refusals to messages a student can act on", () => {
+    const signup = () =>
+      authApi.signup("Ada", "ada@example.com", "sunshine2010", "2000-01-01", true);
+
+    it("explains the password rule instead of listing the alphabet", async () => {
+      server.use(
+        http.post(`${SUPABASE_URL}/auth/v1/signup`, () =>
+          HttpResponse.json(
+            {
+              code: 422,
+              error_code: "weak_password",
+              msg: "Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789.",
+              weak_password: { reasons: ["characters"] },
+            },
+            { status: 422 },
+          ),
+        ),
+      );
+      await expect(signup()).rejects.toThrow(
+        "including an uppercase letter, a lowercase letter and a number",
+      );
+    });
+
+    it("never shows '{}' when the confirmation email times out (504)", async () => {
+      server.use(
+        http.post(`${SUPABASE_URL}/auth/v1/signup`, () =>
+          HttpResponse.json(
+            { code: 504, error_code: "request_timeout", msg: "context deadline exceeded" },
+            { status: 504 },
+          ),
+        ),
+      );
+      const error = await signup().catch((e: Error) => e);
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).not.toBe("{}");
+      expect((error as Error).message).toMatch(/slow to respond/);
+    });
+
+    it("says the email limit is hourly, not a one-minute wait", async () => {
+      server.use(
+        http.post(`${SUPABASE_URL}/auth/v1/signup`, () =>
+          HttpResponse.json(
+            { code: 429, error_code: "over_email_send_rate_limit", msg: "email rate limit exceeded" },
+            { status: 429 },
+          ),
+        ),
+      );
+      await expect(signup()).rejects.toThrow(/last hour/);
+    });
   });
 });
 

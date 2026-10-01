@@ -167,7 +167,7 @@ export function StudyDeskCard({
     .join(" ");
 
   const timerModeDisplay = isFlow
-    ? "Flowtime"
+    ? "Flow"
     : isBreak
       ? "Resting"
       : participant.timerType === "stopwatch"

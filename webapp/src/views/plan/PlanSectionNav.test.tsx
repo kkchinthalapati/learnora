@@ -5,7 +5,7 @@ import { renderWithAuth } from "../../test/auth";
 import { PlanSectionNav } from "./PlanSectionNav";
 
 describe("PlanSectionNav", () => {
-  it("keeps the three planning routes canonical and marks the current one", () => {
+  it("keeps the four planning routes canonical and marks the current one", () => {
     renderWithAuth(
       <MemoryRouter initialEntries={["/tasks"]}>
         <PlanSectionNav />
@@ -15,6 +15,7 @@ describe("PlanSectionNav", () => {
     const links = screen.getAllByRole("link");
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       "/plan",
+      "/my-week",
       "/tasks",
       "/exams",
     ]);

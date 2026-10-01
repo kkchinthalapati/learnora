@@ -7,6 +7,7 @@ import { Skeleton } from "../../components/Skeleton";
 import { useCreateModal } from "../../context/createModal";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
+import { useNotebooks } from "../../hooks/useNotebooks";
 import { formatCreatedLong, safeColor } from "./libraryMeta";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
@@ -14,8 +15,18 @@ import styles from "./library.module.css";
 export function FoldersPanel() {
   const { data: folders, isPending, isError, error } = useFolders();
   const { data: materials } = useMaterials();
+  const { notebooks } = useNotebooks();
   const { rename, removeFolder } = useLibraryActions();
   const { openCreateModal } = useCreateModal();
+
+  const notebookCountByFolder = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const nb of notebooks ?? []) {
+      if (!nb.folderId) continue;
+      counts.set(nb.folderId, (counts.get(nb.folderId) ?? 0) + 1);
+    }
+    return counts;
+  }, [notebooks]);
 
   const materialCountByFolder = useMemo(() => {
     const folderCounts = new Map<string, number>();
@@ -50,12 +61,20 @@ export function FoldersPanel() {
   if (folders.length === 0) {
     return (
       <EmptyState
-        icon="folder"
-        title="No folders yet."
-        message="Create a folder for a course or subject, then add a PDF, link, text, or topic. Its notes, flashcards, and quizzes stay grouped here."
+        icon="upload-cloud"
+        title="Your notes become lessons, quizzes and flashcards."
+        message="Add notes, slides or a worksheet, or just name a topic. Only you can see them, and you can delete them at any time."
       >
-        <Button variant="primary" onClick={newFolder}>
-          + Create Folder
+        {/* Secondary: the Library header's "Add your notes" is the page's
+            one primary action. */}
+        <Button
+          variant="secondary"
+          onClick={() => openCreateModal({ type: "material" })}
+        >
+          Add material
+        </Button>
+        <Button variant="ghost" onClick={newFolder}>
+          New subject
         </Button>
       </EmptyState>
     );
@@ -65,6 +84,7 @@ export function FoldersPanel() {
     <ul className={styles.grid}>
       {folders.map((folder) => {
         const count = materialCountByFolder.get(folder.id) ?? 0;
+        const notebookCount = notebookCountByFolder.get(folder.id) ?? 0;
         const created = formatCreatedLong(folder.created_at);
         return (
           <li
@@ -79,6 +99,9 @@ export function FoldersPanel() {
               </h3>
               <p className={styles.cardMeta}>
                 {count} material{count === 1 ? "" : "s"}
+                {notebookCount > 0
+                  ? ` • ${notebookCount} notebook${notebookCount === 1 ? "" : "s"}`
+                  : ""}
                 {created ? ` • Created ${created}` : ""}
               </p>
             </Link>

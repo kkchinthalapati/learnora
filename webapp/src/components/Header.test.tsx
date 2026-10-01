@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Header } from "./Header";
-import { CommandPaletteContext, type CommandPaletteApi } from "../context/commandPalette";
+import {
+  CommandPaletteContext,
+  type CommandPaletteApi,
+} from "../context/commandPalette";
 import { fakeSession, renderWithAuth } from "../test/auth";
 import { mockAuthSession } from "../test/mockSession";
-import { Storage } from "../lib/storage";
 
 describe("Header", () => {
   const mockOpenCommandPalette = vi.fn();
@@ -50,22 +52,36 @@ describe("Header", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders page title, user greeting, live clock and actions", () => {
+  it("leaves Today's title and greeting to the view on the root route", () => {
     renderHeader({ path: "/", fullName: "Marie Curie" });
 
-    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.getByText(/Marie/i)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+    /* Today's headline names the student; the shell no longer repeats it. */
+    expect(screen.queryByText(/Marie/i)).toBeNull();
     expect(screen.getByRole("button", { name: /search/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /toggle theme/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /log out/i })).toBeInTheDocument();
+    /* Theme moved to Settings → Appearance and Ask to the sidebar (⌘J). */
+    expect(screen.queryByRole("button", { name: /toggle theme/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /ask ai/i })).toBeNull();
+    /* Log out is in the sidebar Account group, not one tap away here. */
+    expect(screen.queryByRole("button", { name: /log out/i })).toBeNull();
+  });
+
+  it("renders page title heading on non-hero routes like /tasks", () => {
+    renderHeader({ path: "/tasks" });
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Tasks",
+    );
   });
 
   it("renders the Cmd+K search trigger button and opens Command Palette on click", async () => {
     renderHeader();
 
-    const searchButton = screen.getByRole("button", { name: /search and command palette/i });
+    const searchButton = screen.getByRole("button", {
+      name: /search and command palette/i,
+    });
     expect(searchButton).toBeInTheDocument();
-    expect(screen.getByText("⌘K")).toBeInTheDocument();
+    /* jsdom's platform is not a Mac, so the hint is the Windows one. */
+    expect(screen.getByText("Ctrl K")).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(searchButton);
@@ -73,23 +89,50 @@ describe("Header", () => {
     expect(mockOpenCommandPalette).toHaveBeenCalledTimes(1);
   });
 
+  it("opens contextual help with mobile install and feedback guidance", async () => {
+    renderHeader({ path: "/library" });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Help and support" }),
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Library workspace" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Add to Home Screen/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Send feedback" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("mailto:support@learnora.app"),
+    );
+  });
+
+  it.each(["/study", "/solver", "/feynman", "/viva", "/exam-detective"])(
+    "shows Study tools help on canonical study route %s",
+    async (path) => {
+      renderHeader({ path });
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Help and support" }),
+      );
+
+      expect(
+        screen.getByRole("heading", { level: 2, name: "Study tools" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Pick the exercise that matches your problem/i),
+      ).toBeInTheDocument();
+    },
+  );
+
   it("toggles sidebar menu when hamburger button is clicked", async () => {
     renderHeader();
 
-    const menuToggle = screen.getByRole("button", { name: /toggle sidebar menu/i });
+    const menuToggle = screen.getByRole("button", {
+      name: /toggle sidebar menu/i,
+    });
     const user = userEvent.setup();
     await user.click(menuToggle);
 
     expect(mockToggleMenu).toHaveBeenCalledTimes(1);
-  });
-
-  it("toggles appearance theme when theme toggle button is clicked", async () => {
-    renderHeader();
-
-    const themeToggle = screen.getByRole("button", { name: /toggle theme/i });
-    const user = userEvent.setup();
-    await user.click(themeToggle);
-
-    expect(Storage.get("learnora_mode")).toBeDefined();
   });
 });

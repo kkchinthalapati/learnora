@@ -560,6 +560,65 @@ export function evaluateDailyGoalProgress(
   };
 }
 
+export const DAILY_PROGRESS_STORAGE_KEY = "learnora_daily_progress_v1";
+export const DAILY_PROGRESS_EVENT = "learnora:daily-progress-changed";
+
+interface StoredDailyProgress {
+  date: string;
+  cardsReviewed: number;
+  tasksCompleted: number;
+}
+
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function loadDailyProgress(): StoredDailyProgress {
+  const stored = Storage.get<StoredDailyProgress>(DAILY_PROGRESS_STORAGE_KEY, {
+    date: todayKey(),
+    cardsReviewed: 0,
+    tasksCompleted: 0,
+  });
+  return stored.date === todayKey()
+    ? stored
+    : { date: todayKey(), cardsReviewed: 0, tasksCompleted: 0 };
+}
+
+function saveDailyProgress(progress: StoredDailyProgress): void {
+  Storage.set(DAILY_PROGRESS_STORAGE_KEY, progress);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent(DAILY_PROGRESS_EVENT, { detail: progress }),
+    );
+  }
+}
+
+/** Today's cards-reviewed and tasks-completed counts. Neither is stored
+ *  server-side (flashcards have no review log, tasks have no completed_at),
+ *  so these are recorded client-side at the point of action and reset when
+ *  the local calendar date rolls over. */
+export function getTodayProgress(): {
+  cardsReviewed: number;
+  tasksCompleted: number;
+} {
+  const { cardsReviewed, tasksCompleted } = loadDailyProgress();
+  return { cardsReviewed, tasksCompleted };
+}
+
+export function recordCardReviewedToday(): void {
+  const current = loadDailyProgress();
+  saveDailyProgress({ ...current, cardsReviewed: current.cardsReviewed + 1 });
+}
+
+export function recordTaskCompletedToday(): void {
+  const current = loadDailyProgress();
+  saveDailyProgress({
+    ...current,
+    tasksCompleted: current.tasksCompleted + 1,
+  });
+}
+
 export function getUnlockedAchievements(
   achievements: EvaluatedAchievement[],
 ): EvaluatedAchievement[] {

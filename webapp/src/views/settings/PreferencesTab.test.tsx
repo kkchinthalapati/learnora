@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "../../test/render";
@@ -10,8 +10,49 @@ import {
 import { Storage } from "../../lib/storage";
 import { PreferencesTab } from "./PreferencesTab";
 import { NotificationsTab } from "./NotificationsTab";
+import { profileApi } from "../../api/profile";
+import { getFramework } from "../../lib/region";
 
 describe("PreferencesTab", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("saves region and SAT framework together only when Save Changes is pressed", async () => {
+    vi.spyOn(profileApi, "updateTimezone").mockResolvedValue();
+    const sync = vi.spyOn(profileApi, "updateRegion").mockResolvedValue();
+    const user = userEvent.setup();
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
+    await user.selectOptions(screen.getByLabelText("Region"), "US");
+    await user.selectOptions(screen.getByLabelText("Exam framework"), "sat");
+    expect(sync).not.toHaveBeenCalled();
+    expect(loadSettings().framework).toBe("auto");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(await screen.findByText("Preferences saved.")).toBeInTheDocument();
+    expect(sync).toHaveBeenCalledWith({
+      region: "US",
+      framework_id: "sat",
+      grade_scale_id: null,
+    });
+    expect(getFramework().id).toBe("sat");
+  });
+
+  it("keeps local preferences and reports a failed cross-device save", async () => {
+    vi.spyOn(profileApi, "updateTimezone").mockResolvedValue();
+    vi.spyOn(profileApi, "updateRegion").mockRejectedValue(
+      new Error("offline"),
+    );
+    const user = userEvent.setup();
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
+    await user.selectOptions(screen.getByLabelText("Exam framework"), "sat");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(
+      await screen.findByText(
+        /Saved on this device. Could not sync preferences/,
+      ),
+    ).toBeInTheDocument();
+    expect(loadSettings().framework).toBe("sat");
+    expect(screen.queryByText("Preferences saved.")).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     localStorage.clear();
   });
@@ -22,7 +63,7 @@ describe("PreferencesTab", () => {
       aiPersona: "coach",
       aiLanguage: "Hindi",
     });
-    renderWithProviders(<PreferencesTab />);
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     expect(screen.getByLabelText("AI Persona")).toHaveValue("coach");
     expect(screen.getByLabelText("AI Response Language")).toHaveValue("Hindi");
@@ -30,7 +71,7 @@ describe("PreferencesTab", () => {
 
   it("does not persist until Save Changes is pressed", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<PreferencesTab />);
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     await user.selectOptions(screen.getByLabelText("AI Persona"), "buddy");
     expect(loadSettings().aiPersona).toBe("tutor");
@@ -41,7 +82,7 @@ describe("PreferencesTab", () => {
 
   it("saves all four selects together", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<PreferencesTab />);
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     await user.selectOptions(screen.getByLabelText("AI Persona"), "coach");
     await user.selectOptions(screen.getByLabelText("Response Length"), "short");
@@ -70,7 +111,7 @@ describe("PreferencesTab", () => {
 
   it("confirms the save with a toast", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<PreferencesTab />);
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
@@ -87,6 +128,8 @@ describe("PreferencesTab", () => {
         <NotificationsTab />
         <PreferencesTab />
       </>,
+      undefined,
+      { withRouter: true },
     );
 
     await user.click(screen.getByRole("switch", { name: "Timer Alerts" }));
@@ -98,6 +141,36 @@ describe("PreferencesTab", () => {
     expect(loadSettings()).toMatchObject({
       aiPersona: "coach",
       notifyTimerAlerts: false,
+    });
+  });
+
+  it("updates and saves study behaviour and source settings", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
+
+    expect(
+      screen.getByRole("heading", { name: "Study behaviour and sources" }),
+    ).toBeInTheDocument();
+
+    await user.selectOptions(
+      screen.getByLabelText("Depth Level"),
+      "4: Advanced Analysis",
+    );
+    await user.selectOptions(screen.getByLabelText("Study Style"), "visual");
+    await user.click(
+      screen.getByRole("switch", { name: "Auto-Adapt Persona" }),
+    );
+    await user.click(
+      screen.getByRole("switch", { name: "Live Web Intelligence" }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    expect(loadSettings()).toMatchObject({
+      aiDepth: 4,
+      aiStyle: "visual",
+      aiAutoAdapt: false,
+      webAccess: false,
     });
   });
 });

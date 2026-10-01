@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 import type { KeyboardEvent } from "react";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
@@ -8,6 +9,8 @@ import { AppearanceTab } from "./AppearanceTab";
 import { SecurityTab } from "./SecurityTab";
 import { PreferencesTab } from "./PreferencesTab";
 import { NotificationsTab } from "./NotificationsTab";
+import { BillingTab } from "./BillingTab";
+import { PrivacyTab } from "./PrivacyTab";
 import { DangerTab } from "./DangerTab";
 import styles from "./settings.module.css";
 
@@ -37,6 +40,18 @@ export const SETTINGS_TABS = [
     icon: "settings",
   },
   {
+    id: "billing",
+    label: "Plan",
+    description: "Subscription and billing",
+    icon: "sparkles",
+  },
+  {
+    id: "privacy",
+    label: "Privacy",
+    description: "Visibility and your data",
+    icon: "shield",
+  },
+  {
     id: "notifications",
     label: "Notifications",
     description: "Reminders and devices",
@@ -63,11 +78,22 @@ const PANELS: Record<SettingsTabId, () => React.ReactElement> = {
   security: SecurityTab,
   preferences: PreferencesTab,
   notifications: NotificationsTab,
+  billing: BillingTab,
+  privacy: PrivacyTab,
   danger: DangerTab,
 };
 
 export function SettingsView() {
-  const [active, setActive] = useState<SettingsTabId>("account");
+  /* `?tab=privacy` opens that tab, so messages elsewhere in the app ("turn
+     on AI in Settings") can send the student to the right place, not to the
+     first tab to hunt from there. */
+  const [searchParams] = useSearchParams();
+  const [active, setActive] = useState<SettingsTabId>(() => {
+    const wanted = searchParams.get("tab");
+    return SETTINGS_TABS.some((t) => t.id === wanted)
+      ? (wanted as SettingsTabId)
+      : "account";
+  });
   const { signOut } = useAuth();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 

@@ -143,7 +143,7 @@ describe("analyticsEngine", () => {
       const peak = detectPeakFocusWindow(stats);
       expect(peak.startHour).toBe(10);
       expect(peak.endHour).toBe(13);
-      expect(peak.label).toContain("Mid-Day Peak");
+      expect(peak.label).toContain("Around midday");
       expect(peak.description).toBeDefined();
     });
 
@@ -243,10 +243,24 @@ describe("analyticsEngine", () => {
         heatData,
         hourly,
       );
-      expect(insights.length).toBeGreaterThanOrEqual(4);
-      expect(insights.some((i) => i.includes("When you focus best"))).toBe(true);
+      expect(insights.length).toBeGreaterThanOrEqual(3);
+      /* The best-time finding is shown elsewhere on Progress, not repeated here. */
+      expect(insights.some((i) => i.includes("When you focus best"))).toBe(false);
       expect(insights.some((i) => i.includes("Time studied"))).toBe(true);
       expect(insights.some((i) => i.includes("Quizzes"))).toBe(true);
+    });
+
+    /* Progress showed "2d streak" beside "Do 25 minutes today and you'll
+       start a streak". */
+    it("does not tell a student on a short streak to start one", () => {
+      const heatData = {
+        ...generateActivityHeatmap([], 30),
+        currentStreak: 2,
+        activeDays: 5,
+      };
+      const insights = generateStudyInsights([], [], heatData, []);
+      expect(insights.some((i) => i.includes("start a streak"))).toBe(false);
+      expect(insights[0]).toMatch(/2 days into a streak/);
     });
   });
 

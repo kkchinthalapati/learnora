@@ -195,7 +195,7 @@
 }
 
 .inlineToolbarBtn {
-  min-height: 36px;
+  min-height: var(--touch-target-min);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -253,7 +253,9 @@
 .inlineMiniChat {
   width: min(520px, calc(100vw - 32px));
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 38px 38px;
+  grid-template-columns: minmax(0, 1fr) var(--touch-target-min) var(
+      --touch-target-min
+    );
   gap: var(--s-2);
   padding: var(--s-2);
   background: var(--surface);
@@ -264,7 +266,7 @@
 
 .inlineMiniChatInput {
   min-width: 0;
-  height: 38px;
+  min-height: var(--touch-target-min);
   padding: 0 var(--s-3);
   color: var(--text);
   background: var(--surface-2);
@@ -281,8 +283,8 @@
 
 .inlineMiniChatSend,
 .inlineMiniChatClose {
-  width: 38px;
-  height: 38px;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   display: grid;
   place-items: center;
   padding: 0;
@@ -603,4 +605,3 @@
   border-radius: 50%;
   animation: inlineAiSpin 0.75s linear infinite;
 }
-

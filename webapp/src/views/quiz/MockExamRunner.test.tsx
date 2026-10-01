@@ -57,6 +57,14 @@ function renderRunner() {
   );
 }
 
+/* Answer both questions correctly and submit from the last one. */
+async function answerAll() {
+  await userEvent.click(await screen.findByRole("button", { name: /Powerhouse/ }));
+  await userEvent.click(screen.getByRole("button", { name: "Next →" }));
+  await userEvent.click(await screen.findByRole("button", { name: /Yes/ }));
+  await userEvent.click(screen.getByRole("button", { name: "Submit test" }));
+}
+
 describe("MockExamRunner", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -88,7 +96,8 @@ describe("MockExamRunner", () => {
     document.dispatchEvent(new Event("fullscreenchange"));
 
     expect(await screen.findByText("What is mitochondria?")).toBeInTheDocument();
-    expect(screen.getByText(/Time Left:/)).toBeInTheDocument();
+    expect(screen.getByRole("timer")).toHaveTextContent(/\d+:\d\d left/);
+    expect(screen.getByText("2 questions · closed book")).toBeInTheDocument();
   });
 
   it("exits if fullscreen is exited", async () => {
@@ -139,7 +148,7 @@ describe("MockExamRunner", () => {
     expect(
       await screen.findByRole("button", { name: "Return to fullscreen" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("You exited fullscreen!");
+    expect(screen.getByRole("alert")).toHaveTextContent("You left fullscreen.");
   });
 
   it("exits if tab is switched (visibilitychange)", async () => {
@@ -170,21 +179,31 @@ describe("MockExamRunner", () => {
     expect(await screen.findByText("Review page")).toBeInTheDocument();
   });
 
-  it("automatically advances without showing right/wrong feedback", async () => {
+  it("lets the student move freely, change an answer, and flag a question", async () => {
     serveQuiz(SAMPLE_QUIZ);
     renderRunner();
-    
     Object.defineProperty(document, "fullscreenElement", {
       configurable: true,
       get: () => document.body,
     });
     document.dispatchEvent(new Event("fullscreenchange"));
 
-    await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
+    const powerhouse = await screen.findByRole("button", { name: /Powerhouse/ });
+    await userEvent.click(powerhouse);
+    /* No auto-advance and no right/wrong until the test is submitted. */
+    expect(powerhouse).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("What is mitochondria?")).toBeInTheDocument();
+    expect(screen.queryByText(/Correct/)).toBeNull();
+    expect(screen.getByText("1 answered · 0 flagged · 1 to go")).toBeInTheDocument();
 
-    // Should immediately go to question 2 without Next button or Feedback
+    await userEvent.keyboard("{ArrowRight}");
     expect(await screen.findByText("Is water wet?")).toBeInTheDocument();
-    expect(screen.queryByText(/Correct!/)).not.toBeInTheDocument();
+    await userEvent.keyboard("f");
+    expect(
+      screen.getByRole("button", { name: "Question 2, not answered, flagged" }),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "← Previous" }));
+    expect(await screen.findByText("What is mitochondria?")).toBeInTheDocument();
   });
 
   it("ends exam and records attempt when all questions answered", async () => {
@@ -205,12 +224,11 @@ describe("MockExamRunner", () => {
     });
     document.dispatchEvent(new Event("fullscreenchange"));
 
-    await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Yes" }));
+    await answerAll();
 
-    expect(await screen.findByText("Exam Complete!")).toBeInTheDocument();
-    expect(screen.getByText("2 / 2 correct")).toBeInTheDocument();
-    
+    expect(await screen.findByText("Bio Exam · 2 of 2")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Nothing to fix." })).toBeInTheDocument();
+
     await waitFor(() => expect(attemptRecorded).toBe(true));
   });
 
@@ -235,9 +253,26 @@ describe("MockExamRunner", () => {
     }
     vi.useRealTimers();
 
-    expect(await screen.findByText("Exam Complete!")).toBeInTheDocument();
-    expect(screen.getByText("Time's up!")).toBeInTheDocument();
-    expect(screen.getByText("0 / 2 correct")).toBeInTheDocument();
+    expect(await screen.findByText("Bio Exam · 0 of 2")).toBeInTheDocument();
+    expect(screen.getByText(/Time's up/)).toBeInTheDocument();
+  });
+
+  /* A browser that has the Fullscreen API but refuses the request (a
+     setting, an embedded view) used to strand the student on the start
+     screen. It now starts the exam without fullscreen, and says so. */
+  it("starts without fullscreen when the browser refuses it", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    const original = HTMLElement.prototype.requestFullscreen;
+    HTMLElement.prototype.requestFullscreen = () => Promise.reject(new Error("denied"));
+    try {
+      renderRunner();
+      await userEvent.click(
+        await screen.findByRole("button", { name: /Begin Mock Exam/ }),
+      );
+      expect(await screen.findByText(/Question 1 of/)).toBeInTheDocument();
+    } finally {
+      HTMLElement.prototype.requestFullscreen = original;
+    }
   });
 
   it("does not terminate when the tab is switched before the exam has started", async () => {
@@ -270,9 +305,8 @@ describe("MockExamRunner", () => {
     });
     document.dispatchEvent(new Event("fullscreenchange"));
 
-    await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Yes" }));
-    await screen.findByText("Exam Complete!");
+    await answerAll();
+    await screen.findByText("Bio Exam · 2 of 2");
 
     // Leaving the tab to celebrate (or just breathe) before clicking
     // "Review Answers" must not be mistaken for leaving mid-exam.
@@ -283,7 +317,8 @@ describe("MockExamRunner", () => {
     document.dispatchEvent(new Event("visibilitychange"));
 
     expect(screen.queryByText("Quizzes tab")).not.toBeInTheDocument();
-    expect(screen.getByText("Exam Complete!")).toBeInTheDocument();
+    expect(screen.queryByText("Review page")).not.toBeInTheDocument();
+    expect(screen.getByText("Bio Exam · 2 of 2")).toBeInTheDocument();
   });
 
   it("records a partial attempt when the exam is terminated early", async () => {
@@ -311,7 +346,8 @@ describe("MockExamRunner", () => {
     document.dispatchEvent(new Event("fullscreenchange"));
 
     // Answer only the first (correct) question, then get pulled away.
-    await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
+    await userEvent.click(await screen.findByRole("button", { name: /Powerhouse/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Next →" }));
     await screen.findByText("Is water wet?");
 
     // Only starts the 5s grace-period countdown, not an immediate
@@ -358,7 +394,8 @@ describe("MockExamRunner draft autosave", () => {
     renderRunner();
     enterFullscreen();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
+    await userEvent.click(await screen.findByRole("button", { name: /Powerhouse/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Next →" }));
     await screen.findByText("Is water wet?");
 
     await waitFor(() => {
@@ -389,7 +426,7 @@ describe("MockExamRunner draft autosave", () => {
     expect(screen.getByText("Question 2 of 2")).toBeInTheDocument();
     // Computed fresh from the saved end timestamp, not a persisted countdown
     // — should read close to the 45s that was left when the draft was saved.
-    expect(screen.getByText(/Time Left: 0:4[0-5]/)).toBeInTheDocument();
+    expect(screen.getByRole("timer")).toHaveTextContent(/0:4[0-5] left/);
   });
 
   it("resumes as finished immediately when the saved end time has already passed", async () => {
@@ -403,9 +440,8 @@ describe("MockExamRunner draft autosave", () => {
     renderRunner();
     enterFullscreen();
 
-    expect(await screen.findByText("Exam Complete!")).toBeInTheDocument();
-    expect(screen.getByText("Time's up!")).toBeInTheDocument();
-    expect(screen.getByText("0 / 2 correct")).toBeInTheDocument();
+    expect(await screen.findByText("Bio Exam · 0 of 2")).toBeInTheDocument();
+    expect(screen.getByText(/Time's up/)).toBeInTheDocument();
   });
 
   it("ignores a draft whose saved index is out of range for the current exam", async () => {
@@ -424,26 +460,43 @@ describe("MockExamRunner draft autosave", () => {
     renderRunner();
     enterFullscreen();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Yes" }));
+    await answerAll();
 
-    await screen.findByText("Exam Complete!");
+    await screen.findByText("Bio Exam · 2 of 2");
     expect(Storage.get(draftKey)).toBeNull();
   });
 
-  it("clears the draft when the exam is ended early", async () => {
+  /* Submitting with blanks lists them inline — not a modal — and lets the
+     student go back to one or submit anyway. */
+  it("lists blank questions inline at submit, then submits anyway", async () => {
     serveQuiz(SAMPLE_QUIZ);
     renderRunner();
     enterFullscreen();
 
-    await screen.findByText("What is mitochondria?");
+    await userEvent.click(await screen.findByRole("button", { name: /Powerhouse/ }));
     await waitFor(() => expect(Storage.get(draftKey)).not.toBeNull());
+    await userEvent.click(screen.getByRole("button", { name: "Submit test…" }));
 
-    await userEvent.click(screen.getByRole("button", { name: "End Exam Early" }));
-    await userEvent.click(
-      await screen.findByRole("button", { name: "End Exam" }),
-    );
+    expect(screen.getByText("1 question is still blank")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Question 2" }));
+    expect(await screen.findByText("Is water wet?")).toBeInTheDocument();
 
+    await userEvent.click(screen.getByRole("button", { name: "Submit anyway" }));
+    expect(await screen.findByText("Bio Exam · 1 of 2")).toBeInTheDocument();
     await waitFor(() => expect(Storage.get(draftKey)).toBeNull());
+  });
+
+  it("keeps answers on the device and holds Submit while offline", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    const online = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    renderRunner();
+    enterFullscreen();
+
+    expect(
+      await screen.findByText(/You're offline. Answers are being saved on this device/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Submit test…" })).toBeDisabled();
+    online.mockRestore();
   });
 });

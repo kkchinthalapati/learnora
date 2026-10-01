@@ -98,13 +98,12 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
     <article className={styles.upcomingCard}>
       <div className={styles.upcomingLeft}>
         <h3 className={styles.upcomingName}>{exam.exam_name}</h3>
-        <div className={styles.upcomingMeta}>
-          <span>{prettyDate}</span>
-          <span>•</span>
-          <span>{exam.difficulty || "Medium"}</span>
-          <span>•</span>
-          <span>{countdownPill}</span>
-        </div>
+        {/* One line of text, not five flex items: the separators were
+            items too, so a narrow card wrapped them onto lines of their own
+            ("• medium • •"). */}
+        <p className={styles.upcomingMeta}>
+          {prettyDate} · {countdownPill} · {(exam.difficulty || "Medium").replace(/^./, (c) => c.toUpperCase())}
+        </p>
       </div>
 
       <div className={styles.upcomingRight}>
@@ -114,7 +113,7 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
             title={`Readiness: ${readiness.score}% (${readiness.tier})`}
           >
             <Icon name="brain" size={12} />
-            {readiness.score}%
+            Readiness {readiness.score}%
           </span>
         )}
         <button
@@ -187,6 +186,10 @@ export function ExamsView() {
 
   function onCellActivate(dateStr: string) {
     const forDate = byDate.get(dateStr) ?? [];
+    /* A past day can still show the exams already on it, but it is no place
+       to start a new one — that would open "New exam" pre-filled with a date
+       the dialog is only going to refuse. */
+    if (forDate.length === 0 && dateStr < today) return;
     setOverlay(
       forDate.length > 0
         ? { kind: "day", date: dateStr }
@@ -306,27 +309,30 @@ export function ExamsView() {
                 const overflow = forDate.length - MAX_EXAM_BARS_PER_DAY;
 
                 return (
+                  /* The cell is not itself a button: it holds exam buttons,
+                     and a button inside a button is unreadable to a screen
+                     reader (axe: nested-interactive). The day number is the
+                     keyboard control; a click anywhere on the cell still
+                     works for the mouse. */
                   <div
                     key={dateStr}
-                    className={`${styles.cell}${dateStr === today ? ` ${styles.today}` : ""}`}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${MONTH_NAMES[viewMonth.month]} ${day}, ${viewMonth.year}`}
+                    className={`${styles.cell}${dateStr === today ? ` ${styles.today}` : ""}${isPastDate && forDate.length === 0 ? ` ${styles.pastEmpty}` : ""}`}
                     onClick={(e) => {
                       /* An exam bar handles its own click; without this the
                          cell would also fire and open the day list on top. */
                       if ((e.target as HTMLElement).closest("button")) return;
                       onCellActivate(dateStr);
                     }}
-                    onKeyDown={(e) => {
-                      if (e.target !== e.currentTarget) return;
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onCellActivate(dateStr);
-                      }
-                    }}
                   >
-                    <span className={styles.dayNumber}>{day}</span>
+                    <button
+                      type="button"
+                      className={styles.dayNumber}
+                      aria-label={`${MONTH_NAMES[viewMonth.month]} ${day}, ${viewMonth.year}`}
+                      disabled={isPastDate && forDate.length === 0}
+                      onClick={() => onCellActivate(dateStr)}
+                    >
+                      {day}
+                    </button>
 
                     {forDate.slice(0, MAX_EXAM_BARS_PER_DAY).map((exam) => {
                       const completed =
@@ -345,6 +351,10 @@ export function ExamsView() {
                           key={exam.id}
                           type="button"
                           className={classes}
+                          /* A calendar cell is a seventh of the width, so the
+                             chip has to truncate; the title keeps the whole
+                             name one hover away. */
+                          title={exam.exam_name}
                           onClick={() =>
                             setOverlay({ kind: "exam", exam, date: dateStr })
                           }
@@ -389,8 +399,11 @@ export function ExamsView() {
           onEditExam={(exam) =>
             setOverlay({ kind: "exam", exam, date: exam.exam_date })
           }
-          onAddExam={() =>
-            setOverlay({ kind: "exam", exam: null, date: overlay.date })
+          onAddExam={
+            overlay.date < today
+              ? undefined
+              : () =>
+                  setOverlay({ kind: "exam", exam: null, date: overlay.date })
           }
           onOpenPrepRoadmap={(exam) => setOverlay({ kind: "prep", exam })}
         />

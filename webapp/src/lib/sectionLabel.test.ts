@@ -20,6 +20,7 @@ describe("isLibrarySection", () => {
     expect(isLibrarySection("/quiz/q-1")).toBe(true);
     expect(isLibrarySection("/quiz/q-1/review")).toBe(true);
     expect(isLibrarySection("/review/d-1")).toBe(true);
+    expect(isLibrarySection("/decks/d-1")).toBe(true);
   });
 
   it("is false for every other section", () => {
@@ -31,24 +32,28 @@ describe("isLibrarySection", () => {
 
 describe("sectionLabel", () => {
   it("labels the dashboard", () => {
-    expect(sectionLabel("/", t)).toBe("Dashboard");
+    expect(sectionLabel("/", t)).toBe("Today");
+    expect(sectionLabel("/dashboard", t)).toBe("Dashboard");
   });
 
   it("labels every library-family route as Library", () => {
     expect(sectionLabel("/library", t)).toBe("Library");
     expect(sectionLabel("/folders/f-1", t)).toBe("Library");
     expect(sectionLabel("/notes/m-1", t)).toBe("Library");
-    expect(sectionLabel("/quiz/q-1", t)).toBe("Library");
-    expect(sectionLabel("/review/d-1", t)).toBe("Library");
+    /* Activities inside the Library name themselves; the sidebar still
+       lights Library for them (isLibrarySection). */
+    expect(sectionLabel("/quiz/q-1", t)).toBe("Quiz");
+    expect(sectionLabel("/review/d-1", t)).toBe("Flashcard review");
+    expect(sectionLabel("/decks/d-1", t)).toBe("Flashcards");
   });
 
   it("labels the remaining top-level sections", () => {
-    expect(sectionLabel("/timer", t)).toBe("Timer");
+    expect(sectionLabel("/timer", t)).toBe("Focus timer");
     expect(sectionLabel("/analytics", t)).toBe("Progress");
-    expect(sectionLabel("/graph", t)).toBe("How Topics Connect");
-    expect(sectionLabel("/tasks", t)).toBe("Task Manager");
-    expect(sectionLabel("/plan", t)).toBe("This week's plan");
+    expect(sectionLabel("/tasks", t)).toBe("Tasks");
+    expect(sectionLabel("/plan", t)).toBe("Plan");
     expect(sectionLabel("/exams", t)).toBe("Exams");
+    expect(sectionLabel("/study", t)).toBe("Study");
     expect(sectionLabel("/settings", t)).toBe("Settings");
   });
 
@@ -58,7 +63,7 @@ describe("sectionLabel", () => {
 
   it("translates when given a non-English t", () => {
     const es = (key: Parameters<typeof translate>[1]) => translate("es", key);
-    expect(sectionLabel("/", es)).toBe("Tablero");
+    expect(sectionLabel("/dashboard", es)).toBe("Tablero");
     expect(sectionLabel("/tasks", es)).toBe("Tareas");
   });
 });
@@ -70,8 +75,30 @@ describe("primaryDestinationForPath", () => {
     expect(primaryDestinationForPath("/notes/material-1")).toBe("library");
   });
 
-  it("returns no primary destination for secondary tools", () => {
+  it("puts the focus timer under Plan", () => {
+    expect(primaryDestinationForPath("/timer")).toBe("plan");
+  });
+
+  it("groups the study tools under Study", () => {
+    expect(primaryDestinationForPath("/study/s-1")).toBe("study_lab");
+    expect(primaryDestinationForPath("/study")).toBe("study_lab");
+    expect(primaryDestinationForPath("/feynman/debrief/s-1")).toBe("study_lab");
+    /* The old tool URLs redirect into a Session before the shell sees them. */
+    expect(primaryDestinationForPath("/solver")).toBeNull();
+    expect(primaryDestinationForPath("/viva")).toBeNull();
+  });
+
+  /* The legacy aliases are <Navigate> redirects: the router replaces them
+     before the shell reads the path, so matching them here would be dead
+     branching that could never fire. */
+  it("does not resolve the legacy aliases, which never render", () => {
     expect(primaryDestinationForPath("/debugger")).toBeNull();
+    expect(primaryDestinationForPath("/sparring")).toBeNull();
+    expect(primaryDestinationForPath("/premortem")).toBeNull();
+    expect(primaryDestinationForPath("/ai-tutor")).toBeNull();
+  });
+
+  it("returns no primary destination for secondary community routes", () => {
     expect(primaryDestinationForPath("/friends")).toBeNull();
   });
 });

@@ -53,7 +53,7 @@
   font-family: monospace;
   background: var(--surface-2);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   color: var(--accent-text);
 }
 
@@ -72,6 +72,42 @@
   font-size: var(--fs-sm);
   line-height: 1.5;
   white-space: pre;
+}
+
+/* A ```mermaid fence drawn as an image (MermaidDiagram.tsx). Scales down
+   to the bubble, never up past its natural size. */
+.diagram {
+  margin: 12px 0;
+}
+
+.diagram img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.diagramSource {
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.diagramSource summary {
+  cursor: pointer;
+}
+
+.diagramSource .pre {
+  margin: 8px 0 0;
+}
+
+.diagramNote {
+  margin: 12px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.diagramFallback .pre {
+  margin-top: 6px;
 }
 
 .blockquote {
@@ -95,6 +131,40 @@
   border: none;
   border-top: 1px solid var(--glass-border);
   margin: 24px 0;
+}
+
+.link {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+/* A wide table scrolls inside its own box rather than pushing the chat
+   bubble (or the 480px review drawer) sideways. */
+.tableWrap {
+  margin: 12px 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  min-width: 100%;
+}
+
+.table th,
+.table td {
+  border: 1px solid var(--glass-border-subtle);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  background: var(--surface-2);
+  font-weight: 600;
 }
 
 /* ── Maths ────────────────────────────────────────────────────────────────

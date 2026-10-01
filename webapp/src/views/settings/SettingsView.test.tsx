@@ -4,11 +4,15 @@ import userEvent from "@testing-library/user-event";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { SettingsView } from "./SettingsView";
 
-function renderSettings(signOut = vi.fn()) {
-  return renderWithAuth(<SettingsView />, {
-    session: fakeSession({ user_metadata: { full_name: "Ada Lovelace" } }),
-    signOut,
-  });
+function renderSettings(signOut = vi.fn(), path = "/settings") {
+  return renderWithAuth(
+    <SettingsView />,
+    {
+      session: fakeSession({ user_metadata: { full_name: "Ada Lovelace" } }),
+      signOut,
+    },
+    { withRouter: true, initialEntries: [path] },
+  );
 }
 
 describe("SettingsView", () => {
@@ -16,11 +20,20 @@ describe("SettingsView", () => {
     localStorage.clear();
   });
 
+  /* "Turn on AI in Settings" links straight to the right tab. */
+  it("opens the tab named in ?tab=", () => {
+    renderSettings(vi.fn(), "/settings?tab=privacy");
+    expect(screen.getByRole("tab", { name: /Privacy/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("exposes all six tabs as a tablist with one selected", () => {
+  it("exposes every tab as a tablist with one selected", () => {
     renderSettings();
     const tabs = screen.getAllByRole("tab");
     expect(tabs.map((tab) => tab.getAttribute("aria-label"))).toEqual([
@@ -28,6 +41,8 @@ describe("SettingsView", () => {
       "Appearance",
       "Security",
       "Preferences",
+      "Plan",
+      "Privacy",
       "Notifications",
       "Danger Zone",
     ]);

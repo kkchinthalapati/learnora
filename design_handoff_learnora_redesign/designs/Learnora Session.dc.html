@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#e9e5dc;font-family:'Instrument Sans',system-ui,sans-serif;color:#1a1815}a{color:#0b5c55}a:hover{color:#094943}</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:56px;padding:56px">
+  <header style="display:flex;flex-direction:column;gap:8px;max-width:900px">
+    <a href="Learnora Redesign.dc.html" style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;text-decoration:none">← Learnora redesign / 02</a>
+    <h1 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:48px;letter-spacing:-0.02em;line-height:1.05">Tutor session and teaching modes</h1>
+    <p style="margin:0;font-size:16px;line-height:1.6;color:#625c50;max-width:72ch;text-wrap:pretty">A session has one objective and a short plan. The mode decides who does the thinking. Switch modes with the control in the session bar. The whole centre column changes, not just the tutor's name.</p>
+  </header>
+
+  <section id="2a" style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:#1a1815;color:#f7f5f0;border-radius:3px">2a · {{ modeName }}</span>
+      <div data-screen-label="Session" style="width:1280px;height:840px;display:flex;flex-direction:column;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px;overflow:hidden;box-shadow:0 16px 40px -12px rgba(24,20,14,0.16)">
+        <div style="display:flex;align-items:center;gap:20px;height:64px;padding:0 24px;border-bottom:1px solid #e2ddd1;background:#fbfaf7">
+          <a href="Learnora Today.dc.html" aria-label="Leave session" style="display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 10px;margin-left:-10px;border-radius:8px;font-size:14px;font-weight:600;color:#625c50;text-decoration:none" style-hover="background:#ece8df">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>Save &amp; leave
+          </a>
+          <div style="display:flex;flex-direction:column;line-height:1.25;min-width:0">
+            <span style="font-family:'Newsreader',Georgia,serif;font-size:19px;font-weight:500">Cellular respiration: the electron transport chain</span>
+            <span style="font-size:12px;color:#625c50">Goal: explain how the proton gradient makes ATP · from Bio ch. 9 notes</span>
+          </div>
+          <div style="flex:1"></div>
+          <div role="radiogroup" aria-label="Mode" style="display:flex;gap:2px;padding:3px;background:#ece8df;border-radius:8px">
+            <sc-for list="{{ modes }}" as="m" hint-placeholder-count="5">
+              <button onClick="{{ m.pick }}" style="height:34px;padding:0 12px;border:0;border-radius:6px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:{{ m.bg }};color:{{ m.fg }};box-shadow:{{ m.sh }}">{{ m.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;display:grid;grid-template-columns:260px minmax(0,1fr)">
+          <aside style="display:flex;flex-direction:column;gap:24px;padding:24px;border-right:1px solid #e2ddd1">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#625c50">Plan · 5 steps</span>
+              <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px">
+                <sc-for list="{{ steps }}" as="s" hint-placeholder-count="5">
+                  <li style="display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;align-items:start;padding:8px;border-radius:6px;background:{{ s.bg }}">
+                    <span style="width:18px;height:18px;margin-top:1px;border-radius:999px;border:1.5px solid {{ s.ring }};background:{{ s.fill }};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700">{{ s.mark }}</span>
+                    <span style="font-size:13px;line-height:1.4;font-weight:{{ s.w }};color:{{ s.fg }}">{{ s.t }}</span>
+                  </li>
+                </sc-for>
+              </ol>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;padding-top:20px;border-top:1px solid #e2ddd1">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#625c50">Watching for</span>
+              <p style="margin:0;font-size:13px;line-height:1.5;color:#3d3830">ATP synthase placed in the outer membrane. You did this on 12 Sep.</p>
+            </div>
+            <div style="flex:1"></div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#625c50">
+              <span>Grounded in: <a href="#">Bio ch. 9 notes, p. 12–18</a></span>
+              <span>Autosaved 14:02</span>
+            </div>
+          </aside>
+
+          <div style="display:flex;flex-direction:column;min-height:0">
+            <div style="flex:1;overflow:hidden;padding:32px 56px 0;display:flex;flex-direction:column;gap:24px;max-width:820px">
+
+              <sc-if value="{{ isExplain }}" hint-placeholder-val="{{ true }}">
+                <article style="display:flex;flex-direction:column;gap:16px;padding-left:18px;border-left:2px solid #0f766e">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5c55">Step 3 · Explain</span>
+                  <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-size:30px;font-weight:500;letter-spacing:-0.015em;line-height:1.15">The chain pumps protons. ATP synthase lets them back.</h2>
+                  <p style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:17px;line-height:1.65;max-width:62ch;text-wrap:pretty">Electrons from NADH move along proteins in the <strong>inner</strong> mitochondrial membrane. Each handoff releases a little energy, which is used to push H⁺ ions into the space between the membranes.</p>
+                  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid #e2ddd1;border-radius:8px;background:#fff">
+                    <div style="padding:14px;border-right:1px solid #eeeae1;display:flex;flex-direction:column;gap:4px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">1 · CARRY</span><span style="font-size:14px;line-height:1.45">NADH drops off electrons at complex I</span></div>
+                    <div style="padding:14px;border-right:1px solid #eeeae1;display:flex;flex-direction:column;gap:4px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">2 · PUMP</span><span style="font-size:14px;line-height:1.45">Energy moves H⁺ across the inner membrane</span></div>
+                    <div style="padding:14px;display:flex;flex-direction:column;gap:4px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">3 · FLOW</span><span style="font-size:14px;line-height:1.45">H⁺ flows back through ATP synthase → ATP</span></div>
+                  </div>
+                  <div style="display:flex;gap:12px;padding:12px 14px;background:#f6ecd9;border-radius:6px">
+                    <span style="font-size:13px;font-weight:700;color:#76511b;white-space:nowrap">Common trap</span>
+                    <span style="font-size:14px;line-height:1.5;color:#3d3830">"Outer membrane" is the classic wrong answer. The outer membrane is leaky, so no gradient can build there.</span>
+                  </div>
+                  <details style="font-size:14px;color:#625c50"><summary style="cursor:pointer;color:#0b5c55;font-weight:600;min-height:32px;display:flex;align-items:center">Go deeper: why oxygen is the final acceptor</summary></details>
+                </article>
+                <div style="display:flex;flex-direction:column;gap:10px;padding:18px;background:#fff;border:1px solid #cfe0dc;border-radius:8px">
+                  <span style="font-size:14px;font-weight:600">Check before we move on: where does the proton gradient build up?</span>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button style="height:40px;padding:0 14px;border:1px solid #d5cfc2;border-radius:8px;background:#fff;font:inherit;font-size:14px;cursor:pointer" style-hover="border-color:#0f766e">Matrix</button>
+                    <button style="height:40px;padding:0 14px;border:1px solid #d5cfc2;border-radius:8px;background:#fff;font:inherit;font-size:14px;cursor:pointer" style-hover="border-color:#0f766e">Intermembrane space</button>
+                    <button style="height:40px;padding:0 14px;border:1px solid #d5cfc2;border-radius:8px;background:#fff;font:inherit;font-size:14px;cursor:pointer" style-hover="border-color:#0f766e">Outside the cell</button>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ isSocratic }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:18px">
+                  <div style="display:flex;flex-direction:column;gap:8px;padding-left:18px;border-left:2px solid #0f766e">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5c55">Question 2 of ~4</span>
+                    <p style="margin:0;font-family:'Newsreader',Georgia,serif;font-size:28px;line-height:1.25;letter-spacing:-0.01em;max-width:30ch">If the outer membrane lets small ions pass freely, what would happen to a gradient built across it?</p>
+                  </div>
+                  <div style="align-self:flex-end;max-width:70%;padding:12px 16px;background:#1a1815;color:#f7f5f0;border-radius:12px 12px 2px 12px;font-size:15px;line-height:1.5">It would leak out? So it couldn't hold</div>
+                  <div style="display:flex;flex-direction:column;gap:8px;padding-left:18px;border-left:2px solid #0f766e">
+                    <p style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:17px;line-height:1.6">Yes. So which membrane has to be the barrier?</p>
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:center;font-size:13px;color:#625c50">
+                    <span style="font-weight:600;color:#3d3830">Stuck?</span>
+                    <button style="height:32px;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;background:#fff;font:inherit;font-size:12px;cursor:pointer">Nudge</button>
+                    <button style="height:32px;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;background:#fff;font:inherit;font-size:12px;cursor:pointer">Bigger hint</button>
+                    <button style="height:32px;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;background:#fff;font:inherit;font-size:12px;cursor:pointer">Show me, then quiz me</button>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ isPractice }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:18px">
+                  <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5c55">Problem 3 of 6 · mixed with Krebs cycle</span><span style="font-size:13px;color:#625c50">No timer</span></div>
+                  <p style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:19px;line-height:1.55;max-width:58ch">A poison makes the inner membrane leaky to H⁺. Oxygen use goes <em>up</em>, but ATP output falls. Explain both effects.</p>
+                  <div style="min-height:120px;padding:14px 16px;background:#fff;border:1px solid #0f766e;border-radius:8px;box-shadow:0 0 0 3px rgba(15,118,110,0.18);font-size:15px;line-height:1.55">The chain keeps running and pumping, so oxygen still gets used, but the protons leak back without going through ATP synthase<span style="display:inline-block;width:2px;height:18px;background:#0f766e;vertical-align:-3px;margin-left:1px"></span></div>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <button style="height:44px;padding:0 20px;border:0;border-radius:8px;background:#0f766e;color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer">Check my answer</button>
+                    <button style="height:44px;padding:0 14px;border:0;border-radius:8px;background:transparent;color:#625c50;font:inherit;font-size:14px;font-weight:600;cursor:pointer">Hint (costs nothing)</button>
+                    <span style="flex:1"></span>
+                    <span style="font-size:13px;color:#625c50">How sure are you?</span>
+                    <div style="display:flex;gap:4px"><span style="height:32px;padding:0 10px;display:inline-flex;align-items:center;border:1px solid #d5cfc2;border-radius:6px;font-size:12px">Guess</span><span style="height:32px;padding:0 10px;display:inline-flex;align-items:center;border:1px solid #0f766e;background:#e1ece9;border-radius:6px;font-size:12px;font-weight:600">Fairly</span><span style="height:32px;padding:0 10px;display:inline-flex;align-items:center;border:1px solid #d5cfc2;border-radius:6px;font-size:12px">Certain</span></div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ isFeynman }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:18px">
+                  <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;background:#fff;border:1px solid #e2ddd1;border-radius:8px">
+                    <span style="width:40px;height:40px;flex-shrink:0;border-radius:999px;background:#ece3d0;display:inline-flex;align-items:center;justify-content:center;font-family:'Newsreader',Georgia,serif;font-size:18px;color:#76511b">S</span>
+                    <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;font-weight:600">Sam, a curious Year 9 student</span><span style="font-size:14px;line-height:1.5;color:#3d3830">You teach, Sam asks. Sam only knows what you've said so far and will ask about anything you skip.</span></div>
+                  </div>
+                  <div style="align-self:flex-end;max-width:78%;padding:12px 16px;background:#1a1815;color:#f7f5f0;border-radius:12px 12px 2px 12px;font-size:15px;line-height:1.55">So the mitochondria makes energy by moving electrons down a chain and that makes ATP.</div>
+                  <div style="display:flex;gap:10px;align-items:flex-start">
+                    <span style="width:28px;height:28px;flex-shrink:0;border-radius:999px;background:#ece3d0;display:inline-flex;align-items:center;justify-content:center;font-family:'Newsreader',Georgia,serif;font-size:14px;color:#76511b">S</span>
+                    <p style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:17px;line-height:1.6;max-width:56ch">Wait, how does moving electrons turn into ATP? Is it the electrons that make it?</p>
+                  </div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <span style="font-size:12px;font-weight:600;color:#625c50;align-self:center">Gaps so far</span>
+                    <span style="height:28px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:#f6ecd9;color:#76511b;font-size:12px;font-weight:600">Skipped: proton gradient</span>
+                    <span style="height:28px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:#e1ece9;color:#0b5c55;font-size:12px;font-weight:600">Covered: electron carriers</span>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ isRecall }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:20px;align-items:center;padding-top:24px">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#625c50">7 / 18 · mixed</span>
+                  <div style="width:560px;min-height:240px;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:32px;background:#fff;border:1px solid #e2ddd1;border-radius:12px;text-align:center">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#8a5d17">Glycolysis · fading</span>
+                    <span style="font-family:'Newsreader',Georgia,serif;font-size:28px;line-height:1.25">What is the net ATP yield of glycolysis per glucose?</span>
+                    <span style="font-size:13px;color:#625c50">Say it or type it before revealing.</span>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <button style="height:48px;width:130px;border:1px solid #d5cfc2;border-radius:8px;background:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer">Forgot</button>
+                    <button style="height:48px;width:130px;border:1px solid #d5cfc2;border-radius:8px;background:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer">Hard</button>
+                    <button style="height:48px;width:130px;border:1px solid #d5cfc2;border-radius:8px;background:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer">Got it</button>
+                  </div>
+                  <span style="font-size:12px;color:#78715f">Keys 1 · 2 · 3 · space to reveal</span>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="padding:16px 56px 20px;border-top:1px solid #e2ddd1;background:#fbfaf7">
+              <div style="max-width:708px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px;min-height:52px;padding:0 6px 0 16px;background:#fff;border:1px solid #d5cfc2;border-radius:8px">
+                  <span style="flex:1;font-size:15px;color:#78715f">{{ placeholder }}</span>
+                  <button aria-label="Voice" style="width:40px;height:40px;border:0;border-radius:6px;background:transparent;color:#625c50;cursor:pointer;display:inline-flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M6 11a6 6 0 0 0 12 0"></path><line x1="12" y1="17" x2="12" y2="21"></line></svg></button>
+                  <button aria-label="Send" style="width:40px;height:40px;border:0;border-radius:6px;background:#0f766e;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button>
+                </div>
+                <div style="display:flex;gap:16px;font-size:12px;color:#625c50">
+                  <span>Simpler</span><span>Example</span><span>Skip step</span><span style="flex:1"></span><span>Something wrong? <a href="#">Flag this answer</a></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside style="width:380px;display:flex;flex-direction:column;gap:22px;padding-top:44px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5c55">{{ modeName }}</span>
+        <p style="margin:0;font-size:15px;line-height:1.6;text-wrap:pretty">{{ modeWhy }}</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h4 style="margin:0;font-size:14px;font-weight:600">Who thinks, when it ends</h4>
+        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;font-size:13px;line-height:1.5">
+          <sc-for list="{{ modeTable }}" as="r" hint-placeholder-count="5">
+            <span style="font-weight:600;color:{{ r.fg }}">{{ r.m }}</span><span style="color:#3d3830">{{ r.d }}</span>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h4 style="margin:0;font-size:14px;font-weight:600">Response anatomy</h4>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#3d3830;text-wrap:pretty">Tutor turns are in the serif reading face with a teal rule. Student turns are compact dark bubbles. Each explanation has a one-line claim as its heading, at most three sentences of prose, then a structured part (steps, table or trap), and ends with a check. Longer depth sits behind "Go deeper".</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h4 style="margin:0;font-size:14px;font-weight:600">Evidence behind the modes</h4>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#3d3830;text-wrap:pretty">Practice mixes in other topics on purpose. In a 54-class trial, <a href="https://ies.ed.gov/use-work/awards/efficacy-study-interleaved-mathematics-practice">interleaved practice lifted scores on a later unannounced test from 38% to 61%</a> (Rohrer et al., 2020). Every teacher in that study also <a href="https://notes.andymatuschak.org/zHvJf88XUgLPMhdTigkoiUR">reported that interleaved assignments took longer</a>, so the UI says "harder on purpose" to set expectations.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:14px;background:#f0ece3;border-radius:8px">
+        <h4 style="margin:0;font-size:13px;font-weight:600">IA change</h4>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:#3d3830">Solver, Explain it simply, Oral practice, Exam traps and the chat drawer were five separate tools. Now they are modes of one session with shared context, plan and autosave. The "Study" nav item opens the mode picker. Oral practice is Socratic with voice on, and Exam traps is a Practice preset.</p>
+      </div>
+    </aside>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;explain&quot;,&quot;socratic&quot;,&quot;practice&quot;,&quot;feynman&quot;,&quot;recall&quot;],&quot;default&quot;:&quot;explain&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { mode: this.props.mode ?? "explain" };
+  renderVals() {
+    const mode = this.state.mode;
+    const defs = [
+      ["explain", "Explain", "Explain · the tutor teaches", "The tutor carries the thinking, in small steps. It never goes more than about 150 words without asking the student to do something, so this is teaching and not a lecture.", "Type a question or answer the check…"],
+      ["socratic", "Socratic", "Socratic · the tutor asks", "The tutor never states the answer first. The hint ladder (Nudge, Bigger hint, Show me) is always visible, so a stuck student has a way out that doesn't cost them their dignity. Voice input makes this the oral-exam mode.", "Think out loud…"],
+      ["practice", "Practice", "Practice · the student solves", "The student works a problem alone. Hints are free and logged as evidence, not as a penalty. A confidence rating before checking lets the results screen flag answers that were wrong but felt certain.", "Or ask for a worked example…"],
+      ["feynman", "Teach", "Teach (Feynman) · the student explains", "The student explains and a persona asks naive questions. A live list of what's covered and what's missing turns vague understanding into specific gaps. The persona is shown as an initial in the recall ochre, not a cartoon.", "Explain it to Sam…"],
+      ["recall", "Recall", "Quick recall · rapid retrieval", "Flashcards and short questions from several topics mixed together, due by spaced repetition. Full keyboard support. A session lasts 5 to 10 minutes and ends by updating each topic's mastery step.", "Type your answer before revealing…"],
+    ];
+    const cur = defs.find(d => d[0] === mode);
+    const stepT = ["What you already know", "Glycolysis → pyruvate", "Electron transport chain", "Practice: 3 problems", "Recap + what's next"];
+    const doneN = 2;
+    return {
+      isExplain: mode === "explain", isSocratic: mode === "socratic", isPractice: mode === "practice", isFeynman: mode === "feynman", isRecall: mode === "recall",
+      modeName: cur[2], modeWhy: cur[3], placeholder: cur[4],
+      modes: defs.map(d => ({ label: d[1], pick: () => this.setState({ mode: d[0] }), bg: d[0] === mode ? "#fff" : "transparent", fg: d[0] === mode ? "#1a1815" : "#625c50", sh: d[0] === mode ? "0 1px 2px rgba(24,20,14,0.08)" : "none" })),
+      steps: stepT.map((t, i) => ({ t, mark: i < doneN ? "✓" : "", fill: i < doneN ? "#0f766e" : "transparent", ring: i <= doneN ? "#0f766e" : "#cfc8b9", bg: i === doneN ? "#e1ece9" : "transparent", fg: i > doneN ? "#625c50" : "#1a1815", w: i === doneN ? 600 : 500 })),
+      modeTable: [
+        { m: "Explain", d: "Tutor → ends at the check", fg: mode === "explain" ? "#0b5c55" : "#1a1815" },
+        { m: "Socratic", d: "Student reasons → ends when they reach it", fg: mode === "socratic" ? "#0b5c55" : "#1a1815" },
+        { m: "Practice", d: "Student solves → ends after N problems", fg: mode === "practice" ? "#0b5c55" : "#1a1815" },
+        { m: "Teach", d: "Student explains → ends when the gaps are closed", fg: mode === "feynman" ? "#0b5c55" : "#1a1815" },
+        { m: "Recall", d: "Memory → ends when the due cards are done", fg: mode === "recall" ? "#0b5c55" : "#1a1815" },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

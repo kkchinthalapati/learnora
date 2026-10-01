@@ -28,6 +28,7 @@
  */
 
 import { AiError, callEdge, type FilePayload } from "./ai";
+import { extractWebContent } from "./aiWebSearch";
 import {
   generateQuizFrom,
   QUIZ_DEFAULTS,
@@ -42,6 +43,7 @@ import { decodeBase64UTF8, extractFlashcardJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { supabase } from "../lib/supabase";
 import { setMaterialProcessing } from "../lib/materialProcessing";
+import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
 import type { Settings } from "../lib/settings";
 import type { FlashcardDeck, Material, Quiz } from "./types";
 
@@ -123,6 +125,11 @@ Analyze the provided study material and write comprehensive, well-structured Mar
 
 Output the Markdown notes only. Do not add any preamble or closing commentary.`;
 
+/** Appended when the source is a photo. Only Gemini reads images, and the
+ *  edge function refuses rather than hand a photo to a text-only model, so
+ *  this is written for a model that can actually see it. */
+export const PHOTO_NOTES_INSTRUCTIONS = `The study material is the attached photo of a whiteboard, worksheet, handwritten page or textbook page. Work only from what is visible in it: capture its key content faithfully, then organise it into the notes above. If part of it is too blurry, dark or cut off to read, say which part rather than guessing at it.`;
+
 /** `inlineText` is the source folded into the prompt rather than attached —
  *  see `generateNotes`. Fenced here, not by the caller, so no path into this
  *  prompt can forget to. */
@@ -155,16 +162,32 @@ export async function generateNotes({
   material,
   source,
   settings,
+  persist = true,
 }: {
   material: Material;
   source: NotesSource;
   settings: Settings;
+  /** Derived outputs may need a textual intermediary even when the student
+   * did not select Summary Notes. In that case, do not file that intermediary
+   * as a user-visible note. */
+  persist?: boolean;
 }): Promise<string> {
   let inlineText: string | null = null;
   let attachment: FilePayload | null = null;
 
   if ("inlineText" in source) {
     inlineText = source.inlineText;
+  } else if (isPdf(source.file)) {
+    /* A PDF is parsed to text here rather than attached, so that every
+       provider in the chain can read it and not just Gemini — see
+       lib/pdfText.ts for why that mattered. A scan with no text layer still
+       goes as an attachment, since OCR is the only thing that will read it. */
+    const plan = await planPdfUpload(source.file);
+    if (plan.kind === "inline") {
+      inlineText = plan.text + truncationNote(plan.extraction);
+    } else {
+      attachment = await fileToPayload(source.file);
+    }
   } else {
     const payload = await fileToPayload(source.file);
     /* Gemini rejects text/plain as inlineData, so a plain-text upload is
@@ -183,10 +206,15 @@ export async function generateNotes({
     }
   }
 
+  const prompt = attachment?.mimeType.startsWith("image/")
+    ? `${buildNotesPrompt(inlineText)}\n\n${PHOTO_NOTES_INSTRUCTIONS}`
+    : buildNotesPrompt(inlineText);
+
   const { text, refused } = await callEdge({
-    history: [{ role: "user", content: buildNotesPrompt(inlineText) }],
+    history: [{ role: "user", content: prompt }],
     file: attachment,
     mode: "notes",
+    tool: "notes",
     settings,
   });
 
@@ -202,7 +230,7 @@ export async function generateNotes({
   const markdown = text.trim();
   if (markdown.length < MIN_NOTES_CHARS) throw new NotesShapeError();
 
-  await notesApi.add(material.id, markdown);
+  if (persist) await notesApi.add(material.id, markdown);
   return markdown;
 }
 
@@ -233,12 +261,14 @@ ${sourceText}
 export async function generateDeck({
   sourceText,
   folderId,
+  notebookId,
   title,
   count,
   settings,
 }: {
   sourceText: string;
   folderId: string | null;
+  notebookId?: string | null;
   title: string;
   count: number;
   settings: Settings;
@@ -246,6 +276,7 @@ export async function generateDeck({
   const { text } = await callEdge({
     history: [{ role: "user", content: buildDeckPrompt(sourceText, count) }],
     mode: "flashcards",
+    tool: "flashcards",
     settings,
   });
 
@@ -265,7 +296,7 @@ export async function generateDeck({
   // Created only once there are cards to put in it — an empty deck row is
   // worse than no deck, since the library lists it and the review screen
   // serves nothing.
-  const deck = await decksApi.add(folderId, title);
+  const deck = await decksApi.add(folderId, title, notebookId);
   await flashcardsApi.addBatch(deck.id, cards);
   return deck;
 }
@@ -328,9 +359,11 @@ export interface StudyPackageRequest {
   source: StudySource;
   /** Ignored for a topic source, which files nothing. */
   folderId?: string | null;
+  /** Optional owning notebook during the Stage 4 dual-write transition. */
+  notebookId?: string | null;
   /** Optional custom title; otherwise derived from the material or topic. */
   title?: string;
-  outputs?: { flashcards?: boolean; quiz?: boolean };
+  outputs?: { flashcards?: boolean; quiz?: boolean; notes?: boolean };
   options?: CreateOptions;
   settings: Settings;
   /** Reports the stage actually in flight, so a loader can caption itself with
@@ -391,6 +424,11 @@ export async function createStudyPackage(
 ): Promise<StudyPackageResult> {
   const { source, settings } = request;
   const outputs = request.outputs ?? {};
+  // Existing non-topic API callers historically received notes by default;
+  // an explicit false is the opt-out. Topic creation is newer and only files
+  // a material when Summary Notes was explicitly requested.
+  const wantsNotes =
+    source.kind === "topic" ? outputs.notes === true : outputs.notes !== false;
   const options = { ...CREATE_DEFAULTS, ...(request.options ?? {}) };
   const result: StudyPackageResult = {
     material: null,
@@ -420,6 +458,7 @@ export async function createStudyPackage(
   };
 
   let folderId = request.folderId || null;
+  const notebookId = request.notebookId || null;
   let baseTitle = (request.title ?? "").trim();
   let topic: string;
   let sourceText: string;
@@ -444,11 +483,13 @@ export async function createStudyPackage(
         folderId,
         AUDIO_FILE.test(file.name) ? "audio" : "pdf",
         baseTitle || undefined,
+        notebookId,
       );
       setMaterialProcessing({
         materialId: result.material.id,
         status: "processing",
         requestPayload: request,
+        notesRequested: wantsNotes,
       });
       notesSource = { file };
     } else {
@@ -460,21 +501,31 @@ export async function createStudyPackage(
             : "Please paste some text first.",
         );
       }
+      let sourceContent = raw;
+      if (source.kind === "link" && !YOUTUBE_LINK.test(raw)) {
+        step("Reading the linked page…");
+        const extracted = await extractWebContent(raw);
+        sourceContent = `Source: ${extracted.url}\n\n${extracted.markdown}`;
+        if (!baseTitle) baseTitle = extracted.title;
+      }
+
       result.material = await materialsApi.addLink(
         raw,
         folderId,
         baseTitle || undefined,
+        notebookId,
       );
       setMaterialProcessing({
         materialId: result.material.id,
         status: "processing",
         requestPayload: request,
+        notesRequested: wantsNotes,
       });
       /* Straight through as text. The vanilla base64-encoded it into a
          `text/plain` payload here and decoded it again inside `_generateNotes`
          (js/ai.js:723-727, :529-537) — a round trip with no observable effect,
          since a text/plain payload is never sent as an attachment anyway. */
-      notesSource = { inlineText: raw };
+      notesSource = { inlineText: sourceContent };
     }
 
     baseTitle = result.material.title;
@@ -482,19 +533,22 @@ export async function createStudyPackage(
 
     // Always generated for new material — see the primitive's header.
     step("Reading your material and writing notes…");
+    let generatedNotes: string;
     try {
-      result.notes = await generateNotes({
+      generatedNotes = await generateNotes({
         material: result.material,
         source: notesSource,
         settings,
+        persist: wantsNotes,
       });
+      if (wantsNotes) result.notes = generatedNotes;
     } catch (err) {
       /* Without notes there is nothing for a deck or quiz to read, so stop
          here rather than firing two more calls that are certain to fail. */
       fail("notes", err);
       return result;
     }
-    sourceText = fenceUntrusted(result.notes.substring(0, MAX_SOURCE_CHARS));
+    sourceText = fenceUntrusted(generatedNotes.substring(0, MAX_SOURCE_CHARS));
   } else if (source.kind === "material") {
     const material = await materialsApi.fetchById(source.materialId);
     if (!material) throw new Error("That material could not be found.");
@@ -562,9 +616,30 @@ export async function createStudyPackage(
     if (!trimmed) throw new Error("Please enter a topic.");
     baseTitle = baseTitle || trimmed;
     topic = trimmed;
-    // A topic-only source has no notes document, so the topic line is itself
-    // the material the deck and quiz are built from.
-    sourceText = `Topic: ${fenceUntrusted(trimmed)}`;
+    if (wantsNotes) {
+      step("Writing summary notes…");
+      result.material = await materialsApi.addLink(
+        trimmed,
+        folderId,
+        baseTitle,
+        notebookId,
+      );
+      try {
+        result.notes = await generateNotes({
+          material: result.material,
+          source: { inlineText: `Topic: ${trimmed}` },
+          settings,
+        });
+      } catch (err) {
+        fail("notes", err);
+        return result;
+      }
+      sourceText = fenceUntrusted(result.notes.substring(0, MAX_SOURCE_CHARS));
+    } else {
+      // A topic-only source has no notes document, so the topic line is itself
+      // the material the deck and quiz are built from.
+      sourceText = `Topic: ${fenceUntrusted(trimmed)}`;
+    }
   }
 
   /* ---- Step 2: derive the requested outputs ----------------------------- */
@@ -574,6 +649,7 @@ export async function createStudyPackage(
       result.deck = await generateDeck({
         sourceText,
         folderId,
+        notebookId,
         title: withOutputSuffix(baseTitle, "Flashcards"),
         count: options.cardCount,
         settings,
@@ -593,6 +669,7 @@ export async function createStudyPackage(
         title: withOutputSuffix(baseTitle, "Quiz"),
         materialId: result.material?.id ?? null,
         folderId,
+        notebookId,
         settings,
         options,
       });

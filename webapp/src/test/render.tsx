@@ -19,7 +19,12 @@ import { AuthContext, type AuthState } from "../context/auth";
  * AuthProvider itself is still not part of the stack — it needs a mocked
  * supabase client (see test/mockSession.ts), which is a per-test concern.
  * Tests that need a signed-in user pass an `auth` state, which is injected
- * as a plain AuthContext value (see test/auth.tsx).
+ * as a plain AuthContext value (see test/auth.tsx). A signed-out fallback is
+ * always provided, though, even when no `auth` is passed: AppearanceProvider
+ * reads `useAuth()` to reset device-local appearance on sign-out/account
+ * switch (App.tsx nests it inside AuthProvider for the same reason), so the
+ * context has to exist before it renders rather than only when a test cares
+ * about the session.
  *
  * TimerProvider is opt-in (`withTimer`) for the same kind of reason: it owns a
  * live interval and localStorage-backed state that it restores and re-persists
@@ -46,6 +51,13 @@ export function newTestQueryClient() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 }
+
+const SIGNED_OUT: AuthState = {
+  session: null,
+  user: null,
+  loading: false,
+  signOut: async () => {},
+};
 
 export function AppProviders({
   children,
@@ -75,24 +87,20 @@ export function AppProviders({
     ) : (
       created
     );
-  const tree = (
+  return (
     <QueryClientProvider client={queryClient ?? newTestQueryClient()}>
-      <AppearanceProvider>
-        <SettingsProvider>
-          <OverlayStackProvider>
-            <ToastProvider>
-              <DialogProvider>{routed}</DialogProvider>
-            </ToastProvider>
-          </OverlayStackProvider>
-        </SettingsProvider>
-      </AppearanceProvider>
+      <AuthContext.Provider value={auth ?? SIGNED_OUT}>
+        <AppearanceProvider>
+          <SettingsProvider>
+            <OverlayStackProvider>
+              <ToastProvider>
+                <DialogProvider>{routed}</DialogProvider>
+              </ToastProvider>
+            </OverlayStackProvider>
+          </SettingsProvider>
+        </AppearanceProvider>
+      </AuthContext.Provider>
     </QueryClientProvider>
-  );
-
-  return auth ? (
-    <AuthContext.Provider value={auth}>{tree}</AuthContext.Provider>
-  ) : (
-    tree
   );
 }
 

@@ -33,8 +33,77 @@ import {
   formatAdherenceNote,
 } from "../lib/planAdherence";
 import { parseStoredPlan } from "../lib/planShape";
+import { availabilityRange } from "../lib/availability";
+import {
+  AVAILABILITY_RULE,
+  formatAvailabilityNote,
+  formatChronotypeNote,
+} from "../lib/availabilityPrompt";
+import { importIcsForRange } from "../lib/icsImport";
+import { isLifeContextConfigured, loadLifeContext } from "../lib/lifeContext";
+import { decksApi } from "./decks";
+import { learningEventsApi } from "./learningEvents";
+import { buildForecast } from "../lib/trajectoryJoin";
+import { formatTrajectoryForPrompt } from "../lib/trajectory";
+import { loadStudentEvidence } from "./studentEvidence";
+import { formatEvidenceForPrompt } from "../lib/studentEvidence";
+import { misconceptionsApi } from "./misconceptions";
+import { formatMisconceptionsForPrompt } from "../lib/misconceptions";
+import { profileApi } from "./profile";
 import type { Settings } from "../lib/settings";
 import type { WeeklyPlan } from "./types";
+
+const EXAM_TYPE_LABELS: Record<string, string> = {
+  ap: "AP",
+  ib: "IB",
+  a_level: "A-Level",
+  gcse: "GCSE",
+  sat: "SAT",
+  act: "ACT",
+  other: "another exam board",
+};
+
+const STUDY_PACE_HINTS: Record<string, string> = {
+  light:
+    "prefers a light load — keep blocks short and infrequent rather than filling every day.",
+  balanced:
+    "wants a balanced weekly load — the default 30-90 minute blocks are right for them.",
+  intensive:
+    "is comfortable with an intensive load — longer and more frequent blocks are welcome, not just the minimum.",
+};
+
+/** Self-reported study context from Settings > Preferences, distinct from
+ *  `performanceEvidence` (measured) — this is what the student says about
+ *  themselves, not what quizzes prove. Rendered as a soft steer, not a RULE:
+ *  a stated preference for "intensive" doesn't override an EVIDENCE RULE
+ *  saying a topic is SOLID, it only shapes how much room the plan gives
+ *  itself to work with. Returns "" (nothing rendered) when the student has
+ *  set none of this up, which is the common case for an existing account —
+ *  none of these four fields are backfilled. */
+export function formatStudentContext(profile: {
+  subject: string | null;
+  examType: string | null;
+  targetGrade: string | null;
+  studyPace: string | null;
+}): string {
+  const parts: string[] = [];
+  if (profile.subject) parts.push(`is focused on ${profile.subject}`);
+  if (profile.examType) {
+    const label = EXAM_TYPE_LABELS[profile.examType] ?? profile.examType;
+    parts.push(`is preparing for ${label} exams`);
+  }
+  if (profile.targetGrade) parts.push(`is aiming for ${profile.targetGrade}`);
+
+  const paceHint = profile.studyPace
+    ? STUDY_PACE_HINTS[profile.studyPace]
+    : null;
+
+  if (parts.length === 0 && !paceHint) return "";
+
+  const summary = parts.length > 0 ? `The student ${parts.join(", ")}.` : "";
+  const pace = paceHint ? ` The student ${paceHint}` : "";
+  return `STUDENT CONTEXT: ${summary}${pace}`.trim();
+}
 
 /** Thrown when the model replied but nothing plan-shaped could be recovered
  *  from it — distinct from a transport failure, and worth a different
@@ -53,7 +122,13 @@ export function buildPlanPrompt({
   upcomingExams,
   weakTopics = "None",
   weakFlashcardDecks = "None",
+  performanceEvidence,
+  misconceptionLedger,
+  hourValue,
+  studentContext,
   lastWeekAdherence = "None",
+  availability = "None",
+  chronotype = "Unknown",
   isTriage = false,
 }: {
   weekStartISO: string;
@@ -68,10 +143,46 @@ export function buildPlanPrompt({
   weakTopics?: string;
   /** Decks with low ease-factors, indicating the student is struggling to retain them. */
   weakFlashcardDecks?: string;
+  /** The student's measured quiz performance, rendered by
+   *  `lib/studentEvidence.ts`. `weakTopics` above is only a list of names —
+   *  it says a topic has been flagged, not how badly, not what is already
+   *  solid, and not how much evidence is behind either. A planner deciding
+   *  where a week's hours go needs all three. Optional so existing prompt
+   *  tests keep exercising the plain task/exam prompt. */
+  performanceEvidence?: string;
+  /** The student's diagnosed misconceptions, rendered by
+   *  `lib/misconceptions.ts`. Different in kind from both fields above, and
+   *  the one that changes what a block actually contains: `weakTopics` names a
+   *  topic and `performanceEvidence` scores it, but neither says what the
+   *  student has got wrong inside it. "Revise hydrolysis" is a block anyone
+   *  could write; "hydrolysis — you keep treating water as consumed rather
+   *  than added" is one only this app can. Optional, so existing prompt tests
+   *  keep exercising the plain task/exam prompt. */
+  misconceptionLedger?: string;
+  /** `lib/trajectory.ts`'s ranking of what an hour on each topic is worth, in
+   *  marks on the final exam score, rendered by `formatTrajectoryForPrompt`.
+   *  The three blocks above describe the student's *state*; this one describes
+   *  consequences, and it is the only block that can justify not scheduling
+   *  something. Empty when there is no upcoming exam or nothing to project
+   *  from, in which case the rule below is dropped too — a ranking rule with
+   *  no ranking under it is how a model starts inventing point values. */
+  hourValue?: string;
+  /** `formatStudentContext`'s one-liner on self-reported subject, exam
+   *  board, target grade and pace preference. "" when the student hasn't
+   *  set any of it, in which case nothing is rendered for it at all. */
+  studentContext?: string;
   /** `formatAdherenceNote`'s one-liner on how much of *last* week's plan
    *  actually happened, and which subjects fell short — "None" for a
    *  student's first-ever plan, when there's nothing to compare against. */
   lastWeekAdherence?: string;
+  /** `formatAvailabilityNote`'s per-day summary of when this student is
+   *  actually free, from their own timetable and imported calendar. "None"
+   *  when they have not set up My week, in which case the rule below is left
+   *  out too — a binding instruction about an empty list would have the model
+   *  refuse to schedule anything at all. */
+  availability?: string;
+  /** When their head works best, for placing the demanding blocks. */
+  chronotype?: string;
   /** When true, the AI is instructed to ignore long-term tasks and focus purely on
    * an emergency 80/20 survival schedule for the most urgent exam. */
   isTriage?: boolean;
@@ -81,7 +192,7 @@ export function buildPlanPrompt({
 Pending tasks: ${pendingTasks}
 Upcoming exams: ${upcomingExams}
 Recent weak topics from quizzes: ${weakTopics}
-
+${performanceEvidence ? `\n${performanceEvidence}\n` : ""}
 This is a Triage situation. The student is panicking and has limited time. DO NOT generate a standard weekly plan. 
 1. Ignore all tasks and exams that are more than a week away.
 2. Identify the single most urgent exam and the student's weak topics for it.
@@ -96,7 +207,30 @@ Upcoming exams: ${upcomingExams}
 Recent weak topics from quizzes: ${weakTopics}
 Weak flashcard decks: ${weakFlashcardDecks}
 Last week's adherence: ${lastWeekAdherence}
-Prioritize subjects with closer/harder exams, tasks with closer due dates, and topics the student is weak on. If last week shows a subject was under-studied, ease it back in with shorter blocks rather than repeating the exact same plan. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
+${performanceEvidence ? `\n${performanceEvidence}\n` : ""}${misconceptionLedger ? `\n${misconceptionLedger}\n` : ""}${hourValue ? `\n${hourValue}\n` : ""}${studentContext ? `\n${studentContext}\n` : ""}
+When the student is actually free: ${availability}
+When their head works best: ${chronotype}
+${
+  availability === "None"
+    ? ""
+    : `${AVAILABILITY_RULE}
+`
+}${
+    performanceEvidence
+      ? `EVIDENCE RULE: the performance block above is measured, not inferred. Give the most time to the topics it names as WEAK, quoting their measured accuracy in the block's description so the student can see why it was chosen. Do not schedule revision for topics it lists as SOLID unless an exam is imminent — telling a student to stop revising something is how a plan buys back hours. Never schedule against a percentage for a topic listed as NEVER TESTED or marked PROVISIONAL; suggest a quiz on it instead.
+`
+      : ""
+  }${
+    misconceptionLedger
+      ? `LEDGER RULE: the misconception block above is this app's own diagnosis of what the student actually believes wrongly, gathered from their real work. Where a block covers a topic it names, say in that block's description what specifically to fix — the misconception itself, not just the topic. Give a misconception observed more than once a block of its own; repeated evidence is the strongest signal in this prompt and outranks a merely low quiz score. Do not schedule anything for a misconception the block marks resolved.
+`
+      : ""
+  }${
+    hourValue
+      ? `VALUE RULE: the hour-value block above is this app's own forecast, computed from the student's real memory state and the hours they actually have left. Order the week by it: the top-ranked topic gets the first and the longest blocks. State the figure in the block's description ("45 min on Titration — worth ~4.2 marks") so the student can see what the hour buys, and never quote a figure for a topic the block does not list. Where it says a topic is fading, the block is a revisit, not a re-teach. If the block says the target is out of reach, plan for the best achievable score and say so in the summary rather than scheduling an impossible week.
+`
+      : ""
+  }Prioritize subjects with closer/harder exams, tasks with closer due dates, and topics the student is weak on. If last week shows a subject was under-studied, ease it back in with shorter blocks rather than repeating the exact same plan. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
 }
 
 /** The workspace summary both the planner and the chat feed to the model.
@@ -138,22 +272,54 @@ export async function loadWorkspaceContext(todayStr = localDateStr()): Promise<{
 export async function loadAdaptiveContext(monday: Date): Promise<{
   weakTopics: string;
   weakFlashcardDecks: string;
+  performanceEvidence: string;
+  misconceptionLedger: string;
+  studentContext: string;
   lastWeekAdherence: string;
 }> {
   const prevMonday = new Date(monday);
   prevMonday.setDate(prevMonday.getDate() - 7);
   const prevWeekStartISO = localDateStr(prevMonday);
 
-  const [weakTopicRows, weakDeckRows, prevPlan, sessions, folders] =
-    await Promise.all([
-      quizzesApi.fetchWeakTopics(5),
-      flashcardsApi.fetchWeakDecks(5),
-      plansApi.fetchForWeek(prevWeekStartISO),
-      // 14 days comfortably covers "last week" regardless of which day of the
-      // current week this runs on.
-      sessionsApi.fetchSince(14),
-      foldersApi.fetch(),
-    ]);
+  const [
+    weakTopicRows,
+    weakDeckRows,
+    prevPlan,
+    sessions,
+    folders,
+    evidence,
+    ledger,
+    studentProfile,
+  ] = await Promise.all([
+    quizzesApi.fetchWeakTopics(5),
+    flashcardsApi.fetchWeakDecks(5),
+    plansApi.fetchForWeek(prevWeekStartISO),
+    // 14 days comfortably covers "last week" regardless of which day of the
+    // current week this runs on.
+    sessionsApi.fetchSince(14),
+    foldersApi.fetch(),
+    /* Resolves rather than throwing, so it joins the same Promise.all as
+       the rest instead of needing a catch — a planner that can't read the
+       quiz rows should still produce a plan from tasks and exams. */
+    loadStudentEvidence(),
+    /* Same best-effort contract as the evidence read beside it: a planner
+       that cannot reach the ledger should still produce a plan from tasks,
+       exams and quiz scores. */
+    misconceptionsApi.fetchAll().catch((err) => {
+      console.warn("[plan] Could not read misconception ledger:", err);
+      return [];
+    }),
+    /* Same reasoning: a student with no Settings > Preferences filled in
+       (the common case today, since none of it is backfilled) should still
+       get a plan, not a failed one. */
+    profileApi.fetchProfile().catch(() => ({
+      bio: null,
+      subject: null,
+      examType: null,
+      targetGrade: null,
+      studyPace: null,
+    })),
+  ]);
 
   const weakTopics = weakTopicRows.map((w) => w.topic).join(", ") || "None";
   const weakFlashcardDecks = weakDeckRows.join(", ") || "None";
@@ -171,12 +337,111 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
         )
       : "None";
 
-  return { weakTopics, weakFlashcardDecks, lastWeekAdherence };
+  /* Always rendered, including when there is nothing to report: the empty
+     summary is what carries the instruction not to guess, which is precisely
+     the case where the model would. Same reasoning as ChatProvider's. */
+  const performanceEvidence = formatEvidenceForPrompt(evidence);
+  const misconceptionLedger = formatMisconceptionsForPrompt(ledger);
+  const studentContext = formatStudentContext(studentProfile);
+
+  return {
+    weakTopics,
+    weakFlashcardDecks,
+    performanceEvidence,
+    misconceptionLedger,
+    studentContext,
+    lastWeekAdherence,
+  };
+}
+
+/**
+ * What an hour is worth, per topic, for the soonest exam.
+ *
+ * The one context loader here that produces a *ranking* rather than a
+ * description. Every other block tells the model what the student's state is
+ * and leaves the model to guess which weakness is worth the week; this one
+ * answers that with arithmetic, out of the memory model the SRS has been
+ * accumulating per card and the hours Life Sync says they genuinely have.
+ *
+ * It reads through `lib/trajectoryJoin.ts`, the same join `useTrajectory`
+ * uses, so the marks-per-hour figure a plan block quotes is the figure the
+ * Trajectory page draws. Two joins would eventually disagree, and a student
+ * who catches this app contradicting itself about their own grade has no
+ * reason to believe the next number either.
+ *
+ * Best-effort like the ledger and evidence reads beside it: a planner that
+ * cannot build a forecast should still produce a plan from tasks, exams and
+ * quiz scores. Returns "" rather than a placeholder, because
+ * `buildPlanPrompt` drops the VALUE RULE entirely when there is no ranking —
+ * a ranking rule with nothing under it is how a model starts inventing marks.
+ */
+export async function loadHourValueContext(
+  todayStr = localDateStr(),
+): Promise<string> {
+  try {
+    const life = loadLifeContext();
+    /* No timetable means no honest count of the hours left, and the whole
+       block is a claim about hours. The forecast would silently fall back to
+       a default capacity and quote marks-per-hour figures computed against
+       time this student does not have. */
+    if (!isLifeContextConfigured(life)) return "";
+
+    const [exams, folders, decks, cards, attempts, events] = await Promise.all([
+      examsApi.fetch(),
+      foldersApi.fetch(),
+      decksApi.fetchAll(),
+      flashcardsApi.fetchAll(),
+      quizzesApi.fetchAllAttempts(),
+      learningEventsApi.fetchSince(),
+    ]);
+
+    return formatTrajectoryForPrompt(
+      buildForecast({
+        exams,
+        folders,
+        decks,
+        cards,
+        attempts,
+        life,
+        today: todayStr,
+        events,
+      }).forecast,
+    );
+  } catch (err) {
+    console.warn("[plan] Could not build the hour-value forecast:", err);
+    return "";
+  }
+}
+
+/** The student's own week, for the days the plan will cover.
+ *
+ * Synchronous and local — life context lives in localStorage and the calendar
+ * import never leaves the device, so unlike every other context loader here
+ * there is nothing to await and nothing to fail. A student who has not set up
+ * My week gets "None" for both, and `buildPlanPrompt` drops the scheduling
+ * rule accordingly rather than binding the model to an empty list. */
+export function loadLifeAvailabilityContext(
+  weekStartISO: string,
+  dayCount: number = 7,
+): { availability: string; chronotype: string } {
+  const ctx = loadLifeContext();
+  if (!isLifeContextConfigured(ctx)) {
+    return { availability: "None", chronotype: "Unknown" };
+  }
+  const calendar = ctx.importedIcs
+    ? importIcsForRange(ctx.importedIcs, weekStartISO, dayCount).events
+    : [];
+  return {
+    availability: formatAvailabilityNote(
+      availabilityRange(ctx, weekStartISO, dayCount, calendar),
+    ),
+    chronotype: formatChronotypeNote(ctx.chronotype),
+  };
 }
 
 export async function generateWeeklyPlan(
   settings: Settings,
-  isTriage: boolean = false
+  isTriage: boolean = false,
 ): Promise<WeeklyPlan> {
   const todayStr = localDateStr();
   const monday = mondayOfWeek();
@@ -184,11 +449,22 @@ export async function generateWeeklyPlan(
 
   const [
     { pendingTasks, upcomingExams },
-    { weakTopics, weakFlashcardDecks, lastWeekAdherence },
+    {
+      weakTopics,
+      weakFlashcardDecks,
+      performanceEvidence,
+      misconceptionLedger,
+      studentContext,
+      lastWeekAdherence,
+    },
+    hourValue,
   ] = await Promise.all([
     loadWorkspaceContext(todayStr),
     loadAdaptiveContext(monday),
+    loadHourValueContext(todayStr),
   ]);
+  const { availability, chronotype } =
+    loadLifeAvailabilityContext(weekStartISO);
 
   const { text } = await callEdge({
     history: [
@@ -201,12 +477,19 @@ export async function generateWeeklyPlan(
           upcomingExams,
           weakTopics,
           weakFlashcardDecks,
+          performanceEvidence,
+          misconceptionLedger,
+          hourValue,
+          studentContext,
           lastWeekAdherence,
+          availability,
+          chronotype,
           isTriage,
         }),
       },
     ],
     mode: "plan",
+    tool: "plan",
     settings,
   });
 

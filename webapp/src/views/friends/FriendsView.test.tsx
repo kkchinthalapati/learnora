@@ -88,7 +88,7 @@ describe("FriendsView", () => {
 
     await user.click(await screen.findByRole("button", { name: "Copy link" }));
 
-    expect(await screen.findByText("Copied!")).toBeInTheDocument();
+    expect(await screen.findByText("Copied")).toBeInTheDocument();
     await expect(navigator.clipboard.readText()).resolves.toContain(
       "friends/add/K7M2QW9X",
     );
@@ -108,12 +108,15 @@ describe("FriendsView", () => {
     renderFriends();
 
     const rows = await screen.findAllByRole("listitem");
-    expect(within(rows[0]).getByText("Grace Hopper")).toBeInTheDocument();
+    /* Shortened on the board: a leaderboard needs to identify someone you
+       already know, not publish their full legal name. */
+    expect(within(rows[0]).getByText("Grace H.")).toBeInTheDocument();
+    expect(within(rows[0]).queryByText("Grace Hopper")).toBeNull();
     expect(
       within(rows[0]).getByText("4h this week · 6 days streak"),
     ).toBeInTheDocument();
 
-    expect(within(rows[1]).getByText("Ada King")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("Ada K.")).toBeInTheDocument();
     expect(within(rows[1]).getByText("You")).toBeInTheDocument();
   });
 
@@ -239,7 +242,57 @@ describe("FriendsView", () => {
 
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     expect(called).toBe(false);
-    expect(screen.getByText("Grace Hopper")).toBeInTheDocument();
+    expect(screen.getByText("Grace H.")).toBeInTheDocument();
+  });
+
+  /* Consistency leads, so the board rewards showing up rather than the
+     longest hours; focus time is one tap away. */
+  it("ranks by consistency by default, and by focus time on request", async () => {
+    const steady = { ...FRIEND, user_id: "steady", full_name: "Steady Sam", weekly_minutes: 60, streak: 9, rank: 2 };
+    const grinder = { ...FRIEND, user_id: "grind", full_name: "Grind Gia", weekly_minutes: 600, streak: 1, rank: 1 };
+    serveLeaderboard([grinder, steady, ME]);
+    renderFriends();
+
+    await screen.findByText("Your circle");
+    const names = () =>
+      screen.getAllByRole("listitem").map((li) => li.textContent ?? "");
+    await waitFor(() => expect(names()[0]).toContain("Steady"));
+
+    await userEvent.click(screen.getByRole("button", { name: "Most focus time" }));
+    expect(names()[0]).toContain("Grind");
+  });
+
+  it("names itself and offers the three periods", async () => {
+    serveLeaderboard([FRIEND, ME]);
+    renderFriends();
+
+    expect(await screen.findByText("Your circle")).toBeInTheDocument();
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual([
+      "This week",
+      "This month",
+      "All time",
+    ]);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("asks the server for the chosen period", async () => {
+    const periods: unknown[] = [];
+    server.use(
+      http.post(rpc("get_friends_leaderboard"), async ({ request }) => {
+        const body = (await request.json()) as { period?: unknown };
+        periods.push(body.period);
+        return HttpResponse.json([FRIEND, ME]);
+      }),
+    );
+    renderFriends();
+
+    const user = userEvent.setup();
+    await screen.findByText("Your circle");
+    await user.click(screen.getByRole("tab", { name: "All time" }));
+
+    await waitFor(() => expect(periods).toContain("all"));
+    expect(periods[0]).toBe("week");
   });
 
   it("warns before rotating the code, then reports the new link", async () => {

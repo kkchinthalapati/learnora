@@ -8,15 +8,29 @@ import type { SourceType } from "../../types/notebooks";
 import { callEdge } from "../../api/ai";
 import { decksApi } from "../../api/decks";
 import { flashcardsApi } from "../../api/flashcards";
+import { CREATE_DEFAULTS, generateDeck } from "../../api/studyPackage";
+import { generateQuizFrom } from "../../api/aiQuiz";
 import { useToast } from "../../context/toast";
 import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
+import { WebSourceImportModal } from "./WebSourceImportModal";
 import { renderMarkdownNodes } from "../../lib/markdownToReact";
 import { extractSvgSource } from "../../lib/diagramSvg";
 import {
   DIAGRAM_CHAT_HINT,
   buildDiagramTaskPrompt,
 } from "../../lib/diagramPrompt";
+import { useStudentEvidence } from "../../hooks/useStudentEvidence";
+import { useMisconceptions } from "../../hooks/useMisconceptions";
+import { formatEvidenceForPrompt } from "../../lib/studentEvidence";
+import { formatMisconceptionsForPrompt } from "../../lib/misconceptions";
+import { useSettings } from "../../context/settings";
+import { fenceUntrusted } from "../../lib/actionTags";
+import { useAiUsage } from "../../hooks/useAiUsage";
+import { plural } from "../../lib/plural";
+import { newSessionHref } from "../../lib/sessionModes";
+
+const MAX_NOTEBOOK_SOURCE_CHARS = 12_000;
 
 function flashcardsFromCheatSheet(content: string) {
   const cards = content
@@ -50,6 +64,7 @@ export function NotebookStudioView() {
   const { notebookId = "" } = useParams<{ notebookId: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { settings } = useSettings();
 
   const {
     notebook,
@@ -73,6 +88,32 @@ export function NotebookStudioView() {
   const [chatInput, setChatInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
+  const [isWebSearchOpen, setIsWebSearchOpen] = useState(false);
+
+  /* The tutor in here is asked "am I ready for this?" as often as it is asked
+     to explain something, and until it could see quiz results it answered that
+     from the sources alone — which is to say, it guessed. */
+  const { evidence: studentEvidence, isPending: isEvidencePending } =
+    useStudentEvidence();
+  const { all: ledger, isPending: isLedgerPending } = useMisconceptions();
+
+  const { usageFor, isPending: isUsagePending } = useAiUsage();
+  const flashcardsUsage = usageFor("flashcards");
+  const quizUsage = usageFor("quiz");
+  const studioUsage = usageFor("notebookStudio");
+
+  const renderQuotaBadge = (usage: ReturnType<typeof usageFor>) => {
+    if (isUsagePending || usage.unlimited) return null;
+    const badgeClass = usage.exceeded
+      ? styles.toolQuotaBadgeExceeded
+      : usage.fraction >= 0.8
+        ? styles.toolQuotaBadgeWarn
+        : styles.toolQuotaBadge;
+    const label = usage.exceeded
+      ? "Limit reached"
+      : `${usage.remaining} left today`;
+    return <span className={badgeClass}>{label}</span>;
+  };
 
   // Diagram brief: what the drawing should show, asked before generating.
   const [isDiagramPromptOpen, setIsDiagramPromptOpen] = useState(false);
@@ -110,7 +151,7 @@ export function NotebookStudioView() {
       ? `${notebook.notes}\n\n---\n\n${content}`
       : content;
     updateNotes(next);
-    showToast("Appended to your Notes Canvas!");
+    showToast("Added to your Notes Canvas");
     setActiveArtifactPreview(null);
   };
 
@@ -120,11 +161,14 @@ export function NotebookStudioView() {
     try {
       const cards = flashcardsFromCheatSheet(activeArtifactPreview.content);
       const deck = await decksApi.add(
-        null,
+        notebook.folderId,
         `${notebook.title} — Revision Cheat Sheet`,
+        notebook.id,
       );
       await flashcardsApi.addBatch(deck.id, cards);
-      showToast(`Created a flashcard deck with ${cards.length} cards.`);
+      showToast(
+        `Created a flashcard deck with ${plural(cards.length, "card")}.`,
+      );
       setActiveArtifactPreview(null);
       void navigate(`/review/${deck.id}`);
     } catch {
@@ -156,7 +200,10 @@ export function NotebookStudioView() {
         title="Notebook not found"
         message="This notebook may have been deleted or does not exist."
       >
-        <Button variant="primary" onClick={() => void navigate("/notebooks")}>
+        <Button
+          variant="primary"
+          onClick={() => void navigate("/library/notebooks")}
+        >
           Back to Notebooks
         </Button>
       </EmptyState>
@@ -164,6 +211,23 @@ export function NotebookStudioView() {
   }
 
   const selectedSources = notebook.sources.filter((s) => s.selected);
+
+  /* The selected sources as one prompt-ready block, numbered so the model can
+     cite them as [1], [2].
+     Source text is student-supplied and can carry instructions of its own — a
+     pasted past paper, a scraped web page — so every source is fenced and
+     capped here rather than at each call site. The chat path already did this;
+     the studio generators below interpolated `s.content` raw, which is the
+     same prompt-injection hole with none of the protection. */
+  const groundedSourceText = () =>
+    selectedSources
+      .map(
+        (s, idx) =>
+          `[Source ${idx + 1}: ${s.title}]\n"""\n${fenceUntrusted(
+            s.content.slice(0, MAX_NOTEBOOK_SOURCE_CHARS),
+          )}\n"""`,
+      )
+      .join("\n\n---\n\n");
 
   const handleAddSourceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,7 +240,7 @@ export function NotebookStudioView() {
     setNewSourceTitle("");
     setNewSourceContent("");
     setIsAddSourceOpen(false);
-    showToast("Study source added to notebook!");
+    showToast("Study source added to notebook");
   };
 
   const handleSendChat = async (overridePrompt?: string) => {
@@ -195,9 +259,7 @@ export function NotebookStudioView() {
       // Build grounded context from selected sources
       const sourcesContext =
         selectedSources.length > 0
-          ? selectedSources
-              .map((s, idx) => `[Source ${idx + 1}: ${s.title}]\n${s.content}`)
-              .join("\n\n---\n\n")
+          ? groundedSourceText()
           : "No external sources attached. Use general subject knowledge.";
 
       const systemPrompt = `You are Learnora's AI Study Tutor in a deep revision Notebook Studio for ${notebook.subject}.
@@ -211,31 +273,59 @@ Keep explanations friendly, encouraging, and structured for student success.
 
 ${DIAGRAM_CHAT_HINT}`;
 
+      /* While the cache is still filling, the summary would read "0 quizzes
+         taken" — which is a claim, not an absence. Say the true thing
+         instead. */
+      const evidenceBlock = isEvidencePending
+        ? "PERFORMANCE EVIDENCE: still loading. You do not know this student's quiz results right now, so make no claims about how they are performing and give no grade estimate."
+        : formatEvidenceForPrompt(studentEvidence);
+
+      /* The grounded tutor answers from the student's own sources; the ledger
+         tells it which of those the student has already got wrong, so an
+         explanation can pre-empt the specific error rather than restating the
+         source neutrally. Same loading treatment as the evidence block above:
+         while the cache fills, say so rather than implying a clean record. */
+      const ledgerBlock = isLedgerPending
+        ? "MISCONCEPTION LEDGER: still loading. You do not know this student's diagnosed misconceptions right now, so do not claim they have any or that they have none."
+        : formatMisconceptionsForPrompt(ledger);
+
       const response = await callEdge({
         history: [
           {
             role: "user",
-            content: `${systemPrompt}\n\nSTUDY SOURCES:\n${sourcesContext}\n\nSTUDENT QUESTION:\n${promptToSend}`,
+            content: `${systemPrompt}\n\n${evidenceBlock}\n\n${ledgerBlock}\n\nSTUDY SOURCES:\n${sourcesContext}\n\nSTUDENT QUESTION:\n${promptToSend}`,
           },
         ],
+        tool: "notebookStudio",
+        settings,
       });
 
-      const citations = selectedSources.map((s) => ({
-        sourceId: s.id,
-        sourceTitle: s.title,
-        snippet: s.content.slice(0, 120) + "…",
-      }));
+      const citedIndexes = new Set(
+        Array.from(
+          response.text.matchAll(/\[(\d+)]/g),
+          (match) => Number(match[1]) - 1,
+        ),
+      );
+      const citations = selectedSources
+        .filter((_, index) => citedIndexes.has(index))
+        .map((s) => ({
+          sourceId: s.id,
+          sourceTitle: s.title,
+          snippet: s.content.slice(0, 120) + "…",
+        }));
 
       addChatMessage({
         role: "assistant",
         content: response.text,
-        citations: selectedSources.length > 0 ? citations : undefined,
+        citations: citations.length > 0 ? citations : undefined,
       });
-    } catch {
+    } catch (cause) {
       addChatMessage({
         role: "assistant",
         content:
-          "I have grounded your notes for this question. Let's focus on key definitions and proof principles.",
+          cause instanceof Error
+            ? cause.message
+            : "I couldn't answer from these sources. Please try again.",
       });
     } finally {
       setIsGenerating(false);
@@ -244,11 +334,18 @@ ${DIAGRAM_CHAT_HINT}`;
 
   // Studio Generator Handlers
   const handleGenerateCheatSheet = async () => {
+    if (studioUsage.exceeded) {
+      showToast("You've reached today's limit for Studio AI tools.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
     setIsGenerating(true);
     showToast("Generating high-yield Revision Cheat Sheet…");
 
     try {
-      const sourcesText = selectedSources.map((s) => s.content).join("\n\n");
+      const sourcesText = groundedSourceText();
       const prompt = `Create a high-yield, structured Revision Cheat Sheet for "${notebook.title}".
 Format in clean Markdown with:
 1. 📌 Core Definitions & Fundamentals
@@ -264,6 +361,8 @@ Use British English throughout.`;
             content: `You are an expert British exam revision coach. Generate concise, high-yield cheat sheets.\n\nSOURCES:\n${sourcesText}\n\nTASK:\n${prompt}`,
           },
         ],
+        tool: "notebookStudio",
+        settings,
       });
 
       addArtifact({
@@ -273,27 +372,36 @@ Use British English throughout.`;
         summary:
           "Structured summary covering core theorems, definitions, and exam pitfalls.",
       });
-      showToast("Cheat Sheet saved to your Notebook Studio!");
-    } catch {
-      // Fallback
-      addArtifact({
-        type: "cheat_sheet",
-        title: `${notebook.subject}: High-Yield Revision Cheat Sheet`,
-        content: `### High-Yield Revision Sheet\n\n- **Key Principle**: Always break down the given theorem into assumptions and conclusions.\n- **Exam Strategy**: Show step-by-step working and state exact theorem names.\n- **Common Trap**: Forgetting to justify congruency conditions (SAS, SSS, RHS).`,
-        summary: "Essential theorem rules and exam tips.",
-      });
-      showToast("Cheat Sheet generated and saved!");
+      showToast("Cheat sheet saved to Notebook Studio");
+    } catch (cause) {
+      /* Deliberately no fallback artifact. This used to save a hardcoded
+         paragraph about congruency conditions and tell the student their cheat
+         sheet was "generated and saved" — content invented here, attributed to
+         their own sources, and indistinguishable from a real one once it was
+         in the artifact list. A failure has to read as a failure. */
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not generate the cheat sheet. Please try again.",
+      );
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleGenerateFeynman = async () => {
+    if (studioUsage.exceeded) {
+      showToast("You've reached today's limit for Studio AI tools.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
     setIsGenerating(true);
     showToast("Writing a plain-English breakdown…");
 
     try {
-      const sourcesText = selectedSources.map((s) => s.content).join("\n\n");
+      const sourcesText = groundedSourceText();
       const prompt = `Generate a Feynman Technique Concept Breakdown for "${notebook.title}".
 1. Core Concept in Plain English (as if explaining to a 10-year-old).
 2. The Everyday Analogy.
@@ -308,6 +416,8 @@ Use British English throughout.`;
             content: `You are a Feynman Technique specialist helping students master deep intuition.\n\nSOURCES:\n${sourcesText}\n\nTASK:\n${prompt}`,
           },
         ],
+        tool: "notebookStudio",
+        settings,
       });
 
       addArtifact({
@@ -318,14 +428,14 @@ Use British English throughout.`;
           "Plain-language analogy, concept simplification, and gap-finder questions.",
       });
       showToast("Breakdown saved to your notebook.");
-    } catch {
-      addArtifact({
-        type: "feynman",
-        title: `Feynman Intuition: ${notebook.title}`,
-        content: `### Feynman Concept Breakdown\n\n**Plain-Language Idea**: Think of a circle like a bicycle wheel where all spokes have equal length (the radius).\n\n**Common Gap**: Students often assume chords are diameters unless explicitly stated.`,
-        summary: "Plain-language simplification and gap-finder.",
-      });
-      showToast("Breakdown saved.");
+    } catch (cause) {
+      /* As above: the fallback here invented a circle-theorem analogy and
+         saved it as though the model had written it from this notebook. */
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not write the breakdown. Please try again.",
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -333,24 +443,38 @@ Use British English throughout.`;
 
   /* Unlike the other tools this one has a free-text brief: "a diagram" is
      never one thing, and a student who wants the circle theorems on a single
-     circle should not get a generic concept map instead. */
+     circle should not get a generic concept map instead.
+
+     An SVG drawing, not a ```mermaid one: mermaid covers processes, sequences
+     and mindmaps (lib/chatPrompt.ts), but it cannot draw a circle with an
+     angle marked on it, which is most of what a maths or science notebook
+     needs. */
   const handleGenerateDiagram = async (request?: string) => {
+    if (studioUsage.exceeded) {
+      showToast("You've reached today's limit for Studio AI tools.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
     setIsGenerating(true);
     showToast("Drawing your diagram…");
 
     try {
-      const sourcesText = selectedSources.map((s) => s.content).join("\n\n");
       const res = await callEdge({
         history: [
           {
             role: "user",
-            content: `You are a diagram illustrator for a British revision app. You draw accurate, labelled SVG diagrams for students.\n\nSOURCES:\n${sourcesText}\n\nTASK:\n${buildDiagramTaskPrompt(notebook.title, request)}`,
+            content: `You are a diagram illustrator for a British revision app. You draw accurate, labelled SVG diagrams for students.\n\nSOURCES:\n${groundedSourceText()}\n\nTASK:\n${buildDiagramTaskPrompt(notebook.title, request)}`,
           },
         ],
+        tool: "notebookStudio",
+        settings,
       });
 
       /* A reply with no drawing in it is a failed generation, not an artifact
-         — saving it would put a wall of prose in the diagram slot. */
+         — saving it would put a wall of prose in the diagram slot, which is
+         the same lie the old hardcoded fallbacks told. */
       if (!extractSvgSource(res.text)) {
         showToast("That did not come back as a diagram. Please try again.");
         return;
@@ -364,33 +488,99 @@ Use British English throughout.`;
         content: res.text,
         summary: "Labelled diagram drawn from your notebook sources.",
       });
-      showToast("Diagram saved to your Notebook Studio!");
-    } catch {
-      showToast("Could not draw that diagram. Please try again in a moment.");
+      showToast("Diagram saved to Notebook Studio");
+    } catch (cause) {
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not draw that diagram. Please try again in a moment.",
+      );
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleGenerateFlashcards = () => {
-    showToast("Flashcards generator ready! Creating SRS cards…");
-    addArtifact({
-      type: "flashcards",
-      title: `${notebook.subject} Flashcard Pack (8 Cards)`,
-      content:
-        "Flashcard deck created from your selected notebook sources. Ready to review in Library.",
-      summary: "8 active recall cards generated from notebook sources.",
-    });
+  /* Both of these used to write a `notebook_artifacts` row describing a deck
+     or quiz that was never created — the artifact claimed "8 Cards" and "Five
+     quick questions", nothing was generated, and no row reached
+     `flashcard_decks` or `quizzes`. They now call the same generators the rest
+     of the app uses, so what the toast claims is what actually exists.
+
+     Note these are real `callEdge` calls where the stubs were free, so they
+     now count against the student's `flashcards` and `quiz` tool quotas. */
+
+  const handleGenerateFlashcards = async () => {
+    if (flashcardsUsage.exceeded) {
+      showToast("You've reached today's limit for flashcard decks.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
+    if (selectedSources.length === 0) {
+      showToast("Select at least one source to make flashcards from.");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const deck = await generateDeck({
+        sourceText: groundedSourceText(),
+        folderId: notebook.folderId,
+        notebookId: notebook.id,
+        title: `${notebook.title} — Flashcards`,
+        count: CREATE_DEFAULTS.cardCount,
+        settings,
+      });
+      showToast("Flashcard deck created from your sources.", {
+        actionLabel: "Review",
+        onAction: () => void navigate(`/review/${deck.id}`),
+      });
+    } catch (cause) {
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not create the flashcard deck. Please try again.",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleGenerateQuiz = () => {
-    showToast("Practice Quiz generated!");
-    addArtifact({
-      type: "quiz",
-      title: `${notebook.subject} Formative Self-Quiz`,
-      content: "Five quick questions on this notebook's topic.",
-      summary: "Formative quiz to verify theorem application.",
-    });
+  const handleGenerateQuiz = async () => {
+    if (quizUsage.exceeded) {
+      showToast("You've reached today's limit for practice quizzes.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
+    if (selectedSources.length === 0) {
+      showToast("Select at least one source to make a quiz from.");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const quiz = await generateQuizFrom({
+        sourceText: groundedSourceText(),
+        topic: notebook.title,
+        title: `${notebook.title} — Quiz`,
+        folderId: notebook.folderId,
+        notebookId: notebook.id,
+        settings,
+      });
+      showToast("Quiz created from your sources.", {
+        actionLabel: "Start",
+        onAction: () => void navigate(`/quiz/${quiz.id}`),
+      });
+    } catch (cause) {
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not create the quiz. Please try again.",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -398,7 +588,7 @@ Use British English throughout.`;
       {/* Studio Top Bar */}
       <header className={styles.studioTopBar}>
         <div className={styles.topBarLeft}>
-          <Link to="/notebooks" className={styles.backBtn}>
+          <Link to="/library/notebooks" className={styles.backBtn}>
             <Icon
               name="chevron-down"
               size={16}
@@ -564,6 +754,20 @@ Use British English throughout.`;
           <div className={styles.addSourceFooter}>
             <Button
               variant="secondary"
+              onClick={() => setIsWebSearchOpen(true)}
+              style={{
+                width: "100%",
+                display: "inline-flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "var(--s-2)",
+                marginBottom: "var(--s-2)",
+              }}
+            >
+              🌐 Web Search
+            </Button>
+            <Button
+              variant="secondary"
               onClick={() => setIsAddSourceOpen(true)}
               style={{
                 width: "100%",
@@ -634,14 +838,22 @@ Use British English throughout.`;
                     >
                       Study Working & Notes
                     </span>
-                    <span className={styles.saveIndicator}>
-                      <Icon
-                        name="check"
-                        size={12}
-                        style={{ color: "var(--success)" }}
-                      />
-                      Autosaved
-                    </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "var(--s-2)",
+                      }}
+                    >
+                      <span className={styles.saveIndicator}>
+                        <Icon
+                          name="check"
+                          size={12}
+                          style={{ color: "var(--success)" }}
+                        />
+                        Autosaved
+                      </span>
+                    </div>
                   </div>
                   <textarea
                     value={notebook.notes}
@@ -652,7 +864,7 @@ Use British English throughout.`;
                       flex: 1,
                       minHeight: "350px",
                       background: "var(--surface)",
-                      border: "1px solid var(--border)",
+                      border: "var(--border)",
                       borderRadius: "var(--r-lg)",
                       padding: "var(--s-4)",
                       color: "var(--text)",
@@ -685,7 +897,9 @@ Use British English throughout.`;
                             <div className={styles.userText}>{msg.content}</div>
                           ) : (
                             <div className={styles.replyProse}>
-                              {renderMarkdownNodes(msg.content)}
+                              {renderMarkdownNodes(msg.content, {
+                                diagrams: true,
+                              })}
                             </div>
                           )}
 
@@ -795,6 +1009,25 @@ Use British English throughout.`;
                   height: "100%",
                 }}
               >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: "var(--s-2)",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "var(--fs-xs)",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    Notes Canvas
+                  </span>
+                </div>
                 <textarea
                   value={notebook.notes}
                   onChange={(e) => updateNotes(e.target.value)}
@@ -804,7 +1037,7 @@ Use British English throughout.`;
                     flex: 1,
                     minHeight: "400px",
                     background: "var(--surface)",
-                    border: "1px solid var(--border)",
+                    border: "var(--border)",
                     borderRadius: "var(--r-lg)",
                     padding: "var(--s-5)",
                     color: "var(--text)",
@@ -835,7 +1068,7 @@ Use British English throughout.`;
                         <div className={styles.userText}>{msg.content}</div>
                       ) : (
                         <div className={styles.replyProse}>
-                          {renderMarkdownNodes(msg.content)}
+                          {renderMarkdownNodes(msg.content, { diagrams: true })}
                         </div>
                       )}
 
@@ -956,9 +1189,14 @@ Use British English throughout.`;
             <div className={styles.toolsGrid}>
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${studioUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={() => void handleGenerateFeynman()}
                 disabled={isGenerating}
+                title={
+                  studioUsage.exceeded
+                    ? "Daily allowance reached for Studio tools"
+                    : undefined
+                }
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="brain" size={18} />
@@ -967,13 +1205,19 @@ Use British English throughout.`;
                 <div className={styles.toolSubtext}>
                   Explain simply & find knowledge gaps
                 </div>
+                {renderQuotaBadge(studioUsage)}
               </button>
 
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${studioUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={() => setIsDiagramPromptOpen(true)}
                 disabled={isGenerating}
+                title={
+                  studioUsage.exceeded
+                    ? "Daily allowance reached for Studio tools"
+                    : undefined
+                }
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="network" size={18} />
@@ -982,13 +1226,19 @@ Use British English throughout.`;
                 <div className={styles.toolSubtext}>
                   Draw & label the concept
                 </div>
+                {renderQuotaBadge(studioUsage)}
               </button>
 
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${studioUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={() => void handleGenerateCheatSheet()}
                 disabled={isGenerating}
+                title={
+                  studioUsage.exceeded
+                    ? "Daily allowance reached for Studio tools"
+                    : undefined
+                }
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="file-text" size={18} />
@@ -997,12 +1247,19 @@ Use British English throughout.`;
                 <div className={styles.toolSubtext}>
                   High-yield formulas & definitions
                 </div>
+                {renderQuotaBadge(studioUsage)}
               </button>
 
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${flashcardsUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={handleGenerateFlashcards}
+                disabled={isGenerating}
+                title={
+                  flashcardsUsage.exceeded
+                    ? "Daily allowance reached for flashcard decks"
+                    : undefined
+                }
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="layers" size={18} />
@@ -1011,18 +1268,47 @@ Use British English throughout.`;
                 <div className={styles.toolSubtext}>
                   Generate active recall deck
                 </div>
+                {renderQuotaBadge(flashcardsUsage)}
               </button>
 
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${quizUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={handleGenerateQuiz}
+                disabled={isGenerating}
+                title={
+                  quizUsage.exceeded
+                    ? "Daily allowance reached for practice quizzes"
+                    : undefined
+                }
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="check" size={18} />
                 </div>
                 <div className={styles.toolLabel}>Practice Quiz</div>
                 <div className={styles.toolSubtext}>Quick self-test</div>
+                {renderQuotaBadge(quizUsage)}
+              </button>
+
+              <button
+                type="button"
+                className={styles.toolButton}
+                onClick={() => {
+                  void navigate(
+                    newSessionHref("socratic", {
+                      topic: notebook.title,
+                      voice: true,
+                    }),
+                  );
+                }}
+              >
+                <div className={styles.toolIconBox}>
+                  <Icon name="mic" size={18} />
+                </div>
+                <div className={styles.toolLabel}>Socratic, by voice</div>
+                <div className={styles.toolSubtext}>
+                  Questions instead of answers, out loud
+                </div>
               </button>
             </div>
           </div>
@@ -1144,7 +1430,7 @@ Use British English throughout.`;
                   width: "100%",
                   padding: "10px 14px",
                   borderRadius: "var(--r-md)",
-                  border: "1px solid var(--border)",
+                  border: "var(--border)",
                   background: "var(--surface)",
                   color: "var(--text)",
                 }}
@@ -1169,7 +1455,7 @@ Use British English throughout.`;
                   width: "100%",
                   padding: "10px 14px",
                   borderRadius: "var(--r-md)",
-                  border: "1px solid var(--border)",
+                  border: "var(--border)",
                   background: "var(--surface)",
                   color: "var(--text)",
                 }}
@@ -1203,7 +1489,7 @@ Use British English throughout.`;
                   width: "100%",
                   padding: "10px 14px",
                   borderRadius: "var(--r-md)",
-                  border: "1px solid var(--border)",
+                  border: "var(--border)",
                   background: "var(--surface)",
                   color: "var(--text)",
                   fontFamily: "inherit",
@@ -1322,7 +1608,9 @@ Use British English throughout.`;
             className={styles.replyProse}
             style={{ maxHeight: "60vh", overflowY: "auto" }}
           >
-            {renderMarkdownNodes(activeArtifactPreview.content)}
+            {renderMarkdownNodes(activeArtifactPreview.content, {
+              diagrams: true,
+            })}
           </div>
           <div
             style={{
@@ -1368,7 +1656,7 @@ Use British English throughout.`;
                 void navigator.clipboard.writeText(
                   activeArtifactPreview.content,
                 );
-                showToast("Copied to clipboard!");
+                showToast("Copied to clipboard");
               }}
             >
               Copy to clipboard
@@ -1382,6 +1670,16 @@ Use British English throughout.`;
           </div>
         </Modal>
       )}
+
+      <WebSourceImportModal
+        open={isWebSearchOpen}
+        onClose={() => setIsWebSearchOpen(false)}
+        onImport={(source) => {
+          addSource(source);
+          setIsWebSearchOpen(false);
+          showToast(`Added "${source.title}" to sources!`);
+        }}
+      />
     </div>
   );
 }

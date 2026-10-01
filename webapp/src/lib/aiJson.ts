@@ -66,6 +66,51 @@ function tryParse(text: string): unknown {
   }
 }
 
+/** Parse a model reply that should contain one JSON value, tolerating the
+ *  three ways replies routinely fail to be bare JSON: a ```json fence, prose
+ *  wrapped around the value, and a trailing comma.
+ *
+ *  The typed extractors below cover the three shapes with their own validation
+ *  (quiz, flashcards, plan). This is for everywhere else — the sparring,
+ *  debugger, Feynman and exam-deconstructor replies, each of which had hand
+ *  rolled some subset of this. `api/aiSparring.ts` had rolled none of it and
+ *  called `JSON.parse` on the raw reply, so a fenced answer threw.
+ *
+ *  Returns undefined rather than throwing: every caller already has a failure
+ *  path, and a SyntaxError from deep inside a parse helper is not a better
+ *  signal than "the model did not return usable JSON". */
+export function extractJSON<T = unknown>(
+  text: string | null | undefined,
+): T | undefined {
+  if (!text) return undefined;
+  for (const candidate of [
+    text.trim(),
+    stripFences(text),
+    ...jsonBlocksByStart(text),
+  ]) {
+    if (!candidate) continue;
+    const parsed = tryParse(candidate);
+    if (parsed !== undefined) return parsed as T;
+  }
+  return undefined;
+}
+
+/** Keep prose-wrapped containers in source order. An array commonly contains
+ * objects, so always trying an object block first would return an inner item
+ * instead of the outer array the provider actually emitted. */
+function jsonBlocksByStart(text: string): string[] {
+  return [
+    { start: text.indexOf("{"), value: sliceBlock(text, "{", "}") },
+    { start: text.indexOf("["), value: sliceBlock(text, "[", "]") },
+  ]
+    .filter(
+      (candidate): candidate is { start: number; value: string } =>
+        candidate.start !== -1 && candidate.value !== undefined,
+    )
+    .sort((a, b) => a.start - b.start)
+    .map((candidate) => candidate.value);
+}
+
 /** Slice out the first `open` … last `close` block, for a reply that arrived
  *  with prose wrapped around its JSON. */
 function sliceBlock(
@@ -160,26 +205,41 @@ export function extractPlanJSON(
 
 const QUIZ_KEYS = ["questions", "quiz", "items", "data"] as const;
 
-/* `correctIndex` is validated here, not just question/choices: the quiz view
+/* What a question has to be before a student is allowed to see it.
+ *
+ * `correctIndex` is validated here, not just question/choices: the quiz view
  * grades with `i === q.correctIndex`, so a model that emits `answer` or
  * `correct_index` instead produces a quiz where every answer — including the
- * right one — is marked wrong, with no error anywhere. */
-function isQuizArray(value: unknown): value is QuizQuestion[] {
+ * right one — is marked wrong, with no error anywhere.
+ *
+ * The choice checks exist because `QuizRunner` renders each choice straight
+ * into a button (`{choice}`). A model that returns objects — `[{"text":"A"}]`,
+ * a shape some providers fall into when asked for structured output — passes
+ * an `Array.isArray` check and then throws "Objects are not valid as a React
+ * child" mid-quiz, taking the run down with it. An empty string passes too and
+ * renders as a blank button nobody can interpret.
+ *
+ * Duplicate choices are rejected rather than de-duplicated: removing one would
+ * shift every index after it and silently move `correctIndex` onto the wrong
+ * answer. A question offering the same option twice is unanswerable anyway —
+ * picking the identical-but-not-`correctIndex` copy is marked wrong. */
+function isValidQuestion(value: unknown): value is QuizQuestion {
+  if (!value || typeof value !== "object") return false;
+  const q = value as QuizQuestion;
+
+  if (typeof q.question !== "string" || q.question.trim() === "") return false;
+  if (!Array.isArray(q.choices) || q.choices.length < 2) return false;
+  if (!q.choices.every((c) => typeof c === "string" && c.trim() !== "")) {
+    return false;
+  }
+
+  const seen = new Set(q.choices.map((c) => c.trim().toLowerCase()));
+  if (seen.size !== q.choices.length) return false;
+
   return (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every((q) => {
-      const question = q as QuizQuestion;
-      return (
-        !!q &&
-        typeof question.question === "string" &&
-        Array.isArray(question.choices) &&
-        question.choices.length > 1 &&
-        Number.isInteger(question.correctIndex) &&
-        question.correctIndex >= 0 &&
-        question.correctIndex < question.choices.length
-      );
-    })
+    Number.isInteger(q.correctIndex) &&
+    q.correctIndex >= 0 &&
+    q.correctIndex < q.choices.length
   );
 }
 
@@ -191,13 +251,26 @@ export function extractQuizJSON(
   const candidates = [
     text.trim(),
     stripFences(text),
+    /* Before the bare-array slice, because a reply that wraps its array in an
+       object *and* in prose ("Here are 10 questions [as requested]: {…}")
+       would otherwise have its first `[` taken from the prose, and the slice
+       would run from there to the array's close — parsing to nothing. */
+    sliceBlock(text, "{", "}"),
     sliceBlock(text, "[", "]"),
   ];
 
   for (const candidate of candidates) {
     if (!candidate) continue;
     const parsed = unwrap(tryParse(candidate), QUIZ_KEYS);
-    if (isQuizArray(parsed)) return parsed;
+    if (!Array.isArray(parsed)) continue;
+
+    /* Keep the questions that survive rather than discarding the batch on one
+       bad entry. A model that hallucinates the tenth question still wrote nine
+       usable ones, and nine questions is a quiz — where the old all-or-nothing
+       check fell through to the next candidate, failed there too, and left the
+       student with "Couldn't generate a quiz this time." */
+    const valid = parsed.filter(isValidQuestion);
+    if (valid.length > 0) return valid;
   }
   return [];
 }

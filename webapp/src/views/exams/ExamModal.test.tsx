@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/mocks/server";
@@ -99,6 +99,11 @@ describe("ExamModal", () => {
     expect(screen.getByLabelText("When is it?")).toHaveAttribute("min", TODAY);
   });
 
+  it("starts a new exam on today rather than a past pre-filled date", () => {
+    renderModal({ initialDate: "2020-01-01" });
+    expect(screen.getByLabelText("When is it?")).toHaveValue(TODAY);
+  });
+
   it("drops the min for an existing exam, which may legitimately be past", () => {
     renderModal({ exam: existingExam() });
     expect(screen.getByLabelText("When is it?")).not.toHaveAttribute("min");
@@ -155,6 +160,48 @@ describe("ExamModal", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  /* A double-click on "Add exam" inserted two identical exams: the second
+     submit arrived before `isPending` had re-rendered the button disabled. */
+  it("saves once when the form is submitted twice in quick succession", async () => {
+    let posts = 0;
+    server.use(
+      http.post(REST, async () => {
+        posts += 1;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    const { onClose } = renderModal({ initialDate: FUTURE });
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("What's the exam?"), "Chemistry Paper 1");
+
+    const form = screen.getByRole("button", { name: "Add exam" }).closest("form")!;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(posts).toBe(1);
+  });
+
+  it("refuses a date past the five-year cap even though the form is noValidate", async () => {
+    let posted = false;
+    server.use(
+      http.post(REST, () => {
+        posted = true;
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderModal({ initialDate: "2206-05-01" });
+    await user.type(screen.getByLabelText("What's the exam?"), "Typo year");
+    await user.click(screen.getByRole("button", { name: "Add exam" }));
+
+    expect(
+      await screen.findByText(/more than five years away/),
+    ).toBeInTheDocument();
+    expect(posted).toBe(false);
+  });
+
   it("always files a new exam as Scheduled", async () => {
     const user = userEvent.setup();
     let body: Record<string, unknown>[] | undefined;
@@ -177,6 +224,85 @@ describe("ExamModal", () => {
       difficulty: "Hard",
       status: "Scheduled",
       user_id: "user-1",
+    });
+  });
+
+  /* The subject is what lets readiness and the forecast be about this exam
+     rather than about the whole library. Without it both fall back to
+     guessing the subject from the exam's name. */
+  describe("subject", () => {
+    const folders = [
+      { id: "f-bio", user_id: "user-1", name: "Biology", color: "#fff", created_at: "" },
+      { id: "f-maths", user_id: "user-1", name: "Maths", color: "#fff", created_at: "" },
+    ];
+
+    function serveFolders() {
+      server.use(
+        http.get(`${SUPABASE_URL}/rest/v1/folders`, () =>
+          HttpResponse.json(folders),
+        ),
+      );
+    }
+
+    it("saves the chosen subject with the exam", async () => {
+      const user = userEvent.setup();
+      serveFolders();
+      let body: Record<string, unknown>[] | undefined;
+      server.use(
+        http.post(REST, async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>[];
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      renderModal({ initialDate: FUTURE });
+
+      await user.type(
+        screen.getByLabelText("What's the exam?"),
+        "End of Term",
+      );
+      const picker = await screen.findByLabelText(/Subject/);
+      await user.selectOptions(picker, "f-bio");
+      await user.click(screen.getByRole("button", { name: "Add exam" }));
+
+      await waitFor(() => expect(body).toBeDefined());
+      expect(body![0]).toMatchObject({ folder_id: "f-bio" });
+    });
+
+    it("sends null when no subject is chosen", async () => {
+      const user = userEvent.setup();
+      serveFolders();
+      let body: Record<string, unknown>[] | undefined;
+      server.use(
+        http.post(REST, async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>[];
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      renderModal({ initialDate: FUTURE });
+
+      await user.type(screen.getByLabelText("What's the exam?"), "End of Term");
+      await screen.findByLabelText(/Subject/);
+      await user.click(screen.getByRole("button", { name: "Add exam" }));
+
+      await waitFor(() => expect(body).toBeDefined());
+      expect(body![0].folder_id).toBeNull();
+    });
+
+    it("hides the picker when there are no subjects to choose", async () => {
+      server.use(
+        http.get(`${SUPABASE_URL}/rest/v1/folders`, () => HttpResponse.json([])),
+      );
+      renderModal({ initialDate: FUTURE });
+
+      await screen.findByLabelText("What's the exam?");
+      expect(screen.queryByLabelText(/Subject/)).toBeNull();
+    });
+
+    it("prefills the subject when editing", async () => {
+      serveFolders();
+      renderModal({ exam: existingExam({ folder_id: "f-maths" }) });
+
+      expect(await screen.findByLabelText(/Subject/)).toHaveValue("f-maths");
     });
   });
 

@@ -352,12 +352,10 @@
 
 .smartReviewBtn {
   width: 100%;
-  box-shadow: 0 4px 14px var(--accent-glow);
   font-weight: 700;
 }
 
 .smartReviewBtn:hover {
-  box-shadow: 0 6px 20px var(--accent-glow);
 }
 
 .emptyPrompt {
@@ -365,4 +363,15 @@
   color: var(--text-muted);
   text-align: center;
   margin: var(--s-2) 0;
+}
+
+/* Touch sizing — see the note in Sidebar.module.css. "See more →" measured
+ * 19px: it sits on its own in the widget's header rather than inside a
+ * sentence, so the WCAG 2.5.8 inline-link exemption does not cover it. */
+@media (pointer: coarse) {
+  .analyticsLink {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-target-min);
+  }
 }

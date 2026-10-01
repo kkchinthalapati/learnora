@@ -1,11 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
 import { useContinuity } from "../../hooks/useContinuity";
 import { useMaterial } from "../../hooks/useMaterials";
-import { useNotesByMaterial } from "../../hooks/useNotes";
+import { notesKeys, useNotesByMaterial } from "../../hooks/useNotes";
 import { NotesEditorPane } from "./NotesEditorPane";
 import styles from "./notes.module.css";
 
@@ -25,6 +26,22 @@ export function NotesView() {
   const material = useMaterial(materialId);
   const notes = useNotesByMaterial(materialId);
   const { recordMaterial } = useContinuity();
+  const queryClient = useQueryClient();
+  const previousProcessing = useRef<string | undefined>(undefined);
+  const processingVersion = material.data
+    ? `${materialId}:${material.data.processing_status}:${material.data.processing_updated_at}`
+    : undefined;
+  useEffect(() => {
+    if (
+      previousProcessing.current &&
+      previousProcessing.current !== processingVersion
+    ) {
+      void queryClient.invalidateQueries({
+        queryKey: notesKeys.byMaterial(materialId),
+      });
+    }
+    previousProcessing.current = processingVersion;
+  }, [materialId, processingVersion, queryClient]);
 
   /* Feed the dashboard's "Resume Learning" card: an opened document becomes
    * the pick-up-where-you-left-off candidate until another activity replaces
@@ -77,6 +94,7 @@ export function NotesView() {
   return (
     <NotesEditorPane
       key={materialId}
+      material={material.data}
       materialId={materialId}
       materialTitle={material.data.title}
       folderId={material.data.folder_id ?? null}

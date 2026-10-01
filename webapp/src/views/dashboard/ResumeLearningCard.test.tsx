@@ -1,10 +1,15 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router";
+import { server } from "../../test/mocks/server";
+import { SUPABASE_URL } from "../../lib/supabase";
 import { renderWithAuth, fakeSession } from "../../test/auth";
 import { mockAuthSession } from "../../test/mockSession";
 import { ResumeLearningCard } from "./ResumeLearningCard";
+import { Storage } from "../../lib/storage";
+import { quizDraftKey } from "../../lib/draftKeys";
 import {
   saveStudySnapshot,
   clearStudySnapshot,
@@ -52,6 +57,56 @@ describe("ResumeLearningCard", () => {
     await user.click(openLibBtn);
     expect(
       await screen.findByRole("heading", { name: "Library Page" }),
+    ).toBeInTheDocument();
+  });
+
+  /* The card reads a localStorage snapshot, which a second device, a school
+     machine or a cleared cache does not have. Telling a student with a full
+     library that they have done nothing is the worst reading of an account
+     that is, in fact, full of their work — so with no local snapshot the
+     card falls back to what the account itself knows. */
+  it("offers the account's latest material when this device has no local history", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/materials`, () =>
+        HttpResponse.json([
+          {
+            id: "m-old",
+            title: "Chapter 1 - Atoms",
+            created_at: "2026-09-01T00:00:00Z",
+            type: "text",
+            folder_id: null,
+            user_id: "user-1",
+          },
+          {
+            id: "m-new",
+            title: "Chapter 4 - Photosynthesis",
+            created_at: "2026-09-18T00:00:00Z",
+            type: "text",
+            folder_id: null,
+            user_id: "user-1",
+          },
+        ]),
+      ),
+    );
+
+    renderCard();
+
+    /* The newest, not merely the first row the server happened to return. */
+    expect(
+      await screen.findByText("Chapter 4 - Photosynthesis"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("The last thing you added to your library"),
+    ).toBeInTheDocument();
+
+    /* No invented progress: there is no stored position to resume to, so the
+       card offers to open it rather than claiming a percentage. */
+    expect(screen.queryByRole("progressbar")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: /open/i }));
+    expect(
+      await screen.findByRole("heading", { name: "Notes Page" }),
     ).toBeInTheDocument();
   });
 
@@ -107,6 +162,7 @@ describe("ResumeLearningCard", () => {
 
   it("renders active quiz draft resume card and navigates to quiz runner", async () => {
     const user = userEvent.setup();
+    Storage.set(quizDraftKey("quiz-12"), { index: 2, answers: [] });
     recordQuizProgress({
       id: "quiz-12",
       title: "Molecular Genetics Exam Drill",
@@ -128,6 +184,21 @@ describe("ResumeLearningCard", () => {
     expect(
       await screen.findByRole("heading", { name: "Quiz Page" }),
     ).toBeInTheDocument();
+  });
+
+  it("does not offer Resume for a finished quiz whose draft was cleared", () => {
+    recordMaterialVisit({ id: "mat-available", title: "Available notes" });
+    recordQuizProgress({
+      id: "quiz-finished",
+      title: "Completed exam drill",
+      questionIndex: 9,
+      totalQuestions: 10,
+    });
+    renderCard();
+
+    expect(screen.queryByText("Completed exam drill")).not.toBeInTheDocument();
+    expect(screen.queryByText("In Progress")).not.toBeInTheDocument();
+    expect(screen.getByText("Available notes")).toBeInTheDocument();
   });
 
   it("renders active focus goal resume card and navigates to timer", async () => {

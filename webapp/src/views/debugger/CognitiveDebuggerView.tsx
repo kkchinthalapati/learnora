@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import {
   clearTraceHistory,
   deleteTrace,
   diagnoseCognitiveGap,
   generateMicroRepair,
+  getSavedTraceById,
   getSavedTraces,
   recordRepairSuccess,
   type CognitiveStackTrace,
+  type DegradedDiagnosis,
   type MicroRepairChallenge,
 } from "../../api/aiDebugger";
 import { quizzesApi } from "../../api/quizzes";
@@ -19,49 +22,114 @@ import { KnowledgeCircuit } from "./KnowledgeCircuit";
 import { MicroRepairModal } from "./MicroRepairModal";
 import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
+import { candidatesFromStackTrace } from "../../lib/misconceptions";
+import { displaySubjectName } from "../../lib/subjectName";
+import { useAuth } from "../../context/auth";
+import { useFolders } from "../../hooks/useFolders";
 import styles from "./CognitiveDebuggerView.module.css";
 
+/* School-level mistakes students actually make. The previous set (chain
+   rule on sin(x²), buffer pH, recursion base cases) was university work, on
+   an app built for high school and board exams. */
 const PRESETS = [
   {
-    subject: "Calculus",
-    mistake: "Failed derivative of composite trigonometric function sin(x^2)",
-    context: "Calculated cos(x^2) and missed multiplying by the inner derivative.",
+    subject: "Maths",
+    label: "Expanding (x + 3)²",
+    mistake: "Expanded (x + 3)² as x² + 9",
+    context: "I squared each term separately.",
   },
   {
     subject: "Physics",
-    mistake: "Conservation of momentum in 2D inelastic collision problem",
-    context: "Mixed scalar kinetic energy conservation with directional vector momentum.",
-  },
-  {
-    subject: "Computer Science",
-    mistake: "Stack overflow in recursive tree traversal algorithm",
-    context: "Omitted the base case check when child node pointer is null.",
+    label: "Speed vs velocity",
+    mistake: "Said a car going round a bend at a steady speed isn't accelerating",
+    context: "I thought acceleration only means speeding up.",
   },
   {
     subject: "Chemistry",
-    mistake: "pH calculation of acetic acid buffer equilibrium solution",
-    context: "Applied Henderson-Hasselbalch equation without accounting for weak acid dissociation constant Ka.",
+    label: "Balancing equations",
+    mistake: "Balanced H₂ + O₂ → H₂O by changing it to H₂O₂",
+    context: "I changed the formula instead of the numbers in front.",
+  },
+  {
+    subject: "Biology",
+    label: "Which way osmosis goes",
+    mistake: "Said water moves from a concentrated solution into a dilute one",
+    context: "I mixed up which side has more water.",
   },
 ];
 
 const SUBJECT_OPTIONS = [
-  "Mathematics & Calculus",
+  "Maths",
+  "Biology",
+  "Chemistry",
   "Physics",
   "Computer Science",
-  "Chemistry",
-  "Biology",
+  "Geography",
+  "History",
   "Economics",
-  "Philosophy & Logic",
+  "English",
   "Other",
 ];
 
+interface SolverWork {
+  subject: string;
+  mistakeDescription: string;
+  context: string;
+  traceId: string | null;
+}
+
+function readSolverWork(key: string): SolverWork | null {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(key) || "null");
+    if (
+      value &&
+      typeof value.subject === "string" &&
+      typeof value.mistakeDescription === "string" &&
+      typeof value.context === "string" &&
+      (typeof value.traceId === "string" || value.traceId === null)
+    ) {
+      return value as SolverWork;
+    }
+  } catch {
+    // Ignore unavailable or malformed session storage.
+  }
+  return null;
+}
+
 export function CognitiveDebuggerView() {
-  const [subject, setSubject] = useState(SUBJECT_OPTIONS[0]);
-  const [mistakeDescription, setMistakeDescription] = useState("");
-  const [context, setContext] = useState("");
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const workKey = `learnora:solver_work:${user?.id ?? "guest"}`;
+  const [restoredWork] = useState(() => readSolverWork(workKey));
+  /* The student's own subjects first, and the default is one of them: a
+     Biology student opening this used to find "Mathematics & Calculus"
+     preselected. The list also always contains whatever is selected, so a
+     subject that arrives from a hand-off or a saved trace is shown rather
+     than silently rendered as the first option. */
+  const { data: folders = [] } = useFolders();
+  const [subject, setSubject] = useState(restoredWork?.subject ?? "");
+  const folderNames = folders.map((f) => f.name).filter(Boolean);
+  const requestedSubject = subject || folderNames[0] || SUBJECT_OPTIONS[0];
+  /* Case-insensitive: a folder called "maths" and the built-in "Maths" were
+     both listed. The folder's spelling wins, since it's the student's. */
+  const subjectOptions = [...folderNames, ...SUBJECT_OPTIONS, requestedSubject].filter(
+    (s, i, all) => all.findIndex((t) => t.toLowerCase() === s.toLowerCase()) === i,
+  );
+  /* Resolve to the option that survived the dedupe. The "Maths" preset with a
+     "maths" folder otherwise left the <select> with no exact match, so it
+     displayed its first option (another subject entirely) while the diagnosis
+     ran on Maths — the form and the result named different subjects. */
+  const effectiveSubject =
+    subjectOptions.find((s) => s.toLowerCase() === requestedSubject.toLowerCase()) ??
+    requestedSubject;
+  const [mistakeDescription, setMistakeDescription] = useState(restoredWork?.mistakeDescription ?? "");
+  const [context, setContext] = useState(restoredWork?.context ?? "");
 
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTrace, setActiveTrace] = useState<CognitiveStackTrace | null>(null);
+  const [activeTrace, setActiveTrace] = useState<CognitiveStackTrace | null>(() =>
+    restoredWork?.traceId ? getSavedTraceById(restoredWork.traceId) : null,
+  );
   const [selectedLevel, setSelectedLevel] = useState<number | undefined>(undefined);
 
   // History & Weak topics
@@ -73,6 +141,11 @@ export function CognitiveDebuggerView() {
   const [repairModalOpen, setRepairModalOpen] = useState(false);
   const [isGeneratingRepair, setIsGeneratingRepair] = useState(false);
   const [activeRepair, setActiveRepair] = useState<MicroRepairChallenge | null>(null);
+  /* Why the last "Fix it" came back without an exercise, and for which trace,
+     so opening another trace can't leave the notice under the wrong one. */
+  const [repairProblem, setRepairProblem] = useState<
+    (DegradedDiagnosis & { traceId: string }) | null
+  >(null);
   const [isRepairingCelebration, setIsRepairingCelebration] = useState(false);
 
   // Load initial history, weak topics, and check for bridged cognitive context
@@ -87,8 +160,21 @@ export function CognitiveDebuggerView() {
         setWeakTopics([]);
       });
 
+    /* Arriving from a quiz result: "Work on Photosynthesis" carries the
+       weak topic here rather than dropping the student on an empty form
+       and asking them to retype what the app already knew. Checked before
+       the bridge so an explicit link wins over a stale hand-off. */
+    const linkedTopic = searchParams.get("topic")?.trim();
+    if (linkedTopic) {
+      setActiveTrace(null);
+      setMistakeDescription(`I keep getting ${linkedTopic} questions wrong`);
+      setContext("");
+      return;
+    }
+
     const bridged = CognitiveBridge.getPayload();
     if (bridged && bridged.sourceTool !== "debugger") {
+      setActiveTrace(null);
       if (bridged.subject) {
         setSubject(bridged.subject);
       }
@@ -104,6 +190,16 @@ export function CognitiveDebuggerView() {
     }
   }, []);
 
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(workKey, JSON.stringify({
+        subject, mistakeDescription, context, traceId: activeTrace?.id ?? null,
+      } satisfies SolverWork));
+    } catch {
+      // Storage can be unavailable; saved diagnoses remain in Past mistakes.
+    }
+  }, [workKey, subject, mistakeDescription, context, activeTrace]);
+
   const handleApplyPreset = (preset: (typeof PRESETS)[0]) => {
     setSubject(preset.subject);
     setMistakeDescription(preset.mistake);
@@ -113,7 +209,26 @@ export function CognitiveDebuggerView() {
   const handleApplyWeakTopic = (topicName: string) => {
     setMistakeDescription(`I keep getting ${topicName} wrong`);
     setContext(`This has come up as a weak spot in my recent quizzes.`);
+    /* Then swap in the real question, their answer and the quiz's subject
+       once they arrive. */
+    quizzesApi
+      .fetchLatestWrongAnswer(topicName)
+      .then((example) => {
+        if (!example) return;
+        setMistakeDescription(
+          `${example.question}
+I answered "${example.chosen}" but the answer was "${example.correct}".`,
+        );
+        setContext(`From a recent quiz on ${topicName}.`);
+        const folder = folders.find((f) => f.id === example.folderId);
+        if (folder?.name) setSubject(folder.name);
+      })
+      .catch(() => {
+        /* Keep the topic-only description already filled in. */
+      });
   };
+
+  const recordMisconceptions = useRecordMisconceptions();
 
   const handleDiagnose = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -122,9 +237,17 @@ export function CognitiveDebuggerView() {
     setIsLoading(true);
     setSelectedLevel(undefined);
     try {
-      const trace = await diagnoseCognitiveGap(subject, mistakeDescription.trim(), context.trim());
+      const trace = await diagnoseCognitiveGap(effectiveSubject, mistakeDescription.trim(), context.trim());
       setActiveTrace(trace);
       setSavedTraces(getSavedTraces());
+      /* The trace already names the broken prerequisite; without this it died
+         with the component. Recorded so the next quiz, plan and chat know
+         about it — and so a second trace onto the same concept reads as a
+         recurrence rather than a fresh discovery.
+
+         A stand-in trace returns no candidates (see candidatesFromStackTrace),
+         so a tutor outage cannot write invented rows into that record. */
+      recordMisconceptions(candidatesFromStackTrace(trace));
     } finally {
       setIsLoading(false);
     }
@@ -139,8 +262,15 @@ export function CognitiveDebuggerView() {
 
     setIsGeneratingRepair(true);
     try {
-      const challenge = await generateMicroRepair(rootLayer ? rootLayer.concept : activeTrace.failedQuestionOrTopic);
-      setActiveRepair(challenge);
+      const result = await generateMicroRepair(rootLayer ? rootLayer.concept : activeTrace.failedQuestionOrTopic);
+      /* No exercise, no quick check: the gap stays open and the notice below
+         says why. Only an exercise the tutor wrote can show it has closed. */
+      if (result.degraded) {
+        setRepairProblem({ ...result.degraded, traceId: activeTrace.id });
+        return;
+      }
+      setRepairProblem(null);
+      setActiveRepair(result.challenge);
       setRepairModalOpen(true);
     } finally {
       setIsGeneratingRepair(false);
@@ -160,6 +290,26 @@ export function CognitiveDebuggerView() {
         })),
       };
       setActiveTrace(updated);
+    }
+
+    /* The other half of the ledger. A repair the student actually passed is
+       the app's best evidence that a diagnosed gap has closed, and without it
+       every Debugger row would stay open forever and keep crowding out newer
+       ones in the ranking. Only the concept the repair targeted is credited —
+       the trace's other layers were not retested. */
+    if (activeRepair) {
+      recordMisconceptions([
+        {
+          subject: activeTrace?.subject ?? "",
+          concept: activeRepair.rootConcept,
+          summary: "",
+          severity: "minor",
+          tool: "debugger",
+          sourceId: traceId,
+          kind: "correction",
+          detail: "The student passed the micro-repair exercise for this concept.",
+        },
+      ]);
     }
 
     setSavedTraces(getSavedTraces());
@@ -188,6 +338,7 @@ export function CognitiveDebuggerView() {
   const handleClearHistory = () => {
     clearTraceHistory();
     setSavedTraces([]);
+    setActiveTrace(null);
     setHistoryOpen(false);
   };
 
@@ -200,6 +351,8 @@ export function CognitiveDebuggerView() {
 
   const rootLayer = activeTrace?.layers.find((l) => l.level === 1);
   const isAllRepaired = activeTrace?.layers.every((l) => l.status === "healthy");
+  const shownRepairProblem =
+    repairProblem && repairProblem.traceId === activeTrace?.id ? repairProblem : null;
 
   return (
     <div className={styles.container} data-testid="cognitive-debugger-view">
@@ -208,10 +361,13 @@ export function CognitiveDebuggerView() {
         <div className={styles.headerTitleGroup}>
           <h1 className={styles.title}>
             <Icon name="brain" size={28} />
-            <span>Find My Mistake</span>
+            <span>Step-by-step solver</span>
           </h1>
           <p className={styles.subtitle}>
-            Work backwards from the mistake you made to the thing you never quite learned underneath it.
+            Work backwards from the mistake you made to find where you got stuck and repair the gap.
+          </p>
+          <p className={styles.saveHint}>
+            Your draft stays here if you leave this page. Diagnoses are saved in Past mistakes.
           </p>
         </div>
 
@@ -265,6 +421,25 @@ export function CognitiveDebuggerView() {
             <span>What went wrong?</span>
           </h2>
 
+          {/* Presets sit above the field they fill: below the submit button they read as an afterthought. */}
+          <div className={styles.presetSection}>
+            <span className={styles.presetLabel}>Start from one of these</span>
+            <div className={styles.presetPills}>
+              {PRESETS.map((p, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className={styles.presetPill}
+                  onClick={() => handleApplyPreset(p)}
+                  disabled={isLoading}
+                  data-testid={`preset-btn-${idx}`}
+                >
+                  {p.subject}: {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <form onSubmit={handleDiagnose} className={styles.formGroup}>
             <div className={styles.formGroup}>
               <label htmlFor="subject-select" className={styles.formLabel}>
@@ -272,14 +447,14 @@ export function CognitiveDebuggerView() {
               </label>
               <select
                 id="subject-select"
-                value={subject}
+                value={effectiveSubject}
                 onChange={(e) => setSubject(e.target.value)}
                 className={styles.selectInput}
                 disabled={isLoading}
               >
-                {SUBJECT_OPTIONS.map((s) => (
+                {subjectOptions.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {displaySubjectName(s)}
                   </option>
                 ))}
               </select>
@@ -338,30 +513,11 @@ export function CognitiveDebuggerView() {
             </Button>
           </form>
 
-          {/* Quick Presets */}
-          <div className={styles.presetSection}>
-            <span className={styles.presetLabel}>Or try one of these</span>
-            <div className={styles.presetPills}>
-              {PRESETS.map((p, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  className={styles.presetPill}
-                  onClick={() => handleApplyPreset(p)}
-                  disabled={isLoading}
-                  data-testid={`preset-btn-${idx}`}
-                >
-                  {p.subject}: {p.mistake.slice(0, 24)}…
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Recent Quiz Weak Topics Integration */}
           {weakTopics.length > 0 && (
             <div className={styles.recentMistakesBox}>
               <span className={styles.presetLabel}>
-                <Icon name="alert-triangle" size={12} /> Topics you keep dropping marks on
+                <Icon name="target" size={12} /> From your recent quizzes — tap one to work through it
               </span>
               {weakTopics.map((wt, idx) => (
                 <button
@@ -372,7 +528,9 @@ export function CognitiveDebuggerView() {
                   disabled={isLoading}
                 >
                   <span>{wt.topic}</span>
-                  <span style={{ opacity: 0.7 }}>missed {wt.count}x</span>
+                  <span className={styles.recentMistakeCount}>
+                    {wt.count === 1 ? "1 wrong answer" : `${wt.count} wrong answers`}
+                  </span>
                 </button>
               ))}
             </div>
@@ -405,6 +563,51 @@ export function CognitiveDebuggerView() {
 
           {!isLoading && activeTrace && (
             <>
+              {/* The tutor could not be reached, or said nothing usable. What
+                  follows is a generic checklist built from the words the
+                  student typed — saying so is the difference between a
+                  fallback and a fabrication, and it is why the ledger
+                  refuses this trace (candidatesFromStackTrace). */}
+              {activeTrace.degraded && (
+                <div className={styles.degradedNotice} role="alert">
+                  <Icon name="alert-triangle" size={16} />
+                  <div>
+                    <strong>This isn&rsquo;t a real diagnosis.</strong>
+                    <p>
+                      {activeTrace.degraded.message} Nothing has been worked
+                      out about your answer, and nothing here has been added
+                      to what Learnora remembers about you.
+                    </p>
+                    <button
+                      type="button"
+                      className={styles.degradedRetry}
+                      onClick={() => void handleDiagnose()}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* A stand-in shows a plain checklist and nothing else. It used to
+                  render the full three-step chain with "Missing" and "Shaky"
+                  badges and maths wording ("The formula went in…") for any
+                  subject — a diagnosis in all but name, under a notice
+                  saying it wasn't one. */}
+              {activeTrace.degraded ? (
+                <div className={styles.rootCauseCard} data-testid="degraded-checklist">
+                  <p className={styles.rootCauseSummaryText}>
+                    While the tutor is away, these three checks find most
+                    slips:
+                  </p>
+                  <ol className={styles.degradedChecklist}>
+                    <li>Read the question again. What is it actually asking for?</li>
+                    <li>Find the key word in your notes and read that section.</li>
+                    <li>Put your answer next to the right one. What is the one idea that separates them?</li>
+                  </ol>
+                </div>
+              ) : (
+              <>
               {/* Summary card */}
               <div
                 className={`${styles.rootCauseCard} ${
@@ -422,7 +625,7 @@ export function CognitiveDebuggerView() {
                     <span>{isAllRepaired ? "You've fixed it" : "Here's where it started"}</span>
                   </div>
                   <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                    Subject: {activeTrace.subject}
+                    Subject: {displaySubjectName(activeTrace.subject)}
                   </span>
                 </div>
                 <p className={styles.rootCauseSummaryText}>
@@ -483,6 +686,31 @@ export function CognitiveDebuggerView() {
                   </Button>
                 )}
               </div>
+
+              {shownRepairProblem && (
+                <div
+                  className={styles.degradedNotice}
+                  role="alert"
+                  data-testid="repair-unavailable"
+                >
+                  <Icon name="alert-triangle" size={16} />
+                  <div>
+                    <strong>We couldn&rsquo;t set up the exercise.</strong>
+                    <p>
+                      {shownRepairProblem.message} This diagnosis is saved in
+                      Past mistakes, so you can come back to it.
+                    </p>
+                    <button
+                      type="button"
+                      className={styles.degradedRetry}
+                      onClick={() => void handleLaunchMicroRepair()}
+                      disabled={isGeneratingRepair}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Three-layer breakdown timeline */}
               <div className={styles.stackTraceContainer}>
@@ -570,6 +798,8 @@ export function CognitiveDebuggerView() {
                   })}
                 </div>
               </div>
+              </>
+              )}
             </>
           )}
         </div>
@@ -609,7 +839,7 @@ export function CognitiveDebuggerView() {
             >
               <div>
                 <strong style={{ color: "var(--text, #fff)", display: "block" }}>
-                  {t.subject}: {t.failedQuestionOrTopic}
+                  {displaySubjectName(t.subject)}: {t.failedQuestionOrTopic}
                 </strong>
                 <span style={{ fontSize: "0.75rem", color: "var(--text-muted, #9ca3af)" }}>
                   {new Date(t.timestamp).toLocaleString()} • {t.layers.length} steps

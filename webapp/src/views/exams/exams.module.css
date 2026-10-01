@@ -41,8 +41,8 @@
 
 .iconBtn {
   flex-shrink: 0;
-  width: 42px;
-  height: 42px;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   padding: 0;
   display: flex;
   align-items: center;
@@ -79,7 +79,13 @@
 
 .weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  /* Matches .daysGrid below. Both sit inside .calendarScroll, but only the
+     grid carried a min-width — so on any phone (the grid needs 520px, the
+     viewport gives 360-390) the header row stayed viewport-width while the day
+     columns were wider, and "Mon" sat above Tuesday's column. Scrolling right
+     to reach the end of the month left the labels behind entirely. */
+  min-width: 520px;
   text-align: center;
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -130,6 +136,12 @@
   outline-offset: -2px;
 }
 
+/* A past day with nothing on it: no exam to open and no new one allowed,
+   so it shouldn't light up as if it were clickable. */
+.pastEmpty {
+  pointer-events: none;
+}
+
 .empty {
   background: var(--surface-2);
   cursor: default;
@@ -146,9 +158,22 @@
 
 .dayNumber {
   align-self: flex-end;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font: inherit;
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--text-faint);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.dayNumber:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .today .dayNumber {
@@ -260,7 +285,7 @@
 
 .segmented {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s-1);
   padding: var(--s-1);
   background: var(--surface-2);
@@ -502,6 +527,7 @@
 
 .upcomingCard {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--s-3);
@@ -524,12 +550,14 @@
   border-color: var(--accent);
 }
 
+/* A real basis, so the name gets a line of its own width before the
+   actions squeeze it; the actions wrap underneath on narrow cards. */
 .upcomingLeft {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 160px;
 }
 
 .upcomingName {
@@ -537,18 +565,16 @@
   font-weight: 700;
   font-size: var(--fs-sm);
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Wraps rather than truncating: the exam name is the one thing this row
+     exists to show, and "Physics Pap…" at tablet width loses the part that
+     tells two papers in the same subject apart. */
+  overflow-wrap: anywhere;
 }
 
 .upcomingMeta {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
+  margin: 0;
   font-size: var(--fs-xs);
   color: var(--text-muted);
-  flex-wrap: wrap;
 }
 
 .upcomingRight {
@@ -617,4 +643,31 @@
     justify-content: flex-start;
     flex-wrap: wrap;
   }
+}
+
+/* Touch sizing — see the note in Sidebar.module.css.
+ *
+ * `.iconBtn` (previous/next month) sat at 42px, two short of the token, and
+ * the exam bars inside a day cell at 24px. The bars are the only way to open
+ * an exam from the calendar. */
+@media (pointer: coarse) {
+  .iconBtn {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+  }
+
+  .examBar {
+    min-height: var(--touch-target-min);
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* The pencil inside the day modal was 24px while its list twin was 44px. */
+.dayItemEditBtn {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
 }

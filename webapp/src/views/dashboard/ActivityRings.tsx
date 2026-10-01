@@ -41,7 +41,14 @@ export function ActivityRings({
         unit: "m",
         radius: 46,
         strokeWidth: 8,
-        color: "#38bdf8",
+        /* The same token its legend dot uses (.dotFocus). These three were
+           hardcoded Tailwind hexes — sky-400, emerald-400, amber-400 — while
+           the dots beside them were already on the palette, so the ring and
+           the swatch labelling it disagreed on screen, and neither the accent
+           presets nor the light theme reached the rings at all. The drift
+           ratchet in styles/drift.test.ts only scans *.module.css, so a raw
+           hex in a .tsx was invisible to it. */
+        color: "var(--accent)",
         dotClass: styles.dotFocus,
       },
       {
@@ -52,7 +59,7 @@ export function ActivityRings({
         unit: "",
         radius: 34,
         strokeWidth: 8,
-        color: "#34d399",
+        color: "var(--success)",
         dotClass: styles.dotCards,
       },
       {
@@ -63,7 +70,7 @@ export function ActivityRings({
         unit: "",
         radius: 22,
         strokeWidth: 8,
-        color: "#fbbf24",
+        color: "var(--warning)",
         dotClass: styles.dotTasks,
       },
     ],
@@ -113,7 +120,10 @@ export function ActivityRings({
                   cy="56"
                   r={ring.radius}
                   fill="none"
-                  stroke={ring.color}
+                  /* `style` rather than a `stroke` attribute: the value is a
+                     `var()` now, and a custom property in an SVG presentation
+                     attribute is not resolved everywhere it is in CSS. */
+                  style={{ stroke: ring.color }}
                   strokeWidth={ring.strokeWidth}
                   className={styles.ringBg}
                 />
@@ -123,7 +133,10 @@ export function ActivityRings({
                   cy="56"
                   r={ring.radius}
                   fill="none"
-                  stroke={ring.color}
+                  /* `style` rather than a `stroke` attribute: the value is a
+                     `var()` now, and a custom property in an SVG presentation
+                     attribute is not resolved everywhere it is in CSS. */
+                  style={{ stroke: ring.color }}
                   strokeWidth={ring.strokeWidth}
                   strokeDasharray={circumference}
                   strokeDashoffset={strokeDashoffset}

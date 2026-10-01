@@ -106,7 +106,7 @@
 
 .tabDescription {
   overflow: hidden;
-  color: var(--text-faint);
+  color: var(--text-muted);
   font-size: var(--fs-xs);
   line-height: 1.35;
   text-overflow: ellipsis;
@@ -299,6 +299,14 @@
   min-height: 44px;
 }
 
+/* A wrapping row of multi-select Chips inside a `.fieldStack` field — the
+   Setup card's goal and focus-area pickers. */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
 .fieldAction select {
   width: auto;
   min-width: 190px;
@@ -306,16 +314,15 @@
 
 .fieldValue {
   max-width: 280px;
-  overflow: hidden;
   color: var(--text-muted);
   font-size: var(--fs-sm);
   font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .avatar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s-4);
   padding: 0 0 var(--s-4);
@@ -329,6 +336,7 @@
   flex: 0 0 64px;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   border-radius: 50%;
   background: var(--accent);
   color: var(--accent-on);
@@ -338,7 +346,20 @@
   text-transform: uppercase;
 }
 
+.avatarCircle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarUpload {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
 .avatarInfo {
+  flex: 1 1 160px;
   min-width: 0;
 }
 
@@ -352,13 +373,14 @@
   white-space: nowrap;
 }
 
+/* An email address wraps rather than truncating: it is the one piece of
+   account identity a student may need to read in full (which address did I
+   sign up with?), and on a 390px phone the ellipsis hid its domain. */
 .avatarInfo p {
-  overflow: hidden;
   margin: 3px 0 0;
   color: var(--text-muted);
   font-size: var(--fs-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .inlineForm {
@@ -376,9 +398,15 @@
   gap: var(--s-3);
 }
 
-.inputRow input {
+.inputRow input,
+.inputRow textarea {
   min-width: 0;
   flex: 1;
+}
+
+.inputRow textarea {
+  resize: vertical;
+  font: inherit;
 }
 
 .inputRow button {
@@ -572,9 +600,74 @@
   }
 }
 
+/* The per-tool daily AI allowance meters (AiUsageMeter.tsx) — one compact row
+   per tool rather than reusing `.field`, which is sized (68px, a bottom
+   border) for a handful of settings rows, not a list of ten. */
+.toolMeterList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.toolMeterRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toolMeterHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-size: var(--fs-sm);
+}
+
+.toolMeterName {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.toolMeterCount {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* The daily AI allowance meter (AiUsageMeter.tsx). Tone is carried by colour
+   *and* by the sentence above the bar — the copy already says how many are
+   left, so someone who cannot distinguish the fill colours loses nothing. */
+.meterTrack {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: var(--r-pill);
+}
+
+.meterFill {
+  height: 100%;
+  min-width: 2px;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 240ms ease;
+}
+
+.meterFillWarn {
+  background: var(--warning);
+}
+
+.meterFillBad {
+  background: var(--danger);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .panel,
   .inlineForm {
     animation: none;
+  }
+
+  .meterFill {
+    transition: none;
   }
 }

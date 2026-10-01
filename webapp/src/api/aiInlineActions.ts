@@ -90,6 +90,7 @@ export async function runInlineAction(
       payload.action === "explain" || payload.action === "expand"
         ? undefined
         : "rewrite",
+    tool: "chat",
     settings: payload.settings,
   });
 
@@ -143,6 +144,7 @@ Output ONLY a JSON array in the exact format:
   const { text } = await callEdge({
     history: [{ role: "user", content: prompt }],
     mode: "flashcards",
+    tool: "flashcards",
     settings,
   });
 

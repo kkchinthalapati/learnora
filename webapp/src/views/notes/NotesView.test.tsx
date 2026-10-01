@@ -91,6 +91,38 @@ function editorEl(): HTMLElement {
 }
 
 describe("NotesView", () => {
+  it("uses the newer completed server row instead of this device's stale spinner", async () => {
+    setMaterialProcessing(
+      { materialId: "mat-1", status: "processing", updatedAt: 1000 },
+      { sync: false },
+    );
+    serveNotes({
+      material: material({
+        processing_status: "done",
+        processing_updated_at: new Date(2000).toISOString(),
+      }),
+      notes: [note()],
+    });
+    renderNotes();
+    await waitFor(() => expect(editorEl()?.textContent).toBe("Existing notes"));
+    expect(
+      screen.queryByText("Processing study notes…"),
+    ).not.toBeInTheDocument();
+    clearMaterialProcessing("mat-1");
+  });
+
+  it("explains intentionally omitted notes on a device with no local processing record", async () => {
+    clearMaterialProcessing("mat-1");
+    serveNotes({ material: material({ processing_status: "skipped" }) });
+    renderNotes();
+    expect(
+      await screen.findByText(
+        "Summary notes were not selected for this material.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     mockAuthSession("user-1");
   });
@@ -137,7 +169,9 @@ describe("NotesView", () => {
       screen.getByText("Notes aren't ready to edit yet"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Retry Generation" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Retry Generation" }),
+    ).toBeInTheDocument();
   });
 
   it("shows an error banner with explanation and allows retrying generation", async () => {
@@ -146,9 +180,14 @@ describe("NotesView", () => {
       materialId: "mat-1",
       status: "failed",
       error: "Edge function failed to generate notes",
-      stageFailures: [{ stage: "notes", message: "Edge function failed to generate notes" }],
+      stageFailures: [
+        { stage: "notes", message: "Edge function failed to generate notes" },
+      ],
     });
-    serveNotes({ material: material({ raw_content: "http://example.com" }), notes: [] });
+    serveNotes({
+      material: material({ raw_content: "http://example.com" }),
+      notes: [],
+    });
     server.use(
       http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () => {
         return HttpResponse.json({
@@ -165,7 +204,9 @@ describe("NotesView", () => {
     );
     renderNotes();
 
-    expect(await screen.findByText("Note generation failed")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Note generation failed"),
+    ).toBeInTheDocument();
     expect(
       screen.getAllByText(/Edge function failed to generate notes/)[0],
     ).toBeInTheDocument();
@@ -327,11 +368,14 @@ describe("NotesView", () => {
     });
 
     it("calls the edge function, rewrites notes, and allows undoing", async () => {
-      serveNotes({ material: material(), notes: [note({ html_content: "<p>Original</p>" })] });
+      serveNotes({
+        material: material(),
+        notes: [note({ html_content: "<p>Original</p>" })],
+      });
       server.use(
         http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, async () => {
           return HttpResponse.json({ text: "Rewritten content here" });
-        })
+        }),
       );
 
       renderNotes();
@@ -340,14 +384,20 @@ describe("NotesView", () => {
       const rewriteBtn = screen.getByRole("button", { name: "Rewrite Notes" });
       await userEvent.click(rewriteBtn);
 
-      await waitFor(() => expect(editorEl().textContent).toContain("Rewritten content here"));
-      
-      const undoBtn = await screen.findByRole("button", { name: "Undo Rewrite" });
+      await waitFor(() =>
+        expect(editorEl().textContent).toContain("Rewritten content here"),
+      );
+
+      const undoBtn = await screen.findByRole("button", {
+        name: "Undo Rewrite",
+      });
       expect(undoBtn).toBeInTheDocument();
 
       await userEvent.click(undoBtn);
       await waitFor(() => expect(editorEl().textContent).toBe("Original"));
-      expect(screen.queryByRole("button", { name: "Undo Rewrite" })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Undo Rewrite" }),
+      ).not.toBeInTheDocument();
     });
   });
 });

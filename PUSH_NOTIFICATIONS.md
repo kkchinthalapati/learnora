@@ -7,7 +7,14 @@ in-tab `Notification` calls in `webapp/src/lib/notifications.ts` and
 `NotificationsTab`'s "Browser Notifications" card are untouched — this adds
 a second, independent "Push Notifications" card below it.
 
-**Everything in this repo is written and tested. Nothing is deployed.**
+> **Status 2026-09-24: live.** VAPID keys generated; `VAPID_*` and
+> `CRON_SECRET` set as Supabase secrets; `VITE_VAPID_PUBLIC_KEY` set in
+> Vercel (Production + Preview); the job runs daily at 13:00 UTC from
+> `pg_cron` (`supabase/migrations/20260924170000_schedule_reminders.sql`),
+> reading the cron secret from Vault (`reminders_cron_secret`). Steps 1–4
+> below are kept as the record of how.
+
+**Everything in this repo is written and tested.**
 Same posture as `FRIENDS_FEATURE.md`/`SUPABASE_SETUP.md`: migrations and
 edge functions are applied by a human running the Supabase CLI, not by CI.
 The four steps below are what's left.

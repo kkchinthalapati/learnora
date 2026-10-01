@@ -76,6 +76,34 @@ describe("parseStoredQuestions", () => {
     expect(parsed[0]?.choices).toEqual(["a", "b"]);
   });
 
+  /* Graded by index, so the second "E. coli" was marked wrong with the
+     message that the correct answer is "E. coli". */
+  it("collapses repeated choices and keys the answer to the surviving copy", () => {
+    const [q] = parseStoredQuestions([
+      {
+        question: "Which is a prokaryote?",
+        choices: ["E. coli", "Yeast", " e.  coli ", "Amoeba"],
+        correctIndex: 2,
+      },
+    ]);
+    expect(q.choices).toEqual(["E. coli", "Yeast", "Amoeba"]);
+    expect(q.choices[q.correctIndex]).toBe("E. coli");
+  });
+
+  it("keeps the key right when a repeated distractor precedes it", () => {
+    const [q] = parseStoredQuestions([
+      { question: "q", choices: ["x", "x", "y", "z"], correctIndex: 3 },
+    ]);
+    expect(q.choices).toEqual(["x", "y", "z"]);
+    expect(q.choices[q.correctIndex]).toBe("z");
+  });
+
+  it("drops a question whose choices are all the same answer", () => {
+    expect(
+      parseStoredQuestions([{ question: "q", choices: ["a", "A "], correctIndex: 0 }]),
+    ).toEqual([]);
+  });
+
   it("tolerates a question with no id, topic or feedback", () => {
     const parsed = parseStoredQuestions([
       { question: "q", choices: ["a", "b"], correctIndex: 0 },
@@ -140,6 +168,18 @@ describe("answerForIndex", () => {
 
   it("returns null when the question was never answered", () => {
     expect(answerForIndex([], questions, 0)).toBeNull();
+  });
+
+  /* A test left with blanks stores only what was answered; reading that
+     positionally gave question 1 question 2's answer. */
+  it("never reads a sparse attempt by position", () => {
+    const idless = parseStoredQuestions([
+      { question: "a", choices: ["1", "2"], correctIndex: 0 },
+      { question: "b", choices: ["1", "2"], correctIndex: 1 },
+    ]);
+    const answers: StoredAnswer[] = [{ questionId: 1, chosenIndex: 1, correct: true }];
+    expect(answerForIndex(answers, idless, 0)).toBeNull();
+    expect(answerForIndex(answers, idless, 1)?.correct).toBe(true);
   });
 });
 

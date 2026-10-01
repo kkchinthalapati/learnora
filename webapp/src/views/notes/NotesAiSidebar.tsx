@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { Icon } from "../../components/Icon";
 import { ChatMessageBubble } from "../../components/chat/ChatMessage";
 import { useCreateModal } from "../../context/createModal";
@@ -9,9 +10,10 @@ import {
   callEdge,
   trimHistory,
   type ChatMessage as HistoryMessage,
-  type FilePayload,
 } from "../../api/ai";
 import { stripActionTagBlocks, fenceUntrusted } from "../../lib/actionTags";
+import { isPdf, planPdfUpload, truncationNote } from "../../lib/pdfText";
+import type { AttachedFile } from "../../context/chat";
 import { decodeBase64UTF8 } from "../../lib/aiJson";
 import {
   buildNotesSystemContext,
@@ -19,6 +21,7 @@ import {
 } from "../../lib/notesChatPrompt";
 import type { ChatMessage } from "../../context/chat";
 import type { IconName } from "../../components/icons";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import chatStyles from "../../components/chat/chat.module.css";
 import styles from "./notesSidebar.module.css";
 
@@ -106,6 +109,8 @@ interface NotesAiSidebarProps {
   /** The open material's folder, carried into the Create dialog the quick
    *  actions open so a generated deck/quiz files itself alongside its source. */
   folderId: string | null;
+  /** Title of the current document / subject, used for topic bridging to AI Tutor */
+  materialTitle?: string;
   /** Reads the editor's current plain text at send time — not a snapshot, so
    *  the model sees what the student is looking at now, including unsaved
    *  edits (the vanilla read `Editor.getPlainText()` the same way). */
@@ -125,12 +130,14 @@ const INSERT_INTO_NOTE_RE = /<INSERT_INTO_NOTE>([\s\S]*?)<\/INSERT_INTO_NOTE>/;
 export function NotesAiSidebar({
   materialId,
   folderId,
+  materialTitle,
   getDocumentText,
   onInsertText,
 }: NotesAiSidebarProps) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const [file, setFile] = useState<FilePayload | null>(null);
+  const [file, setFile] = useState<AttachedFile | null>(null);
   const [input, setInput] = useState("");
 
   /* The model-facing transcript: clean text only (tags stripped, the injected
@@ -203,7 +210,10 @@ export function NotesAiSidebar({
            attacker-influenced input (js/ai.js:1416-1424). */
         let filePayload = attached;
         let appendedFileContext = "";
-        if (attached && attached.mimeType === "text/plain") {
+        if (attached && attached.inlineText) {
+          appendedFileContext = `\n\nThe student attached "${attached.name}" with the following content:\n"""\n${fenceUntrusted(attached.inlineText)}\n"""`;
+          filePayload = null;
+        } else if (attached && attached.mimeType === "text/plain") {
           try {
             const decoded = fenceUntrusted(decodeBase64UTF8(attached.data));
             appendedFileContext = `\n\nThe student attached a text file "${attached.name}" with the following content:\n"""\n${decoded}\n"""`;
@@ -228,6 +238,7 @@ export function NotesAiSidebar({
             { role: "user", content: systemContext },
           ],
           file: filePayload,
+          tool: "chat",
           settings,
         });
 
@@ -288,11 +299,7 @@ export function NotesAiSidebar({
     void send(value || "Analyze this document.");
   };
 
-  const attachFile = (picked: File) => {
-    if (picked.size > MAX_FILE_BYTES) {
-      showToast("File too large. Maximum size is 10MB.", { error: true });
-      return;
-    }
+  const readAsAttachment = (picked: File) => {
     const reader = new FileReader();
     reader.onerror = () => showToast("Failed to read file.", { error: true });
     reader.onload = (e) => {
@@ -304,6 +311,41 @@ export function NotesAiSidebar({
       });
     };
     reader.readAsDataURL(picked);
+  };
+
+  const attachFile = (picked: File) => {
+    if (picked.size > MAX_FILE_BYTES) {
+      showToast("File too large. Maximum size is 10MB.", { error: true });
+      return;
+    }
+
+    /* Parsed to text here rather than attached, so any provider in the chain
+       can read it — see lib/pdfText.ts. A scan with no text layer still needs
+       the binary, because OCR is the only thing that will read it. */
+    if (isPdf(picked)) {
+      planPdfUpload(picked)
+        .then((plan) => {
+          if (plan.kind === "inline") {
+            setFile({
+              name: picked.name,
+              mimeType: picked.type || "application/pdf",
+              data: "",
+              inlineText: plan.text + truncationNote(plan.extraction),
+            });
+            return;
+          }
+          if (plan.reason === "scanned") {
+            showToast(
+              "That PDF looks scanned, so it'll be read as an image — answers may be less precise.",
+            );
+          }
+          readAsAttachment(picked);
+        })
+        .catch(() => readAsAttachment(picked));
+      return;
+    }
+
+    readAsAttachment(picked);
   };
 
   /* Both cards open the same Create dialog, scoped to the document on screen
@@ -344,12 +386,17 @@ export function NotesAiSidebar({
           }
         />
         <QuickActionCard
-          icon="mic"
-          title="Podcast"
-          description="Listen & learn — soon"
-          soon
-          onActivate={() => showToast("Podcast generation coming soon")}
+          icon="sparkles"
+          title="AI Tutor"
+          description="Explain, Socratic, Practice, Teach"
+          onActivate={() => {
+            const topic = materialTitle || "Study Notes";
+            CognitiveBridge.saveActiveTopic(topic);
+            navigate(`/study?topic=${encodeURIComponent(topic)}`);
+          }}
         />
+        {/* A "Podcast — soon" tile sat here; a button that only says "not
+            yet" makes the screen feel unfinished. */}
       </div>
 
       <div className={styles.chat}>

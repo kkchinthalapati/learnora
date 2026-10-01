@@ -96,6 +96,20 @@ describe("parseDiagramSvg", () => {
       expect(root.innerHTML).not.toContain("javascript:");
     });
 
+    /* Also a production concern, not only a security one: the /app CSP is
+       `style-src 'self'` with no 'unsafe-inline', so a <style> element inside
+       an injected SVG is blocked and the diagram arrives unstyled. (React's
+       own style props are applied through CSSOM, which CSP does not cover —
+       which is why the parsed `style` attribute above is still safe.) */
+    it("drops a <style> element, which the production CSP would block anyway", () => {
+      const { root } = renderSvg(
+        svg('<style>circle{fill:red}</style><circle cx="5" cy="5" r="1" />'),
+      );
+      expect(root.querySelector("style")).toBeNull();
+      expect(root.textContent).not.toContain("fill:red");
+      expect(root.querySelector("circle")).toBeInTheDocument();
+    });
+
     it("drops a javascript: value and an external url() reference", () => {
       const { root } = renderSvg(
         svg(

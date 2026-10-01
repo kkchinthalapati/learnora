@@ -1,0 +1,220 @@
+/* Study Buddy Checks & Gutter Styling
+ * Strictly complies with tokens.css and DESIGN.md
+ * Zero raw hex, zero raw font-size, zero raw shadows, zero raw blurs
+ */
+
+.gutterContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-2) 0;
+  position: relative;
+  min-width: 36px;
+  user-select: none;
+}
+
+.gutterPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.gutterPill:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--accent-ring);
+}
+
+.gutterPillActive {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.gutterPillAlert {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  border-color: var(--warning);
+}
+
+.gutterBadgeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface);
+  color: var(--accent-text);
+  cursor: pointer;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.gutterBadgeBtn:hover {
+  transform: scale(1.1);
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.badgeLogicJump {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-ring);
+}
+
+.badgeContradiction {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+
+.badgeMuddyConcept {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  border-color: var(--warning);
+}
+
+.badgeExamTrapRisk {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  border-color: var(--warning);
+}
+
+/* Card Popover */
+.popoverOverlay {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  margin-top: var(--s-2);
+}
+
+.cardContainer {
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--s-4);
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  position: relative;
+  animation: fadeIn var(--t-fast) var(--ease);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.cardTitle {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.typeBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.cardMessage {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: var(--lh);
+  margin: 0;
+}
+
+.snippetBox {
+  background: var(--surface-2);
+  border-left: 2px solid var(--accent);
+  padding: var(--s-2);
+  border-radius: var(--r-xs);
+  font-size: var(--fs-xs);
+  color: var(--text);
+  font-style: italic;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestedFixBox {
+  background: var(--bg-tint-1);
+  border: 1px dashed var(--accent);
+  padding: var(--s-2);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  color: var(--accent-text);
+  line-height: var(--lh);
+}
+
+.cardActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+}
+
+.bridgeButtonsRow {
+  display: flex;
+  gap: var(--s-2);
+  border-top: 1px solid var(--glass-border-subtle);
+  padding-top: var(--s-2);
+}
+
+.bridgeButton {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-md);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.bridgeButton:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-ring);
+}

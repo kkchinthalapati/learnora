@@ -1,4 +1,4 @@
-import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
@@ -18,6 +18,7 @@ const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 describe("CognitiveDebuggerView", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     mockAuthSession("user-1");
     server.use(
       http.get(rest("quiz_attempts"), () =>
@@ -31,7 +32,7 @@ describe("CognitiveDebuggerView", () => {
   it("renders page header, input form, and empty state initially", async () => {
     renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
 
-    expect(screen.getByText("Find My Mistake")).toBeInTheDocument();
+    expect(screen.getByText("Step-by-step solver")).toBeInTheDocument();
     expect(screen.getByText("What went wrong?")).toBeInTheDocument();
     expect(screen.getByTestId("mistake-input")).toBeInTheDocument();
     expect(screen.getByText("Nothing to look at yet")).toBeInTheDocument();
@@ -49,7 +50,44 @@ describe("CognitiveDebuggerView", () => {
     fireEvent.click(presetBtn);
 
     const textarea = screen.getByTestId("mistake-input") as HTMLTextAreaElement;
-    expect(textarea.value).toContain("Failed derivative of composite");
+    expect(textarea.value).toContain("Expanded (x + 3)²");
+    /* The preset's subject is selected, even though it came from outside the
+       student's own list. */
+    expect(screen.getByLabelText("Subject")).toHaveValue("Maths");
+  });
+
+  it("selects the student's own folder when a preset names it in a different case", async () => {
+    /* The QA case: folders "Lol" and "maths", Maths preset tapped. The select
+       showed "Lol" while the diagnosis ran — and was labelled — "Maths". */
+    server.use(
+      http.get(rest("folders"), () =>
+        HttpResponse.json([
+          { id: "f-lol", name: "Lol", user_id: "user-1" },
+          { id: "f-maths", name: "maths", user_id: "user-1" },
+        ]),
+      ),
+    );
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+
+    const select = screen.getByLabelText("Subject") as HTMLSelectElement;
+    await waitFor(() => expect(select).toHaveValue("Lol"));
+
+    fireEvent.click(screen.getByTestId("preset-btn-0"));
+
+    expect(select).toHaveValue("maths");
+    expect(select.selectedOptions[0].textContent).toBe("Maths");
+  });
+
+  it("restores an unfinished solver draft after leaving the page", async () => {
+    const view = renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    fireEvent.change(screen.getByTestId("mistake-input"), { target: { value: "Missed the chain rule" } });
+    fireEvent.change(screen.getByPlaceholderText(/I put the numbers/), { target: { value: "Forgot 2x" } });
+    expect(screen.getByText(/Your draft stays here/)).toBeInTheDocument();
+    view.unmount();
+
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    expect(screen.getByTestId("mistake-input")).toHaveValue("Missed the chain rule");
+    expect(screen.getByPlaceholderText(/I put the numbers/)).toHaveValue("Forgot 2x");
   });
 
   it("executes diagnosis and displays 3-layer stack trace and Knowledge Circuit", async () => {
@@ -113,7 +151,60 @@ describe("CognitiveDebuggerView", () => {
     });
   });
 
-  it("launches 60s micro repair modal and restores the circuit upon success", async () => {
+  it("shows a plain checklist, not a made-up diagnosis, when the tutor can't be reached", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post(EDGE_URL, () => HttpResponse.json({ error: "down" }, { status: 400 })),
+    );
+
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    await user.type(screen.getByTestId("mistake-input"), "I said plants get energy from soil");
+    fireEvent.click(screen.getByTestId("diagnose-submit-btn"));
+
+    expect(await screen.findByText(/This isn.t a real diagnosis/)).toBeInTheDocument();
+    expect(screen.getByTestId("degraded-checklist")).toBeInTheDocument();
+    expect(screen.queryByTestId("knowledge-circuit")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Missing/)).not.toBeInTheDocument();
+  });
+
+  it("fills in the real question and answer when a recent quiz mistake is tapped", async () => {
+    server.use(
+      http.get(rest("folders"), () =>
+        HttpResponse.json([{ id: "f-bio", name: "Biology", user_id: "user-1" }]),
+      ),
+      http.get(rest("quiz_attempts"), ({ request }) =>
+        new URL(request.url).searchParams.get("select")?.includes("answers_json")
+          ? HttpResponse.json([
+              {
+                quiz_id: "q-1",
+                weak_topics: ["Energy Source"],
+                answers_json: [{ questionId: 0, chosenIndex: 1, correct: false, topic: "Energy Source" }],
+              },
+            ])
+          : HttpResponse.json([{ weak_topics: ["Energy Source"] }]),
+      ),
+      http.get(rest("quizzes"), () =>
+        HttpResponse.json({
+          folder_id: "f-bio",
+          questions_json: [
+            { question: "Where does the energy come from?", choices: ["Light", "Soil"], correctIndex: 0, topic: "Energy Source" },
+          ],
+        }),
+      ),
+    );
+
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    fireEvent.click(await screen.findByText("Energy Source"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("mistake-input")).toHaveValue(
+        'Where does the energy come from?\nI answered "Soil" but the answer was "Light".',
+      ),
+    );
+    expect(screen.getByLabelText("Subject")).toHaveValue("Biology");
+  });
+
+  it("launches the quick check modal and restores the circuit upon success", async () => {
     const user = userEvent.setup();
 
     server.use(
@@ -181,7 +272,7 @@ describe("CognitiveDebuggerView", () => {
 
     // Modal should open
     await waitFor(() => {
-      expect(screen.getByText("60-second fix")).toBeInTheDocument();
+      expect(screen.getByText("Quick check")).toBeInTheDocument();
       expect(screen.getByText("Energy in a closed system cannot vanish.")).toBeInTheDocument();
     }, { timeout: 5000 });
 
@@ -202,6 +293,73 @@ describe("CognitiveDebuggerView", () => {
         "All three steps hold up",
       );
     }, { timeout: 5000 });
+  });
+
+  /* The free plan's two Debugger calls a day are spent by one diagnosis and
+     one repair, so the next "Fix it" is usually a 429. That used to open a
+     template exercise whose pass closed the gap and wrote a correction to
+     the ledger. */
+  it("says why there's no exercise when the tutor can't write one, and leaves the gap open", async () => {
+    const user = userEvent.setup();
+    const refusal =
+      "You've used today's allowance for this tool on the free plan. It resets at midnight — or Learnora Plus/Pro raises the limit.";
+    let tutorBack = false;
+
+    server.use(
+      http.post(EDGE_URL, async ({ request }) => {
+        const body = (await request.json()) as any;
+        const prompt = body.history?.[0]?.content || "";
+
+        if (prompt.includes("Cognitive Root-Cause Debugger")) {
+          return HttpResponse.json({
+            text: JSON.stringify({
+              rootCauseSummary: "Bedrock gap in invariant energy conservation.",
+              layers: [
+                { level: 3, concept: "Pendulum Speed Error", status: "severed", explanation: "a" },
+                { level: 2, concept: "Kinetic-Potential Equivalence", status: "shaky", explanation: "b" },
+                { level: 1, concept: "Total Energy Invariance", status: "severed", explanation: "c" },
+              ],
+            }),
+          });
+        }
+
+        if (!tutorBack) {
+          return HttpResponse.json({ error: refusal, text: refusal }, { status: 429 });
+        }
+        return HttpResponse.json({
+          text: JSON.stringify({
+            rootConcept: "Total Energy Invariance",
+            intuitionSummary: "Energy in a closed system cannot vanish.",
+            interactiveExercise: {
+              prompt: "What is conserved in an isolated mechanical system?",
+              options: ["Total Energy", "Only Speed", "Only Position", "Nothing"],
+              correctIndex: 0,
+              firstPrinciplesExplanation: "Total energy remains invariant.",
+            },
+          }),
+        });
+      }),
+    );
+
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    await user.type(screen.getByTestId("mistake-input"), "Pendulum energy breakdown");
+    fireEvent.click(screen.getByTestId("diagnose-submit-btn"));
+    fireEvent.click(await screen.findByTestId("launch-micro-repair-btn", {}, { timeout: 5000 }));
+
+    const notice = await screen.findByTestId("repair-unavailable");
+    expect(notice).toHaveTextContent(/We couldn.t set up the exercise/);
+    expect(notice).toHaveTextContent(/used today's allowance/);
+    expect(screen.queryByTestId("repair-intuition-text")).not.toBeInTheDocument();
+    expect(screen.getByText("Here's where it started")).toBeInTheDocument();
+    expect(screen.queryByText(/You've fixed it/i)).not.toBeInTheDocument();
+
+    /* Once the tutor is back, the retry opens the exercise it wrote. */
+    tutorBack = true;
+    await user.click(within(notice).getByRole("button", { name: "Try again" }));
+    expect(await screen.findByTestId("repair-intuition-text")).toHaveTextContent(
+      "Energy in a closed system cannot vanish.",
+    );
+    expect(screen.queryByTestId("repair-unavailable")).not.toBeInTheDocument();
   });
 
   it("manages trace history and allows switching between traces", async () => {
@@ -235,7 +393,7 @@ describe("CognitiveDebuggerView", () => {
 
     saveTrace(existingTrace);
 
-    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    const view = renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
 
     // History button should show count
     const historyBtn = screen.getByTestId("open-history-btn");
@@ -255,8 +413,15 @@ describe("CognitiveDebuggerView", () => {
       expect(screen.getByTestId("new-debug-btn")).toBeInTheDocument();
     });
 
+    view.unmount();
+    const returnView = renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    expect(screen.getByText("Vector vs Scalar confusion")).toBeInTheDocument();
+
     // Reset button clears active view
     fireEvent.click(screen.getByTestId("new-debug-btn"));
+    expect(screen.getByText("Nothing to look at yet")).toBeInTheDocument();
+    returnView.unmount();
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
     expect(screen.getByText("Nothing to look at yet")).toBeInTheDocument();
   });
 });

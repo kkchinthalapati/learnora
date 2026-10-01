@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { renderWithProviders } from "../../test/render";
+import { server } from "../../test/mocks/server";
+import { mockAuthSession } from "../../test/mockSession";
+import { SUPABASE_URL } from "../../lib/supabase";
 import { CUSTOM_THEME_KEY } from "../../lib/appearance";
 import { Storage } from "../../lib/storage";
 import { CustomThemeStudio } from "./CustomThemeStudio";
@@ -19,6 +23,25 @@ describe("CustomThemeStudio", () => {
     localStorage.clear();
     document.body.removeAttribute("style");
     document.body.removeAttribute("data-theme-color");
+    /* The studio itself has no opinion on entitlements — it always renders —
+       but AppearanceProvider only paints a custom accent onto <body> for a
+       Pro account (see AppearanceProvider's `effectiveAppearance`), and one
+       test below checks that paint. Mocked Pro here so this file stays about
+       the studio's own behaviour rather than plan gating, which
+       AppearanceTab.test.tsx already covers. */
+    mockAuthSession("user-1");
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/profiles`, () =>
+        HttpResponse.json([
+          {
+            plan: "pro",
+            plan_status: "active",
+            plan_renews_at: null,
+            plan_cancel_at_period_end: false,
+          },
+        ]),
+      ),
+    );
   });
 
   it("opens on the stored stop", () => {
@@ -37,8 +60,10 @@ describe("CustomThemeStudio", () => {
     await user.type(hexInput(), "#00FF00");
 
     expect(hexInput()).not.toHaveAttribute("aria-invalid");
-    expect(document.body.style.getPropertyValue("--custom-accent")).not.toBe(
-      "",
+    await waitFor(() =>
+      expect(
+        document.body.style.getPropertyValue("--custom-accent"),
+      ).not.toBe(""),
     );
   });
 

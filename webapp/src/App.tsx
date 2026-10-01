@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { OverlayStackProvider } from "./context/OverlayStackProvider";
 import { ToastProvider } from "./context/ToastProvider";
 import { DialogProvider } from "./context/DialogProvider";
+import { AiConsentBridge } from "./components/AiConsentBridge";
 import { AuthProvider } from "./context/AuthProvider";
 import { CreateModalProvider } from "./context/CreateModalProvider";
 import { AppearanceProvider } from "./context/AppearanceProvider";
@@ -15,6 +16,7 @@ import { TurboChat } from "./components/chat/TurboChat";
 import { FocusStudyHUD } from "./views/timer/FocusStudyHUD";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AppRoutes } from "./routes";
+import { RouteTitle } from "./lib/routeTitle";
 import { useAuth } from "./context/auth";
 import { useEffect } from "react";
 import { applyAppUpdate, watchForAppUpdate } from "./lib/appUpdate";
@@ -63,13 +65,14 @@ function SignedInOverlays() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppearanceProvider>
-        <SettingsProvider>
-          <OverlayStackProvider>
-            <ToastProvider>
-              <AppUpdatePrompt />
-              <DialogProvider>
-                <AuthProvider>
+      <AuthProvider>
+        <AppearanceProvider>
+          <SettingsProvider>
+            <OverlayStackProvider>
+              <ToastProvider>
+                <AppUpdatePrompt />
+                <DialogProvider>
+                  <AiConsentBridge />
                   <TimerProvider>
                     <BrowserRouter
                       basename={import.meta.env.BASE_URL.replace(/\/$/, "")}
@@ -77,21 +80,31 @@ export default function App() {
                       <CreateModalProvider>
                         <ChatProvider>
                           <CommandPaletteProvider>
-                            <ErrorBoundary>
+                            <RouteTitle />
+                            <ErrorBoundary label="route">
                               <AppRoutes />
                             </ErrorBoundary>
-                            <SignedInOverlays />
+                            {/* Its own boundary, and a silent one. These two
+                                sat outside every boundary in the tree, so a
+                                throw in the chat panel or the focus HUD took
+                                the entire app to a blank tab — the one crash
+                                the app-wide net was added to prevent. A
+                                docked overlay failing should cost the student
+                                the overlay, nothing else. */}
+                            <ErrorBoundary label="overlays" fallback={null}>
+                              <SignedInOverlays />
+                            </ErrorBoundary>
                           </CommandPaletteProvider>
                         </ChatProvider>
                       </CreateModalProvider>
                     </BrowserRouter>
                   </TimerProvider>
-                </AuthProvider>
-              </DialogProvider>
-            </ToastProvider>
-          </OverlayStackProvider>
-        </SettingsProvider>
-      </AppearanceProvider>
+                </DialogProvider>
+              </ToastProvider>
+            </OverlayStackProvider>
+          </SettingsProvider>
+        </AppearanceProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -99,7 +99,11 @@ export function StudyCircleCard() {
           >
             <span className={styles.circleRank}>{entry.rank}</span>
             <span className={styles.circleAvatar} aria-hidden="true">
-              {initials(entry.full_name)}
+              {entry.avatar_url ? (
+                <img src={entry.avatar_url} alt="" />
+              ) : (
+                initials(entry.full_name)
+              )}
             </span>
             <span className={styles.circleMain}>
               <span className={styles.circleName}>

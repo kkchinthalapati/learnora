@@ -36,7 +36,7 @@ describe("OfflineBanner", () => {
     render(<OfflineBanner />);
     expect(
       screen.getByText(
-        "You're offline. Your work is saved and will sync when you reconnect.",
+        "You're offline. Queued task changes will sync when you reconnect; some other actions may be unavailable.",
       ),
     ).toBeInTheDocument();
     /* No Sync now button while offline: pressing it can only fail, and the
@@ -69,15 +69,15 @@ describe("OfflineBanner", () => {
     });
 
     render(<OfflineBanner />);
-    expect(
-      screen.getByText("Syncing 3 saved changes…"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Syncing 3 saved changes…")).toBeInTheDocument();
     const btn = screen.getByRole("button");
     expect(btn).toBeDisabled();
   });
 
   it("triggers syncNow when Sync Now button is clicked", async () => {
-    const syncNowMock = vi.fn().mockResolvedValue({ processed: 1, failed: 0, remaining: 0 });
+    const syncNowMock = vi
+      .fn()
+      .mockResolvedValue({ processed: 1, failed: 0, remaining: 0 });
     const user = userEvent.setup();
 
     vi.mocked(offlineSync.useOnlineStatus).mockReturnValue({

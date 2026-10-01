@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useAddFolder } from "../../hooks/useFolders";
 import { useToast } from "../../context/toast";
 import { Button } from "../Button";
+import { SUBJECT_MAX } from "../../lib/fieldLimits";
 import shared from "./formShared.module.css";
 import styles from "./SubjectPanel.module.css";
 
@@ -23,6 +24,9 @@ export function SubjectPanel({ onClose, onDone }: SubjectPanelProps) {
   const nameRef = useRef<HTMLInputElement>(null);
   const addFolder = useAddFolder();
   const { showToast } = useToast();
+  /* `isPending` disables the button only after a re-render; a double-click
+     created the subject twice. */
+  const submittingRef = useRef(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -32,6 +36,8 @@ export function SubjectPanel({ onClose, onDone }: SubjectPanelProps) {
       nameRef.current?.focus();
       return;
     }
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError(null);
     try {
       await addFolder.mutateAsync({ name: trimmed, color });
@@ -40,6 +46,8 @@ export function SubjectPanel({ onClose, onDone }: SubjectPanelProps) {
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      submittingRef.current = false;
     }
   };
 
@@ -55,7 +63,7 @@ export function SubjectPanel({ onClose, onDone }: SubjectPanelProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. CS101, Biology"
-          maxLength={80}
+          maxLength={SUBJECT_MAX}
           autoFocus
         />
       </div>

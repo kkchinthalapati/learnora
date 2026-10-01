@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { callEdge } from "../../api/ai";
 import type { Flashcard } from "../../api/types";
 import { Button } from "../../components/Button";
+import { CardImage } from "../../components/CardImage";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
@@ -12,7 +13,13 @@ import { useSettings } from "../../context/settings";
 import { useOptionalTimer } from "../../context/timer";
 import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
+import { useFolders } from "../../hooks/useFolders";
+import { useWeakTopics } from "../../hooks/useQuizzes";
 import { useContinuity } from "../../hooks/useContinuity";
+import {
+  useMisconceptions,
+  useRecordMisconceptions,
+} from "../../hooks/useMisconceptions";
 import { useAddTask } from "../../hooks/useTasks";
 import {
   useFlashcardsByDeck,
@@ -20,15 +27,14 @@ import {
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { useStudyClock } from "../../hooks/useStudyClock";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useOverlayBehavior } from "../../context/overlayStack";
 import { dateInDays } from "../../lib/date";
-import { fenceUntrusted } from "../../lib/actionTags";
+import { fenceUntrusted, stripActionTagBlocks } from "../../lib/actionTags";
+import { candidatesFromReviewLapses } from "../../lib/misconceptions";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
-import {
-  renderMarkdownNodes,
-  renderMathText,
-} from "../../lib/markdownToReact";
+import { renderMarkdownNodes, renderMathText } from "../../lib/markdownToReact";
 import {
   availableReviewLengths,
   createReviewSnapshot,
@@ -38,7 +44,13 @@ import {
   type ReviewOrder,
   type ReviewResult,
 } from "./session";
-import { dueCardsFrom, nextReviewState } from "./srs";
+import {
+  dueCardsFrom,
+  nextReviewState,
+  prioritiseByMisconceptions,
+} from "./srs";
+import { recordCardReviewedToday } from "../../lib/achievements";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import styles from "./review.module.css";
 
 /* Flashcard Review — ports `startReview` (js/router.js:640-792) and the
@@ -70,6 +82,9 @@ export function ReviewView() {
   const decks = useAllDecks();
   const deckCardsQuery = useFlashcardsByDeck(deckId);
   const allDueCardsQuery = useAllDueFlashcards(20);
+  /* Not in the pending gate: a slow ledger read must not hold up a review
+     session, and an empty one just leaves the queue in its normal order. */
+  const { all: ledger } = useMisconceptions();
 
   const cardsQuery = isDailyDrill ? allDueCardsQuery : deckCardsQuery;
 
@@ -82,6 +97,12 @@ export function ReviewView() {
      re-renders from the refetch, and ReviewLauncher sets it synchronously,
      well before that. */
   const sessionActiveRef = useRef(false);
+  /* "Practise anyway": review the whole deck even though nothing is due.
+     FSRS copes with an early review (a card seen before it was due earns a
+     smaller stability gain), so this is honest cramming rather than a
+     scheduler bypass — and the night before an exam is exactly when a
+     student wants it and "All caught up" was a dead end. */
+  const [practiseAll, setPractiseAll] = useState(false);
 
   if (decks.isPending || cardsQuery.isPending) {
     return (
@@ -127,9 +148,16 @@ export function ReviewView() {
     );
   }
 
-  const due = isDailyDrill
-    ? cardsQuery.data || []
-    : dueCardsFrom(cardsQuery.data);
+  /* Same cards, better order. `prioritiseByMisconceptions` deliberately does
+     not touch FSRS intervals — it moves cards about a still-open diagnosed gap
+     to the front of the session, so the student meets them while fresh rather
+     than forty cards in. An empty ledger returns the queue untouched. */
+  const due = prioritiseByMisconceptions(
+    isDailyDrill || practiseAll
+      ? cardsQuery.data || []
+      : dueCardsFrom(cardsQuery.data),
+    ledger,
+  );
 
   if (due.length === 0 && !sessionActiveRef.current) {
     return (
@@ -138,13 +166,20 @@ export function ReviewView() {
         <h2 className={styles.title}>{deck.title}</h2>
         <EmptyState
           icon="check"
-          title="All caught up! 🎉"
+          title="All caught up"
           message={
             isDailyDrill
-              ? "No cards due across any deck. Take a break!"
+              ? "No cards due across any deck. Recall will bring them back when they start to fade."
               : "No cards due for review in this deck right now."
           }
-        />
+        >
+          {!isDailyDrill && cardsQuery.data.length > 0 ? (
+            <Button variant="secondary" onClick={() => setPractiseAll(true)}>
+              Practise all {cardsQuery.data.length}{" "}
+              {cardsQuery.data.length === 1 ? "card" : "cards"} anyway
+            </Button>
+          ) : null}
+        </EmptyState>
       </div>
     );
   }
@@ -156,6 +191,7 @@ export function ReviewView() {
       deckTitle={deck.title}
       folderId={deck.folder_id ?? null}
       dueCards={due}
+      practising={practiseAll}
       onSessionStart={() => {
         sessionActiveRef.current = true;
       }}
@@ -168,15 +204,21 @@ function ReviewLauncher({
   deckTitle,
   folderId,
   dueCards,
+  practising = false,
   onSessionStart,
 }: {
   deckId: string;
   deckTitle: string;
   folderId?: string | null;
   dueCards: Flashcard[];
+  practising?: boolean;
   onSessionStart: () => void;
 }) {
   const [sessionCards, setSessionCards] = useState<Flashcard[] | null>(null);
+  /* Read here rather than in ReviewSetup so the list is already in cache by
+     the time the student picks an order — the snapshot is built synchronously
+     on "Start review" and a pending query would silently order by nothing. */
+  const weakTopics = useWeakTopics(5);
 
   if (sessionCards) {
     return (
@@ -193,21 +235,54 @@ function ReviewLauncher({
     <ReviewSetup
       deckTitle={deckTitle}
       dueCards={dueCards}
+      practising={practising}
+      hasQuizEvidence={(weakTopics.data ?? []).length > 0}
       onStart={(length, order) => {
         onSessionStart();
-        setSessionCards(createReviewSnapshot(dueCards, length, order));
+        setSessionCards(
+          createReviewSnapshot(dueCards, length, order, weakTopics.data ?? []),
+        );
       }}
     />
+  );
+}
+
+const SMALL_DECK = 20;
+
+/** Wraps optional settings in a closed <details> with a one-line summary, or
+ *  renders them as-is when they are worth seeing up front. */
+function OptionalFold({
+  fold,
+  summary,
+  children,
+}: {
+  fold: boolean;
+  summary: string;
+  children: React.ReactNode;
+}) {
+  if (!fold) return <>{children}</>;
+  return (
+    <details className={styles.setupFold}>
+      <summary>
+        <span>{summary}</span>
+        <span className={styles.setupFoldChange}>Change</span>
+      </summary>
+      {children}
+    </details>
   );
 }
 
 function ReviewSetup({
   deckTitle,
   dueCards,
+  practising = false,
+  hasQuizEvidence,
   onStart,
 }: {
   deckTitle: string;
   dueCards: Flashcard[];
+  practising?: boolean;
+  hasQuizEvidence: boolean;
   onStart: (length: ReviewLength, order: ReviewOrder) => void;
 }) {
   const [length, setLength] = useState<ReviewLength>(() =>
@@ -215,6 +290,12 @@ function ReviewSetup({
   );
   const [order, setOrder] = useState<ReviewOrder>("due");
   const lengths = availableReviewLengths(dueCards.length);
+  /* A short deck needs no planning: the choices fold behind one line that
+     states the defaults, and Start review is the next thing on screen. Past
+     this size, how many to do is a real decision and stays in view. */
+  const small = dueCards.length <= SMALL_DECK;
+  const orderName =
+    order === "due" ? "Oldest first" : order === "difficult" ? "Hardest first" : "Quiz weak spots first";
 
   return (
     <div className={styles.view}>
@@ -223,10 +304,16 @@ function ReviewSetup({
         <p className={styles.eyebrow}>Ready to review</p>
         <h2 className={styles.title}>{deckTitle}</h2>
         <p className={styles.setupIntro}>
-          {dueCards.length} {dueCards.length === 1 ? "card is" : "cards are"}{" "}
-          due. Choose a focused session that fits the time you have.
+          {practising
+            ? `Practising all ${dueCards.length} ${dueCards.length === 1 ? "card" : "cards"} — none are due yet, so this is extra practice.`
+            : `${dueCards.length} ${dueCards.length === 1 ? "card is" : "cards are"} due.`}
+          {small ? "" : " Choose a focused session that fits the time you have."}
         </p>
 
+        <OptionalFold
+          fold={small}
+          summary={`${length === "all" ? `All ${dueCards.length} cards` : `${length} cards`} · ${orderName}`}
+        >
         <fieldset className={styles.optionGroup}>
           <legend>Session length</legend>
           <div className={styles.choiceGrid}>
@@ -262,7 +349,7 @@ function ReviewSetup({
               />
               <span>
                 <strong>Due order</strong>
-                <small>Oldest due cards first</small>
+                <small>The cards that have waited longest come first</small>
               </span>
             </label>
             <label className={styles.orderChoice}>
@@ -275,11 +362,30 @@ function ReviewSetup({
               />
               <span>
                 <strong>Difficult first</strong>
-                <small>Lower-ease cards get priority</small>
+                <small>Cards you usually find hard come first</small>
               </span>
             </label>
+            {/* Offered only when quizzes have actually named a weak topic —
+                an option that would order by nothing is worse than no
+                option, because it implies evidence that isn't there. */}
+            {hasQuizEvidence ? (
+              <label className={styles.orderChoice}>
+                <input
+                  type="radio"
+                  name="review-order"
+                  value="quiz-weak"
+                  checked={order === "quiz-weak"}
+                  onChange={() => setOrder("quiz-weak")}
+                />
+                <span>
+                  <strong>Quiz weak spots first</strong>
+                  <small>Topics you got wrong in recent quizzes come first</small>
+                </span>
+              </label>
+            ) : null}
           </div>
         </fieldset>
+        </OptionalFold>
 
         <Button variant="primary" onClick={() => onStart(length, order)}>
           Start review
@@ -359,7 +465,9 @@ export function extractSourceNoteContext(
   }
 
   // 4. Markdown links [Source Note](/notes/:id)
-  const linkMatch = combined.match(/\[([^\]]*)\]\(\/notes\/([a-zA-Z0-9_-]+)\)/i);
+  const linkMatch = combined.match(
+    /\[([^\]]*)\]\(\/notes\/([a-zA-Z0-9_-]+)\)/i,
+  );
   if (linkMatch) {
     const rawTitle = linkMatch[1].trim();
     return {
@@ -411,6 +519,11 @@ function cardFace(text: string): ReactNode[] {
  * `<ADD_TASK>…</ADD_TASK>` sequence in its `front`/`back` must not be able
  * to steer the reply. Same class of concern `lib/chatPrompt.ts` already
  * fences note bodies for. */
+/* Longer than the 6s default: this one carries the mark *and* the reason, it
+   is the only place either is shown, and the card has already moved on by the
+   time it appears. */
+const AI_GRADE_FEEDBACK_DURATION = 10000;
+
 const AI_GRADE_PROMPT = (
   card: Flashcard,
   answer: string,
@@ -432,10 +545,7 @@ Also provide a short 1-sentence feedback.`;
  *  fresh object per call is cheap and avoids memoising a dependency on
  *  `scoreCard`, which itself changes identity every card. */
 export type SocraticMode =
-  | "mnemonic"
-  | "concept"
-  | "socratic_question"
-  | "why_missed";
+  "mnemonic" | "concept" | "socratic_question" | "why_missed";
 
 /* Every coach reply is read inside a narrow drawer, mid-review, by a student
  * who is already frustrated at missing a card. So the model is held to one
@@ -531,6 +641,7 @@ export function SocraticCoachDrawer({
   onClose: () => void;
   initialMode?: SocraticMode;
 }) {
+  const navigate = useNavigate();
   const { settings } = useSettings();
   const { showToast } = useToast();
   const [mode, setMode] = useState<SocraticMode>(initialMode);
@@ -560,6 +671,7 @@ export function SocraticCoachDrawer({
         const prompt = buildSocraticPrompt(selectedMode, card, noteText);
         const { text } = await callEdge({
           history: [{ role: "user", content: prompt }],
+          tool: "chat",
           settings,
         });
         setResponse(text.trim());
@@ -600,7 +712,7 @@ export function SocraticCoachDrawer({
     try {
       await navigator.clipboard.writeText(response);
       setCopied(true);
-      showToast("Copied Socratic guidance to clipboard!");
+      showToast("Copied Socratic guidance");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       showToast("Could not copy to clipboard", { error: true });
@@ -643,7 +755,9 @@ export function SocraticCoachDrawer({
         <div className={styles.socraticHeader}>
           <div className={styles.socraticHeaderLeft}>
             <Icon name="brain" size={20} />
-            <h2 className={styles.socraticTitle}>Socratic Coach &amp; Interceptor</h2>
+            <h2 className={styles.socraticTitle}>
+              Socratic Coach &amp; Interceptor
+            </h2>
           </div>
           <button
             type="button"
@@ -667,7 +781,11 @@ export function SocraticCoachDrawer({
             </div>
           </div>
 
-          <div className={styles.socraticModeTabs} role="tablist" aria-label="Coaching modes">
+          <div
+            className={styles.socraticModeTabs}
+            role="tablist"
+            aria-label="Coaching modes"
+          >
             <button
               type="button"
               role="tab"
@@ -788,6 +906,17 @@ export function SocraticCoachDrawer({
         </div>
 
         <div className={styles.socraticFooter}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const topic = card?.front ? card.front.slice(0, 80) : "";
+              CognitiveBridge.saveActiveTopic(topic);
+              navigate(`/study?topic=${encodeURIComponent(topic)}`);
+            }}
+          >
+            <Icon name="sparkles" size={14} />
+            <span>Open in AI Tutor</span>
+          </Button>
           <Button variant="secondary" onClick={onClose}>
             Resume Review
           </Button>
@@ -867,11 +996,21 @@ function ReviewSession({
      path if the reply never contained a usable tag. */
   const aiGradeInFlight = useRef(false);
 
+  const navigate = useNavigate();
   const updateReview = useUpdateFlashcardReview();
   const { registerFlashcardGrader } = useChat();
   const { settings } = useSettings();
   const { showToast } = useToast();
   const { recordDeck } = useContinuity();
+  const recordMisconceptions = useRecordMisconceptions();
+  const folders = useFolders();
+  /* Credits this review with the time it takes. The deck is the task, and the
+     folder the subject, matching how the ledger write below files its rows. */
+  const studyClock = useStudyClock({
+    timerType: "review",
+    task: deckTitle,
+    folderId: folderId ?? null,
+  });
 
   const finished = index >= cards.length;
 
@@ -896,12 +1035,17 @@ function ReviewSession({
       const card = cards[index];
       if (!card) return;
       if (!practiceRound) {
-        const { interval, ease, nextReviewDate } = nextReviewState(
-          card,
-          quality,
-        );
+        const { interval, ease, nextReviewDate, stability, difficulty } =
+          nextReviewState(card, quality);
         updateReview.mutate(
-          { cardId: card.id, nextReviewDate, interval, ease },
+          {
+            cardId: card.id,
+            nextReviewDate,
+            interval,
+            ease,
+            stability,
+            difficulty,
+          },
           {
             onError: () =>
               showToast(
@@ -911,6 +1055,8 @@ function ReviewSession({
           },
         );
         setResults((current) => [...current, { card, quality }]);
+        recordCardReviewedToday();
+        studyClock.mark();
       }
       aiGradeInFlight.current = false;
       setIndex((i) => i + 1);
@@ -919,7 +1065,7 @@ function ReviewSession({
       setGrading(false);
       setSourceDrawerOpen(false);
     },
-    [cards, index, practiceRound, updateReview, showToast],
+    [cards, index, practiceRound, updateReview, showToast, studyClock],
   );
 
   /* Keyboard shortcuts: Space to flip, 1-4 to grade (only when flipped and
@@ -955,11 +1101,68 @@ function ReviewSession({
 
   useEffect(() => {
     mountedRef.current = true;
+    /* Opens the clock, so the time spent on the *first* card counts too —
+       every later mark is a grade, and a gap needs both of its ends. */
+    studyClock.mark();
     return () => {
       mountedRef.current = false;
       aiGradeInFlight.current = false;
     };
+    // Mount-only: one clock per session, opened when the session begins.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Spaced repetition, filed as diagnosis.
+   *
+   * Grading a card already tells the scheduler everything; until now it told
+   * nothing else. A card the student fails for the fourth time is the app's
+   * own strongest evidence that a belief is wrong, and it was reaching neither
+   * the plan, nor the quiz generator, nor the tutor sitting in the sidebar —
+   * all three of which read the ledger. This is the write that closes that
+   * loop, and it is the highest-volume signal Learnora has: hundreds of grades
+   * a week against a handful of quiz answers.
+   *
+   * Once per session, at the end, rather than per grade: the extractor's cap
+   * has to see the whole session to know which five lapses were the worst
+   * ones, and a mid-session write would spend the slots on whichever cards
+   * happened to come up first.
+   *
+   * Practice rounds are excluded. The recap tells the student those grades
+   * will not change their schedule, and quietly filing them as fresh evidence
+   * would both break that promise and double-count cards this session has
+   * already reported. */
+  const ledgerWrittenRef = useRef(false);
+  useEffect(() => {
+    if (!finished || practiceRound || results.length === 0) return;
+    if (ledgerWrittenRef.current) return;
+    ledgerWrittenRef.current = true;
+
+    /* The folder is the subject everywhere else in the ledger, so a lapse in
+       Chemistry revision merges with a Chemistry misconception the Debugger
+       found rather than opening a second row beside it. The deck title is the
+       fallback for a deck that was never filed. */
+    const subject =
+      folders.data?.find((f) => f.id === folderId)?.name ?? deckTitle;
+
+    recordMisconceptions(
+      candidatesFromReviewLapses(results, { subject, sessionId: deckId }),
+    );
+
+    /* Same moment, same guards: a practice round promises not to change the
+       schedule, and time re-covering cards this session already credited would
+       be counted twice. */
+    studyClock.commit();
+  }, [
+    finished,
+    practiceRound,
+    results,
+    folders.data,
+    folderId,
+    deckTitle,
+    deckId,
+    recordMisconceptions,
+    studyClock,
+  ]);
 
   if (finished) {
     const difficultCards = results
@@ -1015,12 +1218,36 @@ function ReviewSession({
          sends as history. */
       const { text } = await callEdge({
         history: [{ role: "user", content: AI_GRADE_PROMPT(card, trimmed) }],
+        tool: "chat",
         settings,
       });
       /* Leaving the route does not cancel fetch, so a late reply must not
          grade a card or write SRS state after this session is gone. */
       if (!mountedRef.current) return;
-      await executeActions(text, gradeOnlyHandlers(scoreCard));
+      /* AI_GRADE_PROMPT asks for the tag *and* "a short 1-sentence feedback",
+         and the feedback was being thrown away: `executeActions` consumes the
+         tag, `scoreCard` advanced the card, and the student never saw what
+         they had been marked or why. A button labelled "Grade" that shows no
+         grade is worse than no button — a vague answer gets silently recorded
+         as Good and the student moves on believing they knew it.
+
+         Captured around `scoreCard` rather than read back from state, because
+         `scoreCard` has already advanced `index` by the time it returns. */
+      let gradedQuality: number | null = null;
+      await executeActions(
+        text,
+        gradeOnlyHandlers((quality) => {
+          gradedQuality = quality;
+          scoreCard(quality);
+        }),
+      );
+      if (gradedQuality !== null) {
+        const { label } = getGradeInfo(gradedQuality);
+        const feedback = stripActionTagBlocks(text).trim();
+        showToast(feedback ? `Marked ${label} — ${feedback}` : `Marked ${label}.`, {
+          duration: AI_GRADE_FEEDBACK_DURATION,
+        });
+      }
     } catch {
       /* Falls through to the same "couldn't grade" recovery below as a reply
          with no usable tag — a transport failure and a model that ignored
@@ -1071,6 +1298,11 @@ function ReviewSession({
               the answer immediately, before the student ever flips. */}
           <div className={styles.face} aria-hidden={flipped}>
             <div className={styles.cardText}>{cardFace(card.front)}</div>
+            <CardImage
+              path={card.front_image_path}
+              alt="Image on the front of this card"
+              className={styles.cardImage}
+            />
             {!flipped ? <p className={styles.hint}>Click to flip</p> : null}
           </div>
           <div
@@ -1080,6 +1312,11 @@ function ReviewSession({
             <div className={`${styles.cardText} ${styles.backText}`}>
               {cardFace(card.back)}
             </div>
+            <CardImage
+              path={card.back_image_path}
+              alt="Image on the back of this card"
+              className={styles.cardImage}
+            />
           </div>
         </button>
       </div>
@@ -1174,6 +1411,18 @@ function ReviewSession({
             >
               <Icon name="brain" size={16} />
               <span>Why did I miss this? (Socratic Coach)</span>
+            </Button>
+            <Button
+              variant="secondary"
+              className={styles.socraticBtn}
+              onClick={() => {
+                const topic = card?.front ? card.front.slice(0, 80) : "";
+                CognitiveBridge.saveActiveTopic(topic);
+                navigate(`/study?topic=${encodeURIComponent(topic)}`);
+              }}
+            >
+              <Icon name="sparkles" size={16} />
+              <span>Open in AI Tutor</span>
             </Button>
           </div>
           <div className={styles.controls}>
@@ -1284,7 +1533,10 @@ function ReviewRecap({
   const startFocusSession = () => {
     const focusTask =
       recap.weakTopics.length > 0
-        ? `Focus: ${recap.weakTopics.slice(0, 2).map((t) => t.topic).join(", ")} (${deckTitle})`
+        ? `Focus: ${recap.weakTopics
+            .slice(0, 2)
+            .map((t) => t.topic)
+            .join(", ")} (${deckTitle})`
         : `Focus: ${deckTitle}`;
     timer?.prepareFocus(25, focusTask, folderId);
     showToast(`25m Focus session staged for ${deckTitle}!`);
@@ -1305,7 +1557,7 @@ function ReviewRecap({
       {
         onSuccess: () => {
           setTaskAdded(true);
-          showToast("Added revision task for tomorrow!");
+          showToast("Added a revision task for tomorrow");
         },
         onError: (err) => {
           showToast(`Could not add task: ${err.message}`, { error: true });
@@ -1335,7 +1587,7 @@ function ReviewRecap({
         <p className={styles.eyebrow}>Session recap</p>
         <h2 className={styles.title}>{deckTitle}</h2>
         <h2 id="review-recap-title" className={styles.recapTitle}>
-          {isDrill ? "Drill Complete! ⚡" : "Review Complete! 🧠"}
+          {isDrill ? "Drill complete" : "Review complete"}
         </h2>
 
         {practiceComplete ? (
@@ -1348,7 +1600,9 @@ function ReviewRecap({
         {/* How much you’ll remember */}
         <div className={styles.retentionCard}>
           <div className={styles.retentionHeader}>
-            <h3 className={styles.retentionTitle}>How much you’ll still remember in a week</h3>
+            <h3 className={styles.retentionTitle}>
+              How much you’ll still remember in a week
+            </h3>
             <span
               className={`${styles.retentionBadge} ${getRetentionBadgeClass(
                 recap.retentionLabel,
@@ -1588,17 +1842,24 @@ function ReviewRecap({
               <Icon name="clock" size={16} />
               <span>25 minutes on the tricky ones</span>
             </Button>
-            {recap.weakTopics.length > 0 && (
-              <Button
-                variant="secondary"
-                onClick={handleAddRevisionTask}
-                disabled={taskAdded || addTask.isPending}
-                className={styles.recapActionBtn}
-              >
-                <Icon name="list-checks" size={16} />
-                <span>{taskAdded ? "Added to tomorrow ✓" : "Revise this again tomorrow"}</span>
-              </Button>
-            )}
+            {/* Not gated on weakTopics any more. `handleAddRevisionTask`
+                already names the task "Review cards again: <deck>" when there
+                are no topics to name, and "put this deck in front of me again
+                tomorrow" is worth offering for every session — it used to
+                vanish precisely when the recap had least else to offer. */}
+            <Button
+              variant="secondary"
+              onClick={handleAddRevisionTask}
+              disabled={taskAdded || addTask.isPending}
+              className={styles.recapActionBtn}
+            >
+              <Icon name="list-checks" size={16} />
+              <span>
+                {taskAdded
+                  ? "Added to tomorrow ✓"
+                  : "Revise this again tomorrow"}
+              </span>
+            </Button>
             {onRepeatDifficult ? (
               <Button
                 variant="secondary"
@@ -1611,16 +1872,23 @@ function ReviewRecap({
             ) : null}
             <Button
               variant="secondary"
-              onClick={() => void navigate(folderId ? `/folders/${folderId}` : "/library/flashcards")}
+              onClick={() =>
+                void navigate(
+                  folderId ? `/folders/${folderId}` : "/library/flashcards",
+                )
+              }
               className={styles.recapActionBtn}
             >
               <Icon name={folderId ? "folder" : "layers"} size={16} />
-              <span>{folderId ? "Back to Subject Hub" : "Back to Flashcards"}</span>
+              <span>
+                {folderId ? "Back to Subject Hub" : "Back to Flashcards"}
+              </span>
             </Button>
           </div>
           {onRepeatDifficult && (
             <p className={styles.practiceNoticeSmall}>
-              Practicing difficult cards is a repeat pass that preserves your scheduled SRS intervals.
+              Practicing difficult cards is a repeat pass that preserves your
+              scheduled SRS intervals.
             </p>
           )}
           {!onRepeatDifficult && (

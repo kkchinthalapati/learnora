@@ -1,0 +1,189 @@
+/* Study (2026-09 redesign): the Session mode picker. Hairline cards, no
+ * shadows; one filled button (the ledger suggestion) at most. */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-8);
+  max-width: 1040px;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.hero h1 {
+  margin: 0;
+  max-width: 16ch;
+}
+
+.topicField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  max-width: 560px;
+}
+
+.topicLabel {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.topicInput {
+  min-height: var(--control-lg);
+  padding: 0 var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font: inherit;
+}
+
+.topicInput:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+
+.suggestion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--s-6);
+  padding: var(--s-6);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.suggestion h2 {
+  margin: var(--s-2) 0;
+}
+
+.suggestion p {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--text-muted);
+}
+
+.primary {
+  min-height: var(--control-lg);
+  padding: 0 var(--s-6);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--accent-on);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary:hover {
+  background: var(--accent-hover);
+}
+
+.modeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--s-4);
+}
+
+.modeCard {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.modeCard:hover {
+  border-color: var(--accent-line-strong);
+}
+
+.modeLink {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-6);
+  color: var(--text);
+  text-decoration: none;
+  border-radius: var(--r-lg);
+}
+
+.icon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--s-2);
+  border-radius: var(--r-md);
+  background: var(--accent-wash);
+  color: var(--accent-deep);
+}
+
+.prompt {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.modeTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 500;
+}
+
+.modeText {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--text-muted);
+}
+
+.variant {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-6);
+  border-top: 1px solid var(--hairline);
+  color: var(--accent-deep);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.variant:hover {
+  text-decoration: underline;
+}
+
+.footnote {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.footnote a {
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .suggestion {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .topicInput {
+    font-size: var(--fs-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modeCard {
+    transition: none;
+  }
+}

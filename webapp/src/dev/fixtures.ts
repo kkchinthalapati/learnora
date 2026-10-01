@@ -213,22 +213,25 @@ export const quizzes = [
     material_id: "m-1",
     folder_id: "f-bio",
     title: "Enzymes quick check",
+    /* Same shape the app stores (lib/aiJson QuizQuestion): choices and
+       correctIndex. It used options/answer, so the harness quiz, the mock
+       exam and every screen built on this fixture showed "no questions". */
     questions_json: [
       {
         question: "Enzymes are best described as…",
-        options: ["Catalysts", "Substrates", "Hormones", "Lipids"],
-        answer: 0,
+        choices: ["Catalysts", "Substrates", "Hormones", "Lipids"],
+        correctIndex: 0,
         topic: "Enzymes",
       },
       {
         question: "Raising temperature past the optimum will…",
-        options: [
+        choices: [
           "Speed it up forever",
           "Denature the enzyme",
           "Change the substrate",
           "Do nothing",
         ],
-        answer: 1,
+        correctIndex: 1,
         topic: "Rates",
       },
     ],
@@ -243,7 +246,13 @@ export const quizAttempts = [
     quiz_id: "q-1",
     score: 1,
     total: 2,
-    answers_json: [{ selected: 0 }, { selected: 0 }],
+    /* The shape QuizRunner writes. It was [{ selected }], which nothing
+       parses, so harness and e2e runs showed "no quiz attempted" to the
+       tutor and a "0 → 1" improvement on results despite this attempt. */
+    answers_json: [
+      { questionId: 0, chosenIndex: 0, correct: true, topic: "Enzymes" },
+      { questionId: 1, chosenIndex: 0, correct: false, topic: "Rates" },
+    ],
     weak_topics: ["Rates"],
     created_at: daysAgo(7),
   },
@@ -273,60 +282,6 @@ export const plans = [
         },
       ],
     },
-  },
-];
-
-/** `get_friends_leaderboard(tz)` — friendship_id is null on your own row. */
-export const leaderboard = [
-  {
-    friendship_id: "fs-1",
-    user_id: "friend-1",
-    full_name: "Priya Raman",
-    avatar_url: null,
-    weekly_minutes: 240,
-    streak: 12,
-    is_self: false,
-    rank: 1,
-  },
-  {
-    friendship_id: null,
-    user_id: USER_ID,
-    full_name: "Harness Student",
-    avatar_url: null,
-    weekly_minutes: 195,
-    streak: 7,
-    is_self: true,
-    rank: 2,
-  },
-  {
-    friendship_id: "fs-2",
-    user_id: "friend-2",
-    full_name: "Sam Okafor",
-    avatar_url: null,
-    weekly_minutes: 120,
-    streak: 3,
-    is_self: false,
-    rank: 3,
-  },
-];
-
-/** `get_friend_requests()` — both directions come back from one call. */
-export const friendRequests = [
-  {
-    friendship_id: "fs-3",
-    user_id: "friend-3",
-    full_name: "Alex Mercer",
-    avatar_url: null,
-    direction: "incoming" as const,
-    created_at: daysAgo(1),
-  },
-  {
-    friendship_id: "fs-4",
-    user_id: "friend-4",
-    full_name: "Jordan Blake",
-    avatar_url: null,
-    direction: "outgoing" as const,
-    created_at: daysAgo(2),
   },
 ];
 
@@ -412,5 +367,104 @@ export const notebooks = [
         created_at: daysAgo(1),
       },
     ],
+  },
+
+  {
+    id: "nb-bio",
+    user_id: USER_ID,
+    title: "Biology Paper 2",
+    subject: "Biology",
+    color: "#4ade80",
+    description: "Enzymes, respiration and the topics still costing marks.",
+    notes:
+      "Focus on explaining rate-limiting factors without relying on memorised phrases.",
+    created_at: daysAgo(12),
+    updated_at: daysAgo(1),
+    notebook_sources: [
+      {
+        id: "nbs-1",
+        title: "Enzymes and rates of reaction",
+        type: "note",
+        content:
+          "Enzymes lower activation energy and have specific active sites.",
+        url: null,
+        selected: true,
+        created_at: daysAgo(9),
+      },
+      {
+        id: "nbs-2",
+        title: "Paper 2 topic list",
+        type: "syllabus",
+        content: "Cell biology, bioenergetics, homeostasis and inheritance.",
+        url: null,
+        selected: true,
+        created_at: daysAgo(8),
+      },
+    ],
+    notebook_artifacts: [
+      {
+        id: "nba-1",
+        type: "cheat_sheet",
+        title: "Enzymes: last-minute sheet",
+        content: "Activation energy; specificity; denaturation; rate factors.",
+        summary: "Four high-yield reminders for Paper 2.",
+        created_at: daysAgo(2),
+      },
+    ],
+    notebook_messages: [],
+  },
+];
+
+/** `get_friends_leaderboard(tz)` — friendship_id is null on your own row. */
+export const leaderboard = [
+  {
+    friendship_id: "fs-1",
+    user_id: "friend-1",
+    full_name: "Priya Raman",
+    avatar_url: null,
+    weekly_minutes: 240,
+    streak: 12,
+    is_self: false,
+    rank: 1,
+  },
+  {
+    friendship_id: null,
+    user_id: USER_ID,
+    full_name: "Harness Student",
+    avatar_url: null,
+    weekly_minutes: 195,
+    streak: 7,
+    is_self: true,
+    rank: 2,
+  },
+  {
+    friendship_id: "fs-2",
+    user_id: "friend-2",
+    full_name: "Sam Okafor",
+    avatar_url: null,
+    weekly_minutes: 120,
+    streak: 3,
+    is_self: false,
+    rank: 3,
+  },
+];
+
+/** `get_friend_requests()` — both directions come back from one call. */
+export const friendRequests = [
+  {
+    friendship_id: "fs-3",
+    user_id: "friend-3",
+    full_name: "Alex Mercer",
+    avatar_url: null,
+    direction: "incoming" as const,
+    created_at: daysAgo(1),
+  },
+  {
+    friendship_id: "fs-4",
+    user_id: "friend-4",
+    full_name: "Jordan Blake",
+    avatar_url: null,
+    direction: "outgoing" as const,
+    created_at: daysAgo(2),
   },
 ];

@@ -17,6 +17,13 @@ export interface Exam {
   exam_date: string;
   difficulty: string | null;
   status: string | null;
+  /** Optional subject folder. When set, readiness and the forecast scope to
+   *  it instead of guessing the subject from `exam_name`.
+   *
+   *  Optional rather than required-and-nullable, matching how `notebook_id`
+   *  was added to materials, decks and quizzes: rows written before the
+   *  column existed, and fixtures that predate it, are still valid exams. */
+  folder_id?: string | null;
 }
 
 export interface Folder {
@@ -33,12 +40,20 @@ export interface Material {
   id: string;
   user_id: string;
   folder_id: string | null;
+  notebook_id?: string | null;
   title: string;
   type: MaterialType;
   raw_content: string | null;
   storage_path: string | null;
   created_at: string;
+  /** Server-side pipeline state; see materialProcessing.ts for the mapping
+   *  onto the richer client status. Missing on rows read before the column. */
+  processing_status?: MaterialProcessingDbStatus | null;
+  processing_error?: string | null;
+  processing_updated_at?: string | null;
 }
+
+export type MaterialProcessingDbStatus = "pending" | "done" | "partial" | "failed" | "skipped";
 
 export interface Note {
   id: string;
@@ -47,12 +62,16 @@ export interface Note {
   markdown_content: string;
   html_content: string | null;
   created_at: string;
+  /** Bumped by a trigger on every update. Absent until migration
+   *  20260928010000 is applied. */
+  updated_at?: string | null;
 }
 
 export interface FlashcardDeck {
   id: string;
   user_id: string;
   folder_id: string | null;
+  notebook_id?: string | null;
   title: string;
   created_at: string;
 }
@@ -66,6 +85,15 @@ export interface Flashcard {
   next_review_date: string | null;
   srs_interval: number;
   ease_factor: number;
+  /** FSRS memory stability in days — how long until recall decays to the
+   *  target retention. NULL on cards last reviewed before the column existed. */
+  stability?: number | null;
+  /** FSRS difficulty on a 1..10 scale. NULL on pre-FSRS cards. */
+  difficulty?: number | null;
+  /** Storage keys in the private `card-media` bucket, read through signed
+   *  URLs. NULL when the side carries no image. */
+  front_image_path?: string | null;
+  back_image_path?: string | null;
   created_at: string;
   source_quote?: string | null;
   source_material_id?: string | null;
@@ -88,6 +116,8 @@ export interface StudySession {
   timer_type: string | null;
   started_at: string;
   created_at: string;
+  /** Optional end-of-session line: what was actually covered. */
+  notes?: string | null;
 }
 
 export interface WeeklyPlan {
@@ -104,6 +134,7 @@ export interface Quiz {
   user_id: string;
   material_id: string | null;
   folder_id: string | null;
+  notebook_id?: string | null;
   title: string;
   questions_json: unknown;
   created_at: string;
@@ -123,6 +154,31 @@ export interface QuizAttempt {
 export interface WeakTopic {
   topic: string;
   count: number;
+}
+
+/* Learning events — the evidence stream behind the trajectory forecast.
+ * `score` is an outcome in 0–1 (null for a pure time event); `minutes` is
+ * time spent. See supabase/migrations/20260916030000_learning_events.sql. */
+export type LearningEventSource =
+  | "timer"
+  | "quick_check"
+  | "feynman"
+  | "viva"
+  | "solver"
+  | "detective";
+
+export interface LearningEvent {
+  id: string;
+  user_id: string;
+  topic_key: string;
+  deck_id: string | null;
+  folder_id: string | null;
+  source: LearningEventSource;
+  score: number | null;
+  minutes: number;
+  occurred_at: string;
+  payload: Record<string, unknown>;
+  client_id: string | null;
 }
 
 /* Friends. Unlike everything above, most of these are not table rows — they
@@ -161,6 +217,7 @@ export interface FriendRequest {
   user_id: string;
   full_name: string | null;
   avatar_url: string | null;
+  bio: string | null;
   direction: "incoming" | "outgoing";
   created_at: string;
 }
@@ -197,4 +254,3 @@ export type {
   TimerSyncPayload,
   TimerStatus,
 } from "./studyRoom";
-

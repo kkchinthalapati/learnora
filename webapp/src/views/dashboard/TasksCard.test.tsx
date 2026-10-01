@@ -74,3 +74,37 @@ describe("TasksCard", () => {
     expect(await screen.findByText("1 card due today")).toBeInTheDocument();
   });
 });
+
+/* One card, two filters. Today renders it with `dueOnly`, the full
+   dashboard without — and both used to be headed "Today's tasks", so the
+   dashboard claimed a list that included tasks due tomorrow and later.
+   Two screens one click apart, same heading, different rule. */
+describe("TasksCard heading", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+    serveDueCount(0);
+    server.use(http.get(rest("tasks"), () => HttpResponse.json([])));
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("says Today's tasks only when it is showing today's", () => {
+    renderWithAuth(
+      <MemoryRouter initialEntries={["/"]}>
+        <TasksCard dueOnly />
+      </MemoryRouter>,
+      { session: fakeSession() },
+    );
+    expect(screen.getByText("Today's tasks")).toBeInTheDocument();
+  });
+
+  it("says All tasks when it is not filtered to today", () => {
+    renderWithAuth(
+      <MemoryRouter initialEntries={["/"]}>
+        <TasksCard />
+      </MemoryRouter>,
+      { session: fakeSession() },
+    );
+    expect(screen.getByText("All tasks")).toBeInTheDocument();
+    expect(screen.queryByText("Today's tasks")).toBeNull();
+  });
+});

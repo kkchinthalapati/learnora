@@ -8,6 +8,7 @@ import { MaterialsPanel } from "./MaterialsPanel";
 import { FlashcardsPanel } from "./FlashcardsPanel";
 import { QuizzesPanel } from "./QuizzesPanel";
 import { LibrarySearch } from "./LibrarySearch";
+import { NotebooksHubView } from "../notebooks/NotebooksHubView";
 import {
   LIBRARY_TABS,
   isLibraryTab,
@@ -17,6 +18,7 @@ import {
 import styles from "./library.module.css";
 
 const PANELS: Record<LibraryTabId, () => React.ReactElement> = {
+  notebooks: () => <NotebooksHubView embedded />,
   folders: FoldersPanel,
   materials: MaterialsPanel,
   flashcards: FlashcardsPanel,
@@ -55,11 +57,16 @@ export function LibraryView() {
 
   return (
     <div className={styles.view}>
+      <header className={styles.lead}>
+        <span className={styles.eyebrow}>Your study workspace</span>
+        <h1>Your learning</h1>
+        <p>Everything you study from, sorted by subject.</p>
+      </header>
       <LibrarySearch
         onActiveChange={setIsSearching}
         action={
           <Button variant="primary" onClick={() => openCreateModal()}>
-            + Create
+            Add your notes
           </Button>
         }
       />
@@ -99,6 +106,9 @@ export function LibraryView() {
             tabIndex={0}
             className={styles.panel}
           >
+            <p className={styles.tabBlurb}>
+              {LIBRARY_TABS.find((t) => t.id === active)?.blurb}
+            </p>
             <Panel />
           </div>
         </>

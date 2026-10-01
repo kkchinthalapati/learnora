@@ -5,35 +5,38 @@
  * - Cognitive Root-Cause Debugger (/debugger)
  * - Feynman Active Apprentice (/feynman)
  * - Pre-Mortem Adversarial Radar (/premortem)
- * - Concept Dependency Graph (/graph)
  */
+
+import { newSessionHref } from "./sessionModes";
 
 export type CognitiveSourceTool =
   | "debugger"
   | "feynman"
+  | "exam_detective"
   | "premortem"
-  | "graph"
   | "quiz"
-  | "notes";
+  | "notes"
+  | "sparring";
 
 export type CognitiveSeverity = "critical" | "moderate" | "minor";
 
 export type CognitiveSuggestedAction =
   | "debug_stack"
   | "teach_apprentice"
+  | "exam_detective"
   | "run_premortem"
-  | "inspect_graph";
+  | "spar_orally";
 
 export interface CognitiveContextPayload {
   subject: string;
   topic: string;
   concept?: string;
-  sourceTool: "debugger" | "feynman" | "premortem" | "graph" | "quiz" | "notes";
+  sourceTool: CognitiveSourceTool;
   sourceId?: string;
   evidencePrompt?: string;
   misconceptions?: string[];
   severity?: "critical" | "moderate" | "minor";
-  suggestedAction?: "debug_stack" | "teach_apprentice" | "run_premortem" | "inspect_graph";
+  suggestedAction?: CognitiveSuggestedAction;
 }
 
 export const COGNITIVE_BRIDGE_STORAGE_KEY = "learnora:cognitive_bridge_payload";
@@ -114,6 +117,16 @@ export const CognitiveBridge = {
     notifyListeners();
   },
 
+  saveActiveTopic(topic: string, subject = "General"): void {
+    const existing = CognitiveBridge.getPayload();
+    CognitiveBridge.setPayload({
+      subject: existing?.subject || subject,
+      sourceTool: existing?.sourceTool || "notes",
+      ...existing,
+      topic,
+    });
+  },
+
   hasPayload(): boolean {
     return CognitiveBridge.getPayload() !== null;
   },
@@ -138,16 +151,18 @@ export const CognitiveBridge = {
     };
   },
 
-  getTargetRoute(tool: "debugger" | "feynman" | "premortem" | "graph"): string {
+  getTargetRoute(tool: "debugger" | "feynman" | "exam_detective" | "premortem" | "sparring"): string {
     switch (tool) {
+      /* The tools are Session modes now; a new Session reads the payload. */
       case "debugger":
-        return "/debugger";
+        return newSessionHref("explain");
       case "feynman":
-        return "/feynman";
+        return newSessionHref("teach");
+      case "exam_detective":
       case "premortem":
-        return "/premortem";
-      case "graph":
-        return "/graph";
+        return newSessionHref("practice", { preset: "traps" });
+      case "sparring":
+        return newSessionHref("socratic", { voice: true });
       default:
         return "/";
     }

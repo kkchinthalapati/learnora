@@ -10,9 +10,9 @@ import { useLocalSessions } from "./useLocalSessions";
 import styles from "./dashboard.module.css";
 
 const PRESETS = [
+  { key: "pomodoro" as const, label: "25m Pomodoro" },
   { key: "light" as const, label: "20m" },
   { key: "cram" as const, label: "45m" },
-  { key: "deep" as const, label: "90m" },
 ];
 
 export function FocusCard() {
@@ -27,7 +27,7 @@ export function FocusCard() {
       ? remoteTotals(remoteSessions)
       : localTotals(localSessions);
 
-  async function startFocusPreset(key: keyof typeof WORKFLOW_PRESETS) {
+  async function startFocusPreset(key: keyof typeof WORKFLOW_PRESETS = "pomodoro") {
     if (state.isRunning) {
       const ok = await confirm(
         "A timer is currently running. Start a new focus session and reset it now?",
@@ -71,10 +71,11 @@ export function FocusCard() {
       </div>
       <Button
         variant="primary"
+        aria-label="Start a focus session"
         className={styles.fullWidthBtn}
-        onClick={() => void navigate("/timer")}
+        onClick={() => void startFocusPreset("pomodoro")}
       >
-        Start a focus session
+        Start a focus session (25m Pomodoro)
       </Button>
     </Card>
   );

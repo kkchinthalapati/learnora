@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { flashcardsApi } from "../api/flashcards";
+import { flashcardsApi, type CardFields } from "../api/flashcards";
 import { submitSrsReview } from "../lib/offlineSync";
 
 export const flashcardsKeys = {
@@ -16,8 +16,6 @@ export function useFlashcards() {
   });
 }
 
-export const useAllFlashcards = useFlashcards;
-
 export function useFlashcardsByDeck(deckId: string) {
   return useQuery({
     queryKey: flashcardsKeys.byDeck(deckId),
@@ -26,10 +24,11 @@ export function useFlashcardsByDeck(deckId: string) {
   });
 }
 
-export function useFlashcardsDueCount() {
+export function useFlashcardsDueCount(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: flashcardsKeys.dueCount,
     queryFn: flashcardsApi.fetchDueCount,
+    ...options,
   });
 }
 
@@ -40,19 +39,45 @@ export function useAllDueFlashcards(limit = 50) {
   });
 }
 
-export function useAddFlashcardBatch() {
+/* Card-level mutations. Each invalidates every flashcard query (a prefix
+ * match on ["flashcards"]): adding, editing or removing a card changes the
+ * deck's list, the Library banner and per-deck counts, the daily drill, and
+ * the all-cards list that readiness and Today's recommendation read. */
+export function useAddFlashcard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ deckId, card }: { deckId: string; card: CardFields }) =>
+      flashcardsApi.add(deckId, card),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
+    },
+  });
+}
+
+export function useUpdateFlashcard() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({
-      deckId,
-      cards,
+      cardId,
+      fields,
     }: {
+      cardId: string;
       deckId: string;
-      cards: { front: string; back: string }[];
-    }) => flashcardsApi.addBatch(deckId, cards),
-    onSuccess: (_data, { deckId }) => {
-      qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
-      qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
+      fields: CardFields;
+    }) => flashcardsApi.update(cardId, fields),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
+    },
+  });
+}
+
+export function useDeleteFlashcard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ cardId }: { cardId: string; deckId: string }) =>
+      flashcardsApi.delete(cardId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
     },
   });
 }
@@ -66,22 +91,22 @@ export function useAddFlashcardBatch() {
 export function useUpdateFlashcardReview() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      cardId,
-      nextReviewDate,
-      interval,
-      ease,
-    }: {
+    mutationFn: (payload: {
       cardId: string;
       nextReviewDate: string;
       interval: number;
       ease: number;
-    }) => submitSrsReview({ cardId, nextReviewDate, interval, ease }),
+      stability?: number;
+      difficulty?: number;
+    }) => submitSrsReview(payload),
     onSuccess: ({ queued }) => {
       if (queued) return;
-      qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
-      qc.invalidateQueries({ queryKey: ["flashcards", "all-due"] });
-      qc.invalidateQueries({ queryKey: ["flashcards", "deck"] });
+      /* The whole family, including the unscoped all-cards list: Today's
+         recommendation, exam readiness and the forecast all read that one,
+         and invalidating only the due/deck keys left them showing the
+         pre-review mastery for up to a minute after the session ended. The
+         offline replay already did this; the online path now matches it. */
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
     },
   });
 }

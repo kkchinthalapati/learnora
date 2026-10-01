@@ -66,6 +66,7 @@ export const handlers = [
   http.delete(rest("folders"), () => new HttpResponse(null, { status: 204 })),
 
   http.get(rest("materials"), () => HttpResponse.json([])),
+  http.get(rest("notebooks"), () => HttpResponse.json([])),
 
   http.get(rest("exams"), () => HttpResponse.json(examFixtures)),
   http.post(rest("exams"), () => new HttpResponse(null, { status: 201 })),
@@ -95,11 +96,42 @@ export const handlers = [
     () => new HttpResponse(null, { status: 201 }),
   ),
   http.patch(rest("notes"), () => new HttpResponse(null, { status: 204 })),
+  http.patch(rest("materials"), () => new HttpResponse(null, { status: 204 })),
+  http.patch(rest("profiles"), () => new HttpResponse(null, { status: 204 })),
+
+  /* The misconception ledger. Read on the dashboard and on every chat send, so
+     without these any test that mounts either trips the unhandled-request
+     guard. An empty ledger is the right default: it exercises the "nothing on
+     record" branch, which is what a fresh account actually sees. */
+  http.get(rest("misconceptions"), () => HttpResponse.json([])),
+  http.post(rest("misconceptions"), () => HttpResponse.json([])),
+  http.delete(
+    rest("misconceptions"),
+    () => new HttpResponse(null, { status: 204 }),
+  ),
+  http.get(rest("misconception_observations"), () => HttpResponse.json([])),
+  http.post(
+    rest("misconception_observations"),
+    () => new HttpResponse(null, { status: 201 }),
+  ),
 
   http.get(rest("study_sessions"), () => HttpResponse.json([])),
+  http.post(
+    rest("study_sessions"),
+    () => new HttpResponse(null, { status: 201 }),
+  ),
   http.delete(
     rest("study_sessions"),
     () => new HttpResponse(null, { status: 204 }),
+  ),
+
+  /* Server copies of study sessions (api/studySessionSync): nothing on the
+     server by default, and writes accepted. */
+  http.get(rest("study_session_state"), () => HttpResponse.json([])),
+  http.post(rest("study_session_state"), () => HttpResponse.json([], { status: 201 })),
+  http.get(rest("learning_events"), () => HttpResponse.json([])),
+  http.post(rest("learning_events"), () =>
+    HttpResponse.json(null, { status: 201 }),
   ),
   http.get(rest("weekly_plans"), () => HttpResponse.json([])),
   http.post(
@@ -119,4 +151,7 @@ export const handlers = [
   ),
   http.post(rpc("get_friends_leaderboard"), () => HttpResponse.json([])),
   http.post(rpc("get_friend_requests"), () => HttpResponse.json([])),
+
+  /* AI daily request log — returns empty log by default (0 used across all tools) */
+  http.get(rest("ai_request_log"), () => HttpResponse.json([])),
 ];

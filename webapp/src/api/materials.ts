@@ -24,6 +24,7 @@ export const materialsApi = {
     folderId: string | null,
     type: MaterialType,
     customTitle?: string,
+    notebookId?: string | null,
   ): Promise<Material> {
     const userId = await requireUserId();
 
@@ -45,6 +46,7 @@ export const materialsApi = {
           title: customTitle || file.name,
           type,
           storage_path: filePath,
+          ...(notebookId ? { notebook_id: notebookId } : {}),
         },
       ])
       .select()
@@ -71,6 +73,7 @@ export const materialsApi = {
     url: string,
     folderId: string | null,
     customTitle?: string,
+    notebookId?: string | null,
   ): Promise<Material> {
     const userId = await requireUserId();
     const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
@@ -85,6 +88,7 @@ export const materialsApi = {
           title: customTitle || defaultTitle,
           type: isYouTube ? "youtube" : "text",
           raw_content: url,
+          ...(notebookId ? { notebook_id: notebookId } : {}),
         },
       ])
       .select()
@@ -103,10 +107,19 @@ export const materialsApi = {
   ): Promise<void> {
     const userId = await requireUserId();
     if (storagePath) {
-      const { error: storageError } = await supabase.storage
+      const { data: removed, error: storageError } = await supabase.storage
         .from("materials")
         .remove([storagePath]);
       if (storageError) throw new Error(storageError.message);
+      /* Storage answers a delete it was not allowed to make (or of a file
+       * that is already gone) with an empty list, not an error. Neither is
+       * worth blocking the row delete on — the student could then never
+       * remove the material — but it is not a clean delete either. */
+      if (!removed?.length) {
+        console.warn("[materialsApi.delete] storage object was not removed", {
+          materialId,
+        });
+      }
     }
 
     const { error } = await supabase
@@ -115,27 +128,6 @@ export const materialsApi = {
       .eq("id", materialId)
       .eq("user_id", userId);
     if (error) throw new Error(error.message);
-  },
-
-  async getSignedUrl(storagePath: string): Promise<string> {
-    const { data, error } = await supabase.storage
-      .from("materials")
-      .createSignedUrl(storagePath, 3600);
-    if (error) throw new Error(error.message);
-    return data.signedUrl;
-  },
-
-  async fetchMostRecent(): Promise<Material | null> {
-    const userId = await requireUserId();
-    const { data, error } = await supabase
-      .from("materials")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    return data;
   },
 
   async fetchById(id: string): Promise<Material | null> {

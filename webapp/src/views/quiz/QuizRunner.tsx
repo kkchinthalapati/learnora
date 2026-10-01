@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
 import { useDialog } from "../../context/dialog";
+import { useOptionalChat } from "../../context/chat";
 import { useContinuity } from "../../hooks/useContinuity";
 import { useQuiz, useRecordQuizAttempt } from "../../hooks/useQuizzes";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
@@ -19,7 +21,15 @@ import {
   type StoredAnswer,
 } from "./quizMeta";
 import { QuizHost, type HostTone } from "./QuizHost";
+import { useStudyClock } from "../../hooks/useStudyClock";
 import styles from "./quiz.module.css";
+import { renderMathText } from "../../lib/markdownToReact";
+import { newAttemptKey } from "../../lib/attemptKey";
+import { quizDraftKey } from "../../lib/draftKeys";
+import { clearQuizProgress } from "../../lib/continuity";
+import { ConfidencePicker } from "../../components/learning/ConfidencePicker";
+import type { Confidence } from "../../components/learning/options";
+import { TestResults } from "./TestResults";
 
 /* The quiz runner — ports js/router.js's `startQuiz` (:827-945).
  *
@@ -49,6 +59,7 @@ export function ExitLink() {
 export function QuizRunner() {
   const { quizId = "" } = useParams();
   const { data: quiz, isPending, isError, error } = useQuiz(quizId);
+  const [sitting, setSitting] = useState(0);
 
   if (isPending) {
     return (
@@ -70,10 +81,23 @@ export function QuizRunner() {
   }
 
   if (!quiz) {
+    /* Was a bare "Quiz not found." with no way forward but the browser's back
+       button. A stale link or a quiz deleted on another device is an ordinary
+       thing to hit, and the rest of the app already answers it properly — the
+       notebook and the deck screens both say what probably happened and offer
+       the list to go back to. */
     return (
       <div className={styles.view}>
         <ExitLink />
-        <h2>Quiz not found.</h2>
+        <EmptyState
+          icon="alert-circle"
+          title="Quiz not found"
+          message="It may have been deleted, or the link is out of date."
+        >
+          <Link to={QUIZZES_PATH}>
+            <Button variant="primary">Back to Quizzes</Button>
+          </Link>
+        </EmptyState>
       </div>
     );
   }
@@ -101,10 +125,15 @@ export function QuizRunner() {
     <QuizSession
       quizId={quiz.id}
       quizTitle={quiz.title || "Quiz"}
+      folderId={quiz.folder_id}
       questions={questions}
+      onRetake={() => setSitting((n) => n + 1)}
       /* A fresh quiz is a fresh run: keying on the id resets index, answers
-         and the recorded flag when the route changes between two quizzes. */
-      key={quiz.id}
+         and the recorded flag when the route changes between two quizzes.
+         The sitting counter does the same for "Retake quiz" — a remount is
+         what gives the retake its own attempt key and its own study-clock
+         commit, which latches once per mount. */
+      key={`${quiz.id}:${sitting}`}
     />
   );
 }
@@ -117,6 +146,10 @@ interface Answered {
 interface QuizDraftState {
   index: number;
   answers: StoredAnswer[];
+  /** Identifies this run, so finishing it twice — a resumed draft, a
+   *  duplicated tab, a replayed mutation — records one attempt. Optional so a
+   *  draft written by an older build still resumes. */
+  attemptKey?: string;
 }
 
 function isUsableDraft(
@@ -128,25 +161,42 @@ function isUsableDraft(
     typeof draft.index === "number" &&
     draft.index >= 0 &&
     draft.index < questionCount &&
-    Array.isArray(draft.answers)
+    Array.isArray(draft.answers) &&
+    /* A draft with nothing answered is not progress. The draft is written
+       the moment the quiz mounts, so opening a quiz and leaving meant the
+       next visit opened on "Resume quiz? (question 1 of 2)" — a dialog
+       about an attempt the student never started. */
+    draft.answers.length > 0
   );
 }
 
 function QuizSession({
   quizId,
   quizTitle,
+  folderId,
   questions,
+  onRetake,
 }: {
   quizId: string;
   quizTitle: string;
+  folderId: string | null;
   questions: QuizQuestion[];
+  onRetake: () => void;
 }) {
   const recordAttempt = useRecordQuizAttempt();
   const { showToast } = useToast();
+  /* No marking needed: `choose` below already stamps `secondsSpent` into every
+     stored answer, which is the same measurement the clock wants. */
+  const studyClock = useStudyClock({
+    timerType: "quiz",
+    task: quizTitle,
+    folderId,
+  });
   const { confirm } = useDialog();
+  const chat = useOptionalChat();
   const { recordQuiz } = useContinuity();
 
-  const draftKey = `learnora_quiz_draft_${quizId}`;
+  const draftKey = quizDraftKey(quizId);
 
   /* A stale/corrupt/out-of-range draft (e.g. the quiz was regenerated with
      fewer questions since the draft was written) is treated as no draft at
@@ -160,7 +210,28 @@ function QuizSession({
   const [answers, setAnswers] = useState<StoredAnswer[]>(
     () => resumedDraft?.answers ?? [],
   );
-  const [answered, setAnswered] = useState<Answered | null>(null);
+  /* Resuming onto a question the draft already holds an answer for (the
+     student answered, saw the verdict, then refreshed before pressing Next)
+     restores that verdict instead of offering the question fresh. Offering
+     it fresh let a refresh turn a revealed wrong answer into a right one,
+     and that inflated score feeds readiness and the grade forecast. */
+  const [answered, setAnswered] = useState<Answered | null>(() => {
+    if (!resumedDraft) return null;
+    const question = questions[resumedDraft.index];
+    const prior = resumedDraft.answers.find(
+      (a) => a.questionId === (question?.id ?? resumedDraft.index),
+    );
+    return prior
+      ? { chosenIndex: prior.chosenIndex, correct: prior.correct }
+      : null;
+  });
+
+  /* Minted once per run and carried in the draft, so resuming keeps the same
+     key while "Start Over" below mints a fresh one — a genuine second sitting
+     is a second attempt and should count as one. */
+  const [attemptKey, setAttemptKey] = useState(
+    () => resumedDraft?.attemptKey ?? newAttemptKey(),
+  );
 
   /* When the current question went on screen — choose() stamps the elapsed
    * seconds into the stored answer, which is the Speed Demon achievement's
@@ -170,13 +241,17 @@ function QuizSession({
     questionShownAt.current = Date.now();
   }, [index]);
 
+  /* How sure the student is, asked before they answer — once the verdict is
+     on screen the question can no longer be answered honestly. Optional. */
+  const [confidence, setConfidence] = useState<Confidence | null>(null);
+
   const finished = index >= questions.length;
   const score = answers.filter((a) => a.correct).length;
   const total = questions.length;
 
   const draft = useQuizDraft<QuizDraftState>(
     draftKey,
-    { index, answers },
+    { index, answers, attemptKey },
     { enabled: !finished, warnOnUnload: !finished && answers.length > 0 },
   );
 
@@ -197,6 +272,8 @@ function QuizSession({
       if (cancelled || keep) return;
       setIndex(0);
       setAnswers([]);
+      setAnswered(null);
+      setAttemptKey(newAttemptKey());
       draft.clear();
     });
     return () => {
@@ -230,6 +307,7 @@ function QuizSession({
   useEffect(() => {
     if (!finished) return;
     draft.clear();
+    clearQuizProgress(quizId);
     record(
       {
         quizId,
@@ -237,6 +315,7 @@ function QuizSession({
         total,
         answers,
         weakTopics: weakTopicsFrom(answers),
+        attemptKey,
       },
       {
         onError: () =>
@@ -246,6 +325,10 @@ function QuizSession({
           ),
       },
     );
+    /* A resumed draft carries the earlier sitting's answers and their times;
+       crediting those is right — it was real study — and studyClock's per-answer
+       cap handles a question that sat open overnight. */
+    studyClock.commit(answers.map((a) => (a.secondsSpent ?? 0) * 1000));
     // Runs on the transition into "finished" only; `answers` is frozen by then.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished]);
@@ -259,23 +342,41 @@ function QuizSession({
     if (answered) return;
     const correct = chosenIndex === question.correctIndex;
     setAnswered({ chosenIndex, correct });
-    setAnswers((prev) => [
-      ...prev,
-      {
-        questionId: question.id ?? index,
-        chosenIndex,
-        correct,
-        topic: question.topic,
-        secondsSpent: Math.max(
-          0,
-          Math.round((Date.now() - questionShownAt.current) / 1000),
-        ),
-      },
-    ]);
+
+    const entry = {
+      questionId: question.id ?? index,
+      chosenIndex,
+      correct,
+      topic: question.topic,
+      secondsSpent: Math.max(
+        0,
+        Math.round((Date.now() - questionShownAt.current) / 1000),
+      ),
+      confidence,
+    };
+
+    /* One row per question, replacing rather than appending.
+     *
+     * This was a blind append, so a question answered twice in one run was
+     * stored twice: leave mid-quiz, come back, take Resume, and the draft
+     * restores an index that can sit on a question the answers array
+     * already covers. A two-question quiz came back with three rows. The
+     * displayed score was right — it counts correct entries — which is why
+     * it went unnoticed, but `answers_json` is what the evidence layer
+     * reads for per-topic accuracy, so the duplicate quietly weighted one
+     * question twice in the misconception ledger. */
+    setAnswers((prev) => {
+      const at = prev.findIndex((a) => a.questionId === entry.questionId);
+      if (at === -1) return [...prev, entry];
+      const merged = [...prev];
+      merged[at] = entry;
+      return merged;
+    });
   };
 
   const next = () => {
     setAnswered(null);
+    setConfidence(null);
     setIndex((i) => i + 1);
   };
 
@@ -304,37 +405,14 @@ function QuizSession({
   );
 
   if (finished) {
-    const weakTopics = weakTopicsFrom(answers);
     return (
-      <div className={styles.view}>
-        <Card variant="panel" padding="lg" className={styles.panel}>
-          <QuizHost
-            message={`Finished! You got ${score} out of ${total}. Check your weak topics and keep studying!`}
-          />
-          <ExitLink />
-          <h2>Quiz Complete! 🎉</h2>
-          <p className={styles.score}>
-            {score} / {total} correct
-          </p>
-          {weakTopics.length > 0 ? (
-            <p className={styles.muted}>
-              Topics to review: {weakTopics.join(", ")}
-            </p>
-          ) : null}
-          <div className={styles.actions}>
-            <Link
-              to={`/quiz/${quizId}/review`}
-              className={`${styles.actionLink} ${styles.actionLinkPrimary}`}
-            >
-              <Icon name="list-checks" size={16} />
-              Review answers
-            </Link>
-            <Link to={QUIZZES_PATH} className={styles.actionLink}>
-              Back to Quizzes
-            </Link>
-          </div>
-        </Card>
-      </div>
+      <TestResults
+        quizId={quizId}
+        title={quizTitle}
+        questions={questions}
+        answers={answers}
+        onRetake={onRetake}
+      />
     );
   }
 
@@ -350,8 +428,6 @@ function QuizSession({
     hostVerdict = verdict;
     hostMessage = detail;
     hostTone = answered.correct ? "correct" : "incorrect";
-  } else if (index === 0) {
-    hostMessage = "Welcome to the quiz. Let's see what you've got!";
   }
 
   return (
@@ -368,7 +444,14 @@ function QuizSession({
         <p className={styles.progress}>
           Question {index + 1} of {questions.length}
         </p>
-        <h2 className={styles.question}>{question.question}</h2>
+        {/* Typeset: a maths question arrived as raw "$x^2$" while the chat
+            beside it rendered the same TeX. Text-only otherwise (see
+            renderMathText), so nothing else in a question becomes markup. */}
+        <h2 className={styles.question}>{renderMathText(question.question)}</h2>
+
+        {answered ? null : (
+          <ConfidencePicker value={confidence} onChange={setConfidence} />
+        )}
 
         <div className={styles.choices}>
           {question.choices.map((choice, i) => {
@@ -390,11 +473,33 @@ function QuizSession({
                 disabled={!!answered}
                 onClick={() => choose(i)}
               >
-                {choice}
+                {renderMathText(choice)}
               </button>
             );
           })}
         </div>
+
+        {answered && !answered.correct && chat ? (
+          /* The runner states the right answer; this is for "but why?".
+             Sent with the question, the pick and the answer so the student
+             does not have to retype any of it. */
+          <div className={styles.askWhyRow}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const picked = question.choices[answered.chosenIndex];
+                const right = question.choices[question.correctIndex];
+                chat.open();
+                void chat.send(
+                  `In a quiz I was asked: "${question.question}". I answered "${picked}", but the answer is "${right}". Explain simply why "${right}" is right and where my thinking went wrong.`,
+                );
+              }}
+            >
+              <Icon name="sparkles" size={14} /> Ask AI why
+            </Button>
+          </div>
+        ) : null}
 
         {answered ? (
           <div className={styles.nextRow}>

@@ -88,7 +88,11 @@ describe("StudyAnalyticsView", () => {
       http.get(rest("exams"), () => HttpResponse.json(mockExams)),
     );
 
-    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+    renderWithAuth(
+      <StudyAnalyticsView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     expect(
       screen.queryByText("Study Analytics & Insights"),
@@ -124,7 +128,11 @@ describe("StudyAnalyticsView", () => {
       http.get(rest("exams"), () => HttpResponse.json(mockExams)),
     );
 
-    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+    renderWithAuth(
+      <StudyAnalyticsView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     /* Every stat on this screen is derived from four queries at once, so
        the view holds a skeleton until all four land rather than rendering a
@@ -142,44 +150,34 @@ describe("StudyAnalyticsView", () => {
       name: "30 Days",
     });
 
-    // Default state (365 days / 52 Weeks)
-    expect(yearBtn).toHaveAttribute("aria-pressed", "true");
-    expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "false");
-    expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "false");
-    expect(
-      screen.getByText("Daily focus time for the past 365 days"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("/ 365d")).toBeInTheDocument();
-
-    // Switch to 90 Days
-    await user.click(ninetyDaysBtn);
+    /* Default is 90 days: a year-long grid is mostly empty for most
+       students. */
     expect(yearBtn).toHaveAttribute("aria-pressed", "false");
     expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "true");
     expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "false");
     expect(
       screen.getByText("Daily focus time for the past 90 days"),
     ).toBeInTheDocument();
-    expect(screen.getByText("/ 90d")).toBeInTheDocument();
+    /* Consistency counts from the first session, not from the start of the
+       range, so it never grades the months before the student joined. */
+    expect(screen.getByText(/since you started/)).toBeInTheDocument();
+    const daysLabel = () =>
+      Number(screen.getByText(/^\/ \d+ days?$/).textContent!.match(/\d+/)![0]);
+    expect(daysLabel()).toBeLessThanOrEqual(90);
 
-    // Switch to 30 Days
     await user.click(thirtyDaysBtn);
-    expect(yearBtn).toHaveAttribute("aria-pressed", "false");
-    expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "false");
     expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "true");
     expect(
       screen.getByText("Daily focus time for the past 30 days"),
     ).toBeInTheDocument();
-    expect(screen.getByText("/ 30d")).toBeInTheDocument();
+    expect(daysLabel()).toBeLessThanOrEqual(30);
 
-    // Switch back to 52 Weeks (1Y)
     await user.click(yearBtn);
     expect(yearBtn).toHaveAttribute("aria-pressed", "true");
-    expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "false");
-    expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "false");
     expect(
       screen.getByText("Daily focus time for the past 365 days"),
     ).toBeInTheDocument();
-    expect(screen.getByText("/ 365d")).toBeInTheDocument();
+    expect(daysLabel()).toBeLessThanOrEqual(365);
   });
 
   it("exposes usable range and hourly chart controls", async () => {
@@ -191,7 +189,11 @@ describe("StudyAnalyticsView", () => {
       http.get(rest("exams"), () => HttpResponse.json(mockExams)),
     );
 
-    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+    renderWithAuth(
+      <StudyAnalyticsView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     /* Every stat on this screen is derived from four queries at once, so
        the view holds a skeleton until all four land rather than rendering a
@@ -212,7 +214,7 @@ describe("StudyAnalyticsView", () => {
       name: "Hourly study distribution bar chart",
     });
     const studiedHour = within(chart).getByRole("button", {
-      name: /50 minutes, 1 sessions/,
+      name: /50 minutes, 1 session\b/,
     });
     await user.click(studiedHour);
     expect(studiedHour).toHaveAttribute("aria-pressed", "true");
@@ -233,7 +235,11 @@ describe("StudyAnalyticsView", () => {
       http.get(rest("exams"), () => HttpResponse.json(mockExams)),
     );
 
-    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+    renderWithAuth(
+      <StudyAnalyticsView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     expect(
       await screen.findByRole("status", {
@@ -257,7 +263,11 @@ describe("StudyAnalyticsView", () => {
       http.get(rest("exams"), () => HttpResponse.json(mockExams)),
     );
 
-    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+    renderWithAuth(
+      <StudyAnalyticsView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     const table = await screen.findByRole("table", {
       name: /Study time logged per subject/,
@@ -270,10 +280,10 @@ describe("StudyAnalyticsView", () => {
     expect(headers.map((h) => h.textContent)).toEqual([
       "Subject",
       "Study Time",
-      "Distribution",
+      "Vs. most-studied",
       "Upcoming Exam",
       "Days Left",
-      "Status",
+      "Time",
     ]);
   });
 });

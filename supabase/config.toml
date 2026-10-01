@@ -412,3 +412,12 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# The reminder jobs are called by pg_cron, which has no user session to sign
+# a JWT with. Each function checks an x-cron-secret header instead (see
+# supabase/migrations/20260924170000_schedule_reminders.sql).
+[functions.send-push-reminders]
+verify_jwt = false
+
+[functions.send-email-reminders]
+verify_jwt = false

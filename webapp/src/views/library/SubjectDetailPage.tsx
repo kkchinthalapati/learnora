@@ -13,6 +13,7 @@ import { useAllDecks } from "../../hooks/useDecks";
 import { useAllDueFlashcards } from "../../hooks/useFlashcards";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
+import { useNotebooks } from "../../hooks/useNotebooks";
 import { useQuizzes } from "../../hooks/useQuizzes";
 import { useRetryStudyPackage } from "../../hooks/useStudyPackage";
 import {
@@ -21,9 +22,11 @@ import {
 } from "../../lib/materialProcessing";
 import type { MaterialType } from "../../api/types";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
 import { Badge } from "../../components/Badge";
+import { newSessionHref } from "../../lib/sessionModes";
 
 const MATERIAL_ICONS: Record<MaterialType, IconName> = {
   pdf: "file-text",
@@ -88,11 +91,22 @@ export function SubjectDetailPage() {
   const materials = useMaterials(folderId);
   const decks = useAllDecks();
   const quizzes = useQuizzes();
+  const { notebooks, isLoading: isNotebooksLoading } = useNotebooks();
   const allDueCards = useAllDueFlashcards(100);
   const retryMutation = useRetryStudyPackage();
   const processingRecords = useAllMaterialProcessing();
 
   const folder = folders.data?.find((f) => f.id === folderId);
+  /* Scoped by folder name, which is what every writer files a subject under. */
+  const { forSubject } = useMisconceptions();
+  const subjectMisconceptions = useMemo(
+    () => (folder ? forSubject(folder.name) : []),
+    [folder, forSubject],
+  );
+  const folderNotebooks = useMemo(
+    () => notebooks.filter((nb) => nb.folderId === folderId),
+    [notebooks, folderId],
+  );
   const folderDecks = useMemo(
     () => (decks.data ?? []).filter((d) => d.folder_id === folderId),
     [decks.data, folderId],
@@ -127,7 +141,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "teach_apprentice",
     });
-    void navigate("/feynman");
+    void navigate(newSessionHref("teach"));
   };
 
   const handleLaunchDebugger = () => {
@@ -138,10 +152,10 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "debug_stack",
     });
-    void navigate("/debugger");
+    void navigate(newSessionHref("explain"));
   };
 
-  const handleLaunchPreMortem = () => {
+  const handleLaunchExamDetective = () => {
     if (!folder) return;
     CognitiveBridge.setPayload({
       subject: folder.name,
@@ -149,7 +163,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "run_premortem",
     });
-    void navigate("/premortem");
+    void navigate(newSessionHref("practice", { preset: "traps" }));
   };
 
   if (folders.isPending) {
@@ -238,31 +252,66 @@ export function SubjectDetailPage() {
             type="button"
             className={styles.subjectAiBtn}
             onClick={handleLaunchFeynman}
-            title="Test depth of understanding by teaching an AI apprentice"
+            title="Explain it to someone new; their questions show what you skipped"
           >
             <Icon name="award" size={13} />
-            <span>Feynman Practice</span>
+            <span>Teach</span>
           </button>
           <button
             type="button"
             className={styles.subjectAiBtn}
             onClick={handleLaunchDebugger}
-            title="Diagnose foundational misconception gaps"
+            title="Step by step from the idea underneath, with a check after"
           >
             <Icon name="zap" size={13} />
-            <span>Root-Cause Debugger</span>
+            <span>Explain</span>
           </button>
           <button
             type="button"
             className={styles.subjectAiBtn}
-            onClick={handleLaunchPreMortem}
-            title="Simulate failure scenarios and surface blindspots before test day"
+            onClick={handleLaunchExamDetective}
+            title="Timed problems built around the traps examiners set"
           >
             <Icon name="shield" size={13} />
-            <span>Exam Pre-Mortem</span>
+            <span>Exam traps</span>
           </button>
         </div>
       </div>
+
+      {/* What the three tools above have actually found in this subject.
+          Without it they are three buttons that each forget what the last one
+          learned; with it, the subject page is where a student sees the
+          accumulated answer. Rendered only when there is something to say —
+          an empty strip on every subject would be noise, and the dashboard
+          card already handles the "nothing yet" explanation. */}
+      {subjectMisconceptions.length > 0 && (
+        <div
+          className={styles.subjectLedger}
+          role="region"
+          aria-label={`Mistakes to review in ${folder.name}`}
+        >
+          <span className={styles.subjectLedgerLabel}>
+            <Icon name="alert-triangle" size={16} />
+            <span>
+              Still unresolved in {folder.name} ({subjectMisconceptions.length})
+            </span>
+          </span>
+          <ul className={styles.subjectLedgerList}>
+            {subjectMisconceptions.slice(0, 4).map((m) => (
+              <li key={m.id} className={styles.subjectLedgerItem}>
+                <strong>{m.concept}</strong>
+                {m.summary ? ` — ${m.summary}` : ""}
+                {m.timesObserved > 1 && (
+                  <span className={styles.subjectLedgerCount}>
+                    {" "}
+                    seen {m.timesObserved}×
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className={styles.workspaceGrid}>
         <Section
@@ -368,6 +417,30 @@ export function SubjectDetailPage() {
                   </li>
                 );
               })}
+            </ul>
+          )}
+        </Section>
+
+        <Section
+          title="Notebooks"
+          icon="book-open"
+          hint="Workspaces with sources, notes, and generated study tools."
+          count={isNotebooksLoading ? undefined : folderNotebooks.length}
+        >
+          {isNotebooksLoading ? (
+            <Skeleton label="Loading notebooks" height={80} />
+          ) : folderNotebooks.length === 0 ? (
+            <EmptyState size="sm" message="No notebooks in this subject yet." />
+          ) : (
+            <ul className={styles.rowList}>
+              {folderNotebooks.map((nb) => (
+                <li key={nb.id} className={styles.row}>
+                  <Link to={`/notebooks/${nb.id}`} className={styles.rowLink}>
+                    <Icon name="book-open" size={15} />
+                    <span className={styles.rowTitle}>{nb.title}</span>
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </Section>

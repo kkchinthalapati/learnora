@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import logoUrl from "../../assets/learnora.jpg";
+import { LOGO_URL as logoUrl } from "../../lib/logoUrl";
 import styles from "./terms.module.css";
 
 /* Terms of Service — ports terms.html.

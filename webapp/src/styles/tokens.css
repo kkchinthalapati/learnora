@@ -32,16 +32,15 @@
      3:1 against what surrounds it, but a label has to clear 4.5:1 against the
      page — and the brighter presets (Hacker green scored 2.28:1 on white)
      cannot do both with one hex. Themes that need it override this with a
-     darkened tone of the same hue; the rest leave it pointing at --accent. */
-  --accent-text: var(--accent);
-  --primary: var(--accent);
-  --primary-hover: var(--accent-hover);
+     darkened tone of the same hue; the rest leave it pointing at --accent.
+     Declared in the `body` block at the foot of this file, not here — see
+     "Theme-derived aliases" there for why. */
   /* Was a 135deg two-stop ramp. 41 of the app's 65 gradients sat at exactly
      135deg, and a gradient-filled primary button is the single most legible
      "generated UI" tell there is. Kept as a token (it is referenced widely)
      but resolved to a flat fill, so every consumer flattens at once and the
-     accent reads as ink rather than as a light source. */
-  --gradient-primary: var(--accent);
+     accent reads as ink rather than as a light source. --gradient-primary is
+     likewise declared on `body`. */
 
   /* --- Semantic --- */
   --success: #1e8e6b;
@@ -134,8 +133,9 @@
      `border-color: var(--border)`. The latter is invalid and the browser
      drops the whole declaration silently, which is how ResumeLearningCard
      ended up with a hover that did nothing. Reach for --glass-border-subtle
-     when you need just the colour. */
-  --border: 1px solid var(--glass-border-subtle);
+     when you need just the colour. Declared on `body` at the foot of this
+     file, because --glass-border-subtle is one of the tokens the themes
+     re-declare. */
   --line: rgba(28, 24, 18, 0.06);
 
   /* --- Radius --- */
@@ -172,7 +172,7 @@
   --shadow-sm: 0 1px 2px rgba(24, 20, 14, 0.06);
   --shadow-md: 0 4px 12px -2px rgba(24, 20, 14, 0.1);
   --shadow-lg: 0 16px 40px -12px rgba(24, 20, 14, 0.16);
-  --shadow-accent: 0 0 0 1px var(--accent-ring);
+  /* --shadow-accent is themed (it wraps --accent-ring) and lives on `body`. */
 
   /* --- Typography --- */
   /* Instrument Serif carries the editorial voice: high-contrast, sharp, and
@@ -260,4 +260,126 @@
      are the tighter settings headings and stat numbers want. */
   --lh-tight: 1.15;
   --lh-snug: 1.35;
+
+  /* --- Shared Card tokens (S3B4 consolidation) --- */
+  /* Only the geometry lives here. The four that resolve to a *themed* value
+     (--card-bg, --card-bg-subtle, --card-border, --card-border-hover) and the
+     two shadows are declared on `body` at the foot of this file. */
+  --card-radius: var(--r-lg);
+  --card-radius-lg: var(--r-xl);
+  --card-transition:
+    transform var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+  --card-hover-lift: translateY(-2px);
+  --card-hover-lift-sm: translateY(-1px);
+
+  /* --- 2026-09 redesign (design_handoff_learnora_redesign/README.md) --- */
+  /* Recall ochre: the one new semantic hue. It marks memory and
+     time-sensitive work only — due, fading, guessed — so "Resume" (teal, an
+     action) and "fading" (ochre, a memory state) stop looking identical.
+     --recall is a fill (3:1 floor); --recall-text is the same hue as a label
+     (4.5:1 floor) and happens to equal --warning-text, which is the same
+     job. Dark values in themes.css.
+     The handoff's #b8862e scored 2.97:1 on --bg, a hair under the 3:1 a
+     meaningful graphic needs (WCAG 1.4.11); this is the same hue walked
+     down ~3% in lightness. */
+  --recall: #ad7d2a;
+  --recall-text: #76511b;
+  --recall-soft: #f6ecd9;
+
+  /* Surfaces the redesign names. --paper is a half-step lighter than --bg:
+     the test room, the Ask drawer and the session top bar sit on it. */
+  --paper: #fbfaf7;
+  --sidebar-bg: #f0ece3;
+  /* Opaque hairlines. --glass-border-subtle is translucent, which reads fine
+     on --surface but muddies on --paper; these are the two in-flow weights
+     (divider/card edge, and control edge). */
+  --hairline: #e2ddd1;
+  --hairline-strong: #d5cfc2;
+  /* Secondary body text — between --text and --text-muted. */
+  --text-secondary: #3d3830;
+  /* Track/fill behind segmented controls, empty week-day squares, and the
+     quiet button's hover. */
+  --track: #ece8df;
+
+  /* Type roles. --fs-4xl (clamp 38→52) is the display tier and --fs-3xl
+     (clamp 30→38) the page title; these fill the reading sizes between. */
+  --fs-read: 17px;
+  --fs-read-lg: 19px;
+  --lh-display: 1.02;
+  --lh-read: 1.65;
+  --tracking-display: -0.025em;
+  --tracking-meta: 0.06em;
+  --measure-read: 62ch;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Layout. */
+  --rail-width: 300px;
+  --drawer-width: 420px;
+  --session-plan-width: 260px;
+  --topbar-height: 64px;
+  --control-sm: 32px;
+  --control-lg: 48px;
+}
+
+/* --- Theme-derived aliases ------------------------------------------------
+ *
+ * These MUST be declared on `body`, not in the :root block above.
+ *
+ * A custom property whose value is `var(--other)` is substituted using the
+ * computed value of `--other` *on the element the alias is declared on*. The
+ * themes re-declare their ramps on `body.dark-theme` (and on the
+ * `body[data-theme-color=...]` presets) — never on :root. So an alias written
+ * as `--card-bg: var(--surface)` inside `:root` resolves against :root's
+ * --surface, which is always the light #ffffff, and then *inherits that
+ * literal white down the tree*. The dark theme's --surface: #141310 never gets
+ * a look in, no matter what the element is.
+ *
+ * That is not theoretical. It shipped: in dark mode every Card rendered on a
+ * hard-coded white background while --text stayed the dark theme's bone white
+ * #f0ece4, putting notebook titles at 1.18:1 — invisible. It also dragged the
+ * teal links sitting on those cards down to ~2.5:1, because they were being
+ * measured against white rather than against #141310, where the same teal is
+ * comfortably over AA.
+ *
+ * Declaring them here fixes it for every theme at once: `body` is the element
+ * the theme classes land on, so each alias substitutes that body's *computed*
+ * ramp — light, dark, or any preset — and the value inherits from there.
+ *
+ * Rule of thumb: if a token's value mentions another token that any theme
+ * re-declares, it belongs in this block. Geometry, timing and type scales
+ * (which no theme touches) stay in :root. */
+body {
+  --accent-text: var(--accent);
+  --primary: var(--accent);
+  --primary-hover: var(--accent-hover);
+  --gradient-primary: var(--accent);
+
+  --border: 1px solid var(--glass-border-subtle);
+
+  --card-bg: var(--surface);
+  --card-bg-subtle: var(--surface-2);
+  --card-border: var(--border);
+  --card-border-hover: var(--accent-ring);
+  --card-shadow: var(--shadow-sm);
+  --card-shadow-hover: var(--shadow-md);
+
+  --shadow-accent: 0 0 0 1px var(--accent-ring);
+
+  /* Redesign accent roles. The handoff gives these as teal hexes
+     (#e1ece9 wash, #0b5c55 label, #cfe0dc / #9cc6c0 edges), but the app
+     ships 13 accent presets, so they are mixed from the live accent instead
+     and land within a hair of the spec hex on the default teal.
+     --accent-deep is --accent-text walked toward --text, so it can only gain
+     contrast over --accent-text, which contrast.test.ts already holds at AA.
+     (The handoff calls this --accent-ink; that name is taken — it is the
+     near-black label on light accent fills.) */
+  --accent-wash: color-mix(in srgb, var(--accent) 13%, var(--surface));
+  --accent-deep: color-mix(in srgb, var(--accent-text) 78%, var(--text));
+  --accent-line: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  --accent-line-strong: color-mix(in srgb, var(--accent) 40%, var(--surface));
+  --shadow-focus: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+  --shadow-drawer: -16px 0 40px -16px rgba(24, 20, 14, 0.2);
+  --scrim: rgba(26, 24, 21, 0.12);
 }

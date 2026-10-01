@@ -11,6 +11,7 @@ import { useTaskActions } from "./useTaskActions";
 import { dateInDays, isRecurringWeekly, localDateStr } from "../../lib/date";
 import type { Task } from "../../api/types";
 import { PlanSectionNav } from "../plan/PlanSectionNav";
+import { TASK_MAX } from "../../lib/fieldLimits";
 import styles from "./tasks.module.css";
 
 type TaskFilter = "all" | "open" | "overdue" | "completed";
@@ -134,6 +135,7 @@ export function TasksView() {
                 className={`${styles.textInput}${shake ? ` ${styles.inputError}` : ""}`}
                 placeholder={t("placeholder_task")}
                 autoComplete="off"
+                maxLength={TASK_MAX}
                 aria-label="New Task Input"
                 value={text}
                 onAnimationEnd={() => setShake(false)}
@@ -163,7 +165,8 @@ export function TasksView() {
                 {t("btn_add")}
               </Button>
             </div>
-
+          </Card>
+          <div className={styles.quickDueOutside}>
             <div
               className={styles.pillRow}
               aria-label="Quick due date and recurrence options"
@@ -199,7 +202,7 @@ export function TasksView() {
                 🔁 Repeat weekly
               </button>
             </div>
-          </Card>
+          </div>
         </form>
       </section>
 
@@ -245,7 +248,7 @@ export function TasksView() {
           </div>
 
           {ordered.length === 0 ? (
-            <p className={styles.empty}>No tasks yet - add one above!</p>
+            <p className={styles.empty}>No tasks yet. Add one above.</p>
           ) : taskGroups.length === 0 ? (
             <p className={styles.empty}>No tasks match this filter.</p>
           ) : (

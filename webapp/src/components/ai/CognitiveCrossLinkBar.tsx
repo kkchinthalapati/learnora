@@ -9,6 +9,7 @@ import {
   type CognitiveSuggestedAction,
 } from "../../lib/cognitiveBridge";
 import styles from "./CognitiveCrossLinkBar.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 export interface CognitiveCrossLinkBarProps {
   payload?: CognitiveContextPayload | null;
@@ -21,56 +22,49 @@ export interface CognitiveCrossLinkBarProps {
   misconceptions?: string[];
   severity?: CognitiveSeverity;
   suggestedAction?: CognitiveSuggestedAction;
-  currentTool?: "debugger" | "feynman" | "premortem" | "graph";
+  currentTool?: "debugger" | "feynman" | "sparring" | "exam_detective" | "premortem";
   compact?: boolean;
   className?: string;
-  onNavigate?: (route: string, tool: "debugger" | "feynman" | "premortem" | "graph") => void;
+  onNavigate?: (
+    route: string,
+    tool: "debugger" | "feynman" | "sparring",
+  ) => void;
   onClear?: () => void;
   showDismiss?: boolean;
 }
 
 const TOOL_CONFIGS: {
-  id: "debugger" | "feynman" | "premortem" | "graph";
+  id: "debugger" | "feynman";
   label: string;
   route: string;
-  icon: "zap" | "users" | "shield" | "network";
+  icon: "zap" | "users";
   action: CognitiveSuggestedAction;
 }[] = [
   {
     id: "debugger",
-    label: "Find my mistake",
-    route: "/debugger",
+    label: "Explain",
+    route: newSessionHref("explain"),
     icon: "zap",
     action: "debug_stack",
   },
   {
     id: "feynman",
-    label: "Explain it simply",
-    route: "/feynman",
+    label: "Teach",
+    route: newSessionHref("teach"),
     icon: "users",
     action: "teach_apprentice",
-  },
-  {
-    id: "premortem",
-    label: "What could go wrong",
-    route: "/premortem",
-    icon: "shield",
-    action: "run_premortem",
-  },
-  {
-    id: "graph",
-    label: "How topics connect",
-    route: "/graph",
-    icon: "network",
-    action: "inspect_graph",
   },
 ];
 
 const SOURCE_TOOL_LABELS: Record<CognitiveSourceTool, string> = {
-  debugger: "Find My Mistake",
-  feynman: "Explain It Simply",
-  premortem: "What Could Go Wrong",
-  graph: "How Topics Connect",
+  debugger: "Explain",
+  feynman: "Teach",
+  sparring: "Socratic",
+  exam_detective: "Exam Detective",
+  /* Retained because CognitiveSourceTool still admits it: a payload written
+     before Pre-Mortem was folded into Exam Detective can still be sitting in a
+     student's localStorage, and it needs a label when it is read back. */
+  premortem: "Exam traps",
   quiz: "a quiz",
   notes: "your notes",
 };
@@ -177,7 +171,7 @@ export function CognitiveCrossLinkBar({
   return (
     <nav
       className={`${styles.container} ${compact ? styles.compact : ""} ${className}`}
-      aria-label="Carry this topic into another Study Lab tool"
+      aria-label="Carry this topic into another study tool"
       data-testid="cognitive-cross-link-bar"
     >
       {/* Top row: topic, subject, where it came from, how bad */}

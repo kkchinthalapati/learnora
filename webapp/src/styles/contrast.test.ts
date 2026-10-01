@@ -84,10 +84,14 @@ function declarationsFor(selector: string): Map<string, string> {
  * the same rules in the same specificity order the browser would.
  */
 function tokensFor(preset: string, dark: boolean): Map<string, string> {
-  // Ordered by the specificity the browser resolves these at, weakest first:
-  // (0,0,1) → (0,1,1) → (0,2,1) → (0,3,1).
+  // Ordered the way the browser arrives at a value on <body>, weakest first.
+  // ":root" comes first because body only *inherits* it; a declaration on
+  // `body` itself (the theme-derived aliases at the foot of tokens.css) beats
+  // that inherited value whatever the selectors' relative specificity, and the
+  // body.* rules then out-specify plain `body`.
   const layers = [
     ":root",
+    "body",
     ...(dark ? ["body.dark-theme"] : []),
     "body[data-theme-color]",
     `body[data-theme-color="${preset}"]`,
@@ -129,7 +133,7 @@ function resolve(tokens: Map<string, string>, name: string): string {
  */
 function baseTokensFor(dark: boolean): Map<string, string> {
   const merged = new Map<string, string>();
-  for (const layer of [":root", ...(dark ? ["body.dark-theme"] : [])]) {
+  for (const layer of [":root", "body", ...(dark ? ["body.dark-theme"] : [])]) {
     for (const [k, v] of declarationsFor(layer)) merged.set(k, v);
   }
   return merged;
@@ -218,5 +222,101 @@ describe("accent contrast", () => {
         ).toBeGreaterThanOrEqual(AA);
       });
     }
+  });
+});
+
+/* --- 2026-09 redesign tokens --------------------------------------------- */
+
+/** `color-mix(in srgb, A P%, B)` over two opaque hexes. */
+function mix(a: string, pct: number, b: string): string {
+  const ca = Number.parseInt(a.slice(1), 16);
+  const cb = Number.parseInt(b.slice(1), 16);
+  const w = pct / 100;
+  return (
+    "#" +
+    [16, 8, 0]
+      .map((shift) =>
+        Math.round(((ca >> shift) & 255) * w + ((cb >> shift) & 255) * (1 - w))
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join("")
+  );
+}
+
+/** Resolve a token that may be a `color-mix(in srgb, var(--a) N%, var(--b))`
+ *  of two other tokens, or a plain hex / var() chain. */
+function resolveMix(tokens: Map<string, string>, name: string): string {
+  const raw = tokens.get(name) ?? "";
+  const m = raw.match(
+    /^color-mix\(in srgb, var\((--[\w-]+)\) ([\d.]+)%, var\((--[\w-]+)\)\)$/,
+  );
+  if (!m) return resolve(tokens, name);
+  return mix(resolveMix(tokens, m[1]), Number(m[2]), resolveMix(tokens, m[3]));
+}
+
+/** Composite `rgba(r, g, b, a)` over an opaque hex. */
+function overRgba(rgba: string, backdrop: string): string {
+  const m = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+  if (!m) throw new Error(`not an rgba(): ${rgba}`);
+  const fg =
+    "#" +
+    [m[1], m[2], m[3]]
+      .map((c) => Number(c).toString(16).padStart(2, "0"))
+      .join("");
+  return mix(fg, Number(m[4]) * 100, backdrop);
+}
+
+describe("recall ochre", () => {
+  for (const dark of [false, true]) {
+    const mode = dark ? "dark" : "light";
+    it(`${mode} mode: --recall-text reads as text, --recall reads as a fill`, () => {
+      const tokens = baseTokensFor(dark);
+      const text = resolve(tokens, "--recall-text");
+      const fill = resolve(tokens, "--recall");
+      const paper = resolve(tokens, "--paper");
+      const surfaces = ["--bg", "--surface", "--surface-2", "--paper"].map(
+        (n) => resolve(tokens, n),
+      );
+      const softRaw = tokens.get("--recall-soft")!;
+      const soft = softRaw.startsWith("rgba(")
+        ? overRgba(softRaw, paper)
+        : resolve(tokens, "--recall-soft");
+
+      for (const bg of [...surfaces, soft]) {
+        expect(contrast(text, bg), `--recall-text on ${bg}`).toBeGreaterThanOrEqual(AA);
+        /* A fill (ladder segment, due dot) is a non-text graphic: 3:1. */
+        expect(contrast(fill, bg), `--recall on ${bg}`).toBeGreaterThanOrEqual(3);
+      }
+    });
+  }
+});
+
+describe("redesign accent roles", () => {
+  for (const dark of [false, true]) {
+    const mode = dark ? "dark" : "light";
+    for (const preset of presets) {
+      it(`${mode} ${preset}: --accent-deep reads on the page and on --accent-wash`, () => {
+        const tokens = tokensFor(preset, dark);
+        const deep = resolveMix(tokens, "--accent-deep");
+        const wash = resolveMix(tokens, "--accent-wash");
+        for (const bg of [
+          resolve(tokens, "--bg"),
+          resolve(tokens, "--surface"),
+          wash,
+        ]) {
+          expect(contrast(deep, bg), `--accent-deep on ${bg}`).toBeGreaterThanOrEqual(AA);
+        }
+        /* The active nav row puts --text on the wash. */
+        expect(contrast(resolve(tokens, "--text"), wash)).toBeGreaterThanOrEqual(AA);
+      });
+    }
+  }
+
+  it("lands on the handoff's hexes for the fallback teal", () => {
+    const tokens = baseTokensFor(false);
+    const near = (a: string, b: string) => contrast(a, b) < 1.1;
+    expect(near(resolveMix(tokens, "--accent-wash"), "#e1ece9")).toBe(true);
+    expect(near(resolveMix(tokens, "--accent-deep"), "#0b5c55")).toBe(true);
   });
 });

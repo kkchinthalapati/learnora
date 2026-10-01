@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from "react";
 import { Link } from "react-router";
+import { AI_PROVIDERS_SHORT } from "../../lib/aiProviders";
 import { Button } from "../../components/Button";
 import {
   PasswordField,
@@ -11,6 +12,7 @@ import { AuthShell } from "./AuthShell";
 import { useAuthStatus } from "./useAuthStatus";
 import { RedirectIfSignedIn } from "./RedirectIfSignedIn";
 import styles from "./auth.module.css";
+import { NAME_MAX } from "../../lib/fieldLimits";
 
 /* Sign-up — ports index.html:205-292 + js/main.js:567-645.
  *
@@ -34,12 +36,14 @@ export function SignupView() {
   const dobId = useId();
   const passwordId = useId();
   const confirmId = useId();
+  const consentId = useId();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [dob, setDob] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [consentGiven, setConsentGiven] = useState(false);
   const [sent, setSent] = useState(false);
 
   const { setStatus, node: statusNode } = useAuthStatus();
@@ -54,7 +58,6 @@ export function SignupView() {
       setStatus({ kind: "error", message: invalid.message });
       return;
     }
-
     setStatus(null);
     try {
       const outcome = await signup.mutateAsync({
@@ -62,6 +65,7 @@ export function SignupView() {
         email: email.trim(),
         password,
         dob,
+        consentGiven,
       });
       if (outcome === "verification-sent") {
         setSent(true);
@@ -112,6 +116,7 @@ export function SignupView() {
               placeholder="Your full name"
               autoComplete="name"
               required
+              maxLength={NAME_MAX}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -169,6 +174,32 @@ export function SignupView() {
             placeholder="Re-enter your password"
             required
           />
+
+          <div className={styles.consentGroup}>
+            <input
+              id={consentId}
+              type="checkbox"
+              className={styles.consentCheckbox}
+              checked={consentGiven}
+              onChange={(e) => setConsentGiven(e.target.checked)}
+            />
+            <label htmlFor={consentId} className={styles.consentLabel}>
+              Turn on AI features now: I agree to share my study data with
+              Learnora's AI providers — {AI_PROVIDERS_SHORT}. See our{" "}
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer">
+                Privacy Policy
+              </Link>
+              .
+              {/* Optional, not a condition of the account: the timer, tasks
+                  and flashcards need no AI, and consent you cannot refuse is
+                  not consent. Learnora asks again the first time an AI
+                  feature is used (lib/aiConsent.ts). */}
+              <span className={styles.consentHint}>
+                Optional — you can decide later. Learnora will ask before
+                any AI feature runs.
+              </span>
+            </label>
+          </div>
 
           <Button
             type="submit"

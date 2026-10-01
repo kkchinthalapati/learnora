@@ -2,12 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tasksApi } from "../api/tasks";
 import type { Task } from "../api/types";
 import { toggleTask as toggleTaskOffline } from "../lib/offlineSync";
+import { recordTaskCompletedToday } from "../lib/achievements";
 
 export const tasksKeys = { all: ["tasks"] as const };
 
-export function useTasks() {
-  return useQuery({ queryKey: tasksKeys.all, queryFn: tasksApi.fetch });
+export function useTasks(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: tasksKeys.all,
+    queryFn: tasksApi.fetch,
+    ...options,
+  });
 }
+
 
 export function useAddTask() {
   const qc = useQueryClient();
@@ -19,7 +25,27 @@ export function useAddTask() {
       text: string;
       dueDate?: string | null;
     }) => tasksApi.add(text, dueDate ?? null),
-    onSuccess: () => qc.invalidateQueries({ queryKey: tasksKeys.all }),
+    /* Optimistic, like the toggle below. Offline, React Query pauses this
+       mutation until the connection returns, so without a placeholder row the
+       task a student just typed vanished from the list — and was then added
+       twice when they typed it again. The temporary negative id is replaced
+       by the real row on the refetch after it lands. */
+    onMutate: async ({ text, dueDate }) => {
+      await qc.cancelQueries({ queryKey: tasksKeys.all });
+      const previous = qc.getQueryData<Task[]>(tasksKeys.all);
+      const placeholder = {
+        id: -Date.now(),
+        text,
+        is_done: false,
+        due_date: dueDate ?? null,
+      } as Task;
+      qc.setQueryData<Task[]>(tasksKeys.all, (old) => [...(old ?? []), placeholder]);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(tasksKeys.all, context.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: tasksKeys.all }),
   });
 }
 
@@ -43,7 +69,8 @@ export function useToggleTask() {
       id: number;
       currentStatus: boolean;
     }) => toggleTaskOffline({ id, currentStatus }),
-    onMutate: async ({ id }) => {
+    onMutate: async ({ id, currentStatus }) => {
+      if (!currentStatus) recordTaskCompletedToday();
       await qc.cancelQueries({ queryKey: tasksKeys.all });
       const previous = qc.getQueryData<Task[]>(tasksKeys.all);
       qc.setQueryData<Task[]>(tasksKeys.all, (old) =>
@@ -58,14 +85,6 @@ export function useToggleTask() {
       if (queued) return;
       qc.invalidateQueries({ queryKey: tasksKeys.all });
     },
-  });
-}
-
-export function useDeleteTask() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => tasksApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: tasksKeys.all }),
   });
 }
 

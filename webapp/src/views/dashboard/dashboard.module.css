@@ -34,6 +34,108 @@
   font-size: var(--fs-sm);
 }
 
+.leadActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.studyLabLink {
+  min-height: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.studyLabLink:hover {
+  background: var(--surface-2);
+}
+
+.studyLabLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Progressive Disclosure Tabs */
+.tabNav {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--s-2);
+  margin-top: calc(-1 * var(--s-2));
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabNav::-webkit-scrollbar {
+  display: none;
+}
+
+.tabBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tabBtn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.tabBtnActive {
+  color: var(--primary);
+  background: var(--surface-1);
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--s-6), 3vw, var(--s-7));
+}
+
+.heroFocusGrid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: clamp(16px, 2.5vw, 24px);
+  align-items: stretch;
+}
+
+.focusSecondaryGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: clamp(16px, 2.5vw, 24px);
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .heroFocusGrid,
+  .focusSecondaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .dashboardRegion {
   min-width: 0;
 }
@@ -72,7 +174,10 @@
 /* 1. Priorities Grid: 3 distinct, spacious cards */
 .priorityGrid {
   display: grid;
-  grid-template-columns: minmax(280px, 0.95fr) minmax(360px, 1.4fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(280px, 0.95fr) minmax(360px, 1.4fr) minmax(
+      280px,
+      1fr
+    );
   gap: var(--s-6);
   align-items: stretch;
 }
@@ -140,6 +245,15 @@
     flex-direction: column;
   }
 
+  .leadActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .studyLabLink {
+    justify-content: center;
+  }
+
   .regionDescription {
     text-align: left;
   }
@@ -166,6 +280,16 @@
 }
 
 .link {
+  /* WCAG 2.5.8 (AA) needs a 24px-tall hit target; the text box alone renders
+     at ~21px. Padding grows the clickable/focusable area, offset by an equal
+     negative margin so `.cardHead`'s layout (and the card's visible spacing)
+     doesn't shift — same technique other controls in this app get via
+     `--touch-target-min`, sized down here since this sits in a compact card
+     header rather than the sidebar's full-height nav row. */
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 2px;
+  margin: -4px -2px;
   font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--accent-text);
@@ -234,12 +358,12 @@
 }
 
 .countdown {
-  font-family: var(--font-head);
+  font-family: var(--font-body);
   font-size: clamp(38px, 6vw, 56px);
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
-  color: var(--accent-text);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
   margin: var(--s-1) 0;
 }
@@ -251,6 +375,43 @@
   color: var(--text-muted);
   letter-spacing: 0;
   margin-top: var(--s-2);
+}
+
+.countdownChange {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.countdownChange:hover {
+  color: var(--text);
+}
+
+.countdownPicker {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.countdownPicker select {
+  min-width: 0;
+  max-width: 210px;
+  padding: 6px 28px 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
 }
 
 .examName {
@@ -683,7 +844,9 @@
   border-radius: var(--r-sm);
   background: var(--accent);
   opacity: 0.85;
-  transition: opacity var(--t-fast) ease, transform var(--t-fast) ease;
+  transition:
+    opacity var(--t-fast) ease,
+    transform var(--t-fast) ease;
 }
 
 .streakBar:hover {
@@ -694,7 +857,6 @@
 .streakBarActive {
   background: var(--accent);
   opacity: 1;
-  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 .streakBarLabel {
@@ -853,6 +1015,7 @@
   flex: 0 0 auto;
   width: 28px;
   height: 28px;
+  overflow: hidden;
   border-radius: var(--r-pill);
   display: grid;
   place-items: center;
@@ -861,6 +1024,12 @@
   font-weight: 700;
   font-size: var(--fs-xs);
   text-transform: uppercase;
+}
+
+.circleAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .circleMain {
@@ -956,8 +1125,11 @@
 
 .dismissBtn {
   flex-shrink: 0;
-  width: 42px;
-  height: 42px;
+  /* 42px missed the token by two pixels — close enough to look right and
+     still under the floor the app commits to, on the one control a student
+     aims at to clear the onboarding card. */
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1045,22 +1217,31 @@
 }
 
 .shelfCard {
-  background: var(--surface);
-  border: var(--border);
-  border-radius: var(--r-lg);
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: var(--s-3);
   cursor: pointer;
-  transition: all var(--t-fast) var(--ease);
+  transition: var(--card-transition);
 }
 
 .shelfCard:hover {
-  transform: translateY(-1px);
-  border-color: var(--accent-ring);
-  box-shadow: var(--shadow-sm);
+  transform: var(--card-hover-lift-sm);
+  border-color: var(--card-border-hover);
+  box-shadow: var(--card-shadow-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shelfCard,
+  .shelfCard:hover {
+    transition: none;
+    transform: none;
+  }
 }
 
 .shelfCardTop {
@@ -1082,8 +1263,8 @@
 }
 
 .shelfDot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
 }
 
@@ -1126,4 +1307,50 @@
   font-weight: 600;
   color: var(--accent-text);
   margin-left: auto;
+}
+
+/* Touch sizing — see the note in Sidebar.module.css. The focus presets ("20m",
+ * "45m") measured 37px; they are the fastest path into a session from the
+ * dashboard. */
+@media (pointer: coarse) {
+  .focusPresetBtn {
+    min-height: var(--touch-target-min);
+  }
+
+  /* The dashboard's progressive-disclosure tabs measured 33px. They are the
+     only way to reach the Insights and Activity sections on a phone, where
+     the tab strip is also horizontally scrollable — a short target next to a
+     scroll gesture is the combination that turns a tap into a swipe. */
+  .tabBtn {
+    min-height: var(--touch-target-min);
+  }
+
+  /* A card's standalone call-to-action ("Open calendar"), not a link inside a
+     sentence — WCAG 2.5.8 exempts the latter because padding it out would
+     wreck the line spacing of the paragraph around it, but this one stands on
+     its own line and has no such excuse. */
+  .link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-target-min);
+  }
+}
+
+/* "More" — reveals the demoted sections via the customize modal. */
+.moreBtn {
+  align-self: center;
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-full, 999px);
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+}
+.moreBtn:hover { color: var(--text); border-color: var(--text-muted); }
+
+.leadLink {
+  color: var(--accent-text);
+  text-decoration: underline;
 }

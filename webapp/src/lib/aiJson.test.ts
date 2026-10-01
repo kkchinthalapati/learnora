@@ -3,8 +3,7 @@ import {
   decodeBase64UTF8,
   extractFlashcardJSON,
   extractPlanJSON,
-  extractQuizJSON,
-} from "./aiJson";
+  extractQuizJSON, extractJSON } from "./aiJson";
 
 /* The extractors exist because the edge function walks a chain of providers
  * with different response-format support, so the same request comes back in
@@ -86,6 +85,68 @@ describe("extractQuizJSON", () => {
     expect(extractQuizJSON(null)).toEqual([]);
     expect(extractQuizJSON("I'd rather not.")).toEqual([]);
   });
+
+  /* QuizRunner renders each choice straight into a button (`{choice}`), so a
+     non-string choice is not a cosmetic problem — React throws "Objects are
+     not valid as a React child" and takes the whole run down mid-quiz. */
+  it("rejects choices that are not strings", () => {
+    expect(
+      extractQuizJSON(
+        '[{"question":"q","choices":[{"text":"a"},{"text":"b"}],"correctIndex":0}]',
+      ),
+    ).toEqual([]);
+  });
+
+  it("rejects a blank choice, which renders as an unreadable button", () => {
+    expect(
+      extractQuizJSON(
+        '[{"question":"q","choices":["a","   "],"correctIndex":0}]',
+      ),
+    ).toEqual([]);
+  });
+
+  it("rejects a blank question", () => {
+    expect(
+      extractQuizJSON(
+        '[{"question":"  ","choices":["a","b"],"correctIndex":0}]',
+      ),
+    ).toEqual([]);
+  });
+
+  /* Two identical options make the question unanswerable: picking the copy
+     that isn't `correctIndex` is marked wrong for being the same text. */
+  it("rejects duplicate choices regardless of case or padding", () => {
+    expect(
+      extractQuizJSON(
+        '[{"question":"q","choices":["Paris"," paris "],"correctIndex":0}]',
+      ),
+    ).toEqual([]);
+  });
+
+  /* Nine usable questions is a quiz. The all-or-nothing check used to throw
+     the batch away and leave the student with "Couldn't generate a quiz". */
+  it("keeps the good questions when one in the batch is malformed", () => {
+    const good = { question: "a", choices: ["x", "y"], correctIndex: 0 };
+    const alsoGood = { question: "b", choices: ["x", "y"], correctIndex: 1 };
+    const bad = { question: "c", choices: ["x"], correctIndex: 0 };
+
+    expect(extractQuizJSON(JSON.stringify([good, bad, alsoGood]))).toEqual([
+      good,
+      alsoGood,
+    ]);
+  });
+
+  /* The `[` in the prose used to be taken as the start of the array, so the
+     slice ran from there to the real array's close and parsed to nothing. */
+  it("finds a wrapped array even when the prose contains a bracket", () => {
+    expect(
+      extractQuizJSON(
+        `Here are the questions [as requested]: ${JSON.stringify({
+          questions: [question],
+        })}`,
+      ),
+    ).toEqual([question]);
+  });
 });
 
 describe("extractFlashcardJSON", () => {
@@ -154,5 +215,51 @@ describe("decodeBase64UTF8", () => {
     const text = "café — naïve — 日本語";
     const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(text)));
     expect(decodeBase64UTF8(base64)).toBe(text);
+  });
+});
+
+describe("extractJSON", () => {
+  it("parses a bare object", () => {
+    expect(extractJSON('{"a":1}')).toEqual({ a: 1 });
+  });
+
+  /* The regression this exists for. api/aiSparring.ts called JSON.parse on the
+     raw reply with no fence stripping at all, so any provider that wrapped its
+     answer in a ```json fence — several do — threw a SyntaxError out of the
+     sparring engine. */
+  it("parses a fenced object", () => {
+    expect(extractJSON('```json\n{"a":1}\n```')).toEqual({ a: 1 });
+  });
+
+  it("parses an object wrapped in prose", () => {
+    expect(extractJSON('Sure! Here you go: {"a":1} Hope that helps.')).toEqual({
+      a: 1,
+    });
+  });
+
+  it("forgives a trailing comma", () => {
+    expect(extractJSON('{"a":1,}')).toEqual({ a: 1 });
+  });
+
+  it("parses a bare array", () => {
+    expect(extractJSON("[1,2]")).toEqual([1, 2]);
+  });
+
+  it("preserves a prose-wrapped outer array instead of returning its first object", () => {
+    expect(extractJSON<any[]>('Here is the result: [{"name":"Trap"}]')).toEqual(
+      [{ name: "Trap" }],
+    );
+  });
+
+  it("preserves a prose-wrapped outer object when it contains an array", () => {
+    expect(extractJSON('Result: {"items":[{"name":"Trap"}]}')).toEqual({
+      items: [{ name: "Trap" }],
+    });
+  });
+
+  it("returns undefined rather than throwing on unusable input", () => {
+    expect(extractJSON("no json here")).toBeUndefined();
+    expect(extractJSON("")).toBeUndefined();
+    expect(extractJSON(null)).toBeUndefined();
   });
 });

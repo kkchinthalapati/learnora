@@ -5,6 +5,7 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useAdaptiveLearning } from "../../hooks/useAdaptiveLearning";
 import styles from "./AdaptiveHealthWidget.module.css";
+import { plural } from "../../lib/plural";
 
 export function AdaptiveHealthWidget() {
   const navigate = useNavigate();
@@ -188,7 +189,7 @@ export function AdaptiveHealthWidget() {
                 <Icon name="zap" size={16} />
               </span>
               <span>
-                <strong>Exam coming up:</strong> {surgeCount} cards
+                <strong>Exam coming up:</strong> {plural(surgeCount, "card")}
                 moved to the front of the queue.
               </span>
             </div>
@@ -223,7 +224,7 @@ export function AdaptiveHealthWidget() {
                     </div>
                     <div className={styles.masteryMeta}>
                       <span>
-                        {mastery.cardsCount} cards ({mastery.retentionRate}%
+                        {plural(mastery.cardsCount, "card")} ({mastery.retentionRate}%
                         retention)
                       </span>
                       {mastery.atRiskCount > 0 && (

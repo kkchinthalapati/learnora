@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Diagram } from "../components/Diagram";
 import { MathNode } from "./Math";
+import { MermaidDiagram } from "./MermaidDiagram";
 import { hasMathDelimiter, splitMath } from "./mathSyntax";
 import styles from "./markdown.module.css";
 
@@ -38,6 +39,15 @@ import styles from "./markdown.module.css";
  *  they are never serialised to HTML and re-parsed. */
 export type MarkdownSegment =
   { kind: "text"; text: string } | { kind: "node"; node: ReactNode };
+
+export interface MarkdownOptions {
+  /** Draw a model's diagrams rather than showing their source: a ```mermaid
+   *  fence through MermaidDiagram.tsx, and a ```svg one (or a bare `<svg>`
+   *  element in the prose) through Diagram.tsx. Opt-in: only the surfaces
+   *  whose prompt says they may draw pass it, and everywhere else a fence
+   *  stays code and `<svg>` in a reply stays text. */
+  diagrams?: boolean;
+}
 
 let keySeed = 0;
 const nextKey = () => `md-${keySeed++}`;
@@ -90,16 +100,34 @@ function renderInline(text: string): ReactNode[] {
 
 function renderInlineMarkdown(text: string): ReactNode[] {
   const out: ReactNode[] = [];
-  /* One pass, longest-delimiter-first, matching renderMarkdown's ordering. */
+  /* One pass, longest-delimiter-first, matching renderMarkdown's ordering.
+     Links sit after code spans and before emphasis. Only http(s) targets
+     become anchors: a `[x](javascript:…)` in a model reply stays text. */
   const pattern =
-    /(`[^`\n]+`)|(\*\*\*(?!\s).+?\*\*\*)|(\*\*(?!\s).+?\*\*)|(\*(?!\s).+?\*)/g;
+    /(`[^`\n]+`)|(\[[^\]\n]+\]\(https?:\/\/[^\s)]+\))|(\*\*\*(?!\s).+?\*\*\*)|(\*\*(?!\s).+?\*\*)|(\*(?!\s).+?\*)/g;
   let last = 0;
   let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(text)) !== null) {
     if (match.index > last) out.push(text.slice(last, match.index));
     const token = match[0];
-    if (token.startsWith("`")) {
+    if (match[2]) {
+      /* Cited web sources used to reach the student as "[BBC Bitesize](https://…)". */
+      const split = token.indexOf("](");
+      const label = token.slice(1, split);
+      const href = token.slice(split + 2, -1);
+      out.push(
+        <a
+          key={nextKey()}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.link}
+        >
+          {renderInline(label)}
+        </a>,
+      );
+    } else if (token.startsWith("`")) {
       /* Code spans are literal by definition — no recursion. */
       out.push(
         <code key={nextKey()} className={styles.code}>
@@ -175,9 +203,11 @@ const HEADING_LEVELS = [
   { prefix: "# ", tag: "h1" },
 ] as const;
 
-/** Fence languages the model uses when it draws (see `DIAGRAM_INSTRUCTIONS` in
- *  `lib/diagramPrompt.ts`). Anything else in a fence stays code. */
-const DIAGRAM_LANGS = new Set(["svg", "diagram"]);
+/** Fence languages the model uses when it draws an SVG (see
+ *  `DIAGRAM_INSTRUCTIONS` in `lib/diagramPrompt.ts`). Mermaid covers
+ *  processes, sequences and mindmaps; this covers everything mermaid cannot
+ *  draw — geometry, graphs with axes, labelled structures. */
+const SVG_LANGS = new Set(["svg", "diagram"]);
 
 /** A whole `<svg>` element sitting in prose. Models drop the fence often
  *  enough that without this the student gets a wall of raw markup instead of
@@ -207,7 +237,10 @@ function renderProseWithDiagrams(prose: string): ReactNode[] {
   return out;
 }
 
-function renderTextBlock(markdown: string): ReactNode[] {
+function renderTextBlock(
+  markdown: string,
+  options: MarkdownOptions = {},
+): ReactNode[] {
   const out: ReactNode[] = [];
   /* Fenced code is taken out first — everything inside is literal, which is
      the whole point of a fence. */
@@ -215,18 +248,31 @@ function renderTextBlock(markdown: string): ReactNode[] {
 
   for (let i = 0; i < parts.length; i += 3) {
     const prose = parts[i];
-    if (prose) out.push(...renderProseWithDiagrams(prose));
+    /* Unfenced SVG only counts where drawings are expected at all, same as a
+       fence: on every other surface a reply is prose, and `<svg>` in it is
+       something the student typed. */
+    if (prose) {
+      out.push(
+        ...(options.diagrams
+          ? renderProseWithDiagrams(prose)
+          : renderProse(prose)),
+      );
+    }
 
+    const lang = (parts[i + 1] ?? "").toLowerCase();
     const code = parts[i + 2];
-    if (code !== undefined) {
-      const lang = (parts[i + 1] ?? "").toLowerCase();
-      /* A ```svg fence is a drawing, not a listing. The language alone is not
-         enough — a student asking *about* SVG should still see the source —
-         so the body has to actually be an `<svg>` element. */
-      if (DIAGRAM_LANGS.has(lang) && isSvgSource(code)) {
-        out.push(<Diagram key={nextKey()} source={code.trim()} />);
-        continue;
-      }
+    if (code !== undefined && options.diagrams && lang === "mermaid") {
+      out.push(<MermaidDiagram key={nextKey()} code={code.trim()} />);
+    } else if (
+      code !== undefined &&
+      options.diagrams &&
+      SVG_LANGS.has(lang) &&
+      /* The language alone is not enough — a student asking *about* SVG should
+         still see their source as code — so the body has to be an element. */
+      isSvgSource(code)
+    ) {
+      out.push(<Diagram key={nextKey()} source={code.trim()} />);
+    } else if (code !== undefined) {
       out.push(
         <pre key={nextKey()} className={styles.pre}>
           <code>{code.trim()}</code>
@@ -236,6 +282,20 @@ function renderTextBlock(markdown: string): ReactNode[] {
   }
 
   return out;
+}
+
+function isTableSeparator(line: string | undefined): boolean {
+  if (!line) return false;
+  return /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?\s*$/.test(line);
+}
+
+function splitTableRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
 }
 
 function renderProse(prose: string): ReactNode[] {
@@ -313,10 +373,50 @@ function renderProse(prose: string): ReactNode[] {
       continue;
     }
 
-    const bullet = /^- (.*)$/.exec(line);
+    /* A pipe table: a header row, a `|---|---|` separator, then body rows.
+       Rendered as a real table in a scroller so a wide one can't push the
+       chat sideways; it used to reach the student as rows of raw pipes. */
+    if (line.trim().startsWith("|") && isTableSeparator(lines[i + 1])) {
+      closeBlocks();
+      const header = splitTableRow(line);
+      const body: string[][] = [];
+      let j = i + 2;
+      while (j < lines.length && lines[j].trim().startsWith("|")) {
+        body.push(splitTableRow(lines[j]));
+        j++;
+      }
+      out.push(
+        <div key={nextKey()} className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                {header.map((cell) => (
+                  <th key={nextKey()}>{renderInline(cell)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {body.map((row) => (
+                <tr key={nextKey()}>
+                  {header.map((_, c) => (
+                    <td key={nextKey()}>{renderInline(row[c] ?? "")}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      i = j - 1;
+      continue;
+    }
+
+    /* Indented items are sub-points; they join the list rather than falling
+       out of it as a stray "- nested" paragraph. */
+    const bullet = /^\s*- (.*)$/.exec(line);
     /* Models number lists both ways — `1.` and `1)`. The second used to
        fall through to a paragraph, so the items lost their list. */
-    const numbered = /^\d+[.)] (.*)$/.exec(line);
+    const numbered = /^\s*\d+[.)] (.*)$/.exec(line);
     if (bullet || numbered) {
       renderParagraph(paragraph, out);
       const ordered = !!numbered;
@@ -340,18 +440,22 @@ function renderProse(prose: string): ReactNode[] {
  *  as React nodes. */
 export function renderMarkdownSegments(
   segments: MarkdownSegment[],
+  options?: MarkdownOptions,
 ): ReactNode[] {
   const out: ReactNode[] = [];
   for (const segment of segments) {
     if (segment.kind === "node") out.push(segment.node);
-    else out.push(...renderTextBlock(segment.text));
+    else out.push(...renderTextBlock(segment.text, options));
   }
   return out;
 }
 
 /** Convenience for plain markdown with no widgets in it. */
-export function renderMarkdownNodes(markdown: string): ReactNode[] {
-  return renderTextBlock(markdown);
+export function renderMarkdownNodes(
+  markdown: string,
+  options?: MarkdownOptions,
+): ReactNode[] {
+  return renderTextBlock(markdown, options);
 }
 
 /** Typeset the maths in a run of text, leaving every other character exactly

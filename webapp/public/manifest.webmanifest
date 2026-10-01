@@ -10,13 +10,13 @@
   "theme_color": "#0a0e0d",
   "icons": [
     {
-      "src": "/learnora.jpg",
+      "src": "/app/learnora.jpg",
       "sizes": "1024x1024",
       "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/learnora.jpg",
+      "src": "/app/learnora.jpg",
       "sizes": "1024x1024",
       "type": "image/jpeg",
       "purpose": "maskable"

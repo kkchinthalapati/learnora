@@ -41,6 +41,7 @@ export interface Notebook {
   id: string;
   title: string;
   subject: string;
+  folderId: string | null;
   color: string;
   description?: string;
   sources: NotebookSource[];

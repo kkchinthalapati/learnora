@@ -4,6 +4,30 @@
   padding-bottom: var(--s-8);
 }
 
+.lead {
+  margin-bottom: var(--s-5);
+}
+
+.lead h1 {
+  margin: var(--s-1) 0;
+  font-family: var(--font-head);
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.08;
+}
+
+.lead p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* ---- Tab strip --------------------------------------------------------- */
 
 .tabs {
@@ -81,19 +105,26 @@
   flex-direction: column;
   min-height: 152px;
   padding: var(--s-5);
-  background: var(--surface);
-  border: 1px solid var(--glass-border-subtle);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-sm);
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
-  transition:
-    box-shadow var(--t-fast) ease,
-    border-color var(--t-fast) ease;
+  transition: var(--card-transition);
 }
 
 .card:hover {
-  border-color: var(--accent-ring);
-  box-shadow: var(--shadow-md);
+  border-color: var(--card-border-hover);
+  box-shadow: var(--card-shadow-hover);
+  transform: var(--card-hover-lift-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card:hover {
+    transition: none;
+    transform: none;
+  }
 }
 
 .cardLink {
@@ -138,6 +169,18 @@
   color: var(--text-muted);
   font-size: var(--fs-sm);
   margin: 0;
+}
+
+.cardDue {
+  color: var(--accent-text);
+  font-weight: 650;
+}
+
+.dueBannerAction {
+  margin-left: auto;
+  color: var(--accent-text);
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 /* Visual affordance only — the card around it is the link. */
@@ -218,6 +261,8 @@
   border-radius: var(--r-md);
   box-shadow: none;
   cursor: pointer;
+  /* Also worn by a <Link> (edit cards) now, not only <button>s. */
+  text-decoration: none;
   transition:
     background var(--t-fast) ease,
     color var(--t-fast) ease,
@@ -252,13 +297,13 @@
   font-size: var(--fs-lg);
   font-weight: 600;
   color: var(--text);
-  background: var(--surface-2);
+  background: var(--card-bg-subtle);
   border: 1px dashed var(--text-faint);
-  border-radius: var(--r-lg);
+  border-radius: var(--card-radius);
   cursor: pointer;
   transition:
-    border-color var(--t-fast) ease,
-    color var(--t-fast) ease;
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
 }
 
 .newCardBtn:hover {
@@ -532,7 +577,6 @@
  * and SubjectDetailPage now render <Badge tone="accent|warning|danger|success"
  * size="sm">. */
 
-
 .spinner {
   display: inline-block;
   width: 12px;
@@ -656,4 +700,59 @@
   .spinner {
     animation: none;
   }
+}
+
+/* Per-subject misconception strip. Token-only: this file carries a drift
+   baseline (src/styles/drift.test.ts) that only ever ratchets down. */
+.subjectLedger {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  margin-bottom: var(--s-4);
+  border: var(--border);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.subjectLedgerLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  color: var(--warning-text);
+}
+
+.subjectLedgerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.subjectLedgerItem {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.subjectLedgerItem strong {
+  color: var(--text);
+}
+
+.subjectLedgerCount {
+  color: var(--warning-text);
+  font-weight: 600;
+}
+
+/* One line under the tabs saying what the open tab holds. */
+.tabBlurb {
+  margin: 0 0 var(--s-4);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
 }

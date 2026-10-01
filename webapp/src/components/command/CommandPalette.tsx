@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,16 +9,24 @@ import { useOverlayBehavior } from "../../context/overlayStack";
 import { useOptionalTimer } from "../../context/timer";
 import { useAppearance } from "../../context/appearance";
 import { useOptionalChat } from "../../context/chat";
+import { CreateModalContext } from "../../context/createModal";
 import { useToast } from "../../context/toast";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useAllDecks } from "../../hooks/useDecks";
+import { useQuizzes } from "../../hooks/useQuizzes";
 import { tasksApi } from "../../api/tasks";
 import { tasksKeys } from "../../hooks/useTasks";
 import { resolveDark, THEME_KEY } from "../../lib/appearance";
 import { Storage } from "../../lib/storage";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import {
+  RECENT_CATEGORY,
+  readRecentCommandIds,
+  rememberCommandId,
+} from "./recentCommands";
 import styles from "./CommandPalette.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 export interface CommandItem {
   id: string;
@@ -40,11 +48,13 @@ export interface CommandPaletteProps {
 
 export function CommandPalette(props: CommandPaletteProps) {
   const context = useOptionalCommandPalette();
-  const isOpen = props.isOpen !== undefined ? props.isOpen : (context?.isOpen ?? false);
+  const isOpen =
+    props.isOpen !== undefined ? props.isOpen : (context?.isOpen ?? false);
   const handleClose = props.onClose || context?.close || (() => {});
 
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [recentIds, setRecentIds] = useState<string[]>(readRecentCommandIds);
   const paletteRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -56,6 +66,9 @@ export function CommandPalette(props: CommandPaletteProps) {
   const timerRunning = timer?.state?.isRunning ?? false;
   const { appearance, setAppearance } = useAppearance();
   const chat = useOptionalChat();
+  /* Optional: the palette also renders in tests and previews that don't
+     mount the create dialog. */
+  const createModal = useContext(CreateModalContext);
 
   const isDark = resolveDark(appearance.mode);
 
@@ -63,6 +76,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const { data: folders = [] } = useFolders();
   const { data: materials = [] } = useMaterials();
   const { data: decks = [] } = useAllDecks();
+  const { data: quizzes = [] } = useQuizzes();
 
   // Overlay Stack & Focus Trap behavior
   useOverlayBehavior({
@@ -113,7 +127,9 @@ export function CommandPalette(props: CommandPaletteProps) {
           {
             id: "action-prefix-task",
             category: "Task Action",
-            title: prefixMatch.text ? `Create task: "${prefixMatch.text}"` : "Type a task name...",
+            title: prefixMatch.text
+              ? `Create task: "${prefixMatch.text}"`
+              : "Type a task name...",
             subtitle: "Add task to Task Manager and sync",
             icon: "list-checks",
             badge: "Task",
@@ -122,7 +138,9 @@ export function CommandPalette(props: CommandPaletteProps) {
               if (!prefixMatch.text) return;
               try {
                 await tasksApi.add(prefixMatch.text);
-                await queryClient.invalidateQueries({ queryKey: tasksKeys.all });
+                await queryClient.invalidateQueries({
+                  queryKey: tasksKeys.all,
+                });
                 showToast(`Task created: "${prefixMatch.text}"`);
                 handleClose();
               } catch (_err) {
@@ -138,7 +156,9 @@ export function CommandPalette(props: CommandPaletteProps) {
           {
             id: "action-prefix-ai",
             category: "AI TurboChat",
-            title: prefixMatch.text ? `Ask AI: "${prefixMatch.text}"` : "Type an AI prompt...",
+            title: prefixMatch.text
+              ? `Ask AI: "${prefixMatch.text}"`
+              : "Type an AI prompt...",
             subtitle: "Send prompt directly into TurboChat",
             icon: "bot",
             badge: "AI Chat",
@@ -157,11 +177,13 @@ export function CommandPalette(props: CommandPaletteProps) {
         return [
           {
             id: "action-prefix-debug",
-            category: "Find My Mistake",
-            title: prefixMatch.text ? `Look at: "${prefixMatch.text}"` : "Type a topic to look at…",
-            subtitle: "Work out what went wrong in Find My Mistake",
+            category: "Explain",
+            title: prefixMatch.text
+              ? `Look at: "${prefixMatch.text}"`
+              : "Type a topic to look at…",
+            subtitle: "Work out what went wrong in the step-by-step solver",
             icon: "brain",
-            badge: "Find My Mistake",
+            badge: "Solver",
             shortcut: "↵",
             onSelect: () => {
               if (!prefixMatch.text) return;
@@ -173,7 +195,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                 evidencePrompt: "Opened from the command palette",
                 suggestedAction: "debug_stack",
               });
-              navigate(`/debugger?topic=${encodeURIComponent(prefixMatch.text)}`);
+              navigate(newSessionHref("explain", { topic: prefixMatch.text }));
               handleClose();
             },
           },
@@ -182,6 +204,31 @@ export function CommandPalette(props: CommandPaletteProps) {
     }
 
     const items: CommandItem[] = [];
+
+    /* "New…" — Create's home since it left the sidebar (the other is the
+       Library header). One entry per thing a student makes. */
+    if (createModal) {
+      const NEW_ENTRIES = [
+        { type: "material", title: "New… material", subtitle: "Upload or paste notes to learn from", icon: "upload-cloud", keywords: ["new", "create", "upload", "notes", "pdf", "material"] },
+        { type: "subject", title: "New… subject", subtitle: "A folder for one course", icon: "folder", keywords: ["new", "create", "subject", "folder", "course"] },
+        { type: "exam", title: "New… exam", subtitle: "Add a date to plan towards", icon: "calendar", keywords: ["new", "create", "exam", "test", "date"] },
+        { type: "task", title: "New… task", subtitle: "Something to get done", icon: "check-square", keywords: ["new", "create", "task", "todo"] },
+      ] as const;
+      for (const entry of NEW_ENTRIES) {
+        items.push({
+          id: `new-${entry.type}`,
+          category: "New",
+          title: entry.title,
+          subtitle: entry.subtitle,
+          icon: entry.icon,
+          keywords: [...entry.keywords],
+          onSelect: () => {
+            handleClose();
+            createModal.openCreateModal({ type: entry.type });
+          },
+        });
+      }
+    }
 
     // --- Actions ---
     items.push({
@@ -220,7 +267,9 @@ export function CommandPalette(props: CommandPaletteProps) {
       id: "action-timer-toggle",
       category: "Quick Actions",
       title: timerRunning ? "Pause Timer" : "Toggle / Start Timer",
-      subtitle: timerRunning ? "Pause the active study timer" : "Start or resume study timer",
+      subtitle: timerRunning
+        ? "Pause the active study timer"
+        : "Start or resume study timer",
       icon: timerRunning ? "pause" : "play",
       shortcut: "Timer",
       keywords: ["toggle", "pause", "resume", "start", "timer", "stop"],
@@ -249,71 +298,112 @@ export function CommandPalette(props: CommandPaletteProps) {
       },
     });
 
-    // --- Study Lab tools ---
+    // --- Study tools ---
+    items.push({
+      id: "nav-study-lab",
+      category: "Study tools",
+      title: "Choose a study exercise",
+      subtitle:
+        "Start from the problem you have and pick the right kind of practice",
+      icon: "target",
+      badge: "Start here",
+      keywords: ["study lab", "help", "practice", "study", "learn"],
+      onSelect: () => {
+        navigate("/study");
+        handleClose();
+      },
+    });
+
     items.push({
       id: "nav-ai-debugger",
-      category: "Study Lab",
-      title: "Find My Mistake",
-      subtitle: "Work backwards from a mistake to what you never quite learned",
+      category: "Study tools",
+      title: "Explain session",
+      subtitle:
+        "Step by step from the idea underneath, with a check after each step",
       icon: "brain",
       badge: "AI Tool",
-      keywords: ["ai", "debugger", "debug", "mistake", "fix", "concept", "trace"],
+      keywords: [
+        "ai",
+        "solver",
+        "step-by-step",
+        "debugger",
+        "debug",
+        "mistake",
+        "fix",
+        "concept",
+        "trace",
+      ],
       onSelect: () => {
-        navigate("/debugger");
+        navigate(newSessionHref("explain"));
         handleClose();
       },
     });
 
     items.push({
       id: "nav-ai-feynman",
-      category: "Study Lab",
-      title: "Explain It Simply",
+      category: "Study tools",
+      title: "Explain it simply",
       subtitle: "Explain a topic out loud and find out what you really know",
       icon: "award",
       badge: "AI Tool",
-      keywords: ["ai", "feynman", "teach", "apprentice", "comprehension", "studio"],
+      keywords: [
+        "ai",
+        "feynman",
+        "teach",
+        "apprentice",
+        "comprehension",
+        "studio",
+      ],
       onSelect: () => {
-        navigate("/feynman");
+        navigate(newSessionHref("teach"));
         handleClose();
       },
     });
 
     items.push({
-      id: "nav-ai-premortem",
-      category: "Study Lab",
-      title: "What Could Go Wrong",
-      subtitle: "Practise the questions designed to catch you out",
-      icon: "shield",
-      badge: "AI Tool",
-      keywords: ["ai", "premortem", "pre-mortem", "radar", "exam", "failure", "stress"],
+      id: "nav-ai-sparring",
+      category: "Study tools",
+      title: "Oral practice",
+      subtitle: "Answer spoken or typed questions on a topic, like a viva",
+      icon: "mic",
+      badge: "Speak or type",
+      keywords: [
+        "viva",
+        "oral",
+        "test",
+        "socratic",
+        "sparring",
+        "voice",
+        "debate",
+        "challenge",
+      ],
       onSelect: () => {
-        navigate("/premortem");
+        navigate(newSessionHref("socratic", { voice: true }));
         handleClose();
       },
     });
 
     items.push({
-      id: "nav-ai-graph",
-      category: "Study Lab",
-      title: "How Topics Connect",
-      subtitle: "A map of your topics and what leads into what",
-      icon: "share-2",
-      badge: "AI Tool",
-      keywords: ["graph", "concept", "knowledge", "nodes", "dependencies", "network"],
+      id: "nav-ai-exam-traps",
+      category: "Study tools",
+      title: "Exam traps",
+      subtitle: "Learn the tricks exam questions use, then practise spotting them",
+      icon: "search",
+      badge: "Exam practice",
+      keywords: ["exam", "past paper", "traps", "practice", "detective", "stress test", "timed"],
       onSelect: () => {
-        navigate("/graph");
+        navigate(newSessionHref("practice", { preset: "traps" }));
         handleClose();
       },
     });
 
     items.push({
       id: "nav-ai-analytics",
-      category: "Study Lab",
+      category: "Navigation",
       title: "Progress",
-      subtitle: "Where your time goes, and how you're getting on",
+      subtitle: "Mistakes you keep making, and how you're getting on",
       icon: "activity",
-      badge: "AI Tool",
-      keywords: ["analytics", "progress", "stats", "charts", "data"],
+      keywords: ["analytics", "progress", "stats", "charts", "data", "dashboard", "mistakes", "misconceptions", "history"],
       onSelect: () => {
         navigate("/analytics");
         handleClose();
@@ -321,23 +411,11 @@ export function CommandPalette(props: CommandPaletteProps) {
     });
 
     // --- Navigation ---
-    items.push({
-      id: "nav-dashboard",
-      category: "Navigation",
-      title: "Dashboard",
-      subtitle: "Study overview, goals, and daily streak",
-      icon: "dashboard",
-      keywords: ["home", "dashboard", "overview"],
-      onSelect: () => {
-        navigate("/");
-        handleClose();
-      },
-    });
-
+    items.push({ id: "nav-today", category: "Navigation", title: "Today", subtitle: "Your next study step", icon: "zap", keywords: ["home", "today"], onSelect: () => { navigate("/"); handleClose(); } });
     items.push({
       id: "nav-tasks",
       category: "Navigation",
-      title: "Task Manager",
+      title: "Tasks",
       subtitle: "Manage tasks, deadlines, and to-do lists",
       icon: "list-checks",
       keywords: ["tasks", "todo", "list", "deadlines", "assignments"],
@@ -473,6 +551,37 @@ export function CommandPalette(props: CommandPaletteProps) {
       });
     });
 
+    /* Quizzes were not searchable at all: "quiz" returned "No matching
+       results", and a quiz's own title never matched. Practice questions
+       are one of the most common things a student comes looking for. */
+    items.push({
+      id: "nav-quizzes",
+      category: "Navigation",
+      title: "Quizzes",
+      subtitle: "Your practice quizzes, or make a new one",
+      icon: "help-circle",
+      keywords: ["quiz", "quizzes", "practice questions", "test me", "mock"],
+      onSelect: () => {
+        navigate("/library/quizzes");
+        handleClose();
+      },
+    });
+    quizzes.forEach((quiz) => {
+      items.push({
+        id: `quiz-${quiz.id}`,
+        category: "Quizzes",
+        title: quiz.title,
+        subtitle: "Take this quiz",
+        icon: "help-circle",
+        badge: "Quiz",
+        keywords: ["quiz", "practice", "test", quiz.title],
+        onSelect: () => {
+          navigate(`/quiz/${quiz.id}`);
+          handleClose();
+        },
+      });
+    });
+
     // --- Dynamic: Flashcard Decks ---
     decks.forEach((deck) => {
       items.push({
@@ -498,6 +607,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     folders,
     materials,
     decks,
+    quizzes,
     navigate,
     handleClose,
     timer,
@@ -505,6 +615,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     showToast,
     chat,
     queryClient,
+    createModal,
   ]);
 
   // Filter items by search query
@@ -515,17 +626,31 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     const q = query.trim().toLowerCase();
     if (!q) {
-      return allItems;
+      const recent = recentIds
+        .map((id) => allItems.find((item) => item.id === id))
+        .filter((item): item is CommandItem => Boolean(item))
+        .map((item) => ({ ...item, category: RECENT_CATEGORY }));
+      return [...recent, ...allItems];
     }
 
     return allItems.filter((item) => {
       const matchTitle = item.title.toLowerCase().includes(q);
       const matchSubtitle = item.subtitle?.toLowerCase().includes(q) ?? false;
       const matchCategory = item.category.toLowerCase().includes(q);
-      const matchKeywords = item.keywords?.some((k) => k.toLowerCase().includes(q)) ?? false;
+      const matchKeywords =
+        item.keywords?.some((k) => k.toLowerCase().includes(q)) ?? false;
       return matchTitle || matchSubtitle || matchCategory || matchKeywords;
     });
-  }, [allItems, prefixMatch, query]);
+  }, [allItems, prefixMatch, query, recentIds]);
+
+  /** Run an item and, unless it came from a typed prefix, record it as recent. */
+  const runItem = useCallback(
+    (item: CommandItem) => {
+      if (!prefixMatch) setRecentIds(rememberCommandId(item.id));
+      void item.onSelect();
+    },
+    [prefixMatch],
+  );
 
   // Reset selected index when query changes or bounds change
   useEffect(() => {
@@ -542,7 +667,9 @@ export function CommandPalette(props: CommandPaletteProps) {
   // Auto-scroll selected item into view
   useEffect(() => {
     if (!listRef.current) return;
-    const activeEl = listRef.current.querySelector(`[data-index="${selectedIndex}"]`) as HTMLElement | null;
+    const activeEl = listRef.current.querySelector(
+      `[data-index="${selectedIndex}"]`,
+    ) as HTMLElement | null;
     if (activeEl && typeof activeEl.scrollIntoView === "function") {
       activeEl.scrollIntoView({ block: "nearest" });
     }
@@ -558,13 +685,15 @@ export function CommandPalette(props: CommandPaletteProps) {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (filteredItems.length > 0) {
-        setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
+        setSelectedIndex(
+          (prev) => (prev - 1 + filteredItems.length) % filteredItems.length,
+        );
       }
     } else if (e.key === "Enter") {
       e.preventDefault();
       const currentItem = filteredItems[selectedIndex];
       if (currentItem) {
-        void currentItem.onSelect();
+        runItem(currentItem);
       }
     }
   };
@@ -572,7 +701,10 @@ export function CommandPalette(props: CommandPaletteProps) {
   if (!isOpen) return null;
 
   // Group items by category for visual organization
-  const groupedItems: { category: string; items: { item: CommandItem; globalIndex: number }[] }[] = [];
+  const groupedItems: {
+    category: string;
+    items: { item: CommandItem; globalIndex: number }[];
+  }[] = [];
   let currentIndex = 0;
   filteredItems.forEach((item) => {
     let group = groupedItems.find((g) => g.category === item.category);
@@ -684,7 +816,8 @@ export function CommandPalette(props: CommandPaletteProps) {
               <Icon name="search" size={28} className={styles.emptyIcon} />
               <p className={styles.emptyTitle}>No matching results</p>
               <p className={styles.emptyDesc}>
-                No commands, subjects, or documents matched &ldquo;{query}&rdquo;
+                No commands, subjects, or documents matched &ldquo;{query}
+                &rdquo;
               </p>
             </div>
           ) : (
@@ -695,12 +828,12 @@ export function CommandPalette(props: CommandPaletteProps) {
                   const isSelected = globalIndex === selectedIndex;
                   return (
                     <div
-                      key={item.id}
+                      key={`${group.category}-${item.id}`}
                       data-index={globalIndex}
                       role="option"
                       aria-selected={isSelected}
                       className={`${styles.item} ${isSelected ? styles.selected : ""}`}
-                      onClick={() => void item.onSelect()}
+                      onClick={() => runItem(item)}
                       onMouseEnter={() => setSelectedIndex(globalIndex)}
                     >
                       <div className={styles.itemIcon}>
@@ -717,7 +850,9 @@ export function CommandPalette(props: CommandPaletteProps) {
                       <div className={styles.itemContent}>
                         <div className={styles.itemTitle}>{item.title}</div>
                         {item.subtitle && (
-                          <div className={styles.itemSubtitle}>{item.subtitle}</div>
+                          <div className={styles.itemSubtitle}>
+                            {item.subtitle}
+                          </div>
                         )}
                       </div>
 
@@ -726,7 +861,9 @@ export function CommandPalette(props: CommandPaletteProps) {
                           <span className={styles.badge}>{item.badge}</span>
                         )}
                         {item.shortcut ? (
-                          <kbd className={styles.shortcutKbd}>{item.shortcut}</kbd>
+                          <kbd className={styles.shortcutKbd}>
+                            {item.shortcut}
+                          </kbd>
                         ) : isSelected ? (
                           <kbd className={styles.shortcutKbd}>↵</kbd>
                         ) : null}

@@ -6,10 +6,7 @@ import type {
   FeedbackKind,
   FeedbackState,
 } from "../../components/InlineFeedback";
-/* Imported rather than referenced as `/learnora.jpg`: Vite rewrites the URL to
- * include whatever `base` the build uses, so the logo survives being served
- * from the `/app/` path prefix. A root-absolute path would not. */
-import logoUrl from "../../assets/learnora.jpg";
+import { LOGO_URL as logoUrl } from "../../lib/logoUrl";
 import styles from "./auth.module.css";
 
 /* The auth wall's chrome — ports index.html:59-326.
@@ -19,11 +16,14 @@ import styles from "./auth.module.css";
  * (`setAuthHeader`, js/main.js:455-460). Each screen is its own route here, so
  * the heading is simply a prop and there is nothing to keep in sync. */
 
+/* What the app is now (2026-09 redesign): one next step, sessions that
+   teach and check, and memory that comes back before it fades. The old list
+   (timer, tasks, exams, "AI study assistant") described the previous app. */
 const FEATURES: { icon: IconName; label: string }[] = [
-  { icon: "clock", label: "Focus timer" },
-  { icon: "list-checks", label: "Task manager" },
-  { icon: "calendar", label: "Exams" },
-  { icon: "bot", label: "AI study assistant" },
+  { icon: "target", label: "One clear next step" },
+  { icon: "bot", label: "A tutor that checks you got it" },
+  { icon: "layers", label: "Recall before it fades" },
+  { icon: "calendar", label: "A plan around your exams" },
 ];
 
 export function AuthShell({
@@ -63,6 +63,10 @@ export function AuthShell({
                     it. */}
                 <Link to="/terms" target="_blank" rel="noopener noreferrer">
                   Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy" target="_blank" rel="noopener noreferrer">
+                  Privacy Policy
                 </Link>
                 .
               </p>
@@ -80,7 +84,7 @@ export function AuthShell({
               in one calm place.
             </h2>
             <p className={styles.visualSubtitle}>
-              Focus sessions, tasks, exams, and an AI tutor — working together.
+              Learn it, check it, and keep it — with a plan built around your exams.
             </p>
             <div className={styles.visualFeatures}>
               {FEATURES.map((f) => (

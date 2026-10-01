@@ -15,26 +15,25 @@ export const decksApi = {
     return data ?? [];
   },
 
-  async fetch(folderId: string): Promise<FlashcardDeck[]> {
-    const userId = await requireUserId();
-    const { data, error } = await supabase
-      .from("flashcard_decks")
-      .select("*")
-      .eq("folder_id", folderId)
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  },
-
   /* `folder_id` is nullable: a deck generated from a bare topic is filed
      nowhere, which is what the Create modal's Topic source does (it hides the
      folder picker entirely). */
-  async add(folderId: string | null, title: string): Promise<FlashcardDeck> {
+  async add(
+    folderId: string | null,
+    title: string,
+    notebookId?: string | null,
+  ): Promise<FlashcardDeck> {
     const userId = await requireUserId();
     const { data, error } = await supabase
       .from("flashcard_decks")
-      .insert([{ user_id: userId, folder_id: folderId, title }])
+      .insert([
+        {
+          user_id: userId,
+          folder_id: folderId,
+          title,
+          ...(notebookId ? { notebook_id: notebookId } : {}),
+        },
+      ])
       .select()
       .single();
     if (error) throw new Error(error.message);

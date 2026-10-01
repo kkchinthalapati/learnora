@@ -36,13 +36,22 @@ async function fillForm(
     password = "Password1!",
     confirm = "Password1!",
     dob = adultDob(),
-  }: { password?: string; confirm?: string; dob?: string } = {},
+    consent = true,
+  }: {
+    password?: string;
+    confirm?: string;
+    dob?: string;
+    consent?: boolean;
+  } = {},
 ) {
   await user.type(screen.getByLabelText("Full name"), "Ada Lovelace");
   await user.type(screen.getByLabelText("Email"), "ada@example.com");
   await user.type(screen.getByLabelText("Date of birth"), dob);
   await user.type(screen.getByLabelText("Password"), password);
   await user.type(screen.getByLabelText("Confirm password"), confirm);
+  if (consent) {
+    await user.click(screen.getByRole("checkbox"));
+  }
 }
 
 describe("SignupView", () => {
@@ -60,9 +69,10 @@ describe("SignupView", () => {
     expect(
       screen.getByText("You must be 13 or older to use Learnora"),
     ).toBeInTheDocument();
+    expect(screen.getByRole("checkbox")).toBeInTheDocument();
   });
 
-  it("sends name and dob as user metadata alongside the credentials", async () => {
+  it("sends name, dob, and AI-provider consent as user metadata alongside the credentials", async () => {
     let body: Record<string, unknown> | null = null;
     server.use(
       http.post(SIGNUP_URL, async ({ request }) => {
@@ -84,8 +94,38 @@ describe("SignupView", () => {
     expect(body).toMatchObject({
       email: "ada@example.com",
       password: "Password1!",
-      data: { full_name: "Ada Lovelace", dob },
+      data: { full_name: "Ada Lovelace", dob, consent_given: true },
     });
+  });
+
+  /* The checkbox's `required` attribute is what actually blocks submission —
+     the browser's own constraint validation stops the form from firing at
+     all, the same way it already does for the empty name/email/dob fields.
+     No custom error banner is expected here, only that the request the
+     button click would otherwise trigger never goes out. */
+  /* Consent you cannot refuse is not consent: the box is optional, and
+     Learnora asks again the first time an AI feature is used. */
+  it("creates the account without the AI-provider consent box", async () => {
+    let body: { data?: Record<string, unknown> } | null = null;
+    server.use(
+      http.post(SIGNUP_URL, async ({ request }) => {
+        body = (await request.json()) as typeof body;
+        return HttpResponse.json({
+          user: { id: "u1", identities: [{ id: "i1" }] },
+          session: null,
+        });
+      }),
+    );
+
+    const user = userEvent.setup();
+    renderSignup();
+    await fillForm(user, { consent: false });
+    expect(screen.getByRole("checkbox")).not.toBeRequired();
+    expect(screen.getByText(/Optional — you can decide later/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Create Account →" }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body!.data!.consent_given).toBe(false);
   });
 
   it("shows the check-your-inbox state when confirmation is required", async () => {

@@ -1,4 +1,20 @@
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
+import {
+  isSelfHarmContent,
+  SAFETY_REFUSAL,
+  screenConversation,
+  screenForUnsafeContent,
+  screenImagePrompt,
+  SELF_HARM_REFUSAL,
+} from "../_shared/contentSafety.js";
+import { improveQuiz } from "../_shared/quizQuality.js";
+import { buildSystemInstruction, isJsonMode, JSON_MODES } from "../_shared/systemPrompt.js";
+import { billingDecision } from "../_shared/sessionBilling.js";
+import {
+  createDeadKeyRegistry,
+  isDeadKeyError,
+  permittedProviderIds,
+} from "../_shared/providerPolicy.js";
 
 /* Origins allowed to call this function from a browser.
 
@@ -80,58 +96,9 @@ function cleanJsonResponse(text: string): string {
   return cleaned.trim();
 }
 
-/* =========================================================================
-   CONTENT SAFETY
-
-   Learnora is a study tool used by students from age 13. Two gaps let it
-   generate a quiz on bomb-making and one on recreational drug identification:
-   the system prompt said nothing about acceptable subject matter, and a
-   Gemini safety refusal was caught as a generic error and silently retried
-   against Groq/OpenRouter, which are far less filtered. So a blocked request
-   didn't fail — it got downgraded to a provider that would answer it.
-
-   The screen below is deliberately narrow. It targets operational
-   "how to make/obtain" framing rather than subject areas, because banning
-   topics outright would break legitimate coursework: pharmacology, the
-   chemistry of energetic materials, military history, and toxicology are all
-   things a student may properly be studying. The system-prompt policy and the
-   provider filters cover the grey zone; this catches the blatant cases before
-   a single token is spent.
-   ========================================================================= */
-
-const SAFETY_REFUSAL =
-  "I can't help with that topic. Learnora is a study assistant — I can't create quizzes or study material about making weapons or explosives, obtaining or producing illegal drugs, or harming yourself or others. Ask me about a subject you're studying and I'll gladly help.";
-
-const UNSAFE_PATTERNS: RegExp[] = [
-  // Weapons and explosives — construction/acquisition framing only.
-  /\b(?:make|making|build|building|construct|constructing|create|creating|assemble|assembling|manufacture|manufacturing|diy|homemade|improvised)\b[^.?!]{0,40}\b(?:bomb|explosive|ied|grenade|landmine|napalm|thermite|pipe\s*bomb|molotov|detonator|silencer|suppressor|ghost\s*gun|untraceable\s*(?:gun|firearm))/i,
-  /\b(?:bomb|explosive|grenade|napalm|thermite|detonator)[\s-]*(?:making|building|construction|recipe|blueprint)\b/i,
-  /\b(?:3d[\s-]?print|print)\w*\b[^.?!]{0,30}\b(?:gun|firearm|receiver|lower)\b/i,
-  /\bconvert\w*\b[^.?!]{0,30}\bfull[\s-]?auto\b/i,
-
-  // Illegal drug synthesis or acquisition.
-  /\b(?:synthes\w+|cook|cooking|manufactur\w+|produc\w+|extract\w+|grow\w+|make|making)\b[^.?!]{0,40}\b(?:meth|methamphetamine|crystal\s*meth|cocaine|crack|heroin|fentanyl|mdma|ecstasy|lsd|ghb|psilocybin|magic\s*mushrooms)\b/i,
-  /\b(?:how|where)\b[^.?!]{0,30}\b(?:buy|score|obtain|get)\b[^.?!]{0,30}\b(?:meth|cocaine|heroin|fentanyl|mdma|ecstasy|lsd|illegal\s*drugs|drugs\s*online)\b/i,
-  /\bdark\s*(?:web|net)\b[^.?!]{0,30}\b(?:drug|gun|weapon)/i,
-
-  // Self-harm and suicide methods.
-  /\b(?:how\s*to|best\s*way|method[s]?\s*(?:to|for|of))\b[^.?!]{0,30}\b(?:kill\s*(?:myself|yourself)|commit\s*suicide|suicide|self[\s-]?harm|end\s*my\s*life|overdose)\b/i,
-  /\b(?:lethal|fatal)\s*dose\b[^.?!]{0,30}\b(?:of|for)\b/i,
-
-  // Poisons/toxins framed as untraceable harm to a person.
-  /\b(?:poison|toxin|nerve\s*agent|ricin|sarin|anthrax)\b[^.?!]{0,40}\b(?:someone|a\s*person|undetect\w+|untraceab\w+|without\s*(?:being\s*)?(?:caught|detected))/i,
-
-  // Sexual content involving minors — no legitimate study framing.
-  /\b(?:child|minor|underage|teen|preteen|loli)\w*\b[^.?!]{0,25}\b(?:porn|sexual|erotic|nude|nudes|nsfw)\b/i,
-  /\b(?:porn|sexual|erotic|nude|nsfw)\w*\b[^.?!]{0,25}\b(?:child|minor|underage|preteen)\b/i,
-];
-
-function screenForUnsafeContent(text: string): boolean {
-  if (!text) return false;
-  // Collapse separators used to slip past word matching ("b-o-m-b making").
-  const normalized = text.replace(/[_*~`]+/g, "").replace(/\s{2,}/g, " ");
-  return UNSAFE_PATTERNS.some((re) => re.test(normalized));
-}
+/* Content safety — the topic screen and refusal messages live in
+   ../_shared/contentSafety.js so web-research screens with the same rules.
+   The Gemini-specific verdict helpers below stay here with the call site. */
 
 /* True when a Gemini response was withheld by its safety filters rather than
    failing for an operational reason. Those must NOT fall through to the other
@@ -166,45 +133,104 @@ function isSafetyError(err: any): boolean {
    with however many are set up.
    ========================================================================= */
 
-type OpenAIProvider = {
+type ProviderDialect = "openai" | "anthropic";
+
+/* What the key costs the operator. This is documentation that the ordering
+   below has to agree with, not a runtime switch: `free` is a standing free
+   tier, `credits` is a free allowance that runs out and then bills, `paid`
+   bills from the first token. The chain is ordered free → credits → paid so
+   that a deployment with every key set still spends nothing until the free
+   tiers are exhausted. */
+type ProviderCost = "free" | "credits" | "paid";
+
+type AIProvider = {
   id: string;
   keyEnv: string;
   modelEnv: string;
   defaultModel: string;
+  /* May contain `{account}`, filled from `accountEnv`. A provider whose URL
+     needs an account id it hasn't been given is skipped rather than called
+     with the placeholder still in the path — see `resolveProviderUrl`. */
   url: string;
+  accountEnv?: string;
+  /* Request/response shape. Everything here speaks OpenAI's
+     /chat/completions except Anthropic, which has its own. */
+  dialect?: ProviderDialect;
   extraHeaders?: Record<string, string>;
   /* Whether the provider honours response_format:json_object. Used only for
      quiz/plan generation, where a stray sentence around the JSON is the single
      most common cause of a failed generation. */
   jsonMode: boolean;
+  cost: ProviderCost;
 };
 
-const OPENAI_PROVIDERS: OpenAIProvider[] = [
+/* Ordered free-first. The previous order put three providers ahead of every
+   free one — and two of them could not have worked:
+
+   - Cloudflare was pointed at `/accounts/me/ai/run/`. Workers AI has no `me`
+     alias, that path is not the OpenAI-compatible one, and its model name was
+     missing the `@cf/` prefix every Workers AI model carries. Fixed below to
+     the documented `/accounts/{account}/ai/v1/chat/completions`.
+   - Anthropic was listed as an OpenAI-dialect provider, but `/v1/messages`
+     authenticates with `x-api-key`, requires `anthropic-version` and
+     `max_tokens`, and returns `content[0].text` rather than
+     `choices[0].message.content`. Sending it an OpenAI request got a 401
+     every time. It now goes through the Anthropic dialect, and sits with the
+     other paid keys at the end.
+
+   Both were dead weight at the front of the chain: every request walked two
+   guaranteed failures before reaching a provider that could answer.
+
+   Adding a provider is one entry here plus its key in Supabase secrets, or —
+   with no code change at all — one entry in AI_EXTRA_PROVIDERS (below). A
+   provider with no key configured is skipped silently, so the chain works
+   with however many are set up. */
+const BUILTIN_PROVIDERS: AIProvider[] = [
+  /* ---- Free tiers, strongest first --------------------------------- */
   {
+    // ~1M tokens/day, and the fastest inference in the chain.
     id: "cerebras",
     keyEnv: "CEREBRAS_API_KEY",
     modelEnv: "CEREBRAS_MODEL",
     defaultModel: "gpt-oss-120b",
     url: "https://api.cerebras.ai/v1/chat/completions",
     jsonMode: true,
+    cost: "free",
   },
   {
+    // Free tier, rate-limited per minute rather than per token.
     id: "groq",
     keyEnv: "GROQ_API_KEY",
     modelEnv: "GROQ_MODEL",
-    defaultModel: "llama-3.3-70b-versatile",
+    // `llama-3.3-70b-versatile` started returning "does not exist or you do
+    // not have access to it" on 2026-09-20. That 404 cannot tell a retired
+    // model from a key without access, so the replacement below is the one
+    // this project's own key is known to reach rather than a guess from a
+    // catalogue. GROQ_MODEL overrides it without a redeploy.
+    //
+    // Groq names it with its publisher prefix: plain `gpt-oss-120b` (the
+    // Cerebras spelling) 404s here as "does not exist", which is what the
+    // live logs showed on 2026-09-24. The prefixed ID is the one Groq's
+    // models page lists.
+    defaultModel: "openai/gpt-oss-120b",
     url: "https://api.groq.com/openai/v1/chat/completions",
     jsonMode: true,
+    cost: "free",
   },
   {
-    id: "mistral",
-    keyEnv: "MISTRAL_API_KEY",
-    modelEnv: "MISTRAL_MODEL",
-    defaultModel: "mistral-small-latest",
-    url: "https://api.mistral.ai/v1/chat/completions",
+    // Free daily allowance on Workers AI. Needs the account id as well as the
+    // token — Cloudflare scopes the endpoint per account.
+    id: "cloudflare",
+    keyEnv: "CLOUDFLARE_API_TOKEN",
+    modelEnv: "CLOUDFLARE_MODEL",
+    defaultModel: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    url: "https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1/chat/completions",
+    accountEnv: "CLOUDFLARE_ACCOUNT_ID",
     jsonMode: true,
+    cost: "free",
   },
   {
+    // Free with any GitHub account; needs a PAT with `models: read`.
     id: "github-models",
     keyEnv: "GITHUB_MODELS_TOKEN",
     modelEnv: "GITHUB_MODELS_MODEL",
@@ -212,22 +238,162 @@ const OPENAI_PROVIDERS: OpenAIProvider[] = [
     url: "https://models.github.ai/inference/chat/completions",
     extraHeaders: { "X-GitHub-Api-Version": "2026-03-10" },
     jsonMode: true,
+    cost: "free",
   },
   {
+    // Free "Experiment" tier. See AI_PROVIDERS.md on its training opt-in
+    // before setting this one.
+    id: "mistral",
+    keyEnv: "MISTRAL_API_KEY",
+    modelEnv: "MISTRAL_MODEL",
+    defaultModel: "mistral-small-latest",
+    url: "https://api.mistral.ai/v1/chat/completions",
+    jsonMode: true,
+    cost: "free",
+  },
+  {
+    // Free `:free` models. Weakest in the chain, so it is the last free stop.
     id: "openrouter",
     keyEnv: "OPENROUTER_API_KEY",
     modelEnv: "OPENROUTER_MODEL",
-    // Kept as the last resort: the free aggregator models are the weakest in
-    // the chain, so they only run when everything else is exhausted.
-    // `meta-llama/llama-3-8b-instruct:free` was retired from OpenRouter's
-    // catalog (404 "No endpoints found") — replaced with a model confirmed
-    // live against https://openrouter.ai/api/v1/models on 2026-08-01.
-    defaultModel: "openai/gpt-oss-20b:free",
+    // Two retirements so far: `meta-llama/llama-3-8b-instruct:free` (404 "No
+    // endpoints found"), then on 2026-09-20 the `:free` variant of the model
+    // below — "This model is unavailable for free. The paid version is
+    // available now - use this slug instead: openai/gpt-oss-20b". The slug
+    // here is the one that 404 named.
+    //
+    // Note what dropping `:free` means: this stop now bills. It sits last
+    // among the free tier and is only reached when every genuinely free
+    // channel above it has failed, which is the trade for the chain having
+    // an answer at all.
+    defaultModel: "openai/gpt-oss-20b",
     url: "https://openrouter.ai/api/v1/chat/completions",
     extraHeaders: { "HTTP-Referer": "https://learnora.app", "X-Title": "Learnora" },
     jsonMode: false,
+    cost: "free",
+  },
+
+  /* ---- Free credits that eventually run out ------------------------- */
+  {
+    // build.nvidia.com hands new accounts a pool of free credits; it bills
+    // once they are spent, which is why it sits below the standing free tiers.
+    id: "nvidia",
+    keyEnv: "NVIDIA_API_KEY",
+    modelEnv: "NVIDIA_MODEL",
+    defaultModel: "meta/llama-3.3-70b-instruct",
+    url: "https://integrate.api.nvidia.com/v1/chat/completions",
+    jsonMode: true,
+    cost: "credits",
+  },
+
+  /* ---- Paid, and last on purpose ------------------------------------ */
+  {
+    id: "openai",
+    keyEnv: "OPENAI_API_KEY",
+    modelEnv: "OPENAI_MODEL",
+    defaultModel: "gpt-4o-mini",
+    url: "https://api.openai.com/v1/chat/completions",
+    jsonMode: true,
+    cost: "paid",
+  },
+  {
+    id: "anthropic",
+    keyEnv: "CLAUDE_API_KEY",
+    modelEnv: "CLAUDE_MODEL",
+    defaultModel: "claude-3-5-haiku-20241022",
+    url: "https://api.anthropic.com/v1/messages",
+    dialect: "anthropic",
+    // /v1/messages has no response_format; JSON is asked for in the prompt.
+    jsonMode: false,
+    cost: "paid",
   },
 ];
+
+/* Free-tier catalogues churn faster than this function can be redeployed —
+   two model IDs in this file were already dead before anyone noticed, and the
+   whole `modelEnv` indirection exists for the same reason. AI_EXTRA_PROVIDERS
+   extends that one step further: a provider that did not exist when this was
+   written can be added as a secret rather than a release.
+
+   Shape: a JSON array, each entry `{ id, keyEnv, defaultModel, url }` plus
+   optional `modelEnv`, `jsonMode`, `headers`, `accountEnv`, `dialect`, `cost`.
+
+     AI_EXTRA_PROVIDERS='[{"id":"together","keyEnv":"TOGETHER_API_KEY",
+       "defaultModel":"...","url":"https://api.together.xyz/v1/chat/completions"}]'
+
+   Entries are appended, so they are tried after everything above — a new key
+   can never displace a known-good one. They go through the same caller as the
+   built-ins, which is what keeps the output safety screen applied to them;
+   a provider bolted on anywhere else would bypass it. */
+function parseExtraProviders(): AIProvider[] {
+  const raw = Deno.env.get("AI_EXTRA_PROVIDERS");
+  if (!raw || !raw.trim()) return [];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    console.error("[providers] AI_EXTRA_PROVIDERS is not valid JSON; ignoring it.", err);
+    return [];
+  }
+  if (!Array.isArray(parsed)) {
+    console.error("[providers] AI_EXTRA_PROVIDERS must be a JSON array; ignoring it.");
+    return [];
+  }
+
+  const out: AIProvider[] = [];
+  for (const entry of parsed as any[]) {
+    if (!entry || typeof entry !== "object") continue;
+    const { id, keyEnv, defaultModel, url } = entry;
+    if (!id || !keyEnv || !defaultModel || !url) {
+      console.error("[providers] Skipping AI_EXTRA_PROVIDERS entry missing id/keyEnv/defaultModel/url:", id ?? entry);
+      continue;
+    }
+    // Only https, so a misconfigured secret cannot send student material
+    // over plaintext or at a loopback address inside the function's network.
+    if (!/^https:\/\//i.test(String(url))) {
+      console.error(`[providers] Skipping AI_EXTRA_PROVIDERS entry "${id}": url must be https.`);
+      continue;
+    }
+    out.push({
+      id: String(id),
+      keyEnv: String(keyEnv),
+      modelEnv: String(entry.modelEnv || `${String(id).toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_MODEL`),
+      defaultModel: String(defaultModel),
+      url: String(url),
+      accountEnv: entry.accountEnv ? String(entry.accountEnv) : undefined,
+      dialect: entry.dialect === "anthropic" ? "anthropic" : "openai",
+      extraHeaders: entry.headers && typeof entry.headers === "object" ? entry.headers : undefined,
+      jsonMode: entry.jsonMode !== false,
+      cost: entry.cost === "paid" || entry.cost === "credits" ? entry.cost : "free",
+    });
+  }
+  return out;
+}
+
+/* Built-ins first, operator additions after. Recomputed per request so a
+   secret change takes effect without a redeploy. */
+function providerChain(): AIProvider[] {
+  /* Only providers students were told about (see _shared/providerPolicy.js),
+     narrowed further by AI_PROVIDER_ALLOWLIST, and minus any whose key was
+     refused recently. An AI_EXTRA_PROVIDERS entry is dropped here unless it
+     has first been added to the disclosed list. */
+  const permitted = permittedProviderIds(Deno.env.get("AI_PROVIDER_ALLOWLIST"));
+  return [...BUILTIN_PROVIDERS, ...parseExtraProviders()].filter(
+    (p) => permitted.has(p.id) && !deadKeys.isDead(p.id),
+  );
+}
+
+/* The configured URL with `{account}` substituted, or null when the provider
+   needs an account id that isn't set. Returning null means "skip" — calling
+   the URL with the placeholder intact is a guaranteed 404 that costs a
+   timeout and buries the real reason in the debug output. */
+function resolveProviderUrl(provider: AIProvider): string | null {
+  if (!provider.url.includes("{account}")) return provider.url;
+  const account = provider.accountEnv ? Deno.env.get(provider.accountEnv) : "";
+  if (!account) return null;
+  return provider.url.replace("{account}", encodeURIComponent(account));
+}
 
 /* Structured JSON takes noticeably longer than a chat turn — a ten-question
    quiz with per-question feedback is a lot of tokens — and the old flat 15s
@@ -240,113 +406,12 @@ const TIMEOUT_MS = { chat: 20_000, json: 35_000 };
    connection drop. */
 const TOTAL_BUDGET_MS = 55_000;
 
-/* =========================================================================
-   HOUSE STYLE
-
-   Every AI surface in the app funnels through this function, so this is the
-   only place a single answer-formatting policy can live. Before it existed,
-   style was set per-caller: `ReviewView.tsx` grew its own COACH_STYLE, and
-   every other surface — chat, the notes sidebar, Notebook Studio, the
-   debugger, Feynman, pre-mortem — inherited nothing but "brief" or
-   "detailed". That is why replies read as clinical third-person essays and
-   arrived wearing `###` headings and `---` rules the renderers had no rule
-   for.
-
-   Two hard constraints shape the wording:
-
-   1. **Only the markdown the app can actually render may be requested.**
-      `lib/markdownToReact.tsx` handles bold, italic, inline code, fences,
-      blockquotes, `-` bullets, `1.`/`1)` numbers and `#`–`####` headings —
-      and nothing else. Tables and `[links](url)` have no branch at all, so a
-      model that emits them puts raw pipes and brackets on a student's
-      screen. They are therefore forbidden here rather than left to chance.
-
-   2. **Length follows the student's own setting; voice never does.** A
-      student who asked for detailed answers must still get detailed ones, so
-      only the length rule reads `aiConciseness`. Plain English, second
-      person and the safe-markdown subset apply at every length — they are
-      what makes an answer readable, not what makes it short.
-   ========================================================================= */
-
-const LENGTH_RULE: Record<string, string> = {
-  short:
-    "Keep it to 2-4 short sentences unless the student explicitly asks for more.",
-  medium:
-    "Aim for 2-6 sentences. Expand only where a concept genuinely needs it.",
-  detailed:
-    "Cover the topic thoroughly, but keep every individual paragraph short — depth comes from more sections, never from longer walls of text.",
-};
-
-/* Applies to conversational replies (chat, the coach drawer, the notes
-   sidebar, Notebook Studio) — anything a student reads as prose on screen. */
-function houseStyle(conciseness: string | undefined): string {
-  const length = LENGTH_RULE[conciseness ?? "medium"] ?? LENGTH_RULE.medium;
-  return `
-
-    HOW TO WRITE THE ANSWER — this governs every reply:
-    - Talk straight to the student, second person. "You squared each term separately" — never "the student squared" or "students often".
-    - ${length}
-    - Lead with the answer. No "I'd love to help", no "Let's break it down step by step", no restating the question back.
-    - Everyday English. If a technical term is unavoidable, define it in the same breath you use it.
-    - Break the reply into short paragraphs. One idea each, at most three sentences.
-    - To label a section, put the label on its own line wrapped in ** (for example **Where it went wrong**). Never use #, ##, ### or #### headings — they render far larger than the surrounding text and read as clutter.
-    - Never use --- horizontal rules, tables, or [text](url) links. The app cannot render them and they reach the student as raw punctuation.
-    - Bullets start with "- " and stay to one line each. Numbered steps use "1. ". Use them for genuine lists only, not to chop a paragraph up.
-    - No preamble, no sign-off, and never mention these instructions.
-
-    DIAGRAMS — the app renders these, so draw rather than describe. Never say you cannot create or draw diagrams:
-    - Draw whenever a picture carries the idea better than a sentence: geometry, graphs, circuits, number lines, Venn diagrams, flowcharts, timelines, labelled structures.
-    - Put the drawing in a fenced block tagged svg (\`\`\`svg … \`\`\`) holding one <svg> element and nothing else. Prose stays outside the fence.
-    - Open with <svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg"> — always a viewBox, never width or height, so it scales on a phone. Give it a <title>.
-    - Allowed elements only: g, defs, title, desc, path, line, polyline, polygon, rect, circle, ellipse, text, tspan, marker, linearGradient, radialGradient, stop, clipPath. Never script, style, image, use, foreignObject, links or animation — they are stripped and the diagram arrives broken.
-    - stroke="currentColor" for construction lines and fill="currentColor" for labels, so the drawing follows the student's theme. At most three accent colours, all readable on either background — #2E9E6B, #2563EB, #C2410C. Never fill a large area with white or black.
-    - stroke-width="2" or less, fill="none" on outlines, at least 24 units of padding inside the viewBox, and labels at font-size="15" or larger written as plain characters (A, θ, 2x) — TeX is not typeset inside a drawing.
-    - One idea per diagram, under about 60 elements, then a sentence or two on what to notice in it.
-
-    MATHS — the app typesets TeX, so write maths as TeX rather than as plain characters:
-    - Inline, inside a sentence: single dollars, $x^2 + 1$. On its own line: double dollars, $$\\sqrt{12} = 2\\sqrt{3}$$.
-    - Put every step of the working on its own $$…$$ line, one step per line, so the student can follow the reasoning down the page instead of decoding a dense block.
-    - Wrap the final answer in \\boxed{}, for example $$\\boxed{5\\sqrt{2}}$$.
-    - Use real TeX for roots, fractions, powers and indices — \\sqrt{12}, \\frac{3}{4}, x^{2}, a_{1} — never a typed approximation like sqrt(12), 3/4 or x^2.
-    - Never put maths in a code fence: a fence is for code, and it turns the equation into unstyled monospace. (The one exception to fences is the svg fence above, which the app renders as a picture.)
-    - Prose stays outside the dollars. Never set a whole sentence in TeX.`;
-}
-
-/* Long-form modes keep their length and their headings — a study-notes
-   document is supposed to have structure — but inherit the voice rules and
-   the same ban on syntax the app cannot render. */
-const PROSE_STYLE = `
-
-    HOW TO WRITE IT:
-    - Talk straight to the student, second person, in everyday English. Define any technical term in the same breath you use it.
-    - Keep paragraphs short — one idea each. Depth comes from more sections, not longer paragraphs.
-    - Headings (##, ###), bold, bullets, numbered lists, blockquotes and code fences are all fine.
-    - Never use tables or [text](url) links: the app cannot render them and they reach the student as raw punctuation.
-    - Write maths as TeX: $x^2$ inline, $$\\sqrt{12} = 2\\sqrt{3}$$ on its own line, \\boxed{} around a final answer. The notes editor typesets it. Use real TeX for roots, fractions and indices — \\sqrt{12}, \\frac{3}{4}, x^{2} — never sqrt(12) or 3/4.`;
-
-/* JSON modes get no formatting rules at all — a prose-style instruction next
-   to a "return only raw JSON" instruction is how a model ends up emitting
-   markdown inside a string field, or prose around the object. This covers
-   only what the strings say, never how the payload is shaped. */
-const JSON_FIELD_STYLE = `
-Write every human-readable string in plain, everyday English aimed at a student aged 13 or over: second person, no jargon left unexplained, and no markdown syntax inside JSON string values.`;
-
-/* Modes whose body is parsed as JSON by the client. Keep this as the single
-   source of truth: `flashcards` used to be sent with no mode at all, so deck
-   generation silently ran on the 20s chat budget with no fence-stripping —
-   long decks were cut off mid-array and surfaced as "couldn't generate
-   flashcards". Anything added here must also emit a JSON-only instruction in
-   `modeInstructions` below, and be unwrappable by the matching client parser. */
-const JSON_MODES = new Set(["quiz", "plan", "flashcards"]);
+/* House style, persona, depth and mode instructions: _shared/systemPrompt.js. */
 
 /* `notes` is long-form Markdown, not JSON — it must not get response_format,
    but a full study-notes document is easily as slow as a quiz, so it shares
    the longer budget. */
 const SLOW_MODES = new Set([...JSON_MODES, "notes"]);
-
-function isJsonMode(mode: string | undefined): boolean {
-  return mode !== undefined && JSON_MODES.has(mode);
-}
 
 function timeoutFor(mode: string | undefined): number {
   return mode !== undefined && SLOW_MODES.has(mode) ? TIMEOUT_MS.json : TIMEOUT_MS.chat;
@@ -356,14 +421,87 @@ function timeoutFor(mode: string | undefined): number {
    a provider that returned HTTP 200 used to be passed straight back to the
    client as a successful-but-blank reply; treating it as a failure lets the
    next provider have a go. */
-function extractContent(data: any): string | null {
+/* Response readers, one per dialect. OpenAI-shaped providers put the text at
+   choices[0].message.content; Anthropic returns a content block array, which
+   is why routing it through the OpenAI reader returned "empty completion"
+   even on the requests that got far enough to be answered at all. */
+function extractContent(data: any, dialect: ProviderDialect): string | null {
+  if (dialect === "anthropic") {
+    const blocks = data?.content;
+    if (!Array.isArray(blocks)) return null;
+    const text = blocks
+      .filter((b: any) => b?.type === "text" && typeof b.text === "string")
+      .map((b: any) => b.text)
+      .join("");
+    return text.trim() === "" ? null : text;
+  }
+
   const content = data?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || content.trim() === "") return null;
   return content;
 }
 
-async function callOpenAICompatible(
-  provider: OpenAIProvider,
+/* Largest completion any mode here asks for. Anthropic's /v1/messages
+   requires max_tokens — omitting it is a 400 — and a ten-question quiz with
+   per-question feedback needs real headroom. */
+const ANTHROPIC_MAX_TOKENS = Number(Deno.env.get("ANTHROPIC_MAX_TOKENS")) || 4096;
+
+/* Builds the request for a provider's dialect. Split out from the caller so
+   the two shapes are visible side by side rather than interleaved with the
+   fetch/timeout plumbing. */
+function buildProviderRequest(
+  provider: AIProvider,
+  model: string,
+  key: string,
+  opts: { systemInstruction: string; history: any[]; userContent: string; wantsJson: boolean },
+): { headers: Record<string, string>; body: Record<string, unknown> } {
+  const priorTurns = (opts.history || []).slice(0, -1).map((m: any) => ({
+    role: m.role === "model" ? "assistant" : "user",
+    content: m.content,
+  }));
+
+  if (provider.dialect === "anthropic") {
+    return {
+      headers: {
+        "x-api-key": key,
+        "anthropic-version": Deno.env.get("ANTHROPIC_VERSION") || "2023-06-01",
+        "Content-Type": "application/json",
+        ...(provider.extraHeaders || {}),
+      },
+      body: {
+        model,
+        max_tokens: ANTHROPIC_MAX_TOKENS,
+        // The system prompt is a top-level field here, not a message.
+        system: opts.systemInstruction,
+        messages: [...priorTurns, { role: "user", content: opts.userContent }],
+      },
+    };
+  }
+
+  const body: Record<string, unknown> = {
+    model,
+    messages: [
+      { role: "system", content: opts.systemInstruction },
+      ...priorTurns,
+      { role: "user", content: opts.userContent },
+    ],
+  };
+  if (opts.wantsJson && provider.jsonMode) {
+    body.response_format = { type: "json_object" };
+  }
+
+  return {
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      ...(provider.extraHeaders || {}),
+    },
+    body,
+  };
+}
+
+async function callProvider(
+  provider: AIProvider,
   opts: {
     systemInstruction: string;
     history: any[];
@@ -375,22 +513,21 @@ async function callOpenAICompatible(
   const key = Deno.env.get(provider.keyEnv);
   if (!key) throw new Error(`${provider.keyEnv} is not set in Supabase secrets.`);
 
-  const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
-  const wantsJson = isJsonMode(opts.mode);
-
-  const messages = [
-    { role: "system", content: opts.systemInstruction },
-    ...(opts.history || []).slice(0, -1).map((m: any) => ({
-      role: m.role === "model" ? "assistant" : "user",
-      content: m.content,
-    })),
-    { role: "user", content: opts.userContent },
-  ];
-
-  const body: Record<string, unknown> = { model, messages };
-  if (wantsJson && provider.jsonMode) {
-    body.response_format = { type: "json_object" };
+  const url = resolveProviderUrl(provider);
+  if (!url) {
+    throw new Error(
+      `${provider.accountEnv} is not set in Supabase secrets, and ${provider.id} needs it to build its endpoint URL.`,
+    );
   }
+
+  const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
+  const dialect: ProviderDialect = provider.dialect || "openai";
+  const { headers, body } = buildProviderRequest(provider, model, key, {
+    systemInstruction: opts.systemInstruction,
+    history: opts.history,
+    userContent: opts.userContent,
+    wantsJson: isJsonMode(opts.mode),
+  });
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutFor(opts.mode));
@@ -398,14 +535,10 @@ async function callOpenAICompatible(
   opts.signal?.addEventListener("abort", onParentAbort);
 
   try {
-    const response = await fetch(provider.url, {
+    const response = await fetch(url, {
       method: "POST",
       signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        ...(provider.extraHeaders || {}),
-      },
+      headers,
       body: JSON.stringify(body),
     });
 
@@ -418,7 +551,7 @@ async function callOpenAICompatible(
     // Some gateways report failures in the body with a 200 status.
     if (data?.error) throw new Error(`${provider.id} error: ${JSON.stringify(data.error)}`);
 
-    const content = extractContent(data);
+    const content = extractContent(data, dialect);
     if (content === null) throw new Error(`${provider.id} returned an empty completion.`);
     return content;
   } finally {
@@ -427,21 +560,294 @@ async function callOpenAICompatible(
   }
 }
 
-function safetyRefusalResponse(mode: string | undefined, headers: Record<string, string>): Response {
+/* `trigger` is the text that tripped the screen (the student's message or
+   the model's answer). Self-harm gets crisis resources instead of the
+   general "ask me about your studies" refusal. */
+function safetyRefusalResponse(
+  mode: string | undefined,
+  headers: Record<string, string>,
+  trigger = "",
+): Response {
+  const message = isSelfHarmContent(trigger) ? SELF_HARM_REFUSAL : SAFETY_REFUSAL;
   // JSON-mode callers parse the body as JSON and would render a refusal
   // sentence as a broken quiz, so give them a shape they can reject cleanly
   // and surface the message through the `error` field instead.
   if (isJsonMode(mode)) {
     return new Response(
-      JSON.stringify({ error: SAFETY_REFUSAL, refused: true }),
+      JSON.stringify({ error: message, refused: true }),
       { status: 422, headers },
     );
   }
   return new Response(
-    JSON.stringify({ text: SAFETY_REFUSAL, refused: true, modelUsed: "safety-filter" }),
+    JSON.stringify({ text: message, refused: true, modelUsed: "safety-filter" }),
     { headers },
   );
 }
+
+/* A photo (a whiteboard, worksheet, textbook page) can only be read by
+   Gemini. The text-only chain used to be handed it anyway, with a note that a
+   file existed it could not see, and was still asked to write study notes
+   from it — which produced confident notes about nothing. An image request
+   Gemini did not answer now ends here, with a message that says why. */
+const VISION_UNAVAILABLE_MESSAGE =
+  "Reading photos needs Learnora's image model, and it isn't available right now. Try again in a few minutes, or paste or type the text instead.";
+
+function isImageAttachment(file: any): boolean {
+  return Boolean(file && file.data && /^image\//i.test(String(file.mimeType || "")));
+}
+
+/* 4xx rather than 503 so the client shows this sentence as written — a 5xx
+   body is flattened into the generic "temporarily unavailable" line. */
+function visionUnavailableResponse(headers: Record<string, string>): Response {
+  return new Response(
+    JSON.stringify({ error: VISION_UNAVAILABLE_MESSAGE, visionUnavailable: true }),
+    { status: 422, headers },
+  );
+}
+
+/* =========================================================================
+   IMAGE GENERATION — mode "image"
+
+   Its own short provider list, deliberately NOT part of the text chain
+   above: an image request must never fall through to a text model, and the
+   text chain must never spend an image budget. Reached only by the chat's
+   "Generate image" chip — an explicit student action. Nothing a model writes
+   can trigger it.
+
+   Order: Gemini's image model on the existing GEMINI_API_KEY, Cloudflare
+   Workers AI on the existing token, then OpenAI as the paid floor. Model IDs
+   come from the environment; the defaults were current on 2026-09-29
+   (`gemini-2.5-flash-image` is the GA name — its `-preview` alias is
+   deprecated; `flux-1-schnell` has been on Workers AI since 2024;
+   `gpt-image-1-mini` at quality "low" is the cheapest OpenAI image).
+
+   There is no output text to screen afterwards, so the student's
+   description is screened more strictly than a chat turn
+   (`screenImagePrompt`), and a provider's own safety verdict ends the chain
+   rather than handing the same prompt to a less filtered model.
+   ========================================================================= */
+
+type ImageProvider = {
+  id: "gemini" | "cloudflare" | "openai";
+  keyEnv: string;
+  modelEnv: string;
+  defaultModel: string;
+  accountEnv?: string;
+};
+
+const IMAGE_PROVIDERS: ImageProvider[] = [
+  {
+    id: "gemini",
+    keyEnv: "GEMINI_API_KEY",
+    modelEnv: "GEMINI_IMAGE_MODEL",
+    defaultModel: "gemini-2.5-flash-image",
+  },
+  {
+    id: "cloudflare",
+    keyEnv: "CLOUDFLARE_API_TOKEN",
+    modelEnv: "CLOUDFLARE_IMAGE_MODEL",
+    defaultModel: "@cf/black-forest-labs/flux-1-schnell",
+    accountEnv: "CLOUDFLARE_ACCOUNT_ID",
+  },
+  {
+    // Bills from the first image — last on purpose.
+    id: "openai",
+    keyEnv: "OPENAI_API_KEY",
+    modelEnv: "OPENAI_IMAGE_MODEL",
+    defaultModel: "gpt-image-1-mini",
+  },
+];
+
+const CHAT_MEDIA_BUCKET = "chat-media";
+const IMAGE_TIMEOUT_MS = 40_000;
+const MAX_IMAGE_PROMPT_CHARS = 500;
+/* Mirrors the bucket's file_size_limit (20260929010000_add_chat_media_bucket.sql). */
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+/* Wrapped around every description, so a student asking for "the heart"
+   gets a textbook figure rather than whatever an image model's default
+   style is — and so nothing text-heavy comes back, since image models still
+   misspell words they are asked to draw. */
+const IMAGE_STYLE_PREFIX =
+  "An educational illustration for a secondary-school student: a clean, clearly labelled diagram on a plain white background, in flat colours with simple shapes and a few short labels naming the parts. No paragraphs or blocks of text, no text-heavy layouts, no photorealistic people, and nothing violent, frightening or suggestive. Subject:";
+
+function buildImagePrompt(description: string): string {
+  return `${IMAGE_STYLE_PREFIX} ${description.slice(0, MAX_IMAGE_PROMPT_CHARS).trim()}`;
+}
+
+/* A provider said no on safety grounds — a verdict, not an outage. */
+class ImageSafetyBlock extends Error {}
+
+type GeneratedImage = { bytes: Uint8Array<ArrayBuffer>; mimeType: string };
+
+function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/* The bytes decide the type, not the provider's label for them: what gets
+   stored is only ever a real PNG, JPEG or WebP. */
+function sniffImageType(bytes: Uint8Array): string | null {
+  if (bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return "image/png";
+  }
+  if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (
+    bytes.length > 12 &&
+    String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+    String.fromCharCode(...bytes.slice(8, 12)) === "WEBP"
+  ) {
+    return "image/webp";
+  }
+  return null;
+}
+
+async function requestImage(
+  provider: ImageProvider,
+  prompt: string,
+  signal: AbortSignal,
+): Promise<{ image: GeneratedImage; model: string }> {
+  const key = Deno.env.get(provider.keyEnv)!;
+  const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), IMAGE_TIMEOUT_MS);
+  const onParentAbort = () => controller.abort();
+  signal.addEventListener("abort", onParentAbort);
+
+  try {
+    let b64: string | null = null;
+    let bytes: Uint8Array<ArrayBuffer> | null = null;
+
+    if (provider.id === "gemini") {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+          }),
+        },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(`gemini returned ${response.status}: ${JSON.stringify(data?.error ?? {})}`);
+      const finish = data?.candidates?.[0]?.finishReason;
+      if (isGeminiSafetyBlock(data) || finish === "IMAGE_SAFETY" || finish === "IMAGE_PROHIBITED_CONTENT") {
+        throw new ImageSafetyBlock(`gemini ${finish || "blocked"}`);
+      }
+      const parts = data?.candidates?.[0]?.content?.parts ?? [];
+      const inline = parts.map((p: any) => p?.inlineData ?? p?.inline_data).find((d: any) => d?.data);
+      b64 = inline?.data ?? null;
+    } else if (provider.id === "cloudflare") {
+      const account = Deno.env.get(provider.accountEnv!)!;
+      // The model id carries its own slashes (@cf/vendor/name) and is part
+      // of the path, so only the account is encoded.
+      const response = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(account)}/ai/run/${model}`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, steps: 4 }),
+        },
+      );
+      if ((response.headers.get("content-type") || "").startsWith("image/")) {
+        if (!response.ok) throw new Error(`cloudflare returned ${response.status}`);
+        bytes = new Uint8Array(await response.arrayBuffer());
+      } else {
+        const data = await response.json().catch(() => null);
+        const errors = JSON.stringify(data?.errors ?? data?.error ?? "");
+        if (/nsfw|safety|unsafe/i.test(errors)) throw new ImageSafetyBlock("cloudflare nsfw");
+        if (!response.ok || data?.success === false) {
+          throw new Error(`cloudflare returned ${response.status}: ${errors}`);
+        }
+        b64 = typeof data?.result?.image === "string" ? data.result.image : null;
+      }
+    } else {
+      const body: Record<string, unknown> = { model, prompt, n: 1, size: "1024x1024" };
+      // gpt-image-* always answers in base64 and takes a quality tier;
+      // dall-e-* has to be asked for base64 and has different tiers.
+      if (model.startsWith("dall-e")) body.response_format = "b64_json";
+      else body.quality = "low";
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        if (data?.error?.code === "moderation_blocked" || /safety system/i.test(String(data?.error?.message))) {
+          throw new ImageSafetyBlock("openai moderation_blocked");
+        }
+        throw new Error(`openai returned ${response.status}: ${JSON.stringify(data?.error ?? {})}`);
+      }
+      b64 = data?.data?.[0]?.b64_json ?? null;
+    }
+
+    if (!bytes && b64) bytes = base64ToBytes(b64);
+    if (!bytes || bytes.length === 0) throw new Error(`${provider.id} returned no image.`);
+    if (bytes.length > MAX_IMAGE_BYTES) throw new Error(`${provider.id} returned an image over 5 MB.`);
+    const mimeType = sniffImageType(bytes);
+    if (!mimeType) throw new Error(`${provider.id} returned something that is not a PNG, JPEG or WebP.`);
+    return { image: { bytes, mimeType }, model };
+  } finally {
+    clearTimeout(timeoutId);
+    signal.removeEventListener("abort", onParentAbort);
+  }
+}
+
+/* Walks IMAGE_PROVIDERS in order. A missing key is skipped silently, as in
+   the text chain; a safety verdict is rethrown and ends the walk. */
+async function generateImage(
+  prompt: string,
+  signal: AbortSignal,
+  debugErrors: Record<string, string>,
+): Promise<{ image: GeneratedImage; modelUsed: string }> {
+  /* Same disclosure policy as the text chain (_shared/providerPolicy.js):
+     only providers students were told about, narrowed by
+     AI_PROVIDER_ALLOWLIST, minus any whose key was recently refused. */
+  const permitted = permittedProviderIds(Deno.env.get("AI_PROVIDER_ALLOWLIST"));
+  for (const provider of IMAGE_PROVIDERS) {
+    const label = `image:${provider.id}`;
+    if (!permitted.has(provider.id) || deadKeys.isDead(provider.id)) {
+      debugErrors[label] = "Not permitted by AI_PROVIDER_ALLOWLIST, or its key was recently refused.";
+      continue;
+    }
+    if (!Deno.env.get(provider.keyEnv)) {
+      debugErrors[label] = `${provider.keyEnv} is not set in Supabase.`;
+      continue;
+    }
+    if (provider.accountEnv && !Deno.env.get(provider.accountEnv)) {
+      debugErrors[label] = `${provider.accountEnv} is not set in Supabase.`;
+      continue;
+    }
+    if (signal.aborted) {
+      debugErrors[label] = "Skipped — request budget exhausted.";
+      continue;
+    }
+    try {
+      const { image, model } = await requestImage(provider, prompt, signal);
+      return { image, modelUsed: `${provider.id}/${model}` };
+    } catch (err: any) {
+      if (err instanceof ImageSafetyBlock) throw err;
+      debugErrors[label] = err?.message || String(err);
+      if (isDeadKeyError(debugErrors[label])) deadKeys.markDead(provider.id);
+      console.error(`${label} Error:`, err);
+    }
+  }
+  throw new Error("No image provider answered.");
+}
+
+const EXTENSION_FOR: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
 
 /* =========================================================================
    RATE LIMITING
@@ -452,46 +858,271 @@ function safetyRefusalResponse(mode: string | undefined, headers: Record<string,
    deliberately abusive one) could exhaust that shared quota for every other
    student in minutes, and nothing before this caught it.
 
-   RATE_LIMIT_MAX requests per RATE_LIMIT_WINDOW_MS, per signed-in user.
-   Deliberately generous for a human: one request every 20s sustained is
-   plenty for chat plus the occasional quiz/notes generation, but a scripted
-   loop hits it in seconds. Both are overridable via secrets without a
-   redeploy, same pattern as the provider model overrides above.
+   Two checks, on two different axes:
+
+   1. **Burst**, per user across every tool — protects Learnora's shared
+      provider keys from a runaway client. One request every 20s sustained is
+      plenty for a human; a scripted retry loop hits the ceiling in seconds.
+   2. **Daily, per tool** — the actual product boundary. Each tool (chat,
+      notes, flashcards, quiz, plan, and the five differentiator tools) has
+      its own allowance per plan, so a flashcard-heavy afternoon cannot
+      silently spend the day's chat budget or vice versa. Kept in step with
+      QUOTAS in webapp/src/lib/entitlements.ts — the client shows the
+      numbers, this enforces them; a value in the browser is not a payment.
+
+   Both are overridable via secrets without a redeploy, same pattern as the
+   provider model overrides above (burst only — the per-tool table below has
+   too many cells to sanely expose as forty separate env vars; edit
+   AI_TOOL_QUOTAS directly and redeploy if it ever needs to change without a
+   client release).
    ========================================================================= */
 
 const RATE_LIMIT_MAX = Number(Deno.env.get("AI_RATE_LIMIT_MAX")) || 30;
+/* Paid accounts get a higher burst ceiling than free — this exists only to
+   protect Learnora's shared provider quota from a runaway client, and is
+   separate from the per-tool daily allowance below on purpose: raising one to
+   sell a plan should never quietly weaken the other. */
+const RATE_LIMIT_MAX_PLUS = Number(Deno.env.get("AI_RATE_LIMIT_MAX_PLUS")) || 60;
+const RATE_LIMIT_MAX_PRO = Number(Deno.env.get("AI_RATE_LIMIT_MAX_PRO")) || 90;
 const RATE_LIMIT_WINDOW_MS = (Number(Deno.env.get("AI_RATE_LIMIT_WINDOW_MINUTES")) || 10) * 60_000;
 
+type Plan = "free" | "plus" | "pro";
+
+/** The tool identifier the client sends (see `AiToolId` in
+ *  webapp/src/lib/entitlements.ts). A call with no `tool` — an older client
+ *  build, or a caller not yet migrated — is billed to "chat", the general
+ *  utility bucket, rather than rejected outright. */
+const DEFAULT_TOOL = "chat";
+
+/* One row per plan, one column per tool. Kept in step with QUOTAS in
+   webapp/src/lib/entitlements.ts by hand — there is no shared import between
+   a Deno edge function and the Vite webapp, so a change to one that is not
+   mirrored in the other silently drifts. Both sides describe the same rule:
+   only the number here is what actually stops a request. */
+const AI_TOOL_QUOTAS: Record<Plan, Record<string, number>> = {
+  free: {
+    chat: 15, notes: 3, flashcards: 3, quiz: 3, plan: 1,
+    debugger: 2, preMortem: 2, feynman: 2, examDeconstructor: 2,
+    sparring: 2, notebookStudio: 5, image: 2,
+  },
+  plus: {
+    chat: 60, notes: 10, flashcards: 10, quiz: 10, plan: 3,
+    debugger: 8, preMortem: 6, feynman: 8, examDeconstructor: 6,
+    sparring: 8, notebookStudio: 20, image: 10,
+  },
+  pro: {
+    chat: 200, notes: 30, flashcards: 30, quiz: 30, plan: 7,
+    debugger: 25, preMortem: 20, feynman: 25, examDeconstructor: 20,
+    sparring: 25, notebookStudio: 60, image: 30,
+  },
+};
+
+const DAILY_LIMIT_MESSAGE_FREE =
+  "You've used today's allowance for this tool on the free plan. It resets at midnight — or Learnora Plus/Pro raises the limit.";
+const DAILY_LIMIT_MESSAGE_PAID =
+  "You've hit today's allowance for this tool. It resets at midnight.";
 const RATE_LIMIT_MESSAGE =
   "You're sending requests faster than I can keep up with. Wait a few minutes and try again.";
 
-function rateLimitResponse(mode: string | undefined, headers: Record<string, string>): Response {
+function rateLimitResponse(
+  mode: string | undefined,
+  headers: Record<string, string>,
+  message: string = RATE_LIMIT_MESSAGE,
+): Response {
   if (isJsonMode(mode)) {
     return new Response(
-      JSON.stringify({ error: RATE_LIMIT_MESSAGE, refused: true }),
+      JSON.stringify({ error: message, refused: true }),
       { status: 429, headers },
     );
   }
   return new Response(
-    JSON.stringify({ text: RATE_LIMIT_MESSAGE, refused: true, modelUsed: "rate-limit" }),
+    JSON.stringify({ text: message, refused: true, modelUsed: "rate-limit" }),
     { status: 429, headers },
   );
 }
 
-/* Counts this user's own accepted requests in the trailing window and logs
- * the current one — via the same client the auth gate already built with
- * the caller's JWT, so RLS (owner-only select/insert on ai_request_log)
- * does the actual enforcement; this is just the query shape around it.
- * Fails open on a database error: a rate limiter that takes AI outages down
- * with it trades one small risk (a burst slips through while the table is
- * unreachable) for a much worse one (AI goes fully offline because a
- * side-table had a bad moment). */
+/* Counts this user's own accepted requests and logs the current one — via
+ * the same client the auth gate already built with the caller's JWT, so RLS
+ * (owner-only select/insert on ai_request_log) does the actual enforcement;
+ * this is just the query shape around it. Fails open on a database error: a
+ * rate limiter that takes AI outages down with it trades one small risk (a
+ * burst slips through while the table is unreachable) for a much worse one
+ * (AI goes fully offline because a side-table had a bad moment). */
+type RateLimitVerdict =
+  | { allowed: true; logId?: string }
+  | { allowed: false; message: string };
+
+/** Providers whose key or billing was refused (401/402/403), skipped for a
+ *  while in this instance rather than costing every request a round trip. */
+const deadKeys = createDeadKeyRegistry();
+
+/** Gemini sits outside the chain (it reads attachments), so it is checked
+ *  against the same policy separately. */
+function geminiPermitted(): boolean {
+  return (
+    permittedProviderIds(Deno.env.get("AI_PROVIDER_ALLOWLIST")).has("gemini") &&
+    !deadKeys.isDead("gemini")
+  );
+}
+
+/* Which provider and model answered, how long it took and which providers
+   failed first, written onto the request's own log row. ai_request_log held
+   only the tool and time, so a provider outage, a dead key or a slow model
+   was invisible except by reading raw function logs. Best-effort and not
+   awaited by the response: a failed write must never cost the student their
+   answer. Service role, because students have no UPDATE on the table. */
+function recordOutcome(
+  logId: string | undefined,
+  outcome: { provider: string; model: string; startedAt: number; failed: string[] },
+): void {
+  if (!logId) return;
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey) return;
+  const work = (async () => {
+    try {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const admin = createClient(url, serviceKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      await admin
+        .from("ai_request_log")
+        .update({
+          provider: outcome.provider,
+          model: outcome.model,
+          latency_ms: Date.now() - outcome.startedAt,
+          failed_providers: outcome.failed,
+        })
+        .eq("id", logId);
+    } catch (err) {
+      console.warn("[ai-log] outcome not recorded", err);
+    }
+  })();
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+}
+
+/* A request that reached no provider at all (every channel failed) has not
+   used the student's allowance, so its log row is taken back. A student on
+   the free plan has three quiz generations a day; an outage should not spend
+   them. Done with the service role because students have no DELETE on
+   ai_request_log — deliberately, or deleting rows would reset their quota. */
+async function refundRequest(logId: string | undefined): Promise<void> {
+  if (!logId) return;
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey) return;
+  try {
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const admin = createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    await admin.from("ai_request_log").delete().eq("id", logId);
+  } catch (err) {
+    console.error("[rate-limit] refund failed", err);
+  }
+}
+
+/* A JSON-mode reply that does not parse is useless to the client, which
+   would show "couldn't generate" after the allowance was already spent.
+   Treated as that provider failing, so the chain moves on. */
+function isParsableJson(text: string): boolean {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/* A JSON-mode reply that is a prose refusal is a verdict, not a malformed
+   answer: moving on to the next, less-filtered provider is how unsafe quizzes
+   were generated before. */
+function looksLikeRefusal(text: string): boolean {
+  return /\b(?:can(?:no|')t|unable to|won't|will not|not able to)\s+(?:help|assist|provide|create|generate|make|write)\b/i
+    .test(text.slice(0, 400));
+}
+
+/* The JSON inside a reply that wrapped it in prose ("Here is your quiz: {…}"),
+   the same salvage the client parsers already attempt. Returns the text
+   unchanged when it already parses, and null when nothing inside it does. */
+function salvageJson(text: string): string | null {
+  if (isParsableJson(text)) return text;
+  for (const [open, close] of [["{", "}"], ["[", "]"]]) {
+    const start = text.indexOf(open);
+    const end = text.lastIndexOf(close);
+    if (start !== -1 && end > start) {
+      const slice = text.slice(start, end + 1);
+      if (isParsableJson(slice)) return slice;
+    }
+  }
+  return null;
+}
+
+/* App-authored context arrives separately from the student's message; this
+   bounds it so a hand-built request can't send a novel. */
+
+/** This caller's plan right now.
+ *
+ * Read through the caller's own JWT'd client, so RLS guarantees they can only
+ * see their own row and there is no user id to get wrong. Fails to "free" on
+ * any error or an unrecognised plan string, which is the safe direction: the
+ * worst case is a paying user briefly held to the free ceiling, rather than
+ * the ceiling not existing. */
+async function getUserPlan(supabase: any, userId: string): Promise<Plan> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("plan, plan_status")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error || !data) return "free";
+    const entitled = ["active", "trialing", "past_due"].includes(data.plan_status);
+    if (!entitled) return "free";
+    return data.plan === "plus" || data.plan === "pro" ? data.plan : "free";
+  } catch {
+    return "free";
+  }
+}
+
+/* A Study session makes several AI calls — Explain plans and then writes a
+   check, Socratic asks four questions and scores each answer, Teach grades
+   every explanation. The daily allowance was counted per call, so the free
+   plan's 2 a day meant one Explain session, and Socratic ran out after the
+   first answer. Calls that carry the same session key now count once
+   against the allowance, up to SESSION_CALL_CAP calls; the allowance is
+   therefore "sessions a day" for these tools. */
+const SESSION_CALL_CAP = Number(Deno.env.get("AI_SESSION_CALL_CAP")) || 16;
+const SESSION_KEY_PATTERN = /^[A-Za-z0-9_-]{6,80}$/;
+const SESSION_CAP_MESSAGE =
+  "This study session has had all the AI help it can today. Start a new session to keep going — your work here is saved.";
+
 async function checkAndLogRateLimit(
   supabase: any,
   userId: string,
   mode: string | undefined,
-): Promise<boolean> {
+  tool: string | undefined,
+  rawSessionKey?: unknown,
+): Promise<RateLimitVerdict> {
+  const sessionKey =
+    typeof rawSessionKey === "string" && SESSION_KEY_PATTERN.test(rawSessionKey)
+      ? rawSessionKey
+      : null;
+  /* `tool` comes from the request body. The daily count is per tool name, so
+     an unrecognised name must not become a fresh allowance of its own — any
+     client could otherwise send "x1", "x2", … and never reach a daily limit.
+     Unknown or missing names are billed as chat. */
+  const billedTool =
+    tool && Object.hasOwn(AI_TOOL_QUOTAS.free, tool) ? tool : DEFAULT_TOOL;
   try {
+    const plan = await getUserPlan(supabase, userId);
+    const burstMax = plan === "pro"
+      ? RATE_LIMIT_MAX_PRO
+      : plan === "plus"
+      ? RATE_LIMIT_MAX_PLUS
+      : RATE_LIMIT_MAX;
+    const dailyMax = AI_TOOL_QUOTAS[plan][billedTool] ?? AI_TOOL_QUOTAS[plan][DEFAULT_TOOL];
+
     const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
     const { count, error: countError } = await supabase
       .from("ai_request_log")
@@ -501,25 +1132,56 @@ async function checkAndLogRateLimit(
 
     if (countError) {
       console.error("[rate-limit] count query failed, failing open", countError);
-      return true;
+      return { allowed: true };
     }
 
-    if ((count ?? 0) >= RATE_LIMIT_MAX) {
-      console.warn("[rate-limit] blocked", { userId, mode, count });
-      return false;
+    if ((count ?? 0) >= burstMax) {
+      console.warn("[rate-limit] burst blocked", { userId, mode, tool: billedTool, count, plan });
+      return { allowed: false, message: RATE_LIMIT_MESSAGE };
     }
 
-    const { error: insertError } = await supabase
+    /* The daily allowance, counted from midnight UTC, per tool. UTC rather
+       than the student's own timezone because this is a machine boundary,
+       not a calendar promise — the alternative is reading profiles.timezone
+       and explaining to a traveller why their allowance reset twice. */
+    const midnight = new Date();
+    midnight.setUTCHours(0, 0, 0, 0);
+    const { data: todayRows, error: dailyError } = await supabase
       .from("ai_request_log")
-      .insert({ user_id: userId, mode: mode ?? null });
+      .select("session_key")
+      .eq("user_id", userId)
+      .eq("tool", billedTool)
+      .gte("created_at", midnight.toISOString())
+      .limit(1000);
+    const rows: { session_key: string | null }[] = dailyError ? [] : (todayRows ?? []);
+    const verdict = billingDecision(rows, sessionKey, dailyMax, SESSION_CALL_CAP);
+
+    if (!dailyError && !verdict.allowed && verdict.reason === "session") {
+      console.warn("[rate-limit] session cap", { userId, tool: billedTool, plan });
+      return { allowed: false, message: SESSION_CAP_MESSAGE };
+    }
+
+    if (!dailyError && !verdict.allowed) {
+      console.warn("[rate-limit] daily blocked", { userId, mode, tool: billedTool, plan });
+      return {
+        allowed: false,
+        message: plan === "free" ? DAILY_LIMIT_MESSAGE_FREE : DAILY_LIMIT_MESSAGE_PAID,
+      };
+    }
+
+    const { data: logRow, error: insertError } = await supabase
+      .from("ai_request_log")
+      .insert({ user_id: userId, mode: mode ?? null, tool: billedTool, session_key: sessionKey })
+      .select("id")
+      .single();
     if (insertError) {
       console.error("[rate-limit] log insert failed (request still allowed)", insertError);
     }
 
-    return true;
+    return { allowed: true, logId: logRow?.id };
   } catch (err) {
     console.error("[rate-limit] unexpected failure, failing open", err);
-    return true;
+    return { allowed: true };
   }
 }
 
@@ -553,70 +1215,35 @@ Deno.serve(async (req) => {
             { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
         );
     }
+    // Consent to send study data to the AI providers. Only an explicit
+    // "false" refuses: accounts created before the flag existed carry no key
+    // and keep the access they have always had. Mirrors webapp/src/lib/
+    // aiConsent.ts, which asks the student before a request gets this far;
+    // this is the half a hand-built request cannot skip.
+    if (user.user_metadata?.consent_given === false) {
+        return new Response(
+            JSON.stringify({
+                error: "Learnora's AI needs your OK before it can use your study data. You can turn it on any time in Settings ▸ Privacy.",
+                consent_required: true,
+            }),
+            { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+    }
     // ── END AUTH GATE ──────────────────────────────────────
 
     const debugErrors: Record<string, string> = {};
+    const startedAt = Date.now();
+    let logId: string | undefined;
 
     try {
-        const { history, file, settings, mode } = await req.json();
+        const { history, file, settings, mode, tool, context, sessionKey } = await req.json();
         const s = settings || {};
 
-        const personaMap = {
-            coach: 'a strict, tough-love, demanding academic coach',
-            buddy: 'a casual, friendly, bro-like, relaxed study partner',
-            tutor: 'a patient, explanatory, supportive tutor',
-            // The client's fourth persona option (webapp/src/lib/settings.ts's
-            // AI_PERSONA_OPTIONS / AI_PERSONA_QUIZ_HOST). Without an entry
-            // here `personaMap[s.aiPersona] || personaMap.tutor` silently
-            // falls back to tutor for every student who picks it — degrades
-            // gracefully, but the point of adding the option was for it to
-            // actually change the voice.
-            professor: 'a formal, precise, academic professor who explains things in textbook style'
-        };
-
-        const modeInstructions = mode === "plan"
-            ? `\nYou are generating a weekly study schedule. Output ONLY raw JSON (no prose, no code fences) matching this shape: {"days":[{"date":"YYYY-MM-DD","blocks":[{"startHint":"morning|afternoon|evening","durationMins":45,"subject":"string","reason":"string","examId":null,"taskId":null}]}],"summary":"one-sentence summary of the week's priorities"}.`
-            : mode === "quiz"
-            // Wrapped in an object rather than a bare array so the request can
-            // use response_format:json_object, which only permits an object at
-            // the top level. The client accepts either shape.
-            ? `\nYou are generating a high-quality multiple-choice quiz. Ensure every question covers a completely unique concept, logical sub-step, or angle with NO back-to-back repetitive questions. Match the requested difficulty level precisely (Hard = multi-step deduction, error spotting, edge cases, subtle fallacies; Easy = direct recall; Medium = conceptual understanding). Output ONLY raw JSON (no prose, no code fences) matching this shape: {"questions":[{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label","feedback":"string"}]}. "correctIndex" is REQUIRED on every question and must be the 0-based index of the correct entry in that question's "choices" array. "feedback" is shown to EVERY student regardless of what they answered, so it must be a neutral explanation of the question: never congratulate ("Nice work!", "Correct!", "Exactly right!") and never state or imply which choice the student picked.`
-            : mode === "flashcards"
-            // Object-wrapped for the same response_format:json_object reason as
-            // quiz above. The client unwraps {"cards":[...]} or a bare array.
-            ? `\nYou are generating flashcards. Every card must test a distinct concept — no two cards may restate the same fact. Keep "front" a single question or prompt and "back" a complete but concise answer. Output ONLY raw JSON (no prose, no code fences) matching this shape: {"cards":[{"front":"string","back":"string"}]}.`
-            : mode === "notes"
-            // Deliberately NOT a JSON mode: this returns long-form Markdown.
-            ? `\nYou are generating study notes as long-form Markdown. Output the notes only — no JSON, no preamble, no closing commentary.`
-            : mode === "rewrite"
-            ? `\nYou are rewriting the provided study notes to match a specific complexity or tone. Output the rewritten notes as long-form Markdown only — no JSON, no preamble, no closing commentary.`
-            : "";
-
-        /* One of three, never a mix: prose formatting rules next to a
-           "raw JSON only" instruction is how a model ends up wrapping the
-           payload in markdown. `notes`/`rewrite` keep their headings and
-           length; everything conversational gets the full house style. */
-        const styleInstructions = isJsonMode(mode)
-            ? JSON_FIELD_STYLE
-            : mode === "notes" || mode === "rewrite"
-            ? PROSE_STYLE
-            : houseStyle(s.aiConciseness);
-
-        const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}.
-    Use ${s.aiLanguage || 'English'}.
-
-    VOICE — refer to yourself in the first person, always. Say "I can help you with that", never "Learnora can help you with that" or "Learnora AI thinks". Use the name "Learnora" only for the product itself (its tabs, features and screens), never as a stand-in for "I", and never describe yourself in the third person. Stay in this voice for the whole conversation, including the first message.
-
-    CONTENT POLICY — Learnora is a study tool used by students aged 13 and up. Refuse, in any mode including quiz and flashcard generation, to produce content that:
-    - explains how to make, acquire, modify or deploy weapons, explosives, or incendiary devices;
-    - explains how to synthesise, cultivate, obtain or conceal illegal drugs, or presents recreational drug use as harmless or aspirational;
-    - describes methods of suicide, self-harm, or harming another person, or how to poison someone;
-    - is sexual content, or any sexual content involving minors;
-    - promotes hatred or violence against a group, or helps someone evade law enforcement.
-    Academic study of these subjects is fine at the level a syllabus would cover — the pharmacology of addiction, the chemistry of combustion, the history of a conflict, public-health harm reduction. What you must never provide is operational instruction, a recipe, or anything that reads as encouragement.
-    When a request crosses that line, refuse briefly and warmly, say why in one sentence, and offer a legitimate study angle instead. Do not produce a partial answer, and do not hide the refusal inside a quiz question. If you are generating JSON and must refuse, return an empty array [] rather than unsafe questions.
-
-    If asked for flashcards, output ONLY raw JSON: [{"front":"...", "back":"..."}].${modeInstructions}${styleInstructions}`;
+        /* Instructions and workspace data written by the app, kept out of the
+           student's turn so a student's "ignore the rules above" has no more
+           standing than any other message. Placed before the content policy,
+           which therefore always has the last word. */
+        const systemInstruction = buildSystemInstruction({ settings: s, mode, context });
 
         const currentMsg = history && history.length > 0 ? history[history.length - 1].content : "";
 
@@ -627,16 +1254,80 @@ Deno.serve(async (req) => {
         // resource. Checked (and logged) ahead of the safety screen so a
         // flood of unsafe-topic probes counts against the sender's budget
         // too, rather than getting a free pass because they were refused.
-        const withinRateLimit = await checkAndLogRateLimit(supabase, user.id, mode);
-        if (!withinRateLimit) {
-            return rateLimitResponse(mode, jsonHeaders);
+        /* An image is billed as an image whatever `tool` claims — otherwise a
+           hand-built request could spend the far larger chat allowance on
+           image generation. Nor is an empty description worth an allowance. */
+        if (mode === "image" && !String(currentMsg || "").trim()) {
+            return new Response(
+                JSON.stringify({ error: "Describe the picture you want first." }),
+                { status: 400, headers: jsonHeaders },
+            );
         }
+        const rateLimit = await checkAndLogRateLimit(
+            supabase, user.id, mode, mode === "image" ? "image" : tool, sessionKey,
+        );
+        if (!rateLimit.allowed) {
+            return rateLimitResponse(mode, jsonHeaders, rateLimit.message);
+        }
+        logId = rateLimit.logId;
 
         // Screen before spending a token. `history` carries the workspace
-        // context prelude, so only the newest turn is checked here.
-        if (screenForUnsafeContent(currentMsg)) {
+        // context prelude, so the newest turn is screened on its own and
+        // earlier turns only to catch a follow-up on an unsafe topic.
+        if (screenConversation(history)) {
             console.warn("[safety] Request refused by pre-flight topic screen", { mode, userId: user.id });
-            return safetyRefusalResponse(mode, jsonHeaders);
+            return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
+        }
+
+        if (mode === "image") {
+            const description = String(currentMsg).slice(0, MAX_IMAGE_PROMPT_CHARS).trim();
+            if (screenImagePrompt(description)) {
+                console.warn("[safety] image description refused by screen", { userId: user.id });
+                return safetyRefusalResponse(mode, jsonHeaders, description);
+            }
+            let generated: { image: GeneratedImage; modelUsed: string };
+            try {
+                generated = await generateImage(
+                    buildImagePrompt(description),
+                    AbortSignal.timeout(TOTAL_BUDGET_MS),
+                    debugErrors,
+                );
+            } catch (err) {
+                if (err instanceof ImageSafetyBlock) {
+                    console.warn("[safety] image provider refused", { userId: user.id, reason: err.message });
+                    return safetyRefusalResponse(mode, jsonHeaders, description);
+                }
+                throw err; // refunded and reported by the outer catch
+            }
+
+            /* Stored with the student's own JWT, so the bucket's insert policy
+               — not this code — decides the path is theirs. Only the key
+               goes back to the client; it reads it through a signed URL. */
+            const { mimeType, bytes } = generated.image;
+            const imagePath = `${user.id}/${crypto.randomUUID()}.${EXTENSION_FOR[mimeType]}`;
+            const { error: uploadError } = await supabase.storage
+                .from(CHAT_MEDIA_BUCKET)
+                .upload(imagePath, new Blob([bytes], { type: mimeType }), {
+                    contentType: mimeType,
+                    upsert: false,
+                });
+            if (uploadError) throw new Error(`chat-media upload failed: ${uploadError.message}`);
+
+            const alt = `Diagram: ${description}`;
+            const [imageProvider, ...imageModel] = generated.modelUsed.split("/");
+            recordOutcome(logId, {
+                provider: imageProvider,
+                model: imageModel.join("/"),
+                startedAt,
+                failed: Object.keys(debugErrors).filter((id) => !/not set|Skipped|Not permitted/.test(debugErrors[id])),
+            });
+            return new Response(JSON.stringify({
+                text: alt,
+                alt,
+                imagePath,
+                mimeType,
+                modelUsed: generated.modelUsed,
+            }), { headers: jsonHeaders });
         }
 
         // Bounds the whole chain. Without it a run of slow providers keeps the
@@ -645,17 +1336,75 @@ Deno.serve(async (req) => {
         const deadline = AbortSignal.timeout(TOTAL_BUDGET_MS);
         const budgetExhausted = () => deadline.aborted;
 
+        /* A second opinion on a generated quiz (see _shared/quizQuality.js):
+           Gemini first, then one fallback provider. Best-effort — skipped when
+           the request is too close to its budget, and any failure returns null
+           so the quiz goes out unverified rather than not at all. */
+        const verifyQuiz = async (system: string, prompt: string): Promise<string | null> => {
+            if (TOTAL_BUDGET_MS - (Date.now() - startedAt) < 12_000) return null;
+            const checkKey = geminiPermitted() ? Deno.env.get('GEMINI_API_KEY') : undefined;
+            if (checkKey) {
+                try {
+                    const modelName = (Deno.env.get('GEMINI_MODELS') || "gemini-3.6-flash")
+                        .split(",")[0].trim();
+                    const checker = new GoogleGenerativeAI(checkKey)
+                        .getGenerativeModel({ model: modelName, systemInstruction: system });
+                    const result: any = await Promise.race([
+                        checker.generateContent(prompt),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error("quiz check timed out")), 20_000)
+                        ),
+                    ]);
+                    const checked = salvageJson(cleanJsonResponse(result.response.text()));
+                    if (checked) return checked;
+                } catch (err) {
+                    console.warn("[quiz-check] Gemini check failed", err);
+                }
+            }
+            for (const provider of providerChain()) {
+                if (!Deno.env.get(provider.keyEnv) || !resolveProviderUrl(provider)) continue;
+                if (budgetExhausted()) return null;
+                try {
+                    const checked = salvageJson(cleanJsonResponse(await callProvider(provider, {
+                        systemInstruction: system,
+                        history: [{ role: "user", content: prompt }],
+                        userContent: prompt,
+                        mode: "quiz",
+                        signal: deadline,
+                    })));
+                    if (checked) return checked;
+                } catch (err) {
+                    console.warn(`[quiz-check] ${provider.id} check failed`, err);
+                }
+                // One fallback attempt is enough for a best-effort check.
+                return null;
+            }
+            return null;
+        };
+
+        /* Only the quiz generator itself: other tools send mode "quiz" purely
+           for its JSON handling and have their own shapes. */
+        const finishText = async (text: string): Promise<string> =>
+            mode === "quiz" && tool === "quiz" ? await improveQuiz(text, verifyQuiz) : text;
+
         // =========================================================================
         // CHANNEL 1: GEMINI — first because it is the only provider in the chain
         // that reads an image/PDF attachment inline.
         // =========================================================================
-        const geminiKey = Deno.env.get('GEMINI_API_KEY');
+        const geminiKey = geminiPermitted() ? Deno.env.get('GEMINI_API_KEY') : undefined;
         if (geminiKey) {
-            // gemini-1.5-flash is retired (404 "not found for API version
-            // v1beta") — dropped from the default rather than guessed at a
-            // replacement; GEMINI_MODELS overrides this list without a
-            // redeploy if a second model is wanted.
-            const geminiModels = (Deno.env.get('GEMINI_MODELS') || "gemini-2.0-flash")
+            // Retired models are dropped rather than guessed at: 1.5-flash
+            // went first ("not found for API version v1beta"), and on
+            // 2026-09-20 gemini-2.0-flash followed, with the API's own 404
+            // naming gemini-3.6-flash as the replacement — which is where
+            // this value comes from rather than from a release note.
+            //
+            // That outage was total, not partial. Every other channel was
+            // down at the same moment (spent credits, retired models, a
+            // provider brownout), so the chain had nothing left to fall back
+            // to and every student request failed for two weeks.
+            // GEMINI_MODELS overrides this without a redeploy.
+            const geminiModels = (Deno.env.get('GEMINI_MODELS') || "gemini-3.6-flash")
                 .split(",").map((m) => m.trim()).filter(Boolean);
             const genAI = new GoogleGenerativeAI(geminiKey);
 
@@ -696,7 +1445,7 @@ Deno.serve(async (req) => {
                     // replayed against the other providers until one answered.
                     if (isGeminiSafetyBlock(result.response)) {
                         console.warn(`[safety] ${modelName} blocked the request`, { mode, userId: user.id });
-                        return safetyRefusalResponse(mode, jsonHeaders);
+                        return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
                     }
 
                     let text = result.response.text();
@@ -704,7 +1453,34 @@ Deno.serve(async (req) => {
                         text = cleanJsonResponse(text);
                     }
                     if (!text || !text.trim()) throw new Error(`Gemini (${modelName}) returned empty text`);
+                    if (isJsonMode(mode)) {
+                        const salvaged = salvageJson(text);
+                        if (salvaged === null) {
+                            if (looksLikeRefusal(text)) {
+                                return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
+                            }
+                            throw new Error(`Gemini (${modelName}) returned JSON that does not parse`);
+                        }
+                        text = salvaged;
+                    }
 
+                    // Gemini's own filters let the formula of methamphetamine
+                    // through, so its output gets the same screen as the
+                    // fallbacks. A hit is a verdict: return the refusal rather
+                    // than trying the next model or provider.
+                    if (screenForUnsafeContent(text)) {
+                        console.warn(`[safety] ${modelName} output refused by screen`, { mode, userId: user.id });
+                        return safetyRefusalResponse(mode, jsonHeaders, `${currentMsg}\n${text}`);
+                    }
+
+                    text = await finishText(text);
+
+                    recordOutcome(logId, {
+                        provider: "gemini",
+                        model: modelName,
+                        startedAt,
+                        failed: Object.keys(debugErrors),
+                    });
                     return new Response(JSON.stringify({
                         text: text,
                         modelUsed: modelName
@@ -716,14 +1492,24 @@ Deno.serve(async (req) => {
                     // so it must not fall through to another provider either.
                     if (isSafetyError(err)) {
                         console.warn(`[safety] ${modelName} refused the request`, { mode, userId: user.id });
-                        return safetyRefusalResponse(mode, jsonHeaders);
+                        return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
                     }
                     debugErrors[`gemini (${modelName})`] = err.message || String(err);
+                    // The SDK words a refused key as "[403 Forbidden] …".
+                    if (/\[(401|402|403)\b/.test(String(err?.message ?? ""))) deadKeys.markDead("gemini");
                     console.error(`Gemini (${modelName}) Error:`, err);
                 }
             }
         } else {
             debugErrors["gemini"] = "GEMINI_API_KEY secret is not set in Supabase.";
+        }
+
+        // Nothing below this line can see an image — see isImageAttachment.
+        // The allowance is handed back: no provider read the photo.
+        if (isImageAttachment(file)) {
+            console.warn("[vision] no image-capable provider answered", { mode, debugErrors });
+            await refundRequest(logId);
+            return visionUnavailableResponse(jsonHeaders);
         }
 
         // Text-only providers can't take the attachment inline. Only actual
@@ -756,9 +1542,14 @@ Deno.serve(async (req) => {
         // Each is tried until one returns usable text; unconfigured ones are
         // skipped without being treated as failures.
         // =========================================================================
-        for (const provider of OPENAI_PROVIDERS) {
+        for (const provider of providerChain()) {
             if (!Deno.env.get(provider.keyEnv)) {
                 debugErrors[provider.id] = `${provider.keyEnv} is not set in Supabase.`;
+                continue;
+            }
+            if (!resolveProviderUrl(provider)) {
+                debugErrors[provider.id] =
+                    `${provider.accountEnv} is not set in Supabase, and ${provider.id} needs it to build its endpoint URL.`;
                 continue;
             }
             if (budgetExhausted()) {
@@ -767,7 +1558,7 @@ Deno.serve(async (req) => {
             }
 
             try {
-                let text = await callOpenAICompatible(provider, {
+                let text = await callProvider(provider, {
                     systemInstruction,
                     history,
                     userContent: fallbackMsg,
@@ -776,16 +1567,31 @@ Deno.serve(async (req) => {
                 });
 
                 if (isJsonMode(mode)) {
-                    text = cleanJsonResponse(text);
+                    const salvaged = salvageJson(cleanJsonResponse(text));
+                    if (salvaged === null) {
+                        if (looksLikeRefusal(text)) {
+                            return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
+                        }
+                        throw new Error(`${provider.id} returned JSON that does not parse`);
+                    }
+                    text = salvaged;
                 }
 
                 // None of these providers has a safety layer comparable to
                 // Gemini's, so their output is screened before it is returned.
                 if (screenForUnsafeContent(text)) {
                     console.warn(`[safety] ${provider.id} output refused by screen`, { mode, userId: user.id });
-                    return safetyRefusalResponse(mode, jsonHeaders);
+                    return safetyRefusalResponse(mode, jsonHeaders, `${currentMsg}\n${text}`);
                 }
 
+                text = await finishText(text);
+
+                recordOutcome(logId, {
+                    provider: provider.id,
+                    model: Deno.env.get(provider.modelEnv) || provider.defaultModel,
+                    startedAt,
+                    failed: Object.keys(debugErrors).filter((id) => !/not set|Skipped/.test(debugErrors[id])),
+                });
                 return new Response(JSON.stringify({
                     text,
                     modelUsed: `${provider.id}/${Deno.env.get(provider.modelEnv) || provider.defaultModel}`
@@ -794,6 +1600,7 @@ Deno.serve(async (req) => {
                 });
             } catch (err: any) {
                 debugErrors[provider.id] = err.message || String(err);
+                if (isDeadKeyError(debugErrors[provider.id])) deadKeys.markDead(provider.id);
                 console.error(`${provider.id} Error:`, err);
             }
         }
@@ -805,6 +1612,8 @@ Deno.serve(async (req) => {
             debugErrors,
             error: err.message || String(err),
         });
+        // No provider answered, so the allowance this request took is returned.
+        await refundRequest(logId);
 
         return new Response(JSON.stringify({
             error: "AI is temporarily unavailable. Please try again in a moment."

@@ -76,6 +76,10 @@
   width: 100%;
 }
 
+.quickDueOutside {
+  padding: var(--s-3) var(--s-2) 0;
+}
+
 .pillLabel {
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -290,6 +294,9 @@
 .text {
   flex: 1;
   min-width: 0;
+  /* A single unbroken word (a chemical name, a pasted token) otherwise sets
+     the list's min-content width and pushes every row's actions off-screen. */
+  overflow-wrap: anywhere;
 }
 
 .itemControls {
@@ -634,6 +641,14 @@
   color: var(--text-muted);
 }
 
+/* Late, not alarming: warning colour plus the word "Overdue", so the state
+   does not rely on colour alone. */
+.dashOverdue {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--warning-text);
+}
+
 .dashActions {
   display: flex;
   align-items: center;
@@ -643,6 +658,9 @@
 }
 
 .dashFocusBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-family: inherit;
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -693,6 +711,14 @@
   white-space: nowrap;
 }
 
+@media (max-width: 640px) {
+  .dashTask { flex-wrap: wrap; }
+  .dashContent { flex-basis: calc(100% - 40px); }
+  .dashLabel { white-space: normal; }
+  .dashActions { margin-left: 30px; flex-wrap: wrap; }
+  .dashActions button { min-height: 44px; padding-inline: var(--s-3); }
+}
+
 .dashAddRow {
   display: flex;
   gap: var(--s-2);
@@ -702,4 +728,48 @@
 .dashAddRow input {
   flex: 1;
   min-width: 0;
+}
+
+/* Touch sizing — see the note in Sidebar.module.css for why this is keyed on
+ * `pointer: coarse` and not a width breakpoint.
+ *
+ * Every one of these is a real action, not a label: `.due` opens the date
+ * picker, `.quickBtn`/`.dashSnoozeBtn` snooze the task, and the focus buttons
+ * start a session on it. They measured 22-24px on every phone viewport — half
+ * the 44px the app's own --touch-target-min asks for, on the screen students
+ * use most. `display` is set alongside the height because a bare `min-height`
+ * on an inline-block button grows the box without moving the label off the
+ * top of it. */
+@media (pointer: coarse) {
+  .due,
+  .quickBtn,
+  .quickFocusBtn,
+  .dashSnoozeBtn,
+  .dashFocusBtn {
+    min-height: var(--touch-target-min);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* The tick is the task's checkbox: a 44px touch area around the small
+   visual circle, pulled in by negative margin so row spacing is unchanged. */
+.checkBtn {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  margin: -11px -6px -11px -11px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.checkBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -4px;
 }

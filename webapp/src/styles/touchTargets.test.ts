@@ -58,6 +58,53 @@ describe("touch targets", () => {
     expect(body).toMatch(/min-height:\s*var\(--touch-target-min\)/);
   });
 
+  /* A phone sweep across twenty signed-in routes found nine more controls
+     under the floor, none of them caught by the two cases above: the
+     dashboard's own tab strip at 33px, the onboarding card's dismiss at 42,
+     the timer's soundscape toggles at 34, the notebook subject filters at 28,
+     the leaderboard's range tabs at 29, the debugger's presets at 26, and the
+     suggested-topic chips in Feynman and Viva at 24 — the smallest live
+     buttons in the app.
+
+     They are hand-rolled pills rather than the shared Chip, which does set the
+     floor, so each carries its own `pointer: coarse` rule. Asserting on the
+     CSS text keeps them from being lost the next time one of these modules is
+     tidied; the phone-viewport sweep in tests/e2e/mobile.spec.ts is what
+     measures the rendered result. */
+  const coarseFloors: [string, string][] = [
+    ["views/dashboard/dashboard.module.css", ".tabBtn"],
+    ["views/timer/timer.module.css", ".soundButton"],
+    ["views/friends/friends.module.css", ".periodTab"],
+    ["views/notebooks/notebooks.module.css", ".filterPill"],
+    ["views/debugger/CognitiveDebuggerView.module.css", ".presetPill"],
+    ["views/feynman/FeynmanHubView.module.css", ".topicChip"],
+    ["views/sparring/sparring.module.css", ".chipBtn"],
+    ["views/sparring/sparring.module.css", ".audioToggleBtn"],
+  ];
+
+  it.each(coarseFloors)(
+    "%s gives %s the 44px floor on a touch screen",
+    (file, selector) => {
+      const css = read(file);
+      const coarse = /@media \(pointer:\s*coarse\)\s*\{([\s\S]*)\}/.exec(css);
+      expect(coarse, `${file} has no (pointer: coarse) block`).not.toBeNull();
+      expect(ruleBody(coarse![1], selector)).toMatch(
+        /min-height:\s*var\(--touch-target-min\)/,
+      );
+    },
+  );
+
+  it("the onboarding card's dismiss button is sized from the token", () => {
+    /* It was 42px square — near enough to look deliberate, and still under the
+       floor, on the one control whose whole job is to be tapped once. */
+    const body = ruleBody(
+      read("views/dashboard/dashboard.module.css"),
+      ".dismissBtn",
+    );
+    expect(body).toMatch(/width:\s*var\(--touch-target-min\)/);
+    expect(body).toMatch(/height:\s*var\(--touch-target-min\)/);
+  });
+
   it("a disabled toggle looks disabled", () => {
     /* The component accepts `disabled` and had no style for it, so a locked
        switch was pixel-identical to a live one — users clicked repeatedly
@@ -67,5 +114,39 @@ describe("touch targets", () => {
     expect(body).not.toBe("");
     expect(body).toMatch(/opacity/);
     expect(body).toMatch(/cursor:\s*not-allowed/);
+  });
+
+  it("study-kit controls use the shared 44px target floor", () => {
+    const css = read("components/create/MaterialPanel.module.css");
+    for (const selector of [
+      ".sourceTab",
+      ".input",
+      ".select",
+      ".advancedSummary",
+      ".segmentedOption",
+    ]) {
+      expect(ruleBody(css, selector), `${selector} is undersized`).toMatch(
+        /min-height:\s*var\(--touch-target-min\)/,
+      );
+    }
+  });
+
+  it("calendar navigation and note AI actions use the 44px target floor", () => {
+    const examButton = ruleBody(
+      read("views/exams/exams.module.css"),
+      ".iconBtn",
+    );
+    expect(examButton).toMatch(/width:\s*var\(--touch-target-min\)/);
+    expect(examButton).toMatch(/height:\s*var\(--touch-target-min\)/);
+
+    const notes = read("views/notes/notes.module.css");
+    expect(ruleBody(notes, ".inlineToolbarBtn")).toMatch(
+      /min-height:\s*var\(--touch-target-min\)/,
+    );
+    for (const selector of [".inlineMiniChatSend", ".inlineMiniChatClose"]) {
+      const action = ruleBody(notes, selector);
+      expect(action).toMatch(/width:\s*var\(--touch-target-min\)/);
+      expect(action).toMatch(/height:\s*var\(--touch-target-min\)/);
+    }
   });
 });

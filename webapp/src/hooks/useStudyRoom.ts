@@ -7,20 +7,31 @@ import { ToastContext } from "../context/toast";
 import { useFolders } from "./useFolders";
 import {
   deriveTimerStatus,
+  MAX_GROUP_TIMER_MINUTES,
   MAX_MESSAGE_LENGTH,
   MAX_ROOM_MESSAGES,
+  MAX_ROOM_PARTICIPANTS,
   MAX_SYNC_MINUTES,
+  MIN_GROUP_TIMER_MINUTES,
   MIN_SYNC_MINUTES,
+  sanitizeGroupTimer,
   sanitizeParticipant,
   sanitizeRoomMessage,
   sanitizeRoomReaction,
   sanitizeTimerSync,
   type CheerNotification,
+  type GroupTimerMode,
+  type GroupTimerSyncPayload,
   type RoomMessage,
   type RoomReaction,
   type StudyParticipant,
   type TimerSyncPayload,
 } from "../api/studyRoom";
+
+/** Fixed short-break length for the "Start Break" toggle. The host's chosen
+ *  focus length is remembered separately (groupFocusMinutesRef) so returning
+ *  from a break restores it rather than reusing the break's duration. */
+const GROUP_TIMER_BREAK_MINUTES = 5;
 
 export interface UseStudyRoomOptions {
   /** Optional callback fired when another participant broadcasts a timer sync. */
@@ -72,6 +83,24 @@ export interface UseStudyRoomReturn {
   copyInviteLink: () => Promise<boolean>;
   /** Whether invite link was recently copied. */
   isCopied: boolean;
+  /** The room's active group Pomodoro, whether you're hosting it or a peer
+   *  is. Null when nobody has one running. */
+  groupTimerState: GroupTimerSyncPayload | null;
+  /** Whether you are the one hosting the active group timer. */
+  isGroupTimerHost: boolean;
+  /** Starts a new group Pomodoro focus block, becoming its host. */
+  startGroupFocus: (minutes: number) => void;
+  /** Host only: toggles the group timer between running and paused. */
+  pauseGroupTimer: () => void;
+  /** Host only: advances the cycle — focus to break, or break back to the
+   *  original focus length. */
+  nextGroupPhase: () => void;
+  /** Starts your own personal timer matching the group's remaining time. */
+  syncMyTimerToGroup: (minutes: number) => void;
+  /** True when the room was already at capacity when you arrived. Your
+   *  presence is withdrawn while this holds, so you are not occupying a seat
+   *  you were not given. */
+  isRoomFull: boolean;
 }
 
 /**
@@ -96,7 +125,7 @@ export function useStudyRoom(
   const timer = useTimer();
   const toastCtx = useContext(ToastContext);
 
-  const foldersQuery = useFolders();
+  const foldersQuery = useFolders({ enabled: Boolean(session) });
   const foldersData = foldersQuery.data;
 
   const [remoteParticipants, setRemoteParticipants] = useState<StudyParticipant[]>([]);
@@ -105,6 +134,15 @@ export function useStudyRoom(
   const [cheerFeed, setCheerFeed] = useState<CheerNotification[]>([]);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  /** True when the room already held its capacity before you arrived. */
+  const [isRoomFull, setIsRoomFull] = useState<boolean>(false);
+  /** Set only when this client is hosting a group timer. */
+  const [hostGroupTimer, setHostGroupTimer] =
+    useState<GroupTimerSyncPayload | null>(null);
+  /** A peer's active group timer, learned from presence sync or their
+   *  broadcast updates. Cleared once no peer advertises one any more. */
+  const [remoteGroupTimer, setRemoteGroupTimer] =
+    useState<GroupTimerSyncPayload | null>(null);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const joinedAtRef = useRef<number>(Date.now());
@@ -117,6 +155,17 @@ export function useStudyRoom(
 
   const timerRef = useRef(timer);
   timerRef.current = timer;
+
+  /* Read inside the main effect's unmount cleanup, which closes over state
+     from the render that set the channel up — a plain state read there
+     would be stale. */
+  const hostGroupTimerRef = useRef<GroupTimerSyncPayload | null>(null);
+  hostGroupTimerRef.current = hostGroupTimer;
+
+  /** The focus-block length the host chose at start, remembered separately
+   *  from durationMinutes so returning from a break restores it rather than
+   *  reusing the break's 5-minute length. */
+  const groupFocusMinutesRef = useRef<number>(25);
 
   // Derive current user display information
   const userId = session?.user?.id || user?.id || "anonymous";
@@ -209,6 +258,12 @@ export function useStudyRoom(
 
   // Set up Supabase Realtime Channel (Presence + Broadcast)
   useEffect(() => {
+    if (!session) {
+      channelRef.current = null;
+      setIsConnected(false);
+      setRemoteParticipants([]);
+      return;
+    }
     let isMounted = true;
     const joinedAt = Date.now();
     joinedAtRef.current = joinedAt;
@@ -302,11 +357,49 @@ export function useStudyRoom(
           }
         });
 
-        const others = Array.from(participantMap.values())
-          .filter((p) => !p.isSelf && p.userId !== userId)
-          .sort((a, b) => (Number(a.joinedAt) || 0) - (Number(b.joinedAt) || 0));
+        /* Capacity is decided by arrival order, which every client can work
+           out identically from the presence payloads it already has: sort
+           everyone by joinedAt, and whoever falls past the cap is the one who
+           was too late. No server round trip, and no disagreement between
+           clients about who is in — the earliest MAX_ROOM_PARTICIPANTS are,
+           and they stay in even as later arrivals come and go.
+
+           This is cooperative, not enforced. Presence is client-published, so
+           a modified client could ignore the cap the same way it could claim
+           someone else's name (see the note in api/studyRoom.ts). It bounds
+           the honest case — an invite link that got shared more widely than
+           intended — which is the one that actually happens. */
+        const everyone = Array.from(participantMap.values()).sort(
+          (a, b) => (Number(a.joinedAt) || 0) - (Number(b.joinedAt) || 0),
+        );
+        const admitted = everyone.slice(0, MAX_ROOM_PARTICIPANTS);
+        const selfAdmitted =
+          everyone.length <= MAX_ROOM_PARTICIPANTS ||
+          admitted.some((p) => p.isSelf || p.userId === userId);
+
+        setIsRoomFull(!selfAdmitted);
+
+        const others = admitted.filter(
+          (p) => !p.isSelf && p.userId !== userId,
+        );
 
         setRemoteParticipants(others);
+
+        /* Stop advertising yourself once you have been placed outside the
+           cap: staying tracked would keep you in everyone else's presence
+           payloads and let the room keep growing past the limit it just
+           reported. The channel is left subscribed so that a seat freeing up
+           re-admits you on the next sync. */
+        if (!selfAdmitted) {
+          void channel.untrack();
+        }
+
+        /* A late joiner has no broadcast history to learn a group timer
+           from, but presence sync hands them the full current state
+           immediately — the host's own groupTimer field rides along on
+           their presence entry for exactly this. */
+        const hostedByPeer = others.find((p) => p.groupTimer)?.groupTimer;
+        setRemoteGroupTimer(hostedByPeer ?? null);
       })
       .on("presence", { event: "join" }, () => {
         // Presence state sync handles list updates
@@ -357,6 +450,26 @@ export function useStudyRoom(
              unbounded list would grow until the tab died. */
           return [...prev, msg].slice(-MAX_ROOM_MESSAGES);
         });
+      })
+      .on("broadcast", { event: "group_timer_update" }, ({ payload }) => {
+        if (!isMounted) return;
+        const gt = sanitizeGroupTimer(payload);
+        /* Our own broadcasts loop back too (config: { broadcast: { self:
+           true } }) — ignore anything from our own host id, since
+           hostGroupTimer already holds the authoritative local copy. */
+        if (gt && gt.hostUserId !== userId) {
+          setRemoteGroupTimer(gt);
+        }
+      })
+      .on("broadcast", { event: "group_timer_end" }, ({ payload }) => {
+        if (!isMounted) return;
+        const hostUserId =
+          payload && typeof payload === "object" && !Array.isArray(payload)
+            ? String((payload as Record<string, unknown>).hostUserId ?? "")
+            : "";
+        setRemoteGroupTimer((prev) =>
+          prev && prev.hostUserId === hostUserId ? null : prev,
+        );
       });
 
       // Subscribe to channel
@@ -397,6 +510,20 @@ export function useStudyRoom(
       isMounted = false;
       setIsConnected(false);
       if (channel) {
+        /* Otherwise the banner keeps counting down for every other
+           participant after the host navigates away or closes the tab —
+           there is no heartbeat that would tell them the host is gone. */
+        if (hostGroupTimerRef.current && typeof channel.send === "function") {
+          try {
+            void channel.send({
+              type: "broadcast",
+              event: "group_timer_end",
+              payload: { hostUserId: hostGroupTimerRef.current.hostUserId },
+            });
+          } catch {
+            // ignore
+          }
+        }
         if (typeof channel.untrack === "function") {
           try {
             void channel.untrack();
@@ -423,7 +550,7 @@ export function useStudyRoom(
       reactionTimeouts.forEach((timeout) => clearTimeout(timeout));
       reactionTimeouts.clear();
     };
-  }, [channelName, userId, fullName, avatarUrl, addReaction, toastCtx]);
+  }, [session, channelName, userId, fullName, avatarUrl, addReaction, toastCtx]);
 
   // Track presence changes whenever user profile or timer state updates
   useEffect(() => {
@@ -440,6 +567,10 @@ export function useStudyRoom(
       elapsedSeconds,
       startedAt,
       joinedAt: joinedAtRef.current,
+      /* Rides along on our own presence entry so a late joiner learns the
+         current group timer from presence sync alone, with no broadcast
+         history to catch up on. Always null for a non-host. */
+      groupTimer: hostGroupTimer,
     };
 
     void channelRef.current.track(presenceData);
@@ -454,7 +585,19 @@ export function useStudyRoom(
     targetEndTime,
     elapsedSeconds,
     startedAt,
+    hostGroupTimer,
   ]);
+
+  // Broadcast every group timer change immediately, for peers already
+  // connected — presence sync (above) covers late joiners.
+  useEffect(() => {
+    if (!channelRef.current || !isConnected || !hostGroupTimer) return;
+    void channelRef.current.send({
+      type: "broadcast",
+      event: "group_timer_update",
+      payload: hostGroupTimer,
+    });
+  }, [hostGroupTimer, isConnected]);
 
   // Send reaction broadcast
   const sendReaction = useCallback(
@@ -644,6 +787,91 @@ export function useStudyRoom(
     }
   }, [normalizedRoomId]);
 
+  const startGroupFocus = useCallback(
+    (minutes: number) => {
+      const clamped = Math.min(
+        MAX_GROUP_TIMER_MINUTES,
+        Math.max(MIN_GROUP_TIMER_MINUTES, Math.round(minutes)),
+      );
+      groupFocusMinutesRef.current = clamped;
+      setHostGroupTimer({
+        hostUserId: userId,
+        hostName: fullName,
+        mode: "focus",
+        durationMinutes: clamped,
+        endsAtEpochMs: Date.now() + clamped * 60_000,
+        pausedRemainingMs: null,
+        isRunning: true,
+        cycleIndex: 0,
+      });
+      /* The host is studying too. Without this their own desk said "Idle"
+         and the room counted nobody focusing, straight after they pressed
+         Start. A timer they already have running is left alone. */
+      if (!timer.state.isRunning) {
+        timer.startPreset({ focus: clamped }, "pomodoro");
+      }
+    },
+    [userId, fullName, timer],
+  );
+
+  const pauseGroupTimer = useCallback(() => {
+    setHostGroupTimer((prev) => {
+      if (!prev) return prev;
+      if (prev.isRunning) {
+        const remainingMs = prev.endsAtEpochMs
+          ? Math.max(0, prev.endsAtEpochMs - Date.now())
+          : 0;
+        return {
+          ...prev,
+          isRunning: false,
+          endsAtEpochMs: null,
+          pausedRemainingMs: remainingMs,
+        };
+      }
+      const resumeMs = prev.pausedRemainingMs ?? 0;
+      return {
+        ...prev,
+        isRunning: true,
+        endsAtEpochMs: Date.now() + resumeMs,
+        pausedRemainingMs: null,
+      };
+    });
+  }, []);
+
+  const nextGroupPhase = useCallback(() => {
+    setHostGroupTimer((prev) => {
+      if (!prev) return prev;
+      const goingToBreak = prev.mode === "focus";
+      const nextMode: GroupTimerMode = goingToBreak ? "short_break" : "focus";
+      const nextDuration = goingToBreak
+        ? GROUP_TIMER_BREAK_MINUTES
+        : groupFocusMinutesRef.current;
+      return {
+        ...prev,
+        mode: nextMode,
+        durationMinutes: nextDuration,
+        endsAtEpochMs: Date.now() + nextDuration * 60_000,
+        pausedRemainingMs: null,
+        isRunning: true,
+        cycleIndex: goingToBreak ? prev.cycleIndex : prev.cycleIndex + 1,
+      };
+    });
+  }, []);
+
+  const syncMyTimerToGroup = useCallback(
+    (minutes: number) => {
+      const clamped = Math.min(
+        MAX_SYNC_MINUTES,
+        Math.max(MIN_SYNC_MINUTES, Math.round(minutes)),
+      );
+      timer.startPreset({ focus: clamped }, "pomodoro");
+    },
+    [timer],
+  );
+
+  const groupTimerState = hostGroupTimer ?? remoteGroupTimer;
+  const isGroupTimerHost = hostGroupTimer !== null;
+
   const participants = useMemo(
     () => [selfParticipant, ...remoteParticipants],
     [selfParticipant, remoteParticipants],
@@ -676,6 +904,7 @@ export function useStudyRoom(
     cheerFeed,
     isConnected,
     roomId: normalizedRoomId,
+    isRoomFull,
     sendReaction,
     broadcastTimerSync,
     sendMessage,
@@ -684,5 +913,11 @@ export function useStudyRoom(
     syncWithParticipant,
     copyInviteLink,
     isCopied,
+    groupTimerState,
+    isGroupTimerHost,
+    startGroupFocus,
+    pauseGroupTimer,
+    nextGroupPhase,
+    syncMyTimerToGroup,
   };
 }

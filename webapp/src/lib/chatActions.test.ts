@@ -297,6 +297,28 @@ describe("executeActions", () => {
       });
     });
 
+    /* The confirm used to show whatever the model sent — once a bare id,
+       "delete this task: "901"?" — even when nothing matched. */
+    it("doesn't ask about a task that doesn't exist, and names the stored task when it does", async () => {
+      const missing = handlers({ resolveName: vi.fn().mockResolvedValue(null) });
+      const parts = await executeActions("<DELETE_TASK>901</DELETE_TASK>", missing);
+      expect(missing.confirm).not.toHaveBeenCalled();
+      expect(missing.deleteTask).not.toHaveBeenCalled();
+      expect(widgets(parts)[0]).toMatchObject({
+        cancelled: true,
+        text: "Couldn't find that task:",
+      });
+
+      const found = handlers({
+        resolveName: vi.fn().mockResolvedValue("Finish chemistry homework"),
+      });
+      await executeActions("<DELETE_TASK>finish chemistry homework</DELETE_TASK>", found);
+      expect(found.confirm).toHaveBeenCalledWith(
+        expect.stringContaining('"Finish chemistry homework"'),
+        expect.anything(),
+      );
+    });
+
     it("may repeat, like ADD_TASK", async () => {
       const h = handlers();
       await executeActions(
@@ -607,5 +629,27 @@ describe("pathForNavigateTarget", () => {
      the not-found page. */
   it("returns null for a route the app does not have", () => {
     expect(pathForNavigateTarget("atlantis")).toBeNull();
+  });
+});
+
+describe("NAVIGATE covers the app's real destinations", () => {
+  it("every sidebar destination has a key the tutor is taught", async () => {
+    const { NAV_PATHS } = await import("../components/Sidebar");
+    const { NAVIGATE_TARGETS } = await import("./chatActions");
+    const reachable = new Set(NAVIGATE_TARGETS.map((k) => pathForNavigateTarget(k)));
+    for (const path of NAV_PATHS) expect(reachable, path).toContain(path);
+  });
+
+  it("every taught key resolves", async () => {
+    const { NAVIGATE_TARGETS } = await import("./chatActions");
+    for (const key of NAVIGATE_TARGETS) expect(pathForNavigateTarget(key), key).not.toBeNull();
+    expect(pathForNavigateTarget("progress")).toBe("/analytics");
+  });
+
+  it("the prompt lists them and describes the current Library", async () => {
+    const { buildSystemContext } = await import("./chatPrompt");
+    const ctx = buildSystemContext({ pendingTasks: "None", upcomingExams: "None", activeContext: "", query: "" });
+    expect(ctx).toContain("progress, trajectory");
+    expect(ctx).toContain("Subjects, Files & notes, Flashcards, Quizzes and Notebooks");
   });
 });

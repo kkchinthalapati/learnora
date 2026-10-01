@@ -8,6 +8,7 @@ import { localDateStr, mondayOfWeek } from "../lib/date";
 import {
   PlanShapeError,
   buildPlanPrompt,
+  formatStudentContext,
   generateWeeklyPlan,
   loadAdaptiveContext,
   loadWorkspaceContext,
@@ -166,6 +167,172 @@ describe("buildPlanPrompt", () => {
   });
 });
 
+describe("buildPlanPrompt — performance evidence", () => {
+  const base = {
+    weekStartISO: "2026-09-07",
+    dates: ["2026-09-07", "2026-09-08"],
+    pendingTasks: "None",
+    upcomingExams: "None",
+  };
+
+  /* The planner decides where a week's hours go. `weakTopics` alone is a list
+     of names — it says a topic was flagged, not how badly, not what is already
+     solid, and not how much evidence sits behind either. */
+  it("carries the evidence block and the rule that uses it", () => {
+    const prompt = buildPlanPrompt({
+      ...base,
+      weakTopics: "Titration",
+      performanceEvidence:
+        "PERFORMANCE EVIDENCE (from the student's actual quiz results):\n- WEAK (below 60%, measured): Titration (30%).",
+    });
+
+    expect(prompt).toContain("PERFORMANCE EVIDENCE");
+    expect(prompt).toContain("Titration (30%)");
+    expect(prompt).toContain("EVIDENCE RULE");
+    expect(prompt).toContain("SOLID");
+    expect(prompt).toContain("NEVER TESTED");
+  });
+
+  it("carries it into the triage prompt too", () => {
+    const prompt = buildPlanPrompt({
+      ...base,
+      isTriage: true,
+      performanceEvidence: "PERFORMANCE EVIDENCE: Titration 30%.",
+    });
+    expect(prompt).toContain("PERFORMANCE EVIDENCE");
+    expect(prompt).toContain("Triage situation");
+  });
+
+  /* Callers that predate this — and the existing prompt tests — must still
+     get the plain task/exam prompt rather than a "None"-cluttered one. */
+  it("omits the block and its rule entirely when there is no evidence", () => {
+    const prompt = buildPlanPrompt(base);
+    expect(prompt).not.toContain("PERFORMANCE EVIDENCE");
+    expect(prompt).not.toContain("EVIDENCE RULE");
+  });
+
+  /* The ledger is a different kind of input from both the weak-topic list and
+     the evidence block: those name and score a topic, this says what the
+     student actually believes wrongly inside it — which is the difference
+     between a block that reads "revise hydrolysis" and one that reads "fix the
+     idea that water is consumed". */
+  it("carries the misconception ledger and the rule that uses it", () => {
+    const prompt = buildPlanPrompt({
+      ...base,
+      misconceptionLedger:
+        "MISCONCEPTION LEDGER (what this student has previously got wrong):\n  · [critical] Hydrolysis: believes water is consumed — seen 3x.",
+    });
+
+    expect(prompt).toContain("MISCONCEPTION LEDGER");
+    expect(prompt).toContain("believes water is consumed");
+    expect(prompt).toContain("LEDGER RULE");
+    /* Recurrence outranking a bad score is the editorial claim of the whole
+       feature; if the rule stops saying so, the planner stops acting on it. */
+    expect(prompt).toContain("outranks a merely low quiz score");
+    expect(prompt).toContain("Do not schedule anything for a misconception");
+  });
+
+  it("omits the ledger block and its rule entirely when there is none", () => {
+    const prompt = buildPlanPrompt(base);
+    expect(prompt).not.toContain("MISCONCEPTION LEDGER");
+    expect(prompt).not.toContain("LEDGER RULE");
+  });
+
+  /* The one block that ranks rather than describes. Weak topics, evidence and
+     the ledger all say what is wrong; only this says which wrong thing is
+     worth the student's Saturday. */
+  it("carries the hour-value forecast and the rule that spends the week by it", () => {
+    const prompt = buildPlanPrompt({
+      ...base,
+      hourValue:
+        "WHAT THE NEXT HOUR IS WORTH (this app's own forecast for Chemistry Paper 1 on 2026-09-15, 14 days away):\n- Titration: 4.2 marks per hour (at 20% mastery)",
+    });
+
+    expect(prompt).toContain("WHAT THE NEXT HOUR IS WORTH");
+    expect(prompt).toContain("4.2 marks per hour");
+    expect(prompt).toContain("VALUE RULE");
+    /* Quoting the figure back to the student is what makes the plan
+       defensible rather than another list of topics. */
+    expect(prompt).toContain("worth ~4.2 marks");
+    expect(prompt).toContain(
+      "never quote a figure for a topic the block does not list",
+    );
+  });
+
+  it("omits the hour-value block and its rule entirely when there is no forecast", () => {
+    const prompt = buildPlanPrompt(base);
+    expect(prompt).not.toContain("WHAT THE NEXT HOUR IS WORTH");
+    expect(prompt).not.toContain("VALUE RULE");
+  });
+
+  it("carries studentContext into the prompt when set", () => {
+    const prompt = buildPlanPrompt({
+      ...base,
+      studentContext: "STUDENT CONTEXT: The student is preparing for IB exams.",
+    });
+    expect(prompt).toContain("STUDENT CONTEXT");
+    expect(prompt).toContain("IB exams");
+  });
+
+  it("omits STUDENT CONTEXT when unset, same as performanceEvidence", () => {
+    const prompt = buildPlanPrompt(base);
+    expect(prompt).not.toContain("STUDENT CONTEXT");
+  });
+});
+
+describe("formatStudentContext", () => {
+  it("returns an empty string when nothing is set", () => {
+    expect(
+      formatStudentContext({
+        subject: null,
+        examType: null,
+        targetGrade: null,
+        studyPace: null,
+      }),
+    ).toBe("");
+  });
+
+  it("names subject, exam board and target grade", () => {
+    const text = formatStudentContext({
+      subject: "Organic Chemistry",
+      examType: "ib",
+      targetGrade: "7",
+      studyPace: null,
+    });
+    expect(text).toContain("Organic Chemistry");
+    expect(text).toContain("IB exams");
+    expect(text).toContain("aiming for 7");
+  });
+
+  it("renders a pacing hint distinct from the evidence-derived RULE language", () => {
+    const light = formatStudentContext({
+      subject: null,
+      examType: null,
+      targetGrade: null,
+      studyPace: "light",
+    });
+    expect(light).toContain("light load");
+
+    const intensive = formatStudentContext({
+      subject: null,
+      examType: null,
+      targetGrade: null,
+      studyPace: "intensive",
+    });
+    expect(intensive).toContain("intensive load");
+  });
+
+  it("falls back to the raw value for an exam type it doesn't recognize", () => {
+    const text = formatStudentContext({
+      subject: null,
+      examType: "state_board",
+      targetGrade: null,
+      studyPace: null,
+    });
+    expect(text).toContain("state_board");
+  });
+});
+
 describe("loadAdaptiveContext", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
@@ -178,11 +345,18 @@ describe("loadAdaptiveContext", () => {
     // Global default handlers already answer quiz_attempts/weekly_plans/
     // study_sessions/folders with empty results — nothing extra to mock.
     const context = await loadAdaptiveContext(mondayOfWeek());
-    expect(context).toEqual({
+    expect(context).toMatchObject({
       weakTopics: "None",
       weakFlashcardDecks: "None",
       lastWeekAdherence: "None",
     });
+    /* The evidence block is rendered even with nothing to report — the empty
+       summary is what carries the instruction not to guess a grade, which is
+       exactly the case where the model otherwise would. */
+    expect(context.performanceEvidence).toContain("PERFORMANCE EVIDENCE");
+    expect(context.performanceEvidence).toContain(
+      "no current performance data",
+    );
   });
 
   it("ranks weak topics by frequency and summarizes last week's adherence", async () => {

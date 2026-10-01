@@ -227,7 +227,7 @@ describe("ReviewView", () => {
       HttpResponse.json({ text: "<GRADE_FLASHCARD>3</GRADE_FLASHCARD>" }),
     );
     await waitFor(() =>
-      expect(screen.getByText("Review Complete! 🧠")).toBeInTheDocument(),
+      expect(screen.getByText("Review complete")).toBeInTheDocument(),
     );
   });
 
@@ -256,10 +256,17 @@ describe("ReviewView", () => {
 
     expect(await screen.findByText("Q2")).toBeInTheDocument();
     expect(screen.getByText("Card 2 of 2")).toBeInTheDocument();
+    /* A new card answered Good is scheduled from its initial stability
+       (~3.17 days), and `ease_factor` is derived from the card's difficulty
+       rather than nudged by a flat +0.1. Stability and difficulty are
+       persisted now — without them the next review would re-derive memory
+       state from scratch. */
     expect(capturedBody).toEqual({
       next_review_date: expect.any(String),
-      srs_interval: 1,
-      ease_factor: 2.6,
+      srs_interval: 3,
+      ease_factor: 2.45,
+      stability: expect.any(Number),
+      difficulty: expect.any(Number),
     });
     /* The next card starts unflipped again — grading resets the session's
        per-card state. */
@@ -322,7 +329,7 @@ describe("ReviewView", () => {
     );
     await user.click(screen.getByRole("button", { name: "Easy (4)" }));
 
-    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+    expect(await screen.findByText("Review complete")).toBeInTheDocument();
     expect(screen.getByText("100%")).toBeInTheDocument();
     expect(screen.getByLabelText("Easy count")).toHaveTextContent("1");
     expect(
@@ -330,6 +337,36 @@ describe("ReviewView", () => {
         "Strong session — no difficult cards need another pass.",
       ),
     ).toBeInTheDocument();
+  });
+
+  /* A few cards need no planning: the options fold behind one line and the
+     next thing on screen is Start review. A big pile keeps them in view. */
+  it("folds the options away for a short deck, and states the defaults", async () => {
+    serve({
+      cards: [
+        card({ id: "c-1", front: "Q1", back: "A1" }),
+        card({ id: "c-2", front: "Q2", back: "A2" }),
+        card({ id: "c-3", front: "Q3", back: "A3" }),
+      ],
+    });
+    renderReview("d-1", false);
+
+    expect(await screen.findByText(/3 cards · Oldest first/)).toBeInTheDocument();
+    const fold = screen.getByText(/3 cards · Oldest first/).closest("details");
+    expect(fold).not.toHaveAttribute("open");
+    expect(screen.queryByText(/Choose a focused session/)).toBeNull();
+  });
+
+  it("keeps the options in view for a big pile", async () => {
+    serve({
+      cards: Array.from({ length: 30 }, (_, index) =>
+        card({ id: "c-" + index, front: "Q" + index, back: "A" + index }),
+      ),
+    });
+    renderReview("d-1", false);
+
+    expect(await screen.findByText(/Choose a focused session/)).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Due order/ }).closest("details")).toBeNull();
   });
 
   it("lets the student choose a session length and difficult-first order", async () => {
@@ -466,7 +503,7 @@ describe("ReviewView", () => {
     await user.click(screen.getByRole("button", { name: "Easy (4)" }));
 
     // Recap screen is shown
-    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+    expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
     // Retention Card: (25 + 55 + 95) / 3 = 58% -> Needs Review
     expect(screen.getByText("How much you’ll still remember in a week")).toBeInTheDocument();
@@ -553,7 +590,7 @@ describe("ReviewView", () => {
     );
     await user.click(screen.getByRole("button", { name: "Again (1)" }));
 
-    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+    expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
     const focusBtn = screen.getByRole("button", {
       name: "25 minutes on the tricky ones",
@@ -564,6 +601,10 @@ describe("ReviewView", () => {
     expect(await screen.findByText("Timer view")).toBeInTheDocument();
   });
 
+  /* Two cards, both graded down, both about photosynthesis. A weak topic is
+     something that recurs across the cards the student struggled with — a
+     single card no longer contributes its whole text as "topics", so naming
+     one in the task text needs a topic that actually recurs. */
   it("adds a revision task for tomorrow when the revise-tomorrow button is clicked in the recap", async () => {
     serve({
       cards: [
@@ -571,6 +612,11 @@ describe("ReviewView", () => {
           id: "c-1",
           front: "What is Photosynthesis in plant cells?",
           back: "Converts light to chemical energy.",
+        }),
+        card({
+          id: "c-2",
+          front: "Where does Photosynthesis happen?",
+          back: "In the chloroplasts.",
         }),
       ],
     });
@@ -593,7 +639,13 @@ describe("ReviewView", () => {
     );
     await user.click(screen.getByRole("button", { name: "Hard (2)" }));
 
-    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+    await screen.findByText("Where does Photosynthesis happen?");
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Hard (2)" }));
+
+    expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
     const addTaskBtn = screen.getByRole("button", {
       name: "Revise this again tomorrow",
@@ -628,7 +680,7 @@ describe("ReviewView", () => {
     /* The session still advances immediately — a slow or failing write must
        not stall the student's review, the same call Step 8/16 already made
        for task toggles and quiz-attempt writes. */
-    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+    expect(await screen.findByText("Review complete")).toBeInTheDocument();
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Couldn't save this card's review",
     );
@@ -643,7 +695,24 @@ describe("ReviewView", () => {
     expect(
       await screen.findByRole("heading", { level: 2, name: "Cell Biology" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("All caught up! 🎉")).toBeInTheDocument();
+    expect(screen.getByText("All caught up")).toBeInTheDocument();
+  });
+
+  it("lets a student practise a deck with nothing due", async () => {
+    serve({
+      cards: [card({ next_review_date: "2099-01-01T00:00:00.000Z" })],
+    });
+    renderReview("d-1", false);
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Practise all 1 card anyway" }),
+    );
+    expect(screen.getByText(/none are due yet/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Start review" }));
+    expect(
+      await screen.findByText("What is a mitochondrion?"),
+    ).toBeInTheDocument();
   });
 
   it("shows a not-found state for a deck that no longer exists", async () => {
@@ -714,7 +783,46 @@ describe("ReviewView", () => {
       expect(
         screen.queryByText("AI is grading your answer..."),
       ).not.toBeInTheDocument();
-      expect(capturedBody).toMatchObject({ srs_interval: 1, ease_factor: 2.6 });
+      /* The mocked reply grades this card Easy, which now schedules further
+         out than Good would — the two grades used to be indistinguishable. */
+      expect(capturedBody).toMatchObject({ srs_interval: 16, ease_factor: 2.96 });
+    });
+
+    /* AI_GRADE_PROMPT asks for a mark *and* "a short 1-sentence feedback".
+       Both used to be discarded: the card just advanced, so a student who
+       typed a vague answer was silently recorded as Good and never found
+       out. A button called "Grade" has to show the grade. */
+    it("tells the student what they were marked, and why", async () => {
+      serve({
+        cards: [
+          card({ id: "c-1", front: "Q1", back: "A1" }),
+          card({ id: "c-2", front: "Q2", back: "A2" }),
+        ],
+      });
+      server.use(
+        http.patch(rest("flashcards"), () => new HttpResponse(null, { status: 204 })),
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({
+            text: "<GRADE_FLASHCARD>2</GRADE_FLASHCARD>You named the organelle but not what it does.",
+          }),
+        ),
+      );
+      renderReview();
+      await screen.findByText("Q1");
+
+      const user = userEvent.setup();
+      await user.type(
+        screen.getByRole("textbox", { name: "Your answer, for AI to grade" }),
+        "the powerhouse",
+      );
+      await user.click(screen.getByRole("button", { name: "Grade" }));
+
+      expect(await screen.findByText(/Marked Hard/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/You named the organelle but not what it does\./),
+      ).toBeInTheDocument();
+      /* The tag itself must not leak into the message. */
+      expect(screen.queryByText(/GRADE_FLASHCARD/)).toBeNull();
     });
 
     it("shows a loading status while the reply is in flight, and reveals the back", async () => {
@@ -750,7 +858,7 @@ describe("ReviewView", () => {
       );
 
       await waitFor(() =>
-        expect(screen.getByText("Review Complete! 🧠")).toBeInTheDocument(),
+        expect(screen.getByText("Review complete")).toBeInTheDocument(),
       );
     });
 
@@ -773,7 +881,7 @@ describe("ReviewView", () => {
       );
 
       await waitFor(() =>
-        expect(screen.getByText("Review Complete! 🧠")).toBeInTheDocument(),
+        expect(screen.getByText("Review complete")).toBeInTheDocument(),
       );
     });
 
@@ -844,7 +952,7 @@ describe("ReviewView", () => {
       // Manual grading still works after the AI path failed.
       await user.click(screen.getByRole("button", { name: "Easy (4)" }));
       expect(
-        await screen.findByText("Review Complete! 🧠"),
+        await screen.findByText("Review complete"),
       ).toBeInTheDocument();
     });
 
@@ -1209,7 +1317,7 @@ describe("ReviewView", () => {
       );
       await user.click(screen.getByRole("button", { name: "Hard (2)" }));
 
-      expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+      expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
       const coachBtns = screen.getAllByRole("button", { name: /Socratic Coach/i });
       expect(coachBtns.length).toBeGreaterThan(0);
@@ -1364,7 +1472,7 @@ describe("ReviewView", () => {
       );
       await user.click(screen.getByRole("button", { name: "Good (3)" }));
 
-      expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+      expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
       const sourceLink = screen.getByRole("link", { name: "Source Note" });
       expect(sourceLink).toHaveAttribute("href", "/notes/mat-101");
@@ -1373,4 +1481,93 @@ describe("ReviewView", () => {
       ).toBeInTheDocument();
     });
   });
+  describe("study time", () => {
+    /* Date.now is stubbed rather than vi.useFakeTimers(): the clock needs to
+       advance, but fake timers break MSW and userEvent pacing (see the note in
+       components/AppShell.test.tsx). */
+    function stubClock() {
+      let now = Date.now();
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+      return (ms: number) => {
+        now += ms;
+      };
+    }
+
+    function captureSessionLog() {
+      const logged: Record<string, unknown>[] = [];
+      server.use(
+        http.patch(rest("flashcards"), () => new HttpResponse(null, { status: 204 })),
+        http.post(rest("study_sessions"), async ({ request }) => {
+          logged.push(
+            ...((await request.json()) as Record<string, unknown>[]),
+          );
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      return logged;
+    }
+
+    async function gradeBothCards(advance: (ms: number) => void, gap = 90_000) {
+      const user = userEvent.setup();
+      for (const front of ["Q1", "Q2"]) {
+        await screen.findByText(front);
+        advance(gap);
+        await user.click(
+          screen.getByRole("button", { name: "Flip card to see the answer" }),
+        );
+        await user.click(screen.getByRole("button", { name: "Good (3)" }));
+      }
+    }
+
+    const twoCards = {
+      cards: [
+        card({ id: "c-1", front: "Q1", back: "A1" }),
+        card({ id: "c-2", front: "Q2", back: "A2" }),
+      ],
+    };
+
+    it("credits a finished review with the minutes it took", async () => {
+      serve(twoCards);
+      const logged = captureSessionLog();
+      const advance = stubClock();
+      renderReview();
+
+      await gradeBothCards(advance);
+
+      await waitFor(() => expect(logged).toHaveLength(1));
+      /* Two 90s stretches, both under the idle cap, so both count in full. */
+      expect(logged[0]).toMatchObject({
+        minutes: 3,
+        task: "Cell Biology",
+        timer_type: "review",
+      });
+    });
+
+    it("does not count the minutes a student spent away from the tab", async () => {
+      serve(twoCards);
+      const logged = captureSessionLog();
+      const advance = stubClock();
+      renderReview();
+
+      // Half an hour between two grades is not half an hour of studying.
+      await gradeBothCards(advance, 30 * 60_000);
+
+      await waitFor(() => expect(logged).toHaveLength(1));
+      // Each gap clipped to the 2-minute idle cap.
+      expect(logged[0]).toMatchObject({ minutes: 4 });
+    });
+
+    it("logs nothing for a review too short to be worth a row", async () => {
+      serve(twoCards);
+      const logged = captureSessionLog();
+      const advance = stubClock();
+      renderReview();
+
+      await gradeBothCards(advance, 2_000);
+
+      expect(await screen.findByText("Review complete")).toBeInTheDocument();
+      expect(logged).toEqual([]);
+    });
+  });
+
 });

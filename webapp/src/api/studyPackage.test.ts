@@ -12,12 +12,14 @@ import {
   generateDeck,
   loadSourceText,
   MAX_UPLOAD_BYTES,
+  PHOTO_NOTES_INSTRUCTIONS,
   studyPackageDestination,
   summarizeStudyPackage,
   type StudyPackageResult,
 } from "./studyPackage";
 
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
+const WEB_RESEARCH_URL = `${SUPABASE_URL}/functions/v1/web-research`;
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 const STORAGE_URL = `${SUPABASE_URL}/storage/v1/object/materials/*`;
 
@@ -240,7 +242,9 @@ describe("createStudyPackage", () => {
       quiz: json(QUESTIONS),
     });
 
-    const result = await request();
+    const result = await request({
+      outputs: { flashcards: true, quiz: true, notes: true },
+    });
 
     expect(result.failures).toEqual([]);
     expect(result.material?.id).toBe("mat-1");
@@ -254,6 +258,19 @@ describe("createStudyPackage", () => {
     expect(inserted.flashcard_decks[0].folder_id).toBe("folder-1");
     expect(inserted.quizzes[0].folder_id).toBe("folder-1");
     expect(inserted.quizzes[0].material_id).toBe("mat-1");
+  });
+
+  it("uses generated text transiently when Summary Notes is deselected", async () => {
+    serveEdge({ notes: text(NOTES_MARKDOWN), flashcards: json(CARDS) });
+
+    const result = await request({
+      outputs: { flashcards: true, notes: false },
+    });
+
+    expect(result.deck?.id).toBe("deck-1");
+    expect(result.notes).toBeNull();
+    expect(inserted.notes).toBeUndefined();
+    expect(promptFor("flashcards")).toContain("## Photosynthesis");
   });
 
   /* The whole reason notes come first: a 40-page PDF is uploaded once, and
@@ -391,11 +408,26 @@ describe("createStudyPackage", () => {
 
     await request({
       outputs: { quiz: true },
-      options: { difficulty: "Hard", personality: "Sarcastic Buddy" },
+      options: { difficulty: "Hard", personality: "Academic Professor" },
     });
 
     expect(promptFor("quiz")).toContain("Target Difficulty: HARD / ADVANCED");
-    expect(promptFor("quiz")).toContain("AI Host Personality: Sarcastic Buddy");
+    expect(promptFor("quiz")).toContain("AI Host Personality: Academic Professor");
+  });
+
+  /* "Sarcastic Buddy" was read literally: production quizzes told students
+     "Duh!" and "Ugh, come on, this is math 101". */
+  it("never sends a sarcastic host, and always sends the tone rule", async () => {
+    serveEdge({ notes: text(NOTES_MARKDOWN), quiz: json(QUESTIONS) });
+
+    await request({
+      outputs: { quiz: true },
+      options: { personality: "Sarcastic Buddy" },
+    });
+
+    expect(promptFor("quiz")).not.toContain("Sarcastic");
+    expect(promptFor("quiz")).toContain("AI Host Personality: Friendly Study Buddy");
+    expect(promptFor("quiz")).toContain("never mock, belittle");
   });
 
   describe("a link source", () => {
@@ -411,6 +443,32 @@ describe("createStudyPackage", () => {
       expect(inserted.materials[0].type).toBe("youtube");
       expect(promptFor("notes")).toContain("You cannot watch the video");
       expect(result.notes).toBe(NOTES_MARKDOWN);
+    });
+
+    it("extracts an ordinary web page before generating notes", async () => {
+      serveEdge({ notes: text(NOTES_MARKDOWN) });
+      server.use(
+        http.post(WEB_RESEARCH_URL, () =>
+          HttpResponse.json({
+            title: "Cell division",
+            url: "https://example.edu/biology/mitosis",
+            domain: "example.edu",
+            markdown:
+              "# Mitosis\n\nChromosomes are separated into two daughter nuclei.",
+          }),
+        ),
+      );
+
+      await request({
+        source: { kind: "link", url: "https://example.edu/biology/mitosis" },
+        outputs: {},
+      });
+
+      expect(inserted.materials[0].title).toBe("Cell division");
+      expect(promptFor("notes")).toContain("Chromosomes are separated");
+      expect(promptFor("notes")).toContain(
+        "https://example.edu/biology/mitosis",
+      );
     });
 
     it("refuses an empty one before creating anything", async () => {
@@ -438,6 +496,47 @@ describe("createStudyPackage", () => {
         outputs: {},
       });
       expect(inserted.materials[0].type).toBe("pdf");
+    });
+
+    it("reads a photo through the attachment path with photo-specific instructions", async () => {
+      serveEdge({ notes: text(NOTES_MARKDOWN) });
+      const result = await request({
+        source: {
+          kind: "file",
+          file: new File(["jpeg"], "worksheet.jpg", { type: "image/jpeg" }),
+        },
+        outputs: { notes: true },
+      });
+      expect(result.notes).toBe(NOTES_MARKDOWN);
+      expect(callFor("notes")?.file?.mimeType).toBe("image/jpeg");
+      expect(promptFor("notes")).toContain(PHOTO_NOTES_INSTRUCTIONS);
+    });
+
+    it("saves nothing, and says why, when no provider can read the photo", async () => {
+      const unavailable =
+        "Reading photos needs Learnora's image model, and it isn't available right now. Try again in a few minutes, or paste or type the text instead.";
+      serveEdge({
+        notes: () =>
+          HttpResponse.json(
+            { error: unavailable, visionUnavailable: true },
+            { status: 422 },
+          ),
+      });
+      const result = await request({
+        source: {
+          kind: "file",
+          file: new File(["jpeg"], "board.jpg", { type: "image/jpeg" }),
+        },
+        outputs: { notes: true, flashcards: true },
+      });
+      expect(result.notes).toBeNull();
+      expect(result.deck).toBeNull();
+      expect(result.failures).toEqual([
+        { stage: "notes", message: unavailable, refused: false },
+      ]);
+      expect(inserted.notes).toBeUndefined();
+      // No deck call is attempted from notes that were never written.
+      expect(callFor("flashcards")).toBeUndefined();
     });
 
     it("rejects an oversized file before uploading a byte of it", async () => {
@@ -513,6 +612,21 @@ describe("createStudyPackage", () => {
   });
 
   describe("a topic source", () => {
+    it("creates and persists Summary Notes when they are selected", async () => {
+      serveEdge({ notes: text(NOTES_MARKDOWN) });
+
+      const result = await request({
+        source: { kind: "topic", topic: "Ionic bonding" },
+        folderId: null,
+        outputs: { notes: true },
+      });
+
+      expect(edgeCalls.map((c) => c.mode)).toEqual(["notes"]);
+      expect(result.material?.id).toBe("mat-1");
+      expect(result.notes).toBe(NOTES_MARKDOWN);
+      expect(inserted.notes[0].material_id).toBe("mat-1");
+    });
+
     it("generates from the topic line alone, with no material and no folder", async () => {
       serveEdge({ quiz: json(QUESTIONS) });
 

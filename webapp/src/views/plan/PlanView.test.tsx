@@ -25,6 +25,15 @@ const dayOffset = (i: number) => {
   return localDateStr(d);
 };
 const TODAY = localDateStr();
+/** Days relative to *today* rather than to the week's Monday. Needed by any
+ *  test whose assertion depends on a day being in the past, since `dayOffset`
+ *  anchors to Monday and so yields no past days at all when the suite happens
+ *  to run on one. */
+const todayOffset = (i: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + i);
+  return localDateStr(d);
+};
 
 function planRow(planJson: unknown, createdAt = new Date().toISOString()) {
   return {
@@ -155,7 +164,7 @@ describe("PlanView", () => {
     );
     renderPlan();
 
-    await screen.findByText("No plan yet for this week");
+    await screen.findByText("Your week, from your availability");
     const thisWeekRequest = urls.find(
       (u) => u.searchParams.get("week_start") === `eq.${WEEK_START}`,
     );
@@ -166,19 +175,24 @@ describe("PlanView", () => {
   });
 
   describe("with no plan yet", () => {
-    it('offers the empty state and labels the button "Generate Plan"', async () => {
+    it("offers the empty state with one generate button, and no duplicate in the header", async () => {
       servePlan(null);
       renderPlan();
 
       expect(
-        await screen.findByText("No plan yet for this week"),
+        await screen.findByText("Your week, from your availability"),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: /Generate Weekly Plan with AI/ }),
+        screen.getByRole("button", { name: /Ask the AI to rearrange it/ }),
       ).toBeInTheDocument();
+      /* The header used to repeat this action under a second name. While the
+         week is empty the centred call to action is the only way in. */
       expect(
-        screen.getByRole("button", { name: "Generate Plan" }),
-      ).toBeInTheDocument();
+        screen.queryByRole("button", { name: "Generate Plan" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getAllByRole("button", { name: /Ask the AI to rearrange it/ }),
+      ).toHaveLength(1);
     });
 
     /* Generating the first plan of the week overwrites nothing, so it must not
@@ -199,7 +213,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate Weekly Plan with AI/,
+          name: /Ask the AI to rearrange it/,
         }),
       );
 
@@ -221,7 +235,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate Weekly Plan with AI/,
+          name: /Ask the AI to rearrange it/,
         }),
       );
 
@@ -242,7 +256,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate Weekly Plan with AI/,
+          name: /Ask the AI to rearrange it/,
         }),
       );
 
@@ -251,7 +265,7 @@ describe("PlanView", () => {
           "Failed to generate your weekly plan. Please try again.",
         ),
       ).toBeInTheDocument();
-      expect(screen.getByText("No plan yet for this week")).toBeInTheDocument();
+      expect(screen.getByText("Your week, from your availability")).toBeInTheDocument();
     });
 
     /* A model that replied but produced nothing plan-shaped is a different
@@ -267,7 +281,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate Weekly Plan with AI/,
+          name: /Ask the AI to rearrange it/,
         }),
       );
 
@@ -594,7 +608,7 @@ describe("PlanView", () => {
       );
 
       expect(
-        await screen.findByRole("combobox", { name: "Current Task:" }),
+        await screen.findByRole("combobox", { name: "What are you working on?" }),
       ).toHaveValue("Biology");
     });
 
@@ -617,7 +631,7 @@ describe("PlanView", () => {
       renderPlan();
 
       expect(
-        await screen.findByText("No plan yet for this week"),
+        await screen.findByText("Your week, from your availability"),
       ).toBeInTheDocument();
     });
 
@@ -653,7 +667,7 @@ describe("PlanView", () => {
       );
       renderPlan();
 
-      expect(await screen.findByText(/Optimal Focus:/i)).toBeInTheDocument();
+      expect(await screen.findByText(/You usually focus best:/i)).toBeInTheDocument();
     });
 
     it("omits the peak focus window badge for a student with no session history", async () => {
@@ -661,42 +675,38 @@ describe("PlanView", () => {
       renderPlan();
 
       await screen.findByText(SAMPLE_PLAN.summary);
-      expect(screen.queryByText(/Optimal Focus:/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/You usually focus best:/i)).not.toBeInTheDocument();
     });
 
     it("displays the catch-up banner and redistributes blocks on click when the user is behind", async () => {
-      // Build a 7-day plan where past days (e.g. dayOffset(0)) have blocks
+      /* Dated relative to TODAY, not to the week's Monday.
+         `detectPlanDeficit` partitions the plan's own days by today — a day
+         counts as missed only when `date < today` — so a plan whose loaded
+         days start at dayOffset(0) has no past days at all when the suite runs
+         on a Monday, no deficit is possible, and the banner correctly never
+         renders. This test used to do exactly that, and so failed every
+         Monday for reasons that had nothing to do with the code under test.
+         Anchoring the missed days at today-3..today-1 and the free days at
+         today..today+3 makes it hold on any weekday. */
       const planWithPastDeficit = {
         summary: "Original full schedule",
         days: [
           {
-            date: dayOffset(0), // Monday
+            date: todayOffset(-3),
             blocks: [{ subject: "Biology", durationMins: 60 }],
           },
           {
-            date: dayOffset(1), // Tuesday
+            date: todayOffset(-2),
             blocks: [{ subject: "Math", durationMins: 45 }],
           },
           {
-            date: dayOffset(2), // Wednesday
+            date: todayOffset(-1),
             blocks: [{ subject: "Chemistry", durationMins: 30 }],
           },
-          {
-            date: dayOffset(3), // Thursday
-            blocks: [],
-          },
-          {
-            date: dayOffset(4), // Friday
-            blocks: [],
-          },
-          {
-            date: dayOffset(5), // Saturday
-            blocks: [],
-          },
-          {
-            date: dayOffset(6), // Sunday
-            blocks: [],
-          },
+          { date: todayOffset(0), blocks: [] },
+          { date: todayOffset(1), blocks: [] },
+          { date: todayOffset(2), blocks: [] },
+          { date: todayOffset(3), blocks: [] },
         ],
       };
 
@@ -761,7 +771,7 @@ describe("PlanView", () => {
       servePrevWeekPlan(null);
       renderPlan();
 
-      await screen.findByText("No plan yet for this week");
+      await screen.findByText("Your week, from your availability");
       expect(
         screen.queryByText(/of last week's plan done/),
       ).not.toBeInTheDocument();
@@ -793,9 +803,7 @@ describe("PlanView", () => {
       renderPlan();
 
       expect(await screen.findByText("0%")).toBeInTheDocument();
-      expect(
-        screen.getByText("of last week's plan done"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("of last week's plan done")).toBeInTheDocument();
       expect(screen.getByText("Chemistry")).toBeInTheDocument();
       expect(
         screen.getByText(/your next plan will make room for them/),
@@ -858,10 +866,137 @@ describe("PlanView", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "permission denied",
     );
-    expect(screen.getByRole("link", { name: "Week" })).toHaveAttribute(
+    /* The section nav must survive a failed load — the point of the assertion
+       is that a 403 costs the student the plan, not their way out of the page.
+       The tab was renamed "Week" → "Study plan" when PlanSectionNav landed and
+       this assertion was not moved with it, so it had been failing on main
+       against a link that no longer exists. */
+    expect(screen.getByRole("link", { name: "Study plan" })).toHaveAttribute(
       "aria-current",
       "page",
     );
     expect(screen.queryByText("This week's plan")).not.toBeInTheDocument();
+  });
+});
+
+/* A plan block used to be prose with a blank timer behind it: the generator
+ * knew which deck was weak, and the grid could only offer "Start →". These
+ * cover the handoff once the block resolves to real content — see
+ * planTargets.ts for why the match is deliberately strict. */
+describe("PlanView — launching the block's content", () => {
+  const BIO_PLAN = {
+    days: [
+      {
+        date: dayOffset(0),
+        blocks: [{ subject: "Biology", durationMins: 45 }],
+      },
+    ],
+  };
+
+  function serveContent({
+    decks = [] as unknown[],
+    dueCards = [] as unknown[],
+    quizzes = [] as unknown[],
+  }) {
+    server.use(
+      http.get(rest("folders"), () =>
+        HttpResponse.json([{ id: "f-bio", user_id: "user-1", name: "Biology" }]),
+      ),
+      http.get(rest("flashcard_decks"), () => HttpResponse.json(decks)),
+      http.get(rest("flashcards"), () => HttpResponse.json(dueCards)),
+      http.get(rest("quizzes"), () => HttpResponse.json(quizzes)),
+    );
+  }
+
+  function renderPlanWithContent() {
+    return renderWithAuth(
+      <MemoryRouter initialEntries={["/plan"]}>
+        <Routes>
+          <Route path="/plan" element={<PlanView />} />
+          <Route path="/timer" element={<div>Timer view</div>} />
+          <Route path="/review/:deckId" element={<div>Review view</div>} />
+          <Route path="/quiz/:quizId" element={<div>Quiz view</div>} />
+        </Routes>
+      </MemoryRouter>,
+      { session: fakeSession() },
+      { withTimer: true },
+    );
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+    serveWorkspace();
+  });
+
+  it("opens the subject's due deck instead of a blank timer", async () => {
+    serveContent({
+      decks: [{ id: "d-cells", user_id: "user-1", folder_id: "f-bio", title: "Cells" }],
+      dueCards: [
+        { id: "c1", user_id: "user-1", deck_id: "d-cells", next_review_date: null },
+        { id: "c2", user_id: "user-1", deck_id: "d-cells", next_review_date: null },
+      ],
+    });
+    servePlan(planRow(BIO_PLAN));
+    renderPlanWithContent();
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Review 2 due cards in Cells for Biology",
+      }),
+    );
+
+    expect(await screen.findByText("Review view")).toBeInTheDocument();
+  });
+
+  it("names the deck the block will open, so Start is not a blind jump", async () => {
+    serveContent({
+      decks: [{ id: "d-cells", user_id: "user-1", folder_id: "f-bio", title: "Cells" }],
+      dueCards: [
+        { id: "c1", user_id: "user-1", deck_id: "d-cells", next_review_date: null },
+      ],
+    });
+    servePlan(planRow(BIO_PLAN));
+    renderPlanWithContent();
+
+    expect(await screen.findByText("Cells · 1 card due")).toBeInTheDocument();
+  });
+
+  it("falls back to the subject's quiz when no cards are due", async () => {
+    serveContent({
+      quizzes: [
+        {
+          id: "q-bio",
+          user_id: "user-1",
+          folder_id: "f-bio",
+          title: "Cell Division",
+          created_at: "2026-03-01T00:00:00.000Z",
+        },
+      ],
+    });
+    servePlan(planRow(BIO_PLAN));
+    renderPlanWithContent();
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Take the quiz Cell Division for Biology",
+      }),
+    );
+
+    expect(await screen.findByText("Quiz view")).toBeInTheDocument();
+  });
+
+  it("still stages the timer when the subject matches no content", async () => {
+    serveContent({});
+    servePlan(planRow(BIO_PLAN));
+    renderPlanWithContent();
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Start a 45 minute focus session for Biology",
+      }),
+    );
+
+    expect(await screen.findByText("Timer view")).toBeInTheDocument();
   });
 });

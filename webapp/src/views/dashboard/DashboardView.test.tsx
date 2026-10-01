@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router";
@@ -14,6 +14,8 @@ import type { Exam, Folder, StudySession, Task } from "../../api/types";
 import { ChatProvider } from "../../context/ChatProvider";
 import { TurboChat } from "../../components/chat/TurboChat";
 import { DashboardView } from "./DashboardView";
+import { NextExamCard } from "./NextExamCard";
+import { TasksCard } from "./TasksCard";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 
@@ -85,6 +87,10 @@ function serveDashboard({
     http.get(rest("tasks"), () => HttpResponse.json(tasks)),
     http.get(rest("quizzes"), () => HttpResponse.json([])),
     http.get(rest("quiz_attempts"), () => HttpResponse.json([])),
+    http.get(rest("notebooks"), () => HttpResponse.json([])),
+    http.post(`${SUPABASE_URL}/functions/v1/web-research`, () =>
+      HttpResponse.json({ query: "", results: [] }),
+    ),
     http.head(
       rest("flashcards"),
       () =>
@@ -96,14 +102,24 @@ function serveDashboard({
   );
 }
 
+const ALL_SECTIONS_VISIBLE = JSON.stringify({
+  visibleSections: { activityRings: true, progressStreak: true, sessionsCommunity: true },
+});
+
 function renderDashboard() {
+  /* The "All" tab hides rings, streak and community by default (dashboard
+     diet); these tests exercise every card, so opt them back in. The default
+     itself is asserted in "keeps the All tab to six cards by default". */
+  if (!localStorage.getItem("learnora_dashboard_layout_v2")) {
+    localStorage.setItem("learnora_dashboard_layout_v2", ALL_SECTIONS_VISIBLE);
+  }
   return renderWithAuth(
     /* The dashboard's AI card talks to the chat, and ChatProvider has to sit
        inside the router (it navigates) — which the harness now supplies,
        since the create dialog needs it too. */
     <ChatProvider>
       <Routes>
-        <Route path="/" element={<DashboardView />} />
+        <Route path="/" element={<DashboardView initialTab="all" />} />
         <Route path="/timer" element={<h1>Timer</h1>} />
         <Route path="/tasks" element={<h1>Tasks</h1>} />
         <Route path="/exams" element={<h1>Exams</h1>} />
@@ -119,6 +135,22 @@ function renderDashboard() {
   );
 }
 
+/* Next exam and tasks moved to Today when the dashboard stopped repeating
+   it; their behaviour is still covered here, rendered on their own with the
+   same providers. */
+function renderCard(node: React.ReactNode) {
+  return renderWithAuth(
+    <Routes>
+      <Route path="/" element={node} />
+      <Route path="/tasks" element={<h1>Tasks</h1>} />
+      <Route path="/exams" element={<h1>Exams</h1>} />
+      <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
+    </Routes>,
+    { session: fakeSession() },
+    { withTimer: true, initialEntries: ["/"] },
+  );
+}
+
 describe("DashboardView", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -129,21 +161,30 @@ describe("DashboardView", () => {
     vi.restoreAllMocks();
   });
 
-  it("groups content by urgency and study context", () => {
+  /* The dashboard used to repeat Today card for card. It now holds only
+     what Today does not: memory and mistakes, activity and peers. */
+  it("does not repeat Today, and says where the next step lives", () => {
+    serveDashboard({ tasks: [task()], exams: [exam()] });
+    localStorage.setItem("learnora_dashboard_layout_v2", JSON.stringify({}));
+    renderDashboard();
+
+    expect(screen.getByRole("link", { name: "Today" })).toHaveAttribute("href", "/");
+    expect(screen.queryByLabelText("Quick add task")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open calendar" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Pick up where you left off/)).not.toBeInTheDocument();
+    /* Only the community feed is off by default now. */
+    expect(screen.getByRole("button", { name: /^More \(1 hidden\)/ })).toBeInTheDocument();
+  });
+
+  it("groups memory and activity", () => {
     serveDashboard();
     renderDashboard();
 
     expect(
-      screen.getByRole("heading", { name: "Priorities" }),
+      screen.getByRole("heading", { name: "What you're getting wrong, and what's fading" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Continue studying" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Progress and streak" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Sessions and community" }),
+      screen.getByRole("heading", { name: "Daily goals & study peers" }),
     ).toBeInTheDocument();
   });
 
@@ -195,7 +236,7 @@ describe("DashboardView", () => {
           }),
         ],
       });
-      renderDashboard();
+      renderCard(<NextExamCard />);
 
       expect(await screen.findByText("Near exam")).toBeInTheDocument();
       expect(screen.getByText("3")).toBeInTheDocument();
@@ -205,7 +246,7 @@ describe("DashboardView", () => {
 
     it("shows the empty state when nothing is scheduled", async () => {
       serveDashboard({ exams: [] });
-      renderDashboard();
+      renderCard(<NextExamCard />);
 
       expect(await screen.findByText(/No exams scheduled/)).toBeInTheDocument();
     });
@@ -213,7 +254,7 @@ describe("DashboardView", () => {
     it("links to the calendar", async () => {
       const user = userEvent.setup();
       serveDashboard({ exams: [exam()] });
-      renderDashboard();
+      renderCard(<NextExamCard />);
 
       await user.click(
         await screen.findByRole("link", { name: "Open calendar" }),
@@ -332,7 +373,7 @@ describe("DashboardView", () => {
     it("shows pending tasks and a View all link", async () => {
       const user = userEvent.setup();
       serveDashboard({ tasks: [task()] });
-      renderDashboard();
+      renderCard(<TasksCard />);
 
       expect(await screen.findByText("Read chapter 4")).toBeInTheDocument();
       await user.click(screen.getByRole("link", { name: "View all" }));
@@ -344,7 +385,7 @@ describe("DashboardView", () => {
     it("banners due flashcards and links to the Library", async () => {
       const user = userEvent.setup();
       serveDashboard({ dueCount: 4 });
-      renderDashboard();
+      renderCard(<TasksCard />);
 
       expect(await screen.findByText("4 cards due today")).toBeInTheDocument();
       await user.click(screen.getByRole("link", { name: "Review now" }));
@@ -355,7 +396,7 @@ describe("DashboardView", () => {
 
     it("hides the due banner when nothing is due", async () => {
       serveDashboard({ dueCount: 0, tasks: [task()] });
-      renderDashboard();
+      renderCard(<TasksCard />);
 
       await screen.findByText("Read chapter 4");
       expect(screen.queryByText(/due today/)).not.toBeInTheDocument();
@@ -511,7 +552,10 @@ describe("DashboardView", () => {
       serveDashboard({ tasks: [task()] });
       renderDashboard();
 
-      await screen.findByText("Read chapter 4");
+      await screen.findByText("Ask Learnora AI");
+      await waitFor(() =>
+        expect(screen.queryByText("Welcome to Learnora")).not.toBeInTheDocument(),
+      );
       expect(screen.queryByText("Welcome to Learnora")).not.toBeInTheDocument();
     });
 
@@ -524,11 +568,15 @@ describe("DashboardView", () => {
         await screen.findByRole("button", { name: /Create study material/ }),
       );
       expect(
-        await screen.findByRole("heading", { name: "Build study resources" }),
+        await screen.findByRole("heading", {
+          name: "What do you want to learn?",
+        }),
       ).toBeInTheDocument();
     });
 
-    it("focuses the quick-add task input from its own button", async () => {
+    /* The quick-add input is on Today now, so the banner opens the
+       create dialog on its task panel instead. */
+    it("opens the task panel from its own button", async () => {
       const user = userEvent.setup();
       serveDashboard();
       renderDashboard();
@@ -536,7 +584,9 @@ describe("DashboardView", () => {
       await user.click(
         await screen.findByRole("button", { name: /Add a task/ }),
       );
-      expect(screen.getByLabelText("Quick add task")).toHaveFocus();
+      expect(
+        await screen.findByRole("heading", { name: "Add a task" }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -588,6 +638,49 @@ describe("DashboardView", () => {
     });
   });
 
+  describe("Customize dashboard", () => {
+    it("hides a section once toggled off and remembers it on reload", async () => {
+      const user = userEvent.setup();
+      serveDashboard();
+      renderDashboard();
+
+      const heading = "What you're getting wrong, and what's fading";
+      expect(
+        await screen.findByRole("heading", { name: heading }),
+      ).toBeInTheDocument();
+
+      await user.click(
+        screen.getByRole("button", { name: "Customize dashboard layout" }),
+      );
+      const dialog = await screen.findByRole("dialog", {
+        name: "Customize Dashboard",
+      });
+      const row = within(dialog)
+        .getByText("Progress and memory")
+        .closest("div")!.parentElement!.parentElement!;
+      await user.click(within(row).getByRole("button", { name: "Visible" }));
+      await user.click(
+        within(dialog).getByRole("button", { name: "Save Layout" }),
+      );
+
+      expect(screen.queryByRole("heading", { name: heading })).not.toBeInTheDocument();
+
+      // Reload: preference persisted through DashboardCustomizeModal's storage.
+      const { unmount } = renderDashboard();
+      expect(screen.queryAllByRole("heading", { name: heading })).toHaveLength(0);
+      unmount();
+    });
+
+    it("shows the daily activity rings by default", async () => {
+      serveDashboard();
+      renderDashboard();
+
+      expect(
+        await screen.findByRole("region", { name: "Daily Activity Rings" }),
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("Adaptive health widget", () => {
     it("renders the revision-health widget and navigates to analytics", async () => {
       serveDashboard({
@@ -596,12 +689,117 @@ describe("DashboardView", () => {
       renderDashboard();
 
       expect(
-        await screen.findByRole("region", { name: "How well your revision is sticking" }),
+        await screen.findByRole("region", {
+          name: "How well your revision is sticking",
+        }),
       ).toBeInTheDocument();
       expect(screen.getByText("Your revision")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /See more/i })).toHaveAttribute(
+        "href",
+        "/analytics",
+      );
+    });
+  });
+
+  describe("Progressive disclosure tabs", () => {
+    it("opens on Insights, and an old ?tab=focus link lands there too", async () => {
+      const user = userEvent.setup();
+      serveDashboard();
+      renderWithAuth(
+        <ChatProvider>
+          <Routes>
+            <Route path="/dashboard" element={<DashboardView />} />
+          </Routes>
+        </ChatProvider>,
+        { session: fakeSession() },
+        { withTimer: true, initialEntries: ["/dashboard?tab=focus"] },
+      );
+
       expect(
-        screen.getByRole("link", { name: /See more/i }),
-      ).toHaveAttribute("href", "/analytics");
+        screen.getByRole("tab", { name: /Insights & mistakes/i }),
+      ).toHaveAttribute("aria-selected", "true");
+      expect(
+        screen.getByRole("heading", { name: "What you're getting wrong, and what's fading" }),
+      ).toBeInTheDocument();
+
+      await user.click(screen.getByRole("tab", { name: /Activity & Peers/i }));
+      expect(
+        screen.getByRole("heading", { name: "Daily goals & study peers" }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("Study this now", () => {
+    const soon = () => {
+      const d = new Date();
+      d.setDate(d.getDate() + 3);
+      return d.toISOString().slice(0, 10);
+    };
+
+    it("leads the memory section, and is absent without an upcoming exam", async () => {
+      /* Default fixtures carry no upcoming exam, so the block must not be
+         there at all — not an empty placeholder. */
+      renderDashboard();
+      await screen.findByRole("tab", { name: /All/ });
+      expect(screen.queryByTestId("study-this-now")).not.toBeInTheDocument();
+
+      cleanup();
+      localStorage.clear();
+
+      server.use(
+        http.get(rest("exams"), () =>
+          HttpResponse.json([
+            {
+              id: 1,
+              user_id: "user-1",
+              exam_name: "Physics Paper 1",
+              exam_date: soon(),
+              difficulty: null,
+              status: null,
+              folder_id: "f-physics",
+            },
+          ]),
+        ),
+        http.get(rest("folders"), () =>
+          HttpResponse.json([
+            { id: "f-physics", user_id: "user-1", name: "Physics" },
+          ]),
+        ),
+        http.get(rest("misconceptions"), () =>
+          HttpResponse.json([
+            {
+              id: "m-1",
+              subject: "Physics",
+              concept: "Momentum in 2D collisions",
+              concept_key: "momentum 2d collisions",
+              summary: "Treats momentum as a scalar.",
+              status: "open",
+              severity: "critical",
+              origin_tool: "quiz",
+              times_observed: 3,
+              times_corrected: 0,
+              first_seen_at: "2026-09-01T10:00:00Z",
+              last_seen_at: "2026-09-20T10:00:00Z",
+              resolved_at: null,
+            },
+          ]),
+        ),
+      );
+
+      const second = renderDashboard();
+      const card = await screen.findByTestId("study-this-now");
+
+      /* Inside the panel, before the ledger and memory tiles it summarises. */
+      const panel = second.container.querySelector('[role="tabpanel"]');
+      expect(panel?.contains(card)).toBe(true);
+      const memoryHeading = screen.getByRole("heading", {
+        name: "What you're getting wrong, and what's fading",
+      });
+      expect(
+        card.compareDocumentPosition(memoryHeading) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(card).toHaveTextContent("Misconception to fix next");
     });
   });
 });

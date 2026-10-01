@@ -1,10 +1,38 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { renderWithProviders } from "../../test/render";
+import { server } from "../../test/mocks/server";
+import { mockAuthSession } from "../../test/mockSession";
+import { SUPABASE_URL } from "../../lib/supabase";
 import { CUSTOM_THEME_KEY } from "../../lib/appearance";
 import { Storage } from "../../lib/storage";
 import { AppearanceTab } from "./AppearanceTab";
+
+/* Accent presets and the custom colour studio are Pro-gated (customAppearance
+   in lib/entitlements.ts); everything this file exercises lives behind that
+   gate, so every test here renders as an entitled Pro account. Gating itself
+   is covered separately, in "keeps the colour controls behind the Pro gate
+   for a free account" below. */
+function serveProfile(pro: boolean) {
+  server.use(
+    http.get(`${SUPABASE_URL}/rest/v1/profiles`, () =>
+      HttpResponse.json(
+        pro
+          ? [
+              {
+                plan: "pro",
+                plan_status: "active",
+                plan_renews_at: null,
+                plan_cancel_at_period_end: false,
+              },
+            ]
+          : [],
+      ),
+    ),
+  );
+}
 
 describe("AppearanceTab", () => {
   beforeEach(() => {
@@ -20,12 +48,33 @@ describe("AppearanceTab", () => {
     ]) {
       document.body.removeAttribute(attr);
     }
+    mockAuthSession("user-1");
+    serveProfile(true);
   });
 
-  it("marks the stored selection as pressed on mount", () => {
+  it("keeps the colour controls behind the Pro gate for a free account", async () => {
+    serveProfile(false);
+    renderWithProviders(<AppearanceTab />);
+
+    expect(
+      await screen.findByRole("button", { name: /see what pro adds/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Pacific Deep")).toBeNull();
+  });
+
+  /* Every remaining test exercises accent/custom-colour controls, which sit
+     behind the Pro gate and so behind the entitlements query's first
+     resolution — waiting for the swatch grid to appear is what stands in for
+     "the gate has opened" before a test starts clicking. */
+  async function renderTab() {
+    renderWithProviders(<AppearanceTab />);
+    return screen.findByRole("group", { name: "Colour presets" });
+  }
+
+  it("marks the stored selection as pressed on mount", async () => {
     Storage.set("learnora_mode", "light");
     Storage.set("learnora_accent", "ocean");
-    renderWithProviders(<AppearanceTab />);
+    await renderTab();
 
     expect(screen.getByRole("button", { name: /Light Mode/ })).toHaveAttribute(
       "aria-pressed",
@@ -43,7 +92,7 @@ describe("AppearanceTab", () => {
 
   it("applies a mode change to the body immediately", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AppearanceTab />);
+    await renderTab();
     expect(document.body.classList.contains("dark-theme")).toBe(true);
 
     await user.click(screen.getByRole("button", { name: /Light Mode/ }));
@@ -53,7 +102,7 @@ describe("AppearanceTab", () => {
 
   it("applies a preset to the body and renames the live preview badge", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AppearanceTab />);
+    await renderTab();
     // Swatch card name + live preview badge.
     expect(screen.getAllByText("Scholar Teal")).toHaveLength(2);
 
@@ -64,15 +113,14 @@ describe("AppearanceTab", () => {
     expect(screen.getAllByText("Neon Velvet")).toHaveLength(2);
   });
 
-  it("offers all thirteen curated presets", () => {
-    renderWithProviders(<AppearanceTab />);
-    const group = screen.getByRole("group", { name: "Colour presets" });
+  it("offers all thirteen curated presets", async () => {
+    const group = await renderTab();
     expect(group.querySelectorAll("button")).toHaveLength(13);
   });
 
   it("applies font, scale, sidebar and background choices to the body", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AppearanceTab />);
+    await renderTab();
 
     await user.click(screen.getByRole("button", { name: /JetBrains Mono/ }));
     await user.click(screen.getByRole("button", { name: /Compact/ }));
@@ -87,7 +135,7 @@ describe("AppearanceTab", () => {
 
   it("does not persist a change until Save Appearance is pressed", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AppearanceTab />);
+    await renderTab();
 
     await user.click(screen.getByRole("button", { name: /Pacific Deep/ }));
     expect(Storage.get<string>("learnora_accent")).toBeNull();
@@ -100,7 +148,7 @@ describe("AppearanceTab", () => {
 
   it("writes every appearance key on save", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AppearanceTab />);
+    await renderTab();
 
     await user.click(screen.getByRole("button", { name: /Light Mode/ }));
     await user.click(screen.getByRole("button", { name: /Inter UI/ }));
@@ -119,7 +167,7 @@ describe("AppearanceTab", () => {
     Storage.set("learnora_accent", "ruby");
     Storage.set("learnora_font", "mono");
     Storage.set(CUSTOM_THEME_KEY, { colors: ["#123456"], intensity: 10 });
-    renderWithProviders(<AppearanceTab />);
+    await renderTab();
 
     await user.click(screen.getByRole("button", { name: "Reset Defaults" }));
 
@@ -134,7 +182,7 @@ describe("AppearanceTab", () => {
 
   it("switches the accent to custom as soon as the studio is touched", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AppearanceTab />);
+    await renderTab();
     expect(document.body.getAttribute("data-theme-color")).toBe("default");
 
     await user.click(screen.getByRole("button", { name: /^Add Colour/ }));
@@ -146,7 +194,7 @@ describe("AppearanceTab", () => {
 
   it("deselects the preset that was active before the studio took over", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AppearanceTab />);
+    await renderTab();
     const scholar = screen.getByRole("button", { name: /Scholar Teal/ });
     expect(scholar).toHaveAttribute("aria-pressed", "true");
 

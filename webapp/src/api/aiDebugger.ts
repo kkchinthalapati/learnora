@@ -1,4 +1,14 @@
-import { callEdge } from "./ai";
+import { AiError, callEdge } from "./ai";
+import { learningEventsApi } from "./learningEvents";
+import { normaliseTopicKey } from "../lib/topicKey";
+import { extractJSON } from "../lib/aiJson";
+import { collection } from "../lib/storage";
+import { misconceptionsApi } from "./misconceptions";
+import {
+  formatMisconceptionsForPrompt,
+  misconceptionsForSubject,
+  rankMisconceptions,
+} from "../lib/misconceptions";
 
 export type LayerStatus = "healthy" | "shaky" | "severed";
 
@@ -10,6 +20,19 @@ export interface CognitiveLayer {
   prerequisiteOf?: string;
 }
 
+/** Why the tutor's work is missing: a trace that is a stand-in rather than a
+ *  real diagnosis, or a fix-it exercise that could not be made.
+ *
+ *  `unavailable` — the tutor could not be reached at all (network, 5xx, or
+ *  the student's daily allowance is spent).
+ *  `unreadable`  — the tutor answered, but not with anything usable. */
+export interface DegradedDiagnosis {
+  reason: "unavailable" | "unreadable";
+  /** The real failure, in the server's own words where it had any. Shown to
+   *  the student, so it has to be a sentence and not a stack trace. */
+  message: string;
+}
+
 export interface CognitiveStackTrace {
   id: string;
   failedQuestionOrTopic: string;
@@ -17,6 +40,11 @@ export interface CognitiveStackTrace {
   layers: CognitiveLayer[];
   rootCauseSummary: string;
   timestamp: string;
+  /* Present only on a stand-in. Everything downstream keys off this: the
+     view labels it instead of passing it off as a diagnosis, and the
+     misconception ledger refuses it. A trace without this field was
+     produced by the model and can be trusted as far as the model goes. */
+  degraded?: DegradedDiagnosis;
 }
 
 export interface InteractiveExercise {
@@ -34,6 +62,12 @@ export interface MicroRepairChallenge {
   verified: boolean;
 }
 
+/** What "Fix it" produced: an exercise the tutor wrote, or why there isn't
+ *  one. Never a stand-in exercise — see `generateMicroRepair`. */
+export type MicroRepairResult =
+  | { challenge: MicroRepairChallenge; degraded?: undefined }
+  | { challenge?: undefined; degraded: DegradedDiagnosis };
+
 export const STORAGE_KEY_TRACES = "learnora_cognitive_traces_v1";
 export const STORAGE_KEY_REPAIRS = "learnora_micro_repairs_v1";
 
@@ -44,76 +78,36 @@ function generateId(): string {
   return "tr_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 9);
 }
 
-function sanitizeJSON(str: string): string {
-  return str.replace(/,(\s*[\]}])/g, "$1");
-}
-
-function stripFences(text: string): string {
-  return text
-    .replace(/```json\s*/gi, "")
-    .replace(/```\s*/g, "")
-    .trim();
-}
-
 /** Retrieve all cached cognitive stack traces from local/session storage */
+/* Capped at 50, as this store always has been. */
+const traceStore = collection<CognitiveStackTrace>(
+  STORAGE_KEY_TRACES,
+  (t) => t.id,
+  { limit: 50 },
+);
+
 export function getSavedTraces(): CognitiveStackTrace[] {
-  if (typeof window === "undefined" || !window.localStorage) return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY_TRACES);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return traceStore.list();
 }
 
 /** Retrieve a specific cognitive trace by ID */
 export function getSavedTraceById(id: string): CognitiveStackTrace | null {
-  const traces = getSavedTraces();
-  return traces.find((t) => t.id === id) || null;
+  return traceStore.find(id);
 }
 
 /** Save or update a cognitive trace in local storage */
 export function saveTrace(trace: CognitiveStackTrace): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    const traces = getSavedTraces();
-    const existingIndex = traces.findIndex((t) => t.id === trace.id);
-    let updated: CognitiveStackTrace[];
-    if (existingIndex >= 0) {
-      updated = [...traces];
-      updated[existingIndex] = trace;
-    } else {
-      updated = [trace, ...traces];
-    }
-    // Cap at 50 historical traces
-    window.localStorage.setItem(STORAGE_KEY_TRACES, JSON.stringify(updated.slice(0, 50)));
-  } catch (err) {
-    console.warn("Failed to persist the saved mistake to localStorage:", err);
-  }
+  traceStore.save(trace);
 }
 
 /** Delete a cognitive trace by ID */
 export function deleteTrace(id: string): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    const traces = getSavedTraces();
-    const filtered = traces.filter((t) => t.id !== id);
-    window.localStorage.setItem(STORAGE_KEY_TRACES, JSON.stringify(filtered));
-  } catch (err) {
-    console.warn("Failed to delete trace from localStorage:", err);
-  }
+  traceStore.remove(id);
 }
 
 /** Clear all trace history */
 export function clearTraceHistory(): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    window.localStorage.removeItem(STORAGE_KEY_TRACES);
-  } catch (err) {
-    console.warn("Failed to clear trace history:", err);
-  }
+  traceStore.clear();
 }
 
 /** Retrieve all cached micro-repair challenges */
@@ -145,12 +139,14 @@ export function buildDiagnosticPrompt(
   subject: string,
   mistakeDescription: string,
   context?: string,
+  priorLedger?: string,
 ): string {
   return `You are the Learnora Cognitive Root-Cause Debugger. Your job is to perform a deep cognitive stack trace on a student's mistake or confusion, peeling back the layers from the surface error down to the broken foundational prerequisite.
 
 Subject: ${subject}
 Mistake/Problem: ${mistakeDescription}
 ${context ? `Additional Context/Attempt: ${context}` : ""}
+${priorLedger ? `\n${priorLedger}\n- PRIOR-DIAGNOSIS RULE: if this mistake traces back to a root cause already listed above, name that same root concept rather than inventing a new phrasing for it — a repeat is the most useful thing you can tell this student, and a fresh label for an old problem hides it. Say plainly in "rootCauseSummary" that this has come up before and what has not stuck. If it is genuinely a new gap, ignore the list entirely and do not mention it.\n` : ""}
 
 Analyze the exact misconception by building a 3-layer Mental Stack Trace:
 - Level 3 (Surface Problem): The immediate problem or formula where the student failed. Status is typically "severed".
@@ -189,10 +185,12 @@ You MUST reply with ONLY valid raw JSON conforming to this exact schema (no pros
 }
 
 /** Build the prompt for generating a 60-second micro-repair */
-export function buildMicroRepairPrompt(rootConcept: string): string {
-  return `You are the Learnora Micro-Repair Engine. Generate a rapid 60-second first-principles interactive mental repair for the following broken foundational concept: "${rootConcept}".
+export function buildMicroRepairPrompt(rootConcept: string, avoidPrompt?: string): string {
+  return `You are the Learnora Micro-Repair Engine. Generate a short first-principles interactive mental repair for the following broken foundational concept: "${rootConcept}".
+${avoidPrompt ? `\nThe student has just missed this question and seen its answer, so ask something DIFFERENT that tests the same idea from another angle — not a rewording of it:\n"""${avoidPrompt}"""\n` : ""}
+Strip out the jargon. Explain it the way you would to a friend who has never seen it before, in plain British English, so it clicks quickly.
 
-Strip out the jargon. Explain it the way you would to a friend who has never seen it before, in plain British English, so it clicks in under a minute.
+The four answer options MUST each be a short clause under 40 characters — "A rate of change", "The final numeric answer" — never a full sentence.
 
 You MUST reply with ONLY valid raw JSON conforming to this exact schema (no prose outside JSON):
 {
@@ -201,10 +199,10 @@ You MUST reply with ONLY valid raw JSON conforming to this exact schema (no pros
   "interactiveExercise": {
     "prompt": "A single targeted conceptual question with 4 options testing this fundamental intuition directly.",
     "options": [
-      "Option A",
-      "Option B",
-      "Option C",
-      "Option D"
+      "Short clause, under 40 characters",
+      "Short clause, under 40 characters",
+      "Short clause, under 40 characters",
+      "Short clause, under 40 characters"
     ],
     "correctIndex": 0,
     "firstPrinciplesExplanation": "A plain explanation of why this answer is right, so the idea sticks."
@@ -213,6 +211,23 @@ You MUST reply with ONLY valid raw JSON conforming to this exact schema (no pros
 }
 
 /** Fallback generator for diagnostic stack traces when offline or in test environments */
+/** Turn a thrown error into one sentence a 14-year-old can act on.
+ *
+ *  `AiError.retryable` is the useful split, and it already exists: it is
+ *  false for the 4xx family, which is where the deliberate refusals live —
+ *  a spent daily allowance, a timeout, a content refusal. Those messages are
+ *  written for a student and say when they can try again, so they are shown
+ *  as they are. A retryable error is a 5xx or a dropped connection, where
+ *  the message is whatever the server happened to put in the body ("server
+ *  exploded" is a real example) and belongs in the console, not on a
+ *  revision screen. */
+function studentFacingReason(err: unknown): string {
+  if (err instanceof AiError && !err.retryable && err.message.trim()) {
+    return err.message.trim();
+  }
+  return "We couldn't reach the tutor just now.";
+}
+
 function createFallbackDiagnosis(
   subject: string,
   mistakeDescription: string,
@@ -248,58 +263,52 @@ function createFallbackDiagnosis(
   };
 }
 
-/** Fallback generator for micro repair when offline or in test environments */
-function createFallbackMicroRepair(rootConcept: string): MicroRepairChallenge {
-  return {
-    id: generateId(),
-    rootConcept,
-    intuitionSummary: `${rootConcept} isn\u2019t a random rule to memorise. It\u2019s a promise that something stays the same. Every step you take has to keep that promise.`,
-    interactiveExercise: {
-      prompt: `When you use "${rootConcept}", what is the one thing that has to stay true at every step?`,
-      options: [
-        "The units and the logic have to balance the whole way through.",
-        "Only the final number matters, however you got there.",
-        "You can flip a sign whenever the outside terms look right.",
-        "You can skip the basics as long as you remember the shortcut.",
-      ],
-      correctIndex: 0,
-      firstPrinciplesExplanation: `If the thing that has to stay the same really does stay the same at every step, the mistake never gets a chance to creep in.`,
-    },
-    verified: false,
-  };
-}
-
 /** Diagnose cognitive root cause and generate a 3-layer Mental Stack Trace */
 export async function diagnoseCognitiveGap(
   subject: string,
   mistakeDescription: string,
   context?: string,
 ): Promise<CognitiveStackTrace> {
-  const prompt = buildDiagnosticPrompt(subject, mistakeDescription, context);
+  /* The Debugger's whole value is finding the root cause underneath a mistake.
+     Without this it re-derives that from scratch every time and cannot tell a
+     first occurrence from the fourth — so a student who has hit the same
+     broken prerequisite all term gets the same fresh-sounding diagnosis, worded
+     differently enough that even they might not notice. Best-effort: a failed
+     read just means the older, historyless prompt. */
+  let priorLedger = "";
+  try {
+    const ledger = await misconceptionsApi.fetchAll();
+    const relevant = subject.trim()
+      ? misconceptionsForSubject(ledger, subject)
+      : rankMisconceptions(ledger);
+    if (relevant.length > 0) {
+      priorLedger = formatMisconceptionsForPrompt(relevant);
+    }
+  } catch (err) {
+    console.warn("[debugger] Could not read misconception ledger:", err);
+  }
+
+  const prompt = buildDiagnosticPrompt(
+    subject,
+    mistakeDescription,
+    context,
+    priorLedger,
+  );
 
   let diagnosisData: { rootCauseSummary: string; layers: CognitiveLayer[] };
+  /* Set whenever the trace below is a template rather than a diagnosis. It
+     travels with the trace so no caller has to guess. */
+  let degraded: DegradedDiagnosis | undefined;
 
   try {
     const result = await callEdge({
       history: [{ role: "user", content: prompt }],
-      mode: "rewrite",
+      mode: "solver",
+      tool: "debugger",
     });
 
-    const text = stripFences(result.text || "");
-    const sanitized = sanitizeJSON(text);
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(sanitized);
-    } catch {
-      // If direct parse fails, try extracting first JSON object
-      const match = sanitized.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(sanitizeJSON(match[0]));
-      } else {
-        throw new Error("Could not read the AI's answer");
-      }
-    }
+    const parsed = extractJSON<any>(result.text);
+    if (!parsed) throw new Error("Could not read the AI's answer");
 
     if (parsed && Array.isArray(parsed.layers) && parsed.layers.length > 0) {
       const layers: CognitiveLayer[] = parsed.layers.map((l: any, idx: number) => ({
@@ -324,10 +333,15 @@ export async function diagnoseCognitiveGap(
       };
     } else {
       diagnosisData = createFallbackDiagnosis(subject, mistakeDescription);
+      degraded = {
+        reason: "unreadable",
+        message: "The tutor replied, but not with a diagnosis we could read.",
+      };
     }
   } catch (err) {
     console.warn("Mistake analysis fallback activated:", err);
     diagnosisData = createFallbackDiagnosis(subject, mistakeDescription);
+    degraded = { reason: "unavailable", message: studentFacingReason(err) };
   }
 
   const trace: CognitiveStackTrace = {
@@ -337,72 +351,79 @@ export async function diagnoseCognitiveGap(
     layers: diagnosisData.layers,
     rootCauseSummary: diagnosisData.rootCauseSummary,
     timestamp: new Date().toISOString(),
+    ...(degraded ? { degraded } : {}),
   };
 
   saveTrace(trace);
   return trace;
 }
 
-/** Generate a 60-second first-principles interactive micro-repair */
-export async function generateMicroRepair(rootConcept: string): Promise<MicroRepairChallenge> {
-  const prompt = buildMicroRepairPrompt(rootConcept);
+/** Generate a 60-second first-principles interactive micro-repair.
+ *
+ *  When the tutor can't write one, this says why and offers nothing else.
+ *  It used to hand back a template instead ("what has to stay true at every
+ *  step?", the answer always A), and passing that did everything a real pass
+ *  does: the view said the gap was closed, the forecast credited the concept,
+ *  and a correction went into the misconception ledger. A row the diagnosis
+ *  wrote once is resolved by two corrections, and the free plan's two
+ *  Debugger calls a day are spent by one diagnosis and one real repair, so
+ *  "Go over it again" was exactly where the template appeared: its pass was
+ *  the second correction, and a 429 closed a real misconception. */
+export async function generateMicroRepair(
+  rootConcept: string,
+  { avoidPrompt }: { avoidPrompt?: string } = {},
+): Promise<MicroRepairResult> {
+  const prompt = buildMicroRepairPrompt(rootConcept, avoidPrompt);
 
+  let parsed: any;
   try {
     const result = await callEdge({
       history: [{ role: "user", content: prompt }],
-      mode: "rewrite",
+      mode: "solver",
+      tool: "debugger",
     });
-
-    const text = stripFences(result.text || "");
-    const sanitized = sanitizeJSON(text);
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(sanitized);
-    } catch {
-      const match = sanitized.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(sanitizeJSON(match[0]));
-      } else {
-        throw new Error("Could not read the AI's answer");
-      }
-    }
-
-    if (
-      parsed &&
-      typeof parsed.intuitionSummary === "string" &&
-      parsed.interactiveExercise &&
-      Array.isArray(parsed.interactiveExercise.options)
-    ) {
-      const challenge: MicroRepairChallenge = {
-        id: generateId(),
-        rootConcept: parsed.rootConcept || rootConcept,
-        intuitionSummary: parsed.intuitionSummary,
-        interactiveExercise: {
-          prompt: parsed.interactiveExercise.prompt || `What does ${rootConcept} actually mean?`,
-          options: parsed.interactiveExercise.options,
-          correctIndex:
-            typeof parsed.interactiveExercise.correctIndex === "number" &&
-            parsed.interactiveExercise.correctIndex >= 0 &&
-            parsed.interactiveExercise.correctIndex < parsed.interactiveExercise.options.length
-              ? parsed.interactiveExercise.correctIndex
-              : 0,
-          firstPrinciplesExplanation:
-            parsed.interactiveExercise.firstPrinciplesExplanation ||
-            "Nice — that's the idea.",
-        },
-        verified: false,
-      };
-      saveRepair(challenge);
-      return challenge;
-    }
+    parsed = extractJSON<any>(result.text);
   } catch (err) {
-    console.warn("Micro-repair generation fallback activated:", err);
+    console.warn("Micro-repair generation failed:", err);
+    return { degraded: { reason: "unavailable", message: studentFacingReason(err) } };
   }
 
-  const fallback = createFallbackMicroRepair(rootConcept);
-  saveRepair(fallback);
-  return fallback;
+  const exercise = parsed?.interactiveExercise;
+  const options: unknown[] = Array.isArray(exercise?.options) ? exercise.options : [];
+  const correctIndex = exercise?.correctIndex;
+  /* Passing is recorded as evidence, so an exercise has to be passable only
+     by knowing the answer: at least two options, and a right answer the
+     tutor actually named rather than one assumed for it. */
+  if (
+    typeof parsed?.intuitionSummary !== "string" ||
+    options.length < 2 ||
+    !Number.isInteger(correctIndex) ||
+    correctIndex < 0 ||
+    correctIndex >= options.length
+  ) {
+    return {
+      degraded: {
+        reason: "unreadable",
+        message: "The tutor replied, but not with an exercise we could use.",
+      },
+    };
+  }
+
+  const challenge: MicroRepairChallenge = {
+    id: generateId(),
+    rootConcept: parsed.rootConcept || rootConcept,
+    intuitionSummary: parsed.intuitionSummary,
+    interactiveExercise: {
+      prompt: exercise.prompt || `What does ${rootConcept} actually mean?`,
+      options: options.map(String),
+      correctIndex,
+      firstPrinciplesExplanation:
+        exercise.firstPrinciplesExplanation || "Nice — that's the idea.",
+    },
+    verified: false,
+  };
+  saveRepair(challenge);
+  return { challenge };
 }
 
 /** Record that a repair challenge was successfully completed and restore the broken circuit */
@@ -439,5 +460,8 @@ export async function recordRepairSuccess(traceId: string, repairId: string): Pr
       layers: updatedLayers,
     };
     saveTrace(updatedTrace);
+    const topic = trace.layers.find(layer => layer.level === 1)?.concept ?? trace.failedQuestionOrTopic;
+    void learningEventsApi.record({ source: "solver", topicKey: normaliseTopicKey(topic), score: 1,
+      clientId: `solver:${traceId}:${repairId}`, payload: { traceId, repairId } }).catch(err => console.warn("[solver] evidence:", err));
   }
 }

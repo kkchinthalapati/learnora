@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { Modal } from "../../components/Modal";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
+import type { IconName } from "../../components/icons";
 import { Storage } from "../../lib/storage";
 
 export const DASHBOARD_LAYOUT_KEY = "learnora_dashboard_layout_v2";
 
 export interface DashboardLayoutPreferences {
   visibleSections: {
+    todayTimeline: boolean;
     activityRings: boolean;
-    recentNotebooks: boolean;
     priorities: boolean;
     continueStudying: boolean;
     progressStreak: boolean;
@@ -19,20 +20,42 @@ export interface DashboardLayoutPreferences {
 
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayoutPreferences = {
   visibleSections: {
+    todayTimeline: true,
+    /* On now: with Today holding the next step, memory, streaks and rings are
+       what this page is for. A stored layout that turned them off keeps that
+       choice (loadDashboardLayout merges onto these). The community feed
+       stays behind "More". */
     activityRings: true,
-    recentNotebooks: true,
     priorities: true,
     continueStudying: true,
     progressStreak: true,
-    sessionsCommunity: true,
+    sessionsCommunity: false,
   },
 };
 
+/** Sections hidden by the current layout — what "More" would reveal. */
+export function hiddenSectionCount(layout: DashboardLayoutPreferences): number {
+  return Object.values(layout.visibleSections).filter((v) => !v).length;
+}
+
 export function loadDashboardLayout(): DashboardLayoutPreferences {
-  return Storage.get<DashboardLayoutPreferences>(
+  const stored = Storage.get<Partial<DashboardLayoutPreferences>>(
     DASHBOARD_LAYOUT_KEY,
     DEFAULT_DASHBOARD_LAYOUT,
   );
+  /* Merged onto the defaults rather than returned as-is. A student who has
+     ever opened this modal has a stored object listing the sections that
+     existed *then*, so every section added afterwards reads as `undefined` —
+     which is falsy, so a new card ships hidden for exactly the people who
+     already use the dashboard, and visible only to new accounts. */
+  return {
+    ...DEFAULT_DASHBOARD_LAYOUT,
+    ...stored,
+    visibleSections: {
+      ...DEFAULT_DASHBOARD_LAYOUT.visibleSections,
+      ...stored?.visibleSections,
+    },
+  };
 }
 
 export function saveDashboardLayout(layout: DashboardLayoutPreferences): void {
@@ -48,36 +71,36 @@ interface DashboardCustomizeModalProps {
 
 const SECTION_DESCRIPTIONS: Record<
   keyof DashboardLayoutPreferences["visibleSections"],
-  { title: string; desc: string; icon: string }
+  { title: string; desc: string; icon: IconName }
 > = {
+  todayTimeline: {
+    title: "Today's Timeline",
+    desc: "Your study blocks placed around your real lectures, shifts and commitments",
+    icon: "calendar",
+  },
   activityRings: {
-    title: "Daily Activity Rings",
-    desc: "Apple-style 3-ring focus, flashcards, and task goal visualizer",
+    title: "Daily activity rings",
+    desc: "Focus, flashcard and completed-task goals for today",
     icon: "target",
   },
-  recentNotebooks: {
-    title: "Recent Notebooks Shelf",
-    desc: "Quick access to your active study notebooks and grounded research",
-    icon: "book",
-  },
   priorities: {
-    title: "Priorities Region",
-    desc: "Upcoming countdowns, overdue/today tasks, and daily drill",
+    title: "Daily recall drill",
+    desc: "The flashcards most worth reviewing today",
     icon: "flame",
   },
   continueStudying: {
-    title: "Continue Studying & Focus",
-    desc: "Resume last viewed material and quick Pomodoro focus runner",
+    title: "Focus time and quick timers",
+    desc: "How long you've focused, and one-tap timer presets",
     icon: "clock",
   },
   progressStreak: {
-    title: "Progress, Streak & Memory Decay",
-    desc: "Study streak calendar, focus sparklines, and forgetting curve health",
-    icon: "trending-up",
+    title: "Progress and memory",
+    desc: "Study streaks, focus history and what needs refreshing",
+    icon: "activity",
   },
   sessionsCommunity: {
-    title: "Sessions & Community",
-    desc: "Past focus session logs, Study Circles, and AI Action Tools",
+    title: "Sessions and community",
+    desc: "Recent focus sessions, study friends and Learnora AI shortcuts",
     icon: "users",
   },
 };
@@ -171,7 +194,7 @@ export function DashboardCustomizeModal({
                     color: isVisible ? "var(--primary)" : "var(--text-muted)",
                   }}
                 >
-                  <Icon name={info.icon as unknown as any} size={16} />
+                  <Icon name={info.icon} size={16} />
                 </span>
                 <div>
                   <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>

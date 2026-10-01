@@ -16,8 +16,14 @@ import {
 } from "../../lib/analyticsEngine";
 import { Skeleton } from "../../components/Skeleton";
 import { anyPending } from "../../lib/queryState";
+import { daysBetween } from "../../lib/studyNow";
 import { StudyHeatmap } from "./StudyHeatmap";
+import { ProgressSectionNav } from "./ProgressSectionNav";
+import { RetentionInsights } from "./RetentionInsights";
+import { MisconceptionLedgerCard } from "../dashboard/MisconceptionLedgerCard";
+import { FadingTopicsCard } from "./FadingTopicsCard";
 import styles from "./analytics.module.css";
+import { plural } from "../../lib/plural";
 
 const RANGE_OPTIONS: ReadonlyArray<{
   days: 365 | 90 | 30;
@@ -28,8 +34,21 @@ const RANGE_OPTIONS: ReadonlyArray<{
   { days: 30, label: "30 Days" },
 ];
 
+/* "Balanced" read as a judgement with no reference point, and it was shown
+   for subjects with no exam at all. Plain words for what each state means. */
+/* This column measures how study time is spread, not readiness. "On track"
+   sat beside an exam the Exams page put at 25% ready, six days out; the
+   readiness verdict lives on Exams and Trajectory. */
+const SUBJECT_STATUS_LABEL: Record<string, string> = {
+  Balanced: "Time balanced",
+  "Needs more time": "Needs more time",
+  "Exam soon": "Exam soon — give it time",
+};
+
 export function StudyAnalyticsView() {
-  const [activeRange, setActiveRange] = useState<365 | 90 | 30>(365);
+  /* 90 days, not a year: a year-long grid is ~95% empty squares for most
+     students, and that empty space was the first thing Progress showed. */
+  const [activeRange, setActiveRange] = useState<365 | 90 | 30>(90);
   const [selectedHour, setSelectedHour] = useState<HourlyStats | null>(null);
 
   // Fetch 365 days of sessions for deep engine calculations
@@ -42,8 +61,8 @@ export function StudyAnalyticsView() {
 
   /* Every stat below reads all four of these at once, so a partial load
      renders a confident, wrong screen — 0 hours, 0% consistency, an empty
-     heatmap — that pops when the data lands. Gate on the aggregate the way
-     ConceptGraphView does. */
+     heatmap — that pops when the data lands. Gate on the aggregate so nothing
+     pops when the data lands. */
   const isPending = anyPending(
     sessionsPending,
     attemptsPending,
@@ -75,8 +94,28 @@ export function StudyAnalyticsView() {
   // Derived Summary Metrics
   const totalHours = Math.floor(heatData.totalMinutes / 60);
   const remainingMins = heatData.totalMinutes % 60;
+  /* Measured from the student's first session in the range, not from the
+     start of the range. A student three weeks in with a 7-day streak was
+     told "8 / 365d, 2% consistency" — a verdict on months before they
+     joined. */
+  const firstActiveIdx = heatData.cells.findIndex((c) => c.minutes > 0);
+  /* From dates, not cell counts: the grid pads out to whole weeks, so
+     counting cells overshoots the range. */
+  const trackedDays =
+    firstActiveIdx < 0
+      ? activeRange
+      : Math.min(
+          activeRange,
+          Math.max(
+            1,
+            /* Calendar days, not a floor of elapsed ms: a range that spans
+               the spring clock change is an hour short and floored a day
+               off, overstating consistency. */
+            daysBetween(heatData.cells[firstActiveIdx].date, new Date()) + 1,
+          ),
+        );
   const consistencyPercent = Math.round(
-    (heatData.activeDays / activeRange) * 100,
+    (heatData.activeDays / trackedDays) * 100,
   );
 
   const avgQuizScore = useMemo(() => {
@@ -112,6 +151,7 @@ export function StudyAnalyticsView() {
   if (isPending) {
     return (
       <div className={styles.container} aria-busy="true">
+        <ProgressSectionNav />
         <Skeleton label="Working out your study progress" height={480} />
       </div>
     );
@@ -119,6 +159,12 @@ export function StudyAnalyticsView() {
 
   return (
     <div className={styles.container}>
+      <ProgressSectionNav />
+      {/* The misconception ledger moved here from the retired Dashboard
+          (/dashboard now redirects to Today): what you keep getting wrong is
+          progress, not a daily to-do. */}
+      <FadingTopicsCard />
+      <MisconceptionLedgerCard />
       <div className={styles.progressToolbar}>
         <p>
           Progress from the past <strong>{activeRange} days</strong>
@@ -182,11 +228,15 @@ export function StudyAnalyticsView() {
                 color: "var(--text-muted)",
               }}
             >
-              / {activeRange}d
+              / {trackedDays} {trackedDays === 1 ? "day" : "days"}
             </span>
           </p>
           <div className={styles.statSub}>
-            <span>{consistencyPercent}% consistency</span>
+            <span>
+              {firstActiveIdx < 0
+                ? "No sessions yet"
+                : `Studied on ${consistencyPercent}% of days since you started`}
+            </span>
             <span className={styles.statBadge}>
               {heatData.currentStreak}d streak
             </span>
@@ -264,6 +314,9 @@ export function StudyAnalyticsView() {
         <StudyHeatmap data={heatData} />
       </Card>
 
+      {/* ---- Memory & retention (flashcard scheduler forecast) ----------- */}
+      <RetentionInsights />
+
       {/* ---- 3. Two-Column Grid: Peak Hours & AI Insights ----------------- */}
       <div className={styles.twoColGrid}>
         {/* Peak Focus Hour-by-Hour Bar Chart */}
@@ -309,12 +362,12 @@ export function StudyAnalyticsView() {
                       type="button"
                       key={`hour-${h.hour}`}
                       className={styles.barCol}
-                      title={`${formatHour(h.hour)}: ${h.totalMinutes} mins (${h.sessionCount} sessions)${
+                      title={`${formatHour(h.hour)}: ${h.totalMinutes} min (${plural(h.sessionCount, "session")})${
                         h.avgQuizScore !== null
                           ? `, Quiz avg: ${h.avgQuizScore}%`
                           : ""
                       }`}
-                      aria-label={`${formatHour(h.hour)}: ${h.totalMinutes} minutes, ${h.sessionCount} sessions${
+                      aria-label={`${formatHour(h.hour)}: ${plural(h.totalMinutes, "minute")}, ${plural(h.sessionCount, "session")}${
                         h.avgQuizScore !== null
                           ? `, quiz average ${h.avgQuizScore}%`
                           : ""
@@ -346,9 +399,8 @@ export function StudyAnalyticsView() {
             {selectedHour && (
               <p className={styles.hourDetail} role="status">
                 <strong>{formatHour(selectedHour.hour)}</strong>:{" "}
-                {selectedHour.totalMinutes} minutes across{" "}
-                {selectedHour.sessionCount} session
-                {selectedHour.sessionCount === 1 ? "" : "s"}
+                {plural(selectedHour.totalMinutes, "minute")} across{" "}
+                {plural(selectedHour.sessionCount, "session")}
                 {selectedHour.avgQuizScore !== null
                   ? `, with a ${selectedHour.avgQuizScore}% quiz average.`
                   : "."}
@@ -376,12 +428,13 @@ export function StudyAnalyticsView() {
             <div>
               <h3 className={styles.sectionTitle}>Study patterns</h3>
               <p className={styles.sectionSub}>
-                Generated from session and quiz history
+                Patterns in your sessions and quizzes
               </p>
             </div>
+            {/* Rule-based, from the student's own history. A pulsing
+                "Generated" badge made it read as AI output. */}
             <div className={styles.aiHeaderBadge}>
-              <span className={styles.aiPulseDot} />
-              <span>Generated</span>
+              <span>From your history</span>
             </div>
           </div>
 
@@ -429,8 +482,8 @@ export function StudyAnalyticsView() {
                   gives the table a name when it is reached out of context
                   (table list, browse mode). */}
               <caption className={styles.srOnly}>
-                Study time logged per subject, with upcoming exam dates and
-                preparation status
+                Study time logged per subject, compared with the most-studied
+                subject, with upcoming exam dates and whether time is balanced
               </caption>
               <thead>
                 <tr>
@@ -441,7 +494,7 @@ export function StudyAnalyticsView() {
                     Study Time
                   </th>
                   <th scope="col" className={styles.th}>
-                    Distribution
+                    Vs. most-studied
                   </th>
                   <th scope="col" className={styles.th}>
                     Upcoming Exam
@@ -450,7 +503,7 @@ export function StudyAnalyticsView() {
                     Days Left
                   </th>
                   <th scope="col" className={styles.th}>
-                    Status
+                    Time
                   </th>
                 </tr>
               </thead>
@@ -537,7 +590,7 @@ export function StudyAnalyticsView() {
                       </td>
                       <td className={styles.td}>
                         <span className={`${styles.statusPill} ${statusClass}`}>
-                          {row.status}
+                          {SUBJECT_STATUS_LABEL[row.status] ?? row.status}
                         </span>
                       </td>
                     </tr>

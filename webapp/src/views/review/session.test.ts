@@ -5,6 +5,7 @@ import {
   createReviewSnapshot,
   defaultReviewLength,
   recapFrom,
+  weakTopicScore,
 } from "./session";
 
 function card(id: string, overrides: Partial<Flashcard> = {}): Flashcard {
@@ -44,6 +45,79 @@ describe("review session helpers", () => {
     cards.reverse();
 
     expect(snapshot.map(({ id }) => id)).toEqual(["new", "oldest", "later"]);
+  });
+
+  /* Quiz weak topics reached the study schedule and the forecast but never
+     the review queue, so a topic failed on three quizzes running still
+     waited its turn behind whatever happened to be due. */
+  describe("quiz-weak ordering", () => {
+    const weak = [
+      { topic: "Titration", count: 3 },
+      { topic: "Moles", count: 1 },
+    ];
+
+    it("brings cards matching a failed quiz topic to the front", () => {
+      const cards = [
+        card("unrelated", { front: "What is a catalyst?" }),
+        card("moles", { front: "How many moles in 12 g of carbon?" }),
+        card("titration", { front: "Define the titration endpoint" }),
+      ];
+
+      const snapshot = createReviewSnapshot(cards, "all", "quiz-weak", weak);
+
+      /* Titration is missed more often than Moles, so it outranks it. */
+      expect(snapshot.map(({ id }) => id)).toEqual([
+        "titration",
+        "moles",
+        "unrelated",
+      ]);
+    });
+
+    it("matches on the source material's title as well as the card text", () => {
+      const cards = [
+        card("plain", { front: "A", back: "B" }),
+        card("from-material", {
+          front: "A",
+          back: "B",
+          source_material_title: "Titration lab notes",
+        }),
+      ];
+
+      const snapshot = createReviewSnapshot(cards, "all", "quiz-weak", weak);
+      expect(snapshot[0].id).toBe("from-material");
+    });
+
+    it("keeps every card in the session — it reorders, never filters", () => {
+      const cards = [card("a"), card("b"), card("c")];
+      const snapshot = createReviewSnapshot(cards, "all", "quiz-weak", weak);
+      expect(snapshot).toHaveLength(3);
+    });
+
+    it("falls back to due order when no card matches a weak topic", () => {
+      const cards = [
+        card("later", { next_review_date: "2026-09-01T00:00:00.000Z" }),
+        card("oldest", { next_review_date: "2026-08-01T00:00:00.000Z" }),
+      ];
+
+      const snapshot = createReviewSnapshot(cards, "all", "quiz-weak", weak);
+      expect(snapshot.map(({ id }) => id)).toEqual(["oldest", "later"]);
+    });
+
+    it("scores a card by the summed attempt-count of the topics it mentions", () => {
+      const both = card("both", {
+        front: "Titration",
+        back: "Moles per litre",
+      });
+      expect(weakTopicScore(both, weak)).toBe(4);
+      expect(weakTopicScore(card("none"), weak)).toBe(0);
+      expect(weakTopicScore(both, [])).toBe(0);
+    });
+
+    it("matches case-insensitively and ignores blank topic labels", () => {
+      const c = card("c", { front: "TITRATION curve" });
+      expect(weakTopicScore(c, [{ topic: "titration", count: 2 }])).toBe(2);
+      expect(weakTopicScore(c, [{ topic: "   ", count: 9 }])).toBe(0);
+    });
   });
 
   it("puts low-ease cards first without mutating the query result", () => {
@@ -177,6 +251,34 @@ describe("review session helpers", () => {
       (t) => t.topic.toLowerCase() === "ribosome",
     );
     expect(ribosomeTopic).toBeUndefined();
+  });
+
+  /* The signal this heuristic actually has is recurrence: a word that shows up
+     across several cards the student struggled with is probably the topic. A
+     word that shows up once is just a word from that card. Listing those too
+     turned a single Hard card into "Algae 1 · Bacteria 1 · Chemical 1 ·
+     Convert 1 · Energy 1 · Glucose 1 · Green 1 · Light 1 · Plants 1" under a
+     heading that says "Weak Topics Identified". */
+  it("does not turn a single difficult card into a bag of words", () => {
+    const only = card("c1", {
+      front: "What is the primary purpose of photosynthesis?",
+      back: "Green plants, algae and some bacteria convert light energy into chemical energy stored as glucose.",
+    });
+
+    const recap = recapFrom([{ card: only, quality: 2 }]);
+
+    expect(recap.weakTopics).toEqual([]);
+  });
+
+  it("still keeps an explicitly labelled topic seen only once", () => {
+    const labelled = card("c1", {
+      front: "[Osmosis] Which way does water move?",
+      back: "From high water potential to low.",
+    });
+
+    const recap = recapFrom([{ card: labelled, quality: 1 }]);
+
+    expect(recap.weakTopics.map((t) => t.topic)).toContain("Osmosis");
   });
 });
 

@@ -23,11 +23,22 @@ vi.mock("../../api/aiFeynman", async () => {
   const actual = await vi.importActual("../../api/aiFeynman");
   return {
     ...actual,
-    generateApprenticeDraft: vi.fn().mockImplementation((subject, topic, persona, difficulty) => {
-      return Promise.resolve(
-        (actual as any).generateDynamicDraft(subject, topic, persona, difficulty)
-      );
-    }),
+    generateApprenticeDraft: vi.fn().mockImplementation(
+      (subject, topic, persona, difficulty, ledger, analogyStyle, depth, customAudience) => {
+        return Promise.resolve(
+          (actual as any).generateDynamicDraft(
+            subject,
+            topic,
+            persona,
+            difficulty,
+            ledger,
+            analogyStyle,
+            depth,
+            customAudience
+          )
+        );
+      }
+    ),
   };
 });
 
@@ -41,8 +52,8 @@ describe("FeynmanHubView Component", () => {
   it("renders page header, persona choices, and topic setup form", () => {
     renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
 
-    expect(screen.getByText("Explain It Simply")).toBeInTheDocument();
-    expect(screen.getByText(/Study Lab/i)).toBeInTheDocument();
+    expect(screen.getByText("Explain it simply")).toBeInTheDocument();
+    expect(screen.getByText(/Study tools/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Subject")).toBeInTheDocument();
     expect(screen.getByLabelText("Topic")).toBeInTheDocument();
 
@@ -60,6 +71,42 @@ describe("FeynmanHubView Component", () => {
     expect(screen.getByTestId("start-arena-btn")).toBeInTheDocument();
   });
 
+  /* The Solver and Viva have always read `?topic=`; this one read only the
+     CognitiveBridge, so any caller that could only put the topic in a link —
+     Today's next step, Study Lab's method grid — landed the student on the
+     default topic and let them start explaining the wrong thing. */
+  it("loads the topic named in the link rather than the default", () => {
+    renderWithProviders(<FeynmanHubView />, undefined, {
+      withRouter: true,
+      initialEntries: ["/feynman?topic=Acids%20%26%20Bases"],
+    });
+    expect(screen.getByLabelText("Topic")).toHaveValue("Acids & Bases");
+  });
+
+  /* No silent default: a student who pressed Start straight away used to
+     end up teaching photosynthesis whatever they came to revise. */
+  it("starts with an empty topic, and Start waits for one", () => {
+    renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
+    expect(screen.getByLabelText("Topic")).toHaveValue("");
+    expect(screen.getByTestId("start-arena-btn")).toBeDisabled();
+  });
+
+  it("starts from a subject alone, teaching the subject", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
+
+    await user.type(screen.getByLabelText("Subject"), "Enzymes");
+    const startBtn = screen.getByTestId("start-arena-btn");
+    expect(startBtn).toBeEnabled();
+    await user.click(startBtn);
+
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.stringMatching(/\/feynman\/studio\/feynman-/),
+      ),
+    );
+  });
+
   it("allows selecting personas and popular topic chips", async () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
@@ -68,12 +115,11 @@ describe("FeynmanHubView Component", () => {
     const jordanCard = screen.getByTestId("persona-overconfident_peer");
     await user.click(jordanCard);
 
-    // Click a popular topic chip (e.g. Quantum Entanglement)
-    const quantumChip = screen.getByText(/Quantum Entanglement/i);
-    await user.click(quantumChip);
+    // Click a school-level topic chip
+    await user.click(screen.getByText(/Newton's third law/i));
 
     const topicInput = screen.getByLabelText("Topic") as HTMLInputElement;
-    expect(topicInput.value).toBe("Quantum Entanglement");
+    expect(topicInput.value).toBe("Newton's third law");
 
     const subjectInput = screen.getByLabelText("Subject") as HTMLInputElement;
     expect(subjectInput.value).toBe("Physics");
@@ -83,6 +129,7 @@ describe("FeynmanHubView Component", () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
 
+    await user.type(screen.getByLabelText("Topic"), "Photosynthesis");
     const startBtn = screen.getByTestId("start-arena-btn");
     await user.click(startBtn);
 
@@ -175,5 +222,68 @@ describe("FeynmanHubView Component", () => {
 
     expect(screen.queryByText(/Dijkstra Shortest Path/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId("session-row")).not.toBeInTheDocument();
+  });
+
+  it("renders creative parameters: primary personas, analogy styles, and depth options", () => {
+    renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
+
+    // Primary personas
+    expect(screen.getByTestId("persona-eli10")).toBeInTheDocument();
+    expect(screen.getByTestId("persona-ninth_grader")).toBeInTheDocument();
+    expect(screen.getByTestId("persona-skeptical_buddy")).toBeInTheDocument();
+    expect(screen.getByTestId("persona-cbse_examiner")).toBeInTheDocument();
+    expect(screen.getByTestId("persona-custom")).toBeInTheDocument();
+
+    // Analogy styles
+    expect(screen.getByTestId("analogy-sports_cricket")).toBeInTheDocument();
+    expect(screen.getByTestId("analogy-cooking_kitchen")).toBeInTheDocument();
+    expect(screen.getByTestId("analogy-gaming_tech")).toBeInTheDocument();
+    expect(screen.getByTestId("analogy-physical_machinery")).toBeInTheDocument();
+    expect(screen.getByTestId("analogy-storytelling")).toBeInTheDocument();
+
+    // Depth options
+    expect(screen.getByTestId("depth-quick_intuition")).toBeInTheDocument();
+    expect(screen.getByTestId("depth-core_mechanism")).toBeInTheDocument();
+    expect(screen.getByTestId("depth-deep_dive")).toBeInTheDocument();
+  });
+
+  it("allows selecting custom audience, analogy style, and depth", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
+
+    await user.type(screen.getByLabelText("Topic"), "Photosynthesis");
+    // Custom audience input should not be visible initially
+    expect(screen.queryByTestId("custom-audience-input")).not.toBeInTheDocument();
+
+    // The options are folded away until asked for
+    await user.click(screen.getByText("Customise (optional)"));
+
+    // Select custom audience persona
+    const customPersonaCard = screen.getByTestId("persona-custom");
+    await user.click(customPersonaCard);
+
+    // Custom audience input should now appear
+    const customInput = screen.getByTestId("custom-audience-input") as HTMLInputElement;
+    expect(customInput).toBeInTheDocument();
+    await user.type(customInput, "My 75-year-old grandfather who loves carpentry");
+    expect(customInput.value).toBe("My 75-year-old grandfather who loves carpentry");
+
+    // Select gaming & tech analogy style
+    const gamingAnalogy = screen.getByTestId("analogy-gaming_tech");
+    await user.click(gamingAnalogy);
+
+    // Select deep dive depth
+    const deepDiveBtn = screen.getByTestId("depth-deep_dive");
+    await user.click(deepDiveBtn);
+
+    // Launch session
+    const startBtn = screen.getByTestId("start-arena-btn");
+    await user.click(startBtn);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.stringMatching(/\/feynman\/studio\/feynman-/)
+      );
+    });
   });
 });

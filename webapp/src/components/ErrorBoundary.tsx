@@ -4,10 +4,20 @@ import { Button } from "./Button";
 import { Card } from "./Card";
 import { Icon } from "./Icon";
 import { applyAppUpdate, isChunkLoadError } from "../lib/appUpdate";
+import { reportError } from "../lib/monitoring";
 import styles from "./ErrorBoundary.module.css";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
+  /* What to show instead of the full-page recovery card. The card assumes it
+     owns the viewport, which is right for the routed view and wrong for a
+     docked overlay — a crashed chat panel should quietly disappear, not
+     replace the dashboard the student is still using with an error screen.
+     The error is reported either way. */
+  fallback?: ReactNode;
+  /* Names the boundary in the crash report, so "the chat panel threw" is
+     distinguishable from "a route threw" without reading the stack. */
+  label?: string;
 }
 
 interface ErrorBoundaryState {
@@ -34,10 +44,12 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // TODO: wire to real error telemetry once this app has one. Nothing in
-    // the codebase reports client errors anywhere yet, so console is the
-    // honest baseline rather than inventing a reporting pipeline.
-    console.error("Uncaught error in app tree:", error, info.componentStack);
+    /* The console line stays: it is what a developer reads locally, where
+       monitoring is deliberately inert. `reportError` is the deployed half,
+       and is a no-op when no DSN is configured. */
+    const label = this.props.label ?? "app tree";
+    console.error(`Uncaught error in ${label}:`, error, info.componentStack);
+    reportError(error, { componentStack: info.componentStack, boundary: label });
   }
 
   reset = () => {
@@ -46,6 +58,8 @@ export class ErrorBoundary extends Component<
 
   render() {
     if (this.state.error) {
+      if (this.props.fallback !== undefined) return this.props.fallback;
+
       /* A chunk that won't load is a stale tab, not a bug: "Try again" would
          re-run the same failed import() against the same missing file and
          land right back here. Offer the update path instead — the service
@@ -56,7 +70,9 @@ export class ErrorBoundary extends Component<
         <div className={styles.view}>
           <Card variant="panel" padding="lg" className={styles.panel}>
             <Icon name="alert-triangle" size={32} className={styles.icon} />
-            <h1>{staleBuild ? "A new version is ready" : "Something went wrong"}</h1>
+            <h1>
+              {staleBuild ? "A new version is ready" : "Something went wrong"}
+            </h1>
             <p className={styles.muted}>
               {staleBuild
                 ? "Learnora updated while this tab was open, so part of the app couldn't load. Reloading picks up the new version."
@@ -72,7 +88,11 @@ export class ErrorBoundary extends Component<
                   Try again
                 </Button>
               )}
-              <Link to="/" className={styles.dashboardLink} onClick={this.reset}>
+              <Link
+                to="/"
+                className={styles.dashboardLink}
+                onClick={this.reset}
+              >
                 Go to Dashboard
               </Link>
             </div>

@@ -6,11 +6,14 @@ import { useAllDecks } from "../../hooks/useDecks";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useQuizzes } from "../../hooks/useQuizzes";
+import { useNotebooks } from "../../hooks/useNotebooks";
 import type { FlashcardDeck, Folder, Material, Quiz } from "../../api/types";
+import type { Notebook } from "../../types/notebooks";
 import { formatCreatedLong, formatCreatedShort } from "./libraryMeta";
 import styles from "./LibrarySearch.module.css";
 
-type SearchResultKind = "folders" | "materials" | "flashcards" | "quizzes";
+type SearchResultKind =
+  "notebooks" | "folders" | "materials" | "flashcards" | "quizzes";
 
 interface SearchResult {
   id: string;
@@ -18,7 +21,7 @@ interface SearchResult {
   title: string;
   metadata: string;
   href: string;
-  icon: "folder" | "file-text" | "layers" | "help-circle";
+  icon: "book-open" | "folder" | "file-text" | "layers" | "help-circle";
   actions?: Array<{ label: string; href: string }>;
 }
 
@@ -29,13 +32,15 @@ interface SearchGroup {
 }
 
 const GROUP_LABELS: Record<SearchResultKind, string> = {
-  folders: "Folders",
-  materials: "Materials",
+  notebooks: "Notebooks",
+  folders: "Subjects",
+  materials: "Files & notes",
   flashcards: "Flashcard decks",
   quizzes: "Quizzes",
 };
 
 const GROUP_ICONS: Record<SearchResultKind, SearchResult["icon"]> = {
+  notebooks: "book-open",
   folders: "folder",
   materials: "file-text",
   flashcards: "layers",
@@ -72,6 +77,7 @@ function rankResults(
 
 function buildGroups(
   query: string,
+  notebooks: Notebook[],
   folders: Folder[],
   materials: Material[],
   decks: FlashcardDeck[],
@@ -87,6 +93,19 @@ function buildGroups(
       );
     }
   }
+
+  const notebookResults = notebooks
+    .filter((notebook) =>
+      matches(query, notebook.title, notebook.subject, notebook.description),
+    )
+    .map((notebook): SearchResult => ({
+      id: notebook.id,
+      kind: "notebooks",
+      title: notebook.title,
+      metadata: `${notebook.subject} · ${notebook.sources.length} source${notebook.sources.length === 1 ? "" : "s"}`,
+      href: `/notebooks/${notebook.id}`,
+      icon: GROUP_ICONS.notebooks,
+    }));
 
   const folderResults = folders
     .filter((folder) => matches(query, folder.name))
@@ -167,6 +186,11 @@ function buildGroups(
 
   const groups: SearchGroup[] = [
     {
+      kind: "notebooks",
+      label: GROUP_LABELS.notebooks,
+      results: rankResults(notebookResults, query),
+    },
+    {
       kind: "folders",
       label: GROUP_LABELS.folders,
       results: rankResults(folderResults, query),
@@ -191,6 +215,7 @@ function buildGroups(
 }
 
 function SearchResults({ query }: { query: string }) {
+  const notebooksQuery = useNotebooks();
   const foldersQuery = useFolders();
   const materialsQuery = useMaterials();
   const decksQuery = useAllDecks();
@@ -198,22 +223,25 @@ function SearchResults({ query }: { query: string }) {
   const resultRefs = useRef<Array<HTMLAnchorElement | null>>([]);
 
   const isPending =
+    notebooksQuery.isLoading ||
     foldersQuery.isPending ||
     materialsQuery.isPending ||
     decksQuery.isPending ||
     quizzesQuery.isPending;
   const failedSections = [
+    notebooksQuery.isError ? "notebooks" : null,
     foldersQuery.isError ? "folders" : null,
     materialsQuery.isError ? "materials" : null,
     decksQuery.isError ? "flashcard decks" : null,
     quizzesQuery.isError ? "quizzes" : null,
   ].filter((section): section is string => Boolean(section));
-  const allFailed = failedSections.length === 4;
+  const allFailed = failedSections.length === 5;
 
   const groups = useMemo(
     () =>
       buildGroups(
         normalized(query),
+        notebooksQuery.notebooks,
         foldersQuery.data ?? [],
         materialsQuery.data ?? [],
         decksQuery.data ?? [],
@@ -221,6 +249,7 @@ function SearchResults({ query }: { query: string }) {
       ),
     [
       query,
+      notebooksQuery.notebooks,
       foldersQuery.data,
       materialsQuery.data,
       decksQuery.data,
@@ -230,6 +259,7 @@ function SearchResults({ query }: { query: string }) {
 
   const retry = () => {
     void Promise.all([
+      notebooksQuery.retryNotebooks(),
       foldersQuery.refetch(),
       materialsQuery.refetch(),
       decksQuery.refetch(),
@@ -283,7 +313,7 @@ function SearchResults({ query }: { query: string }) {
             ? "Some results could not load (" +
               failedSections.join(", ") +
               "). Retry or search again."
-            : "Try a folder, material, deck, or quiz title."}
+            : "Try a notebook, subject, file, deck, or quiz title."}
         </span>
         {failedSections.length ? (
           <button type="button" className={styles.retry} onClick={retry}>
@@ -425,7 +455,7 @@ export function LibrarySearch({
                 }
               }
             }}
-            placeholder="Search folders, materials, decks, and quizzes"
+            placeholder="Search notebooks, subjects, files, decks and quizzes"
             aria-label="Search your library"
             aria-controls="library-search-results"
             autoComplete="off"

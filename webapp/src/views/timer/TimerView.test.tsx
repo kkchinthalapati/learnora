@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { StrictMode } from "react";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
-import { mockAuthSession } from "../../test/mockSession";
+import { mockAuthSession, mockNoAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { Storage } from "../../lib/storage";
 import {
@@ -22,6 +23,22 @@ function renderTimer(path = "/timer") {
     <MemoryRouter initialEntries={[path]}>
       <TimerView />
     </MemoryRouter>,
+    { session: fakeSession() },
+    { withTimer: true },
+  );
+}
+
+/** The same tree the real app mounts: `main.tsx` wraps the whole app in
+ *  StrictMode, which double-invokes state updaters. Every path that logs a
+ *  session schedules the write from inside one, so a plain render cannot
+ *  reproduce what a student actually gets. */
+function renderTimerStrict(path = "/timer") {
+  return renderWithAuth(
+    <StrictMode>
+      <MemoryRouter initialEntries={[path]}>
+        <TimerView />
+      </MemoryRouter>
+    </StrictMode>,
     { session: fakeSession() },
     { withTimer: true },
   );
@@ -47,10 +64,29 @@ describe("TimerView", () => {
     expect(screen.getByText("25:00")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Focus" })).toBeInTheDocument();
     expect(screen.getByText("Cycle: 0 / 4")).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Pomodoro" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Focus & breaks" })).toBeChecked();
     expect(
       screen.getByText("Finished focus sessions will appear here."),
     ).toBeInTheDocument();
+  });
+
+  it("says why focus is not 25 minutes when it adapted to past sessions, and offers 25 back", async () => {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/study_sessions`, () =>
+        HttpResponse.json([
+          { id: 1, minutes: 40, timer_type: "pomodoro", created_at: new Date().toISOString() },
+          { id: 2, minutes: 42, timer_type: "pomodoro", created_at: new Date().toISOString() },
+        ]),
+      ),
+    );
+    const user = userEvent.setup();
+    renderTimer();
+
+    expect(
+      await screen.findByText(/Focus is set to 40 min/),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Use 25 min" }));
+    expect(screen.queryByText(/Focus is set to 40 min/)).not.toBeInTheDocument();
   });
 
   it("shows the five most recent local sessions", () => {
@@ -98,8 +134,23 @@ describe("TimerView", () => {
     expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
 
+    /* Past the double-click grace window, a Pause is a real pause. */
+    const later = Date.now() + 1000;
+    const now = vi.spyOn(Date, "now").mockReturnValue(later);
     await user.click(screen.getByRole("button", { name: "Pause" }));
+    now.mockRestore();
     expect(screen.getByRole("button", { name: "Start" })).toBeInTheDocument();
+  });
+
+  /* Start and Pause share a spot: a double-click used to start and then
+     immediately pause, leaving a stopped timer the student thought was running. */
+  it("keeps running when Start is double-clicked", async () => {
+    const user = userEvent.setup();
+    renderTimer();
+
+    await user.dblClick(screen.getByRole("button", { name: "Start" }));
+
+    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
   });
 
   it("counts down once per second", async () => {
@@ -134,7 +185,7 @@ describe("TimerView", () => {
     await user.click(screen.getByRole("radio", { name: "Stopwatch" }));
     expect(screen.getByText(/Open-ended count-up/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("radio", { name: "Flowtime" }));
+    await user.click(screen.getByRole("radio", { name: "Flow" }));
     expect(screen.getByText(/a fifth as long/)).toBeInTheDocument();
   });
 
@@ -154,7 +205,7 @@ describe("TimerView", () => {
     renderTimer();
     expect(screen.queryByRole("button", { name: "Take a break" })).toBeNull();
 
-    await user.click(screen.getByRole("radio", { name: "Flowtime" }));
+    await user.click(screen.getByRole("radio", { name: "Flow" }));
 
     expect(
       screen.getByRole("button", { name: "Take a break" }),
@@ -285,7 +336,9 @@ describe("TimerView", () => {
   it("logs the banked stopwatch session on Stop & log", async () => {
     const user = userEvent.setup();
     let body: Record<string, unknown>[] | undefined;
+    const evidencePost = vi.fn();
     server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/learning_events`, () => { evidencePost(); return new HttpResponse(null, {status: 201}); }),
       http.post(
         `${SUPABASE_URL}/rest/v1/study_sessions`,
         async ({ request }) => {
@@ -313,10 +366,51 @@ describe("TimerView", () => {
       timer_type: "stopwatch",
       user_id: "user-1",
     });
+    expect(evidencePost).not.toHaveBeenCalled();
     // Local history is written too — the source of truth for instant UI.
     expect(Storage.get<unknown[]>("sessions", [])).toHaveLength(1);
     expect(screen.getByText("General Study")).toBeInTheDocument();
     expect(screen.getByText(/3 min/)).toBeInTheDocument();
+  });
+
+  /* One finished session, one logged session, with the app's own
+     StrictMode around it.
+
+     Honest caveat, so this is not trusted further than it goes: it passes
+     with the duplicate guard removed too. jsdom under StrictMode did not
+     reproduce the double write a real browser produces, so the guard is
+     proved by the browser check in tests/persona/12-verify-timer-log.spec.ts,
+     not here. What this does hold is the expected shape — one local row,
+     one POST — so a future change that starts duplicating sessions in this
+     environment is still caught. */
+  it("logs one session and one server write for one stopwatch run", async () => {
+    const user = userEvent.setup();
+    const posts: Record<string, unknown>[][] = [];
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/learning_events`, () => new HttpResponse(null, { status: 201 })),
+      http.post(`${SUPABASE_URL}/rest/v1/study_sessions`, async ({ request }) => {
+        posts.push((await request.json()) as Record<string, unknown>[]);
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    Storage.set(TIMER_STATE_KEY, {
+      type: "stopwatch",
+      mode: "Focus",
+      isRunning: false,
+      elapsed: 180,
+      countUpBase: 180,
+      config: {},
+    });
+    renderTimerStrict();
+
+    await user.click(screen.getAllByRole("button", { name: "Stop & log" })[0]);
+
+    await waitFor(() => expect(posts.length).toBeGreaterThan(0));
+    /* Give a duplicate every chance to arrive before counting. */
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(Storage.get<unknown[]>("sessions", [])).toHaveLength(1);
+    expect(posts).toHaveLength(1);
   });
 
   it("keeps the local session log even when the Supabase write fails", async () => {
@@ -456,16 +550,25 @@ describe("TimerView", () => {
     renderTimer();
 
     const taskPicker = await screen.findByRole("combobox", {
-      name: "Current Task:",
+      name: "What are you working on?",
     });
     await user.click(taskPicker);
     await user.click(
       await screen.findByRole("option", { name: "Read chapter 4" }),
     );
+    await user.type(
+      screen.getByLabelText("What did you cover? (optional)"),
+      "Equilibrium problems 1-12",
+    );
     await user.click(screen.getByRole("button", { name: "Stop & log" }));
 
     await waitFor(() => expect(body).toBeDefined());
     expect(body![0]).toMatchObject({ task: "Read chapter 4", minutes: 2 });
+    expect(body![0].notes).toBe("Equilibrium problems 1-12");
+    expect(Storage.get<Array<{ notes: string }>>("sessions", [])[0].notes).toBe(
+      "Equilibrium problems 1-12",
+    );
+    expect(screen.getByText("Equilibrium problems 1-12")).toBeInTheDocument();
   });
 
   it("selects active folder and unlisted task when bound to a subject", async () => {
@@ -479,10 +582,33 @@ describe("TimerView", () => {
     const user = userEvent.setup();
     renderTimer("/timer");
 
-    const folderSelect = await screen.findByLabelText("Subject (optional):");
+    const folderSelect = await screen.findByLabelText("Subject (optional)");
     expect(folderSelect).toBeInTheDocument();
     await user.selectOptions(folderSelect, "Biology");
 
     expect(folderSelect).toHaveValue("f-1");
+  });
+
+  it("renders guest mode banner when unauthenticated and operates without errors", async () => {
+    mockNoAuthSession();
+    renderWithAuth(
+      <MemoryRouter initialEntries={["/timer"]}>
+        <TimerView />
+      </MemoryRouter>,
+      { session: null },
+      { withTimer: true },
+    );
+
+    expect(screen.getByText("Guest Mode")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your timer sessions are safely saved locally/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Create free account to sync/i }),
+    ).toBeInTheDocument();
+
+    const startButton = screen.getByRole("button", { name: "Start" });
+    await userEvent.click(startButton);
+    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
   });
 });

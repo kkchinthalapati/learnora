@@ -100,8 +100,8 @@ export function KnowledgeCircuit({
             {isAllHealthy
               ? "All three steps hold up"
               : isCircuitBroken
-              ? "A link is missing"
-              : "One link is shaky"}
+              ? "Missing link"
+              : "Needs work"}
           </span>
         </div>
       </div>

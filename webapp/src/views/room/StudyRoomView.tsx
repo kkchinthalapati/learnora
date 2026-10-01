@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useStudyRoom } from "./useStudyRoom";
 import { StudyDeskCard } from "./StudyDeskCard";
+import { GroupTimerBanner } from "./GroupTimerBanner";
 import { ReactionOverlay } from "./ReactionOverlay";
 import { ambianceEngine } from "./audioAmbiance";
 import type { AmbiancePreset } from "./types";
-import { MAX_MESSAGE_LENGTH } from "../../api/studyRoom";
+import {
+  MAX_MESSAGE_LENGTH,
+  MAX_ROOM_PARTICIPANTS,
+} from "../../api/studyRoom";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { useOverlayBehavior } from "../../context/overlayStack";
@@ -38,6 +42,13 @@ export function StudyRoomView() {
     syncWithParticipant,
     copyInviteLink,
     isCopied,
+    groupTimerState,
+    isGroupTimerHost,
+    startGroupFocus,
+    pauseGroupTimer,
+    nextGroupPhase,
+    syncMyTimerToGroup,
+    isRoomFull,
   } = useStudyRoom(roomId);
 
   // Chat message draft state
@@ -111,6 +122,28 @@ export function StudyRoomView() {
     (p) => p.id === currentAmbiance,
   );
 
+  /* Shown instead of the room, not over it: while you are past the cap your
+     presence is withdrawn, so the desks, chat and group timer below would all
+     be showing a room you are not actually in. */
+  if (isRoomFull) {
+    return (
+      <main className={styles.roomView} aria-label="Virtual Study Room">
+        <div className={styles.roomFull} role="status">
+          <Icon name="users" size={32} />
+          <h1 className={styles.roomFullTitle}>This room is full</h1>
+          <p className={styles.roomFullCopy}>
+            A study room holds {MAX_ROOM_PARTICIPANTS} people, and this one
+            reached that before you arrived. You will join automatically as
+            soon as someone leaves — keep this tab open.
+          </p>
+          <Link to="/room" className={styles.roomFullLink}>
+            Study in your own room instead
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className={styles.roomView} aria-label="Virtual Study Room">
       {/* Reaction & Floating Animation Overlay */}
@@ -120,7 +153,8 @@ export function StudyRoomView() {
       <header className={styles.roomHeader}>
         <div className={styles.roomHeaderLeft}>
           <div className={styles.roomTitleRow}>
-            <h1 className={styles.roomTitle}>Virtual Study Circle</h1>
+            {/* Same name as the sidebar row and the header ("Study Room"). */}
+            <h1 className={styles.roomTitle}>Study Room</h1>
             <div className={styles.roomStats} aria-label="Active participants">
               <span className={styles.liveDot} />
               <span>
@@ -237,7 +271,7 @@ export function StudyRoomView() {
           >
             <Icon name="link" size={16} />
             <span>
-              {isCopied ? "Link Copied!" : "Copy study room invite link"}
+              {isCopied ? "Link copied" : "Copy study room invite link"}
             </span>
           </Button>
         </div>
@@ -267,6 +301,16 @@ export function StudyRoomView() {
           ))}
         </div>
       </section>
+
+      {/* Synchronized Group Pomodoro */}
+      <GroupTimerBanner
+        timerState={groupTimerState}
+        isHost={isGroupTimerHost}
+        onStartGroupFocus={startGroupFocus}
+        onPauseGroupTimer={pauseGroupTimer}
+        onNextPhase={nextGroupPhase}
+        onSyncMyTimer={syncMyTimerToGroup}
+      />
 
       {/* Desks Grid */}
       <section className={styles.desksGrid} aria-label="Student Study Desks">
@@ -310,10 +354,10 @@ export function StudyRoomView() {
             variant="primary"
             size="md"
             onClick={() => void copyInviteLink()}
-            aria-label="Invite Friends to Study"
+            aria-label="Invite friends to study"
           >
             <Icon name="link" size={16} />
-            <span>{isCopied ? "Link Copied!" : "Invite Friends to Study"}</span>
+            <span>{isCopied ? "Link copied" : "Invite friends to study"}</span>
           </Button>
         </section>
       )}

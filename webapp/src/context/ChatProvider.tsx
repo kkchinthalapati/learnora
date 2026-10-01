@@ -1,7 +1,10 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { studentLevel } from "../lib/studentLevel";
 import type { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
+import { useOptionalAuth } from "./auth";
+import { loadTranscript, saveTranscript } from "../lib/chatTranscript";
 import {
   AiError,
   callEdge,
@@ -19,6 +22,7 @@ import { examsApi } from "../api/exams";
 import { flashcardsApi } from "../api/flashcards";
 import { notesApi } from "../api/notes";
 import { generateDeckFromTopic, DeckShapeError } from "../api/studyPackage";
+import { generateImage as drawImage, saveImageAsFlashcard } from "../api/aiImage";
 import { tasksApi } from "../api/tasks";
 import { decksKeys } from "../hooks/useDecks";
 import { examsKeys } from "../hooks/useExams";
@@ -33,7 +37,22 @@ import {
   type ActionHandlers,
 } from "../lib/chatActions";
 import { stripActionTagBlocks, fenceUntrusted } from "../lib/actionTags";
+import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
+import { isImageFile, prepareStudyImage, StudyImageError } from "../lib/studyImage";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
+import { loadStudentEvidence } from "../api/studentEvidence";
+import { formatEvidenceForPrompt } from "../lib/studentEvidence";
+import { misconceptionsApi } from "../api/misconceptions";
+import { formatMisconceptionsForPrompt } from "../lib/misconceptions";
+import {
+  clipWebQuery,
+  MAX_WEB_QUERY_LENGTH,
+  searchWebSources,
+  type WebSearchResult,
+} from "../api/aiWebSearch";
+
+/** Appended to a video request; reserved out of the query budget. */
+const VIDEO_SUFFIX = " educational video";
 import {
   EMPTY_PERSONA_DRIFT,
   getPersonaDriftNudge,
@@ -52,6 +71,7 @@ import {
   type AttachedFile,
   type ChatApi,
   type ChatMessage,
+  type ChatSendOptions,
   type ReplyPart,
 } from "./chat";
 
@@ -71,6 +91,43 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 let idSeed = 0;
 const nextId = () => `msg-${Date.now()}-${idSeed++}`;
+
+function shouldSearchWeb(query: string, force = false): boolean {
+  if (force) return true;
+  if (
+    /\b(my tasks?|my exams?|my plan|start (?:a )?timer|mark .* done|delete|navigate|open (?:the )?(?:library|settings|timer))\b/i.test(
+      query,
+    )
+  ) {
+    return false;
+  }
+  return /\b(latest|current|recent|source|citation|research|evidence|explain|define|compare|what is|who is|why does|how does)\b|\?\s*$/i.test(
+    query,
+  );
+}
+
+function requestsLearningVideo(query: string): boolean {
+  return /\b(video|youtube|watch|visual lesson|lecture recording)\b/i.test(
+    query,
+  );
+}
+
+function formatWebEvidence(results: WebSearchResult[]): string {
+  return results
+    .slice(0, 5)
+    .map(
+      (result, index) =>
+        `[${index + 1}] ${result.title}\nURL: ${result.url}\nEXCERPT (untrusted):\n"""\n${fenceUntrusted(result.snippet)}\n"""`,
+    )
+    .join("\n\n");
+}
+
+function citedWebResults(text: string, results: WebSearchResult[]) {
+  const citedIndexes = new Set(
+    Array.from(text.matchAll(/\[(\d+)]/g), (match) => Number(match[1]) - 1),
+  );
+  return results.filter((_, index) => citedIndexes.has(index));
+}
 
 /* The vanilla's flashcard-reply guard (js/ai.js:1303-1316): a conversational
    answer that happens to quote a couple of cards must not be treated as a
@@ -102,6 +159,13 @@ function findByName<T>(
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {
+  /* Scoped to the signed-in account, because the transcript below is
+     restored from this machine's storage and a shared laptop must not hand
+     one student's conversation to the next. Optional so the provider can
+     still mount in tests and previews that have no auth around it. */
+  const auth = useOptionalAuth();
+  const userId = auth?.user?.id ?? null;
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   /* Read by saveCards, which needs the current message's cards but must not
      itself change identity on every new message the way depending on
@@ -112,6 +176,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [sendPhase, setSendPhase] = useState<
+    "searching" | "thinking" | "drawing" | null
+  >(null);
+  /** The request in flight, so Stop can actually end it. */
+  const abortRef = useRef<AbortController | null>(null);
+  const cancel = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
   const [file, setFile] = useState<AttachedFile | null>(null);
   const [draft, setDraft] = useState("");
 
@@ -120,6 +192,49 @@ export function ChatProvider({ children }: { children: ReactNode }) {
      `AI.chatHistory`, not the widgets or the injected system context. */
   const historyRef = useRef<HistoryMessage[]>([]);
   const personaDriftRef = useRef<PersonaDriftState>(EMPTY_PERSONA_DRIFT);
+
+  /* Bring back the conversation this account left behind, and put the
+     model-facing thread back with it — restoring only the bubbles would
+     show the student a transcript the tutor could no longer see, which is
+     worse than an honest blank panel.
+
+     Keyed on `userId` so signing in as someone else swaps transcripts
+     rather than inheriting one. */
+  /* State, not a ref, and that distinction is the whole fix. With a ref,
+     the hydrate effect marked itself done and the save effect below then
+     ran *in the same commit* — still holding the empty `messages` from
+     before hydration — and wrote that emptiness straight over the stored
+     transcript. Every reload cleared the conversation it had just loaded.
+     As state, the flag and the restored messages land in one batch, so the
+     save effect first sees them together.
+
+     `undefined` rather than `null` as the initial value, so the very first
+     run still counts as "not yet hydrated" for a signed-out visitor. */
+  const [hydratedFor, setHydratedFor] = useState<string | null | undefined>(
+    undefined,
+  );
+  useEffect(() => {
+    if (hydratedFor === userId) return;
+
+    if (!userId) {
+      setMessages([]);
+      historyRef.current = [];
+      setHydratedFor(userId);
+      return;
+    }
+    const restored = loadTranscript(userId);
+    setMessages(restored.messages);
+    historyRef.current = restored.history as HistoryMessage[];
+    setHydratedFor(userId);
+  }, [userId, hydratedFor]);
+
+  /* Persist after every change. Cheap: the transcript is capped at a few
+     dozen short objects, and writing on change is what makes a reload
+     mid-answer keep everything up to the last completed turn. */
+  useEffect(() => {
+    if (!userId || hydratedFor !== userId) return;
+    saveTranscript(userId, { messages, history: historyRef.current });
+  }, [messages, userId, hydratedFor]);
 
   /* Whichever flashcard is currently on screen in the review view, if any.
      A ref rather than state: registering it must never itself trigger a
@@ -147,6 +262,26 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setIsOpen(false);
     setIsFullscreen(false);
   }, []);
+  const toggle = useCallback(() => {
+    setIsOpen((wasOpen) => {
+      if (wasOpen) setIsFullscreen(false);
+      return !wasOpen;
+    });
+  }, []);
+  /* ⌘J / Ctrl J toggles the tutor from anywhere, the way ⌘K toggles the
+     command palette (CommandPaletteProvider). Capture phase for the same
+     reason: an editor that eats the key would otherwise swallow it. */
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === "j" || e.key === "J")) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggle();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [toggle]);
   const toggleFullscreen = useCallback(() => setIsFullscreen((v) => !v), []);
   const clearDraft = useCallback(() => setDraft(""), []);
   const compose = useCallback((text: string) => {
@@ -156,28 +291,87 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const clearFile = useCallback(() => setFile(null), []);
 
+  const readAsAttachment = useCallback((picked: File) => {
+    const reader = new FileReader();
+    reader.onerror = () => showToast("Failed to read file.", { error: true });
+    reader.onload = (e) => {
+      const result = String(e.target?.result ?? "");
+      setFile({
+        name: picked.name,
+        mimeType: picked.type,
+        data: result.split(",")[1] ?? "",
+      });
+    };
+    reader.readAsDataURL(picked);
+  }, [showToast]);
+
   const attachFile = useCallback(
     (picked: File) => {
-      if (picked.size > MAX_FILE_BYTES) {
+      /* Photos have their own, larger raw ceiling: they are shrunk below
+         this one before they are read. */
+      if (picked.size > MAX_FILE_BYTES && !isImageFile(picked)) {
         showToast("File too large. Maximum size is 10MB.", { error: true });
         return;
       }
-      const reader = new FileReader();
-      reader.onerror = () => showToast("Failed to read file.", { error: true });
-      reader.onload = (e) => {
-        const result = String(e.target?.result ?? "");
-        setFile({
-          name: picked.name,
-          mimeType: picked.type,
-          data: result.split(",")[1] ?? "",
-        });
-      };
-      reader.readAsDataURL(picked);
+
+      /* A PDF is read here rather than shipped as a blob, so that whichever
+         provider answers can see its contents — attachments are readable by
+         exactly one provider in the chain, which is why a PDF question used
+         to get a confident answer about nothing whenever that provider was
+         rate-limited. A scan with no text layer still goes as an attachment,
+         because OCR is the only thing that will read it. */
+      if (isPdf(picked)) {
+        planPdfUpload(picked)
+          .then((plan) => {
+            if (plan.kind === "inline") {
+              setFile({
+                name: picked.name,
+                mimeType: picked.type || "application/pdf",
+                data: "",
+                inlineText: plan.text + truncationNote(plan.extraction),
+              });
+              return;
+            }
+            if (plan.reason === "scanned") {
+              showToast(
+                "That PDF looks scanned, so it'll be read as an image — answers may be less precise.",
+              );
+            }
+            readAsAttachment(picked);
+          })
+          .catch(() => readAsAttachment(picked));
+        return;
+      }
+
+      /* A photo is checked and shrunk first (lib/studyImage.ts): a phone
+         picture is several megabytes more than a model needs to read it. */
+      if (isImageFile(picked)) {
+        prepareStudyImage(picked, MAX_FILE_BYTES)
+          .then((prepared) => readAsAttachment(prepared.file))
+          .catch((err: unknown) => {
+            showToast(
+              err instanceof StudyImageError
+                ? err.message
+                : "That photo couldn't be prepared. Try another one.",
+              { error: true },
+            );
+          });
+        return;
+      }
+
+      readAsAttachment(picked);
     },
-    [showToast],
+    [readAsAttachment, showToast],
   );
 
   /* --- action handlers ------------------------------------------------- */
+
+  const postActionFailure = useCallback((text: string, retryQuery: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { id: nextId(), role: "ai", text, error: true, retryQuery },
+    ]);
+  }, []);
 
   const setTheme = useCallback(
     (value: string): boolean => {
@@ -211,6 +405,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            chat can be closed (unmounting an observer) between the confirm and
            the write landing, and the task list must still refresh. */
         await qc.invalidateQueries({ queryKey: tasksKeys.all });
+      },
+      resolveName: async (kind, name) => {
+        if (kind === "task") {
+          const tasks = await tasksApi.fetch();
+          return findByName(tasks, name, (t) => t.text)?.text ?? null;
+        }
+        const exams = await examsApi.fetch();
+        return findByName(exams, name, (e) => e.exam_name)?.exam_name ?? null;
       },
       completeTask: async (name) => {
         const tasks = await tasksApi.fetch();
@@ -266,11 +468,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         void navigate(path);
         return true;
       },
+      /* A quiz or deck is made after the reply has been shown, so a failure
+         can't mark that reply. A toast alone vanished in seconds and left the
+         chat saying "Generating quiz:" for good — the student never learned
+         it had failed. The failure is posted in the chat, with Try again. */
       generateQuiz: (topic) => {
         generateQuizFromTopic(topic, settings)
           .then((quiz) => {
             qc.invalidateQueries({ queryKey: quizzesKeys.all });
-            showToast("Quiz generated successfully!");
+            showToast("Quiz ready");
             void navigate(`/quiz/${quiz.id}`);
           })
           .catch((err: unknown) => {
@@ -280,13 +486,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 ? err.message
                 : "Failed to generate quiz. Please try again.";
             showToast(message, { error: true });
+            postActionFailure(
+              `I couldn't make the quiz on "${topic}". ${message}`,
+              `Quiz me on ${topic}`,
+            );
           });
       },
       generateDeck: (topic) => {
         generateDeckFromTopic(topic, settings)
           .then(() => {
             qc.invalidateQueries({ queryKey: decksKeys.all });
-            showToast("Flashcard deck generated successfully!");
+            showToast("Flashcard deck ready");
             void navigate("/library/flashcards");
           })
           .catch((err: unknown) => {
@@ -296,13 +506,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 ? err.message
                 : "Failed to generate flashcards. Please try again.";
             showToast(message, { error: true });
+            postActionFailure(
+              `I couldn't make the flashcards on "${topic}". ${message}`,
+              `Make flashcards on ${topic}`,
+            );
           });
       },
       generatePlan: () => {
         generateWeeklyPlan(settings)
           .then((plan) => {
             qc.setQueryData(plansKeys.forWeek(plan.week_start), plan);
-            showToast("Plan generated successfully!");
+            showToast("Plan ready");
             void navigate("/plan");
           })
           .catch((err: unknown) => {
@@ -318,7 +532,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         flashcardGraderRef.current?.(score);
       },
     }),
-    [confirm, navigate, qc, setTheme, settings, showToast, startPreset],
+    [confirm, navigate, postActionFailure, qc, setTheme, settings, showToast, startPreset],
   );
 
   /* --- send ------------------------------------------------------------ */
@@ -327,7 +541,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   pathnameRef.current = location.pathname;
 
   const send = useCallback(
-    async (query: string) => {
+    async (query: string, options?: ChatSendOptions) => {
       const attached = file;
       const userMessage: ChatMessage = {
         id: nextId(),
@@ -342,6 +556,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         { id: pendingId, role: "ai", text: "", pending: true },
       ]);
       setIsSending(true);
+      /* Web research runs first and takes about a third of the wait, so the
+         phase starts there and moves to `thinking` once the model call
+         begins. Naming the step is the difference between "it's stuck" and
+         "it's looking things up". */
+      setSendPhase(options?.sourceMode === "notebook" ? "thinking" : "searching");
+      const controller = new AbortController();
+      abortRef.current = controller;
       /* Cleared on send, like the vanilla's `finally { this.setFile(null) }` —
          an attachment belongs to the message it was sent with. */
       setFile(null);
@@ -354,15 +575,56 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         );
 
       try {
-        personaDriftRef.current = observePersonaDrift(
-          personaDriftRef.current,
-          query,
-        );
-        const adaptiveNudge = getPersonaDriftNudge(personaDriftRef.current);
+        if (settings.aiAutoAdapt) {
+          personaDriftRef.current = observePersonaDrift(
+            personaDriftRef.current,
+            query,
+          );
+        } else {
+          personaDriftRef.current = EMPTY_PERSONA_DRIFT;
+        }
+        const adaptiveNudge = settings.aiAutoAdapt
+          ? getPersonaDriftNudge(personaDriftRef.current)
+          : null;
         /* Workspace context is best-effort: the chat still works when the
            tables can't be read, it just knows less (js/ai.js:911-929). */
         let pendingTasks = "None";
         let upcomingExams = "None";
+        /* Independent of the workspace read and on the path to every reply, so
+           the two overlap rather than queueing. `loadStudentEvidence` resolves
+           rather than throwing, so it needs no catch of its own. */
+        const evidencePromise = loadStudentEvidence();
+        /* Started alongside the evidence read for the same reason, and read
+           the same way: a failure resolves to an empty ledger, which renders
+           as an explicit "no diagnoses on record — do not invent any" rather
+           than as silence the model would fill in. */
+        const ledgerPromise = misconceptionsApi.fetchAll().catch((err) => {
+          console.warn("[chat] Failed to read misconception ledger:", err);
+          return [];
+        });
+        const sourceMode =
+          options?.sourceMode ?? (settings.webAccess ? "hybrid" : "notebook");
+        const wantsWeb =
+          sourceMode !== "notebook" &&
+          shouldSearchWeb(query, sourceMode === "web");
+        const wantsVideo =
+          sourceMode !== "notebook" && requestsLearningVideo(query);
+        const webPromise =
+          wantsWeb || wantsVideo
+            ? searchWebSources(
+                wantsVideo
+                  ? `${clipWebQuery(query, MAX_WEB_QUERY_LENGTH - VIDEO_SUFFIX.length)}${VIDEO_SUFFIX}`
+                  : clipWebQuery(query),
+                wantsVideo ? { domain: "youtube.com", depth: 4 } : undefined,
+              ).catch((cause) => {
+                if (sourceMode === "web") throw cause;
+                console.warn(
+                  "[chat] Web research failed; continuing without it:",
+                  cause,
+                );
+                return null;
+              })
+            : Promise.resolve(null);
         try {
           const ctx = await loadWorkspaceContext();
           pendingTasks = ctx.pendingTasks;
@@ -370,6 +632,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           console.warn("[chat] Failed to fetch workspace context:", err);
         }
+        /* Always rendered, including when there is nothing to report: the
+           empty summary is what carries the instruction *not* to guess a
+           grade, which is precisely the case where the model would. */
+        const performanceEvidence = formatEvidenceForPrompt(
+          await evidencePromise,
+        );
+        /* Always rendered too, and for the same reason as the line above: the
+           empty ledger is what carries the instruction not to invent a
+           diagnosis, which is exactly when a model would. */
+        const misconceptionLedger = formatMisconceptionsForPrompt(
+          await ledgerPromise,
+        );
+        const webResponse = await webPromise;
 
         const pathname = pathnameRef.current;
         let notesMarkdown: string | null = null;
@@ -388,7 +663,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            body is fenced: an uploaded .txt is attacker-influenced input. */
         let filePayload = attached;
         let appendedFileContext = "";
-        if (attached && attached.mimeType === "text/plain") {
+        if (attached && attached.inlineText) {
+          /* Already parsed to text on the way in (a PDF). Fenced for the same
+             reason a .txt upload is: the body is attacker-influenced input. */
+          appendedFileContext = `\n\nThe student attached "${attached.name}" with the following content:\n"""\n${fenceUntrusted(attached.inlineText)}\n"""`;
+          filePayload = null;
+        } else if (attached && attached.mimeType === "text/plain") {
           try {
             const decoded = fenceUntrusted(decodeBase64UTF8(attached.data));
             appendedFileContext = `\n\nThe student attached a text file "${attached.name}" with the following content:\n"""\n${decoded}\n"""`;
@@ -398,27 +678,72 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        const level = await studentLevel().catch(() => "");
         const systemContext = buildSystemContext({
+          studentLevel: level,
           pendingTasks,
           upcomingExams,
           activeContext: activeContextForPath(pathname, notesMarkdown),
           appendedFileContext,
           query,
-          persona: settings.aiPersona,
-          conciseness: settings.aiConciseness,
+          /* The nudge's own persona/conciseness, not just its sentence.
+             Only the instruction was being passed, so a stuck student on the
+             "detailed" setting got "Slow down, use a simpler concrete
+             example" bolted underneath "Give comprehensive, detailed
+             responses. Err on the side of covering more rather than less" —
+             two orders, and the one they needed was the weaker of the two.
+             Nothing is written back to settings: this lasts the one reply,
+             which is what the Auto-Adapt toggle promises ("adjust its next
+             reply when your follow-up shows confusion") and why the whole
+             block is already behind `settings.aiAutoAdapt`. */
+          persona: adaptiveNudge?.persona ?? settings.aiPersona,
+          conciseness: adaptiveNudge?.conciseness ?? settings.aiConciseness,
           adaptiveNudge: adaptiveNudge?.instruction,
+          guessFirst: options?.guessFirst === true,
+          performanceEvidence,
+          misconceptionLedger,
+          webEvidence: webResponse
+            ? formatWebEvidence(webResponse.results)
+            : "",
+          includeQuery: false,
         });
 
         const priorHistory = trimHistory(historyRef.current);
-        const { text } = await callEdge({
-          history: [...priorHistory, { role: "user", content: systemContext }],
-          file: filePayload,
-          settings,
-        });
+        /* Research is done by this point — everything above awaited it. */
+        setSendPhase("thinking");
+        const { text } = await callEdge(
+          {
+            /* The student's words alone are the user turn; the app's rules
+               and workspace data go in `context`, which the edge function
+               places in the system instruction. */
+            history: [...priorHistory, { role: "user", content: query }],
+            context: systemContext,
+            file: filePayload,
+            tool: "chat",
+            settings,
+          },
+          undefined,
+          undefined,
+          controller.signal,
+        );
 
         /* Show the answer before asking about its actions — the student reads
            it while the confirmation is up. */
-        finish({ text: stripActionTagBlocks(text).trim() });
+        const webSources = webResponse
+          ? citedWebResults(text, webResponse.results.slice(0, 5)).map(
+              (source) => ({
+                id: source.id,
+                title: source.title,
+                url: source.url,
+                domain: source.domain,
+                snippet: source.snippet,
+              }),
+            )
+          : undefined;
+        finish({
+          text: stripActionTagBlocks(text).trim(),
+          webSources: webSources?.length ? webSources : undefined,
+        });
 
         const cards = detectFlashcardReply(text);
         if (cards) {
@@ -430,7 +755,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               content: "[Generated a set of flashcards for the student]",
             },
           ];
-          finish({ text: "", cards });
+          finish({
+            text: "",
+            cards,
+            webSources: webSources?.length ? webSources : undefined,
+          });
           return;
         }
 
@@ -446,22 +775,133 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         finish({
           text: cleanText,
           parts: parts.some((p) => p.kind === "widget") ? parts : undefined,
+          webSources: webSources?.length ? webSources : undefined,
+          /* The model was asked for a guess-first question and replied with
+             one: the bubble offers the two ways out. */
+          guessPrompt:
+            options?.guessFirst === true && cleanText.endsWith("?")
+              ? true
+              : undefined,
         });
       } catch (err) {
         /* The failed exchange is not written to history: replaying it would
            make the model answer a question the student never saw answered. */
+        const stopped = controller.signal.aborted;
         finish({
-          error: true,
-          text:
-            err instanceof Error
+          /* A cancel is not an error. Flagging it as one paints the bubble
+             red and tells a student something broke, when what happened is
+             that they pressed Stop. */
+          error: stopped ? undefined : true,
+          retryQuery: stopped ? undefined : query,
+          retryOptions: stopped ? undefined : options,
+          text: stopped
+            ? "Stopped. Ask again whenever you're ready."
+            : err instanceof Error
               ? err.message
               : "Something went wrong. Please try again.",
         });
       } finally {
         setIsSending(false);
+        setSendPhase(null);
+        if (abortRef.current === controller) abortRef.current = null;
       }
     },
     [file, handlers, settings],
+  );
+
+  const generateImage = useCallback(
+    async (description: string) => {
+      const prompt = description.trim();
+      if (!prompt) return;
+      const pendingId = nextId();
+      setMessages((prev) => [
+        ...prev,
+        { id: nextId(), role: "user", text: `Generate image: ${prompt}` },
+        { id: pendingId, role: "ai", text: "", pending: true },
+      ]);
+      setIsSending(true);
+      setSendPhase("drawing");
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const finish = (patch: Partial<ChatMessage>) =>
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === pendingId ? { ...m, pending: false, ...patch } : m,
+          ),
+        );
+
+      try {
+        const image = await drawImage(prompt, settings, controller.signal);
+        /* The tutor is told a picture was drawn, so "explain the diagram"
+           next has something to refer to; the picture itself is not sent
+           back to it. */
+        historyRef.current = [
+          ...historyRef.current,
+          { role: "user", content: `Draw a diagram: ${prompt}` },
+          { role: "model", content: `[Drew a labelled diagram of: ${prompt}]` },
+        ];
+        finish({ text: "", image });
+      } catch (err) {
+        const stopped = controller.signal.aborted;
+        /* A refusal is the answer, not a failure: shown as the reply, with
+           nothing to retry. */
+        if (!stopped && err instanceof AiError && err.refused) {
+          finish({ text: err.message });
+          return;
+        }
+        finish({
+          error: stopped ? undefined : true,
+          retryQuery: stopped ? undefined : prompt,
+          retryAsImage: stopped ? undefined : true,
+          text: stopped
+            ? "Stopped. Ask again whenever you're ready."
+            : err instanceof Error
+              ? err.message
+              : "Couldn't draw that. Please try again.",
+        });
+      } finally {
+        setIsSending(false);
+        setSendPhase(null);
+        if (abortRef.current === controller) abortRef.current = null;
+      }
+    },
+    [settings],
+  );
+
+  const saveImage = useCallback(
+    async (messageId: string) => {
+      const message = messagesRef.current.find((m) => m.id === messageId);
+      const image = message?.image;
+      if (!image || image.savedDeckId || image.saving) return;
+
+      const patchImage = (patch: Partial<NonNullable<ChatMessage["image"]>>) =>
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId && m.image
+              ? { ...m, image: { ...m.image, ...patch } }
+              : m,
+          ),
+        );
+
+      patchImage({ saving: true });
+      try {
+        const deckId = await saveImageAsFlashcard(image);
+        await Promise.all([
+          qc.invalidateQueries({ queryKey: decksKeys.all }),
+          qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount }),
+        ]);
+        patchImage({ saving: false, savedDeckId: deckId });
+        showToast("Saved as a flashcard.");
+      } catch (err) {
+        patchImage({ saving: false });
+        showToast(
+          err instanceof Error ? err.message : "Couldn't save that picture.",
+          { error: true },
+        );
+      }
+    },
+    [qc, showToast],
   );
 
   const saveCards = useCallback(
@@ -514,14 +954,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       isOpen,
       isFullscreen,
       isSending,
+      sendPhase,
+      cancel,
       file,
       draft,
       open,
       close,
+      toggle,
       toggleFullscreen,
       compose,
       clearDraft,
       send,
+      generateImage,
+      saveImage,
       attachFile,
       clearFile,
       saveCards,
@@ -532,14 +977,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       isOpen,
       isFullscreen,
       isSending,
+      sendPhase,
+      cancel,
       file,
       draft,
       open,
       close,
+      toggle,
       toggleFullscreen,
       compose,
       clearDraft,
       send,
+      generateImage,
+      saveImage,
       attachFile,
       clearFile,
       saveCards,

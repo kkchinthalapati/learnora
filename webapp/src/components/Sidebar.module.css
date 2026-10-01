@@ -1,3 +1,7 @@
+/* Sidebar — five destinations, search, the tutor, a paused session, account.
+ * 2026-09 redesign: warm --sidebar-bg, opaque hairlines, a wash + inset bar
+ * for the active row. */
+
 .sidebar {
   width: var(--sidebar-width-v2);
   height: 100vh;
@@ -5,9 +9,10 @@
   z-index: 50;
   display: flex;
   flex-direction: column;
-  padding: var(--s-6) var(--s-4);
-  background: var(--surface);
-  border-right: 1px solid var(--line);
+  gap: var(--s-5);
+  padding: var(--s-5) var(--s-3);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--hairline);
   overflow-y: auto;
   overflow-x: hidden;
   white-space: nowrap;
@@ -17,8 +22,10 @@
     left var(--t) var(--ease);
 }
 
+/* Settings → Appearance → sidebar framing still applies. Glass is the
+   default, so it frosts the same warm --sidebar-bg rather than white. */
 body[data-sidebar-style="glass"] .sidebar {
-  background: var(--glass-bg-strong);
+  background: color-mix(in srgb, var(--sidebar-bg) 88%, transparent);
   backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
 }
@@ -32,16 +39,28 @@ body[data-sidebar-style="transparent"] .sidebar {
   border-right-color: transparent;
 }
 
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- Brand ---- */
+
 .brandRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--s-2);
-  margin-bottom: var(--s-5);
+  padding-left: var(--s-1);
 }
 
 .brand {
   min-width: 0;
+  min-height: var(--touch-target-min);
   display: inline-flex;
   align-items: center;
   gap: var(--s-3);
@@ -50,8 +69,8 @@ body[data-sidebar-style="transparent"] .sidebar {
 }
 
 .brandMark {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -61,14 +80,14 @@ body[data-sidebar-style="transparent"] .sidebar {
   color: var(--accent-on);
   font-family: var(--font-head);
   font-size: var(--fs-lg);
-  font-weight: 800;
-  text-shadow: var(--accent-on-shadow);
+  font-weight: 600;
+  line-height: 1;
 }
 
 .brandName {
   font-family: var(--font-head);
   font-size: var(--fs-xl);
-  font-weight: 750;
+  font-weight: 600;
   letter-spacing: var(--tracking-tight);
 }
 
@@ -77,146 +96,117 @@ body[data-sidebar-style="transparent"] .sidebar {
 }
 
 .chevronCollapse {
-  transform: rotate(-90deg);
-}
-
-.chevronExpand {
   transform: rotate(90deg);
 }
 
-.createBtn {
+.chevronExpand {
+  transform: rotate(-90deg);
+}
+
+/* ---- Search trigger ---- */
+
+.search {
   width: 100%;
   min-height: var(--touch-target-min);
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: var(--s-2);
-  margin-bottom: var(--s-6);
-  padding: var(--s-3) var(--s-4);
-  border: 1px solid var(--accent);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline);
   border-radius: var(--r-md);
-  background: var(--accent);
-  color: var(--accent-on);
-  font-family: inherit;
-  font-size: var(--fs-base);
-  font-weight: 700;
-  cursor: pointer;
-  text-shadow: var(--accent-on-shadow);
-  transition:
-    background var(--t-fast) ease,
-    transform var(--t-fast) ease;
-}
-
-.createBtn:hover {
-  background: var(--accent-hover);
-}
-
-.createBtn:active {
-  transform: translateY(1px);
-}
-
-.sectionsContainer {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-5);
-}
-
-.sectionGroup {
-  display: flex;
-  flex-direction: column;
-}
-
-.sectionLabel,
-.sectionHeader {
-  min-height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--s-3) var(--s-2);
-  color: var(--text-faint);
-  font-family: inherit;
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-}
-
-.sectionHeader {
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
-  cursor: pointer;
-}
-
-.sectionHeader:hover {
+  background: var(--paper);
   color: var(--text-muted);
-  background: var(--surface-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease);
 }
 
-.sectionChevron {
-  transition: transform var(--t-fast) ease;
+.search:hover {
+  border-color: var(--hairline-strong);
 }
 
-.sectionChevronCollapsed {
-  transform: rotate(-90deg);
+.search .navLabel {
+  flex: 1;
 }
+
+/* A long label must truncate, not squeeze the icon to zero width. */
+.search > svg,
+.navLink > svg,
+.ask > svg,
+.footerLink > svg {
+  flex-shrink: 0;
+}
+
+.navLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kbd {
+  margin-left: auto;
+  padding: 1px var(--s-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-xs);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+/* ---- Primary nav ---- */
 
 .navLinks {
   display: flex;
   flex-direction: column;
-  gap: var(--s-1);
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.navLinksHidden {
-  display: none;
-}
-
-.navLink {
+.navLink,
+.ask,
+.footerLink {
   position: relative;
+  width: 100%;
   min-height: var(--touch-target-min);
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  padding: 10px var(--s-3);
-  border: 1px solid transparent;
+  padding: 0 10px;
+  border: 0;
   border-radius: var(--r-md);
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-base);
   font-weight: 600;
+  text-align: left;
   text-decoration: none;
+  cursor: pointer;
   transition:
-    background var(--t-fast) ease,
-    color var(--t-fast) ease,
-    border-color var(--t-fast) ease;
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
 }
 
-.navLink:hover {
+.navLink:hover,
+.footerLink:hover {
+  background: var(--track);
   color: var(--text);
-  background: var(--surface-2);
 }
 
-.navLink.active {
-  color: var(--accent-text);
-  background: var(--accent-soft);
-  border-color: var(--accent-ring);
+/* Active: the accent wash plus a 3px inset bar — the bar, not the tint,
+   is what reads as "you are here" to a student who can't see the hue. */
+.navLink.active,
+.footerLink.active,
+.account.active {
+  background: var(--accent-wash);
+  color: var(--text);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
-.navLink.active::before {
-  content: "";
-  position: absolute;
-  left: -1px;
-  top: 11px;
-  bottom: 11px;
-  width: 3px;
-  border-radius: var(--r-pill);
-  background: var(--accent);
-}
-
-/* Holds the badge's slot while its count query is in flight, so the nav row
-   is the same shape before and after the number arrives. */
 .badgePlaceholder {
   visibility: hidden;
 }
@@ -230,12 +220,216 @@ body[data-sidebar-style="transparent"] .sidebar {
   margin-left: auto;
   padding: 0 6px;
   border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--accent-on);
+  background: var(--recall-soft);
+  color: var(--recall-text);
   font-size: var(--fs-xs);
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1;
 }
+
+.subLinks {
+  list-style: none;
+  margin: 2px 0 var(--s-2);
+  padding: 0 0 0 calc(18px + var(--s-3) + 10px);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.subLink {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+}
+
+.subLink:hover {
+  background: var(--track);
+  color: var(--text);
+}
+
+.subLinkActive {
+  color: var(--text);
+  font-weight: 600;
+  background: var(--accent-wash);
+}
+
+/* ---- Ask the tutor ---- */
+
+.divider {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.ask {
+  color: var(--accent-deep);
+}
+
+.ask:hover {
+  background: var(--accent-wash);
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* ---- Session paused ---- */
+
+.pausedCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-3);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--text);
+  text-decoration: none;
+  white-space: normal;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.pausedCard:hover {
+  border-color: var(--accent-line-strong);
+}
+
+.pausedLabel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+
+.pausedTopic {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.pausedMeta {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+/* ---- Footer ---- */
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.footerLink {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.accountRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.account {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-md);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.account:hover {
+  background: var(--track);
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-pill);
+  background: var(--surface-active);
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.accountText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: var(--lh-snug);
+}
+
+.accountName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.accountSub {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.accountMenuBtn {
+  flex-shrink: 0;
+}
+
+.accountMenu {
+  position: absolute;
+  bottom: calc(100% + var(--s-1));
+  left: 0;
+  right: 0;
+  z-index: 5;
+  margin: 0;
+  padding: var(--s-1);
+  list-style: none;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.menuItem {
+  width: 100%;
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: var(--track);
+}
+
+/* ---- Rail (desktop collapse, and automatic at 768–1023px) ---- */
 
 @media (min-width: 769px) {
   .sidebar.railCollapsed {
@@ -243,42 +437,26 @@ body[data-sidebar-style="transparent"] .sidebar {
     padding-inline: var(--s-2);
   }
 
-  .railCollapsed .brandName,
+  .railCollapsed .brand,
   .railCollapsed .navLabel,
-  .railCollapsed .sectionLabel,
-  .railCollapsed .sectionHeader {
+  .railCollapsed .kbd,
+  .railCollapsed .subLinks,
+  .railCollapsed .accountMenuBtn {
     display: none;
   }
 
   .railCollapsed .brandRow,
-  .railCollapsed .brand,
   .railCollapsed .navLink,
-  .railCollapsed .createBtn {
+  .railCollapsed .ask,
+  .railCollapsed .footerLink,
+  .railCollapsed .search,
+  .railCollapsed .account {
     justify-content: center;
-  }
-
-  .railCollapsed .brand {
-    display: none;
-  }
-
-  .railCollapsed .createBtn {
     padding-inline: 0;
   }
 
-  .railCollapsed .sectionsContainer {
-    gap: var(--s-3);
-  }
-
-  .railCollapsed .navLinksHidden {
-    display: flex;
-  }
-
-  .railCollapsed .navLink {
-    padding-inline: 0;
-  }
-
-  .railCollapsed .navLink.active::before {
-    left: 2px;
+  .railCollapsed .brandRow {
+    padding-left: 0;
   }
 
   .railCollapsed .badge {
@@ -300,8 +478,18 @@ body[data-sidebar-style="transparent"] .sidebar {
     box-shadow: var(--shadow-lg);
   }
 
+  /* Closed, the drawer was only slid off-screen: its links stayed in the tab
+     order. Hidden when closed; the delay lets the slide-out finish. */
+  .sidebar:not(.drawerOpen) {
+    visibility: hidden;
+    transition:
+      left var(--t) var(--ease),
+      visibility 0s linear var(--t);
+  }
+
   .sidebar.drawerOpen {
     left: 0;
+    visibility: visible;
   }
 
   .collapseToggle {
@@ -309,11 +497,20 @@ body[data-sidebar-style="transparent"] .sidebar {
   }
 }
 
+/* Sub-links are 32px on a mouse; a finger gets the 44px floor. */
+@media (pointer: coarse) {
+  .subLink {
+    min-height: var(--touch-target-min);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
-  .sectionChevron,
-  .createBtn,
-  .navLink {
+  .search,
+  .navLink,
+  .ask,
+  .footerLink,
+  .pausedCard {
     transition: none;
   }
 }

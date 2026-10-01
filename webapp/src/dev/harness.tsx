@@ -45,7 +45,25 @@ const USER = {
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   app_metadata: { provider: "email" },
-  user_metadata: { full_name: "Harness Student" },
+  /* The harness account is freshly created on every load, which OnboardingGate
+     would read as a brand new student and redirect to /welcome — so the
+     fixtures would never be visible. Marking it onboarded keeps the harness
+     landing where it always did; the wizard itself is still reachable at
+     ?route=/welcome (or ?route=/welcome%3Freplay=1 to see it pre-filled). */
+  user_metadata: {
+    full_name: "Harness Student",
+    onboarding: {
+      version: 1,
+      goal: "university",
+      focusAreas: ["deadlines", "planning", "recall"],
+      coachStyle: "tutor",
+      detail: "medium",
+      studyTime: "steady",
+      weekdayCapacityMins: 120,
+      completedAt: "2026-01-01T00:00:00.000Z",
+      skipped: false,
+    },
+  },
   identities: [],
 };
 
@@ -74,6 +92,7 @@ const TABLES: Record<string, unknown[]> = {
   flashcard_decks: fx.decks,
   flashcards: fx.flashcards,
   study_sessions: fx.sessions,
+  learning_events: [],
   quizzes: fx.quizzes,
   quiz_attempts: fx.quizAttempts,
   weekly_plans: fx.plans,
@@ -81,6 +100,8 @@ const TABLES: Record<string, unknown[]> = {
   profiles: [
     {
       id: fx.USER_ID,
+      life_context: null,
+      life_context_updated_at: null,
       full_name: "Harness Student",
       friend_code: "HARNESS1",
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
@@ -179,6 +200,19 @@ function install(supabaseUrl: string) {
           /* a write with no JSON body is fine — nothing to echo */
         }
         const echoed = Array.isArray(body) ? body : body ? [body] : [];
+        if (table === "learning_events" && method === "POST") {
+          for (const row of echoed) {
+            if (
+              !rows.some(
+                (existing) =>
+                  (existing as { client_id?: string }).client_id ===
+                  row.client_id,
+              )
+            ) {
+              rows.push({ id: `harness-event-${rows.length}`, ...row });
+            }
+          }
+        }
         return json(
           echoed.map((row, i) => ({
             id: `harness-${Date.now()}-${i}`,

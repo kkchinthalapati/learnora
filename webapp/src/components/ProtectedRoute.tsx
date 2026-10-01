@@ -23,6 +23,12 @@ export function ProtectedRoute() {
   }
 
   if (!session) {
+    if (
+      location.pathname === "/timer" ||
+      location.pathname.startsWith("/timer/")
+    ) {
+      return <Outlet />;
+    }
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 

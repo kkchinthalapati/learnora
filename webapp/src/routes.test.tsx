@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -7,6 +7,37 @@ import { SUPABASE_URL } from "./lib/supabase";
 import { AppRoutes } from "./routes";
 import { ChatProvider } from "./context/ChatProvider";
 import { fakeSession, renderWithAuth } from "./test/auth";
+
+/* Lazy routes compile the first time they render, and that used to happen
+   inside each test's 10-second wait. Under the full parallel suite the cold
+   transform of the notes editor alone could run past it, failing a test
+   about routing for a reason that has nothing to do with routing. Load them
+   once, up front, with a budget of their own. */
+beforeAll(async () => {
+  await Promise.all([
+    import("./views/analytics/StudyAnalyticsView"),
+    import("./views/decks/DeckCardsView"),
+    import("./views/session/SessionView"),
+    import("./views/feynman/FeynmanDebriefView"),
+    import("./views/feynman/FeynmanStudioView"),
+    import("./views/friends/FriendInviteLanding"),
+    import("./views/friends/FriendsView"),
+    import("./views/library/SubjectDetailPage"),
+    import("./views/lifesync/MyWeekView"),
+    import("./views/notebooks/NotebookStudioView"),
+    import("./views/notes/NotesView"),
+    import("./views/onboarding/WelcomeView"),
+    import("./views/pro-welcome/WelcomeToProView"),
+    import("./views/quiz/MockExamRunner"),
+    import("./views/quiz/QuizReview"),
+    import("./views/quiz/QuizRunner"),
+    import("./views/review/ReviewView"),
+    import("./views/room/StudyRoomView"),
+    import("./views/settings/SettingsView"),
+    import("./views/sparring/SocraticSparringView"),
+    import("./views/trajectory/TrajectoryView"),
+  ]);
+}, 120_000);
 import { mockAuthSession } from "./test/mockSession";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -29,6 +60,7 @@ function renderAt(path: string) {
 describe("route skeleton", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
+    server.use(http.get(rest("notebooks"), () => HttpResponse.json([])));
   });
 
   afterEach(() => {
@@ -36,28 +68,68 @@ describe("route skeleton", () => {
   });
 
   it.each([
-    ["/", "Dashboard"],
+    ["/", "Add your next exam to get a next step"],
     /* The app shell's Header now supplies the page's <h1> (the redesign
        audit found Tasks' old page-only "Tasks" heading duplicating the
        shell's own nav-derived label right below it); the shell's label —
-       t("nav_tasks"), "Task Manager" — is the one that survives. */
-    ["/tasks", "Task Manager"],
+       t("nav_tasks"), "Tasks" — is the one that survives. */
+    ["/tasks", "Tasks"],
     ["/exams", "Exams"],
-    ["/timer", "Timer"],
-    ["/library", "Library"],
-    ["/library/notes", "Library"],
-    ["/plan", "This week's plan"],
+    ["/timer", "Focus timer"],
+    ["/library", "Your learning"],
+    /* A real tab. This row used to read "/library/notes", which is not in
+       LIBRARY_TABS — LibraryView bounced it to /library and rendered the same
+       heading, so the assertion passed whether or not tab routing worked. */
+    ["/library/quizzes", "Your learning"],
+    ["/plan", "Plan"],
     ["/friends", "Friends"],
     ["/analytics", "Progress"],
-    ["/graph", "How Topics Connect"],
-    ["/feynman", "Explain It Simply"],
-    ["/debugger", "Find My Mistake"],
-    ["/premortem", "Practise on the questions designed to catch you out"],
+    ["/study", "What do you need help with?"],
     ["/settings", "Settings"],
-  ])("%s renders the %s view for a signed-in user", (path, heading) => {
+  ])("%s renders the %s view for a signed-in user", async (path, heading) => {
     renderAt(path);
     expect(
-      screen.getByRole("heading", { level: 1, name: heading }),
+      await screen.findByRole(
+        "heading",
+        { level: 1, name: heading },
+        { timeout: 10000 },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  /* Old URLs redirect, never 404 (2026-09 redesign route map). */
+  it.each([["/dashboard", "Add your next exam to get a next step"]])(
+    "%s redirects to Today",
+    async (path, heading) => {
+      renderAt(path);
+      expect(
+        await screen.findByRole(
+          "heading",
+          { level: 1, name: heading },
+          { timeout: 10000 },
+        ),
+      ).toBeInTheDocument();
+    },
+  );
+
+  /* The study tools are Session modes now. Their old URLs redirect into a
+     Session — keeping the topic when they carried one — never a 404. */
+  it.each([
+    ["/solver?topic=Osmosis", "Osmosis"],
+    ["/feynman?topic=Osmosis", "Osmosis"],
+    ["/viva?topic=Osmosis", "Osmosis"],
+    ["/exam-detective", "What are you working on?"],
+    ["/feynman", "What are you working on?"],
+    ["/debugger", "What are you working on?"],
+    ["/sparring/abc", "What are you working on?"],
+  ])("%s redirects into a Session (%s)", async (path, heading) => {
+    renderAt(path);
+    expect(
+      await screen.findByRole(
+        "heading",
+        { level: 1, name: heading },
+        { timeout: 10000 },
+      ),
     ).toBeInTheDocument();
   });
 
@@ -67,23 +139,26 @@ describe("route skeleton", () => {
      twice, 150px apart, and /feynman printed a shell title above the hub's own
      longer hero title. A document has one <h1>; which of the two owns it
      is decided by viewOwnsPageTitle() in lib/sectionLabel.ts. */
+  /* Canonical paths only. This list used to include /notebooks, /debugger and
+     /sparring, all of which are <Navigate> redirects — so three rows were
+     re-testing the heading count of a target already covered by another row,
+     and the /notebooks row in particular no longer guarded the defect its
+     comment describes. */
   it.each([
     "/",
-    "/notebooks",
     "/library",
     "/plan",
     "/analytics",
+    "/study",
     "/settings",
-    "/feynman",
-    "/debugger",
-    "/premortem",
+    "/study/new?mode=teach",
     "/room",
   ])("%s renders exactly one level-1 heading", async (path) => {
     renderAt(path);
     await waitFor(
       () =>
         expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1),
-      { timeout: 5000 },
+      { timeout: 10000 },
     );
   });
 
@@ -123,7 +198,7 @@ describe("route skeleton", () => {
 
     await waitFor(
       () => expect(screen.getByText("Cell division")).toBeInTheDocument(),
-      { timeout: 5000 },
+      { timeout: 10000 },
     );
   });
 
@@ -135,7 +210,7 @@ describe("route skeleton", () => {
     renderAt("/quiz/q-1");
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "Quiz not found." }),
+      await screen.findByText("Quiz not found"),
     ).toBeInTheDocument();
   });
 
@@ -144,7 +219,7 @@ describe("route skeleton", () => {
     renderAt("/quiz/q-1/review");
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "Quiz not found." }),
+      await screen.findByText("Quiz not found"),
     ).toBeInTheDocument();
   });
 
@@ -184,7 +259,11 @@ describe("route skeleton", () => {
     renderAt("/review/d-1");
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "Cell Biology" }),
+      await screen.findByRole(
+        "heading",
+        { level: 2, name: "Cell Biology" },
+        { timeout: 10000 },
+      ),
     ).toBeInTheDocument();
   });
 
@@ -242,5 +321,38 @@ describe("public routes", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "Terms of Service" }),
     ).toBeInTheDocument();
+  });
+  /* T7: a screen gets one primary action. Two buttons of equal weight side by
+     side means the screen has no obvious next step, which was the most common
+     pattern in the redesign audit. data-rank is set by Button from its
+     variant, so this asserts the rendered hierarchy rather than the source. */
+  it.each([
+    ["/"],
+    ["/tasks"],
+    ["/exams"],
+    ["/library"],
+    ["/plan"],
+    ["/analytics"],
+    ["/study"],
+    ["/study/new?mode=explain"],
+    ["/settings"],
+  ])("%s shows at most one primary action", async (path) => {
+    const { container } = renderAt(path);
+
+    await waitFor(
+      () => {
+        expect(container.querySelector("h1")).toBeTruthy();
+      },
+      { timeout: 10000 },
+    );
+
+    const primaries = Array.from(
+      container.querySelectorAll('[data-rank="primary"]'),
+    ).filter((el) => !el.hasAttribute("hidden"));
+
+    /* Name them in the failure: "expected 2 to be <= 1" does not say which
+       two buttons are competing. */
+    const labels = primaries.map((el) => el.textContent?.trim());
+    expect(labels.length, `competing primaries: ${labels.join(" | ")}`).toBeLessThanOrEqual(1);
   });
 });

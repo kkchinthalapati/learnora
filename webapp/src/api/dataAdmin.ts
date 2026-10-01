@@ -3,6 +3,9 @@ import { requireUserId } from "./session";
 import { tasksApi } from "./tasks";
 import { examsApi } from "./exams";
 import { sessionsApi } from "./sessions";
+import { computeStudyStreak } from "../lib/streak";
+import { localDateStr } from "../lib/date";
+import type { StudySession } from "./types";
 
 function escapeCSVField(field: unknown): string {
   const str = String(field ?? "");
@@ -56,7 +59,7 @@ export const dataAdminApi = {
 
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Learnora_Export_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `Learnora_Export_${localDateStr()}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -92,34 +95,21 @@ export const dataAdminApi = {
       (e) => e.status === "scheduled" || e.status === "upcoming"
     ).length;
 
-    // Calculate study streak (consecutive days with activity)
-    const sessionDates = new Set<string>();
-    activeSessions.forEach((s) => {
-      const dateStr = dbSessions.length
-        ? new Date((s as (typeof dbSessions)[number]).started_at)
-            .toISOString()
-            .split("T")[0]
-        : (s as { timestamp: string }).timestamp.split(",")[0];
-      sessionDates.add(dateStr);
-    });
-    const sortedDates = Array.from(sessionDates).sort().reverse();
-    let streak = 0;
-    if (sortedDates.length > 0) {
-      const today = new Date().toISOString().split("T")[0];
-      let currentDate = new Date(today);
-      for (const dateStr of sortedDates) {
-        const sessionDate = new Date(dateStr);
-        const daysDiff = Math.floor(
-          (currentDate.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        if (daysDiff === 0 || daysDiff === 1) {
-          streak++;
-          currentDate = sessionDate;
-        } else {
-          break;
-        }
-      }
-    }
+    /* The same streak the app shows (lib/streak): local calendar days, the
+       5-minute qualifying bar, and today as a grace day. This used to be a
+       private re-implementation that bucketed days in UTC and, for the
+       local-history fallback, sorted "9/30/2026"-style strings
+       alphabetically — so the report could print a different streak from
+       the one on the student's own dashboard. */
+    const streak = computeStudyStreak(
+      activeSessions.flatMap((s) => {
+        const at = new Date("started_at" in s ? s.started_at : s.timestamp);
+        if (Number.isNaN(at.getTime())) return [];
+        return [
+          { started_at: at.toISOString(), minutes: s.minutes } as StudySession,
+        ];
+      }),
+    );
 
     const html = `<!doctype html>
 <html lang="en">
@@ -348,7 +338,7 @@ export const dataAdminApi = {
   <div class="container">
     <header>
       <h1>Your Study Report</h1>
-      <p class="report-date">Generated on ${new Date().toLocaleDateString("en-US", {
+      <p class="report-date">Generated on ${new Date().toLocaleDateString(undefined, {
         weekday: "long",
         year: "numeric",
         month: "long",
@@ -482,7 +472,7 @@ export const dataAdminApi = {
 
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Learnora_Report_${new Date().toISOString().slice(0, 10)}.html`;
+    link.download = `Learnora_Report_${localDateStr()}.html`;
     document.body.appendChild(link);
     link.click();
     link.remove();

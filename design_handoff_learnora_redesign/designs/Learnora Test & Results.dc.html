@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#e9e5dc;font-family:'Instrument Sans',system-ui,sans-serif;color:#1a1815}a{color:#0b5c55}a:hover{color:#094943}</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:56px;padding:56px">
+  <header style="display:flex;flex-direction:column;gap:8px;max-width:900px">
+    <a href="Learnora Redesign.dc.html" style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;text-decoration:none">← Learnora redesign / 03</a>
+    <h1 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:48px;letter-spacing:-0.02em;line-height:1.05">Test runner and results</h1>
+    <p style="margin:0;font-size:16px;line-height:1.6;color:#625c50;max-width:72ch">A test is a quiet room: no hints, no tutor, no navigation. Results are organised by what to do next rather than by score. Click a question number to jump to it, or press Submit to see the results.</p>
+  </header>
+
+  <section id="3a" style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:#1a1815;color:#f7f5f0;border-radius:3px">3a</span>
+        <div style="display:flex;gap:4px;padding:3px;background:#dcd6ca;border-radius:8px">
+          <button onClick="{{ showTest }}" style="height:32px;padding:0 12px;border:0;border-radius:6px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:{{ tabTest }}">Test in progress</button>
+          <button onClick="{{ showResults }}" style="height:32px;padding:0 12px;border:0;border-radius:6px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:{{ tabRes }}">Results</button>
+        </div>
+      </div>
+
+      <sc-if value="{{ isTest }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="Test runner" style="width:1280px;height:820px;display:flex;flex-direction:column;background:#fbfaf7;border:1px solid #d5cfc2;border-radius:12px;overflow:hidden;box-shadow:0 16px 40px -12px rgba(24,20,14,0.16)">
+          <div style="display:flex;align-items:center;gap:20px;height:60px;padding:0 28px;border-bottom:1px solid #e2ddd1">
+            <span style="font-family:'Newsreader',Georgia,serif;font-size:19px;font-weight:500">Biology midterm practice</span>
+            <span style="font-size:13px;color:#625c50">16 questions · closed book</span>
+            <span style="flex:1"></span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#3d3830">23:41 left</span>
+            <button style="height:36px;padding:0 12px;border:1px solid #d5cfc2;border-radius:6px;background:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer">Hide timer</button>
+            <button style="height:36px;padding:0 12px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;font-weight:600;color:#625c50;cursor:pointer">Pause &amp; save</button>
+          </div>
+          <div style="display:flex;gap:4px;padding:14px 28px;border-bottom:1px solid #eeeae1;align-items:center">
+            <sc-for list="{{ qnav }}" as="q" hint-placeholder-count="16">
+              <button onClick="{{ q.go }}" aria-label="Question {{ q.n }}" style="position:relative;width:36px;height:36px;border-radius:6px;border:1.5px solid {{ q.border }};background:{{ q.bg }};color:{{ q.fg }};font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;cursor:pointer">{{ q.n }}<span style="position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:999px;background:#b8862e;border:2px solid #fbfaf7;display:{{ q.flag }}"></span></button>
+            </sc-for>
+            <span style="flex:1"></span>
+            <span style="font-size:12px;color:#625c50">9 answered · 1 flagged · 6 to go</span>
+          </div>
+          <div style="flex:1;display:flex;justify-content:center;padding:48px 28px;overflow:hidden">
+            <div style="width:680px;display:flex;flex-direction:column;gap:24px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;color:#625c50">QUESTION {{ cur }} OF 16</span>
+                <button style="display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:1px solid #e2ddd1;border-radius:6px;background:#fff;font:inherit;font-size:13px;font-weight:600;color:#76511b;cursor:pointer">Flag for review</button>
+              </div>
+              <p style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:21px;line-height:1.5">Cyanide blocks complex IV of the electron transport chain. Which effect would you expect first?</p>
+              <div style="display:flex;flex-direction:column;gap:8px" role="radiogroup">
+                <sc-for list="{{ options }}" as="o" hint-placeholder-count="4">
+                  <button onClick="{{ o.pick }}" style="display:grid;grid-template-columns:28px minmax(0,1fr);gap:14px;align-items:center;min-height:56px;padding:12px 16px;text-align:left;border:1.5px solid {{ o.border }};border-radius:8px;background:{{ o.bg }};font:inherit;font-size:16px;cursor:pointer;color:#1a1815">
+                    <span style="width:26px;height:26px;border-radius:5px;border:1px solid {{ o.kb }};display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;background:{{ o.kbg }};color:{{ o.kfg }}">{{ o.k }}</span>
+                    <span>{{ o.t }}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:13px;color:#625c50">Confidence</span>
+                <span style="height:32px;padding:0 10px;display:inline-flex;align-items:center;border:1px solid #d5cfc2;border-radius:6px;font-size:12px">Guess</span>
+                <span style="height:32px;padding:0 10px;display:inline-flex;align-items:center;border:1px solid #d5cfc2;border-radius:6px;font-size:12px">Fairly sure</span>
+                <span style="height:32px;padding:0 10px;display:inline-flex;align-items:center;border:1px solid #0f766e;background:#e1ece9;border-radius:6px;font-size:12px;font-weight:600">Certain</span>
+                <span style="font-size:12px;color:#78715f">optional</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;height:72px;padding:0 28px;border-top:1px solid #e2ddd1">
+            <button onClick="{{ prev }}" style="height:44px;padding:0 18px;border:1px solid #d5cfc2;border-radius:8px;background:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer">← Previous</button>
+            <span style="font-size:12px;color:#78715f">Saved on this device and in your account</span>
+            <span style="flex:1"></span>
+            <button onClick="{{ showResults }}" style="height:44px;padding:0 16px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:14px;font-weight:600;color:#625c50;cursor:pointer">Submit test…</button>
+            <button onClick="{{ next }}" style="height:44px;padding:0 22px;border:0;border-radius:8px;background:#0f766e;color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer">Next →</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isResults }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="Results" style="width:1280px;height:820px;display:flex;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px;overflow:hidden;box-shadow:0 16px 40px -12px rgba(24,20,14,0.16)">
+          <dc-import name="LearnoraSidebar" active="study" hint-size="248px,820px"></dc-import>
+          <main style="flex:1;min-width:0;padding:40px 48px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:48px;overflow:hidden">
+            <div style="display:flex;flex-direction:column;gap:32px;min-width:0">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#625c50">Biology midterm practice · 11 of 16</span>
+                <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:44px;line-height:1.05;letter-spacing:-0.02em;max-width:20ch">Energy yield is solid. One idea about membranes is costing you marks.</h2>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px;padding:22px 24px;background:#fff;border:1px solid #e2ddd1;border-radius:12px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;font-weight:600;color:#96352d">Confident but wrong · 3 questions</span><span style="font-size:12px;color:#625c50">Q4, Q9, Q13</span></div>
+                <p style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:17px;line-height:1.6;max-width:60ch">All three came from the same belief: that the proton gradient forms across the outer membrane. You marked each one "Certain", so this is a misconception, not a slip.</p>
+                <div style="display:flex;gap:10px;align-items:center">
+                  <a href="Learnora Session.dc.html" style="display:inline-flex;align-items:center;height:44px;padding:0 20px;border-radius:8px;background:#0f766e;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Fix it · 8 min Socratic</a>
+                  <button style="height:44px;padding:0 16px;border:1px solid #d5cfc2;border-radius:8px;background:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer">Review the 3 questions</button>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <h3 style="margin:0;font-size:13px;font-weight:600;color:#625c50">By concept</h3>
+                <div style="display:flex;flex-direction:column;border-top:1px solid #e2ddd1">
+                  <sc-for list="{{ concepts }}" as="c" hint-placeholder-count="5">
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) 140px 150px;gap:16px;align-items:center;min-height:52px;border-bottom:1px solid #e2ddd1">
+                      <span style="font-size:15px;font-weight:500">{{ c.name }}</span>
+                      <div style="display:flex;gap:3px">
+                        <sc-for list="{{ c.marks }}" as="m" hint-placeholder-count="4"><span style="width:18px;height:18px;border-radius:3px;background:{{ m.bg }};color:#fff;font-size:11px;display:inline-flex;align-items:center;justify-content:center">{{ m.g }}</span></sc-for>
+                      </div>
+                      <span style="font-size:13px;color:{{ c.fg }};font-weight:600">{{ c.note }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <aside style="display:flex;flex-direction:column;gap:24px;padding-top:28px">
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <h3 style="margin:0;font-size:13px;font-weight:600;color:#625c50">Mastery changes</h3>
+                <div style="display:flex;flex-direction:column;gap:8px;font-size:14px">
+                  <div style="display:flex;justify-content:space-between"><span>Krebs cycle</span><span style="color:#15634b;font-weight:600">Applied → Explained</span></div>
+                  <div style="display:flex;justify-content:space-between"><span>Glycolysis</span><span style="color:#3d3830">Applied, refreshed</span></div>
+                  <div style="display:flex;justify-content:space-between"><span>Electron transport</span><span style="color:#3d3830">Still Seen</span></div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;padding-top:20px;border-top:1px solid #e2ddd1">
+                <h3 style="margin:0;font-size:13px;font-weight:600;color:#625c50">Compared with last attempt</h3>
+                <p style="margin:0;font-size:14px;line-height:1.55">8 → 11 correct. Your guesses dropped from 6 to 2, so more of what you know is now secure.</p>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;padding-top:20px;border-top:1px solid #e2ddd1">
+                <h3 style="margin:0;font-size:13px;font-weight:600;color:#625c50">Scheduled for you</h3>
+                <p style="margin:0;font-size:14px;line-height:1.55">4 of today's questions come back as flashcards on Friday. Re-test on electron transport on Monday.</p>
+                <a href="#" style="font-size:13px;font-weight:600">Change plan</a>
+              </div>
+            </aside>
+          </main>
+        </div>
+      </sc-if>
+    </div>
+
+    <aside style="width:380px;display:flex;flex-direction:column;gap:22px;padding-top:44px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5c55">Why it looks like this</span>
+        <p style="margin:0;font-size:15px;line-height:1.6;text-wrap:pretty">{{ why1 }}</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h4 style="margin:0;font-size:14px;font-weight:600">{{ h2 }}</h4>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#3d3830;text-wrap:pretty">{{ why2 }}</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h4 style="margin:0;font-size:14px;font-weight:600">Legend</h4>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:#3d3830">
+          <span style="display:flex;gap:8px;align-items:center"><span style="width:14px;height:14px;border-radius:3px;background:#1e8e6b"></span>Correct</span>
+          <span style="display:flex;gap:8px;align-items:center"><span style="width:14px;height:14px;border-radius:3px;background:#b8862e"></span>Correct but guessed (not yet secure)</span>
+          <span style="display:flex;gap:8px;align-items:center"><span style="width:14px;height:14px;border-radius:3px;background:#c2453a"></span>Wrong. The shape (✕) carries the meaning, not only the colour</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:14px;background:#f0ece3;border-radius:8px">
+        <h4 style="margin:0;font-size:13px;font-weight:600">Edge cases</h4>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:#3d3830">Submit with blanks → an inline list of the unanswered questions, not a modal. Network lost → answers keep saving locally and "Submit" waits until you're back online. Timer ends → the test submits, and nothing typed is lost. All correct → "Nothing to fix. Next re-test in 9 days."</p>
+      </div>
+    </aside>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;test&quot;,&quot;results&quot;],&quot;default&quot;:&quot;test&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { view: this.props.view ?? "test", cur: 10, pick: 1 };
+  renderVals() {
+    const { view, cur, pick } = this.state;
+    const answered = [1,2,3,4,5,6,7,8,9];
+    const opts = ["ATP production stops within minutes", "Oxygen use rises as the cell compensates", "Glycolysis stops immediately", "The proton gradient becomes steeper"];
+    const G = "#1e8e6b", A = "#b8862e", R = "#c2453a";
+    const mk = (arr) => arr.map(x => ({ bg: x === "g" ? G : x === "a" ? A : R, g: x === "r" ? "✕" : "" }));
+    return {
+      isTest: view === "test", isResults: view === "results",
+      tabTest: view === "test" ? "#fbfaf7" : "transparent", tabRes: view === "results" ? "#fbfaf7" : "transparent",
+      showTest: () => this.setState({ view: "test" }), showResults: () => this.setState({ view: "results" }),
+      cur,
+      prev: () => this.setState({ cur: Math.max(1, cur - 1) }),
+      next: () => this.setState({ cur: Math.min(16, cur + 1) }),
+      qnav: Array.from({ length: 16 }, (_, i) => {
+        const n = i + 1, isCur = n === cur, done = answered.includes(n);
+        return { n, go: () => this.setState({ cur: n }), border: isCur ? "#1a1815" : done ? "#9cc6c0" : "#e2ddd1", bg: done ? "#e1ece9" : "#fff", fg: done ? "#0b5c55" : "#625c50", flag: n === 6 ? "block" : "none" };
+      }),
+      options: opts.map((t, i) => ({ t, k: "ABCD"[i], pick: () => this.setState({ pick: i }), border: pick === i ? "#0f766e" : "#e2ddd1", bg: pick === i ? "#eef5f3" : "#fff", kb: pick === i ? "#0f766e" : "#d5cfc2", kbg: pick === i ? "#0f766e" : "#fff", kfg: pick === i ? "#fff" : "#625c50" })),
+      concepts: [
+        { name: "Glycolysis", marks: mk(["g","g","g"]), note: "Secure", fg: "#15634b" },
+        { name: "Krebs cycle", marks: mk(["g","g","a","g"]), note: "1 lucky guess", fg: "#76511b" },
+        { name: "Electron transport", marks: mk(["r","r","g","r"]), note: "Misconception", fg: "#96352d" },
+        { name: "ATP yield tables", marks: mk(["g","r","g"]), note: "Misread column", fg: "#76511b" },
+        { name: "Fermentation", marks: mk(["g","g"]), note: "Secure", fg: "#15634b" },
+      ],
+      why1: view === "test"
+        ? "The shell, sidebar and tutor are gone. The only thing on screen is the question. The runner uses the paper tone (#fbfaf7) with no second surface, which marks it as a different kind of room from the rest of the app."
+        : "The headline states the finding and the score is a small caption. The first block is the single most useful thing to do next, with a time estimate. The concept list comes after it, and the numbers sit in the side rail as context.",
+      h2: view === "test" ? "Confidence is optional but valuable" : "'Confident but wrong' comes first",
+      why2: view === "test"
+        ? "Rating confidence costs one tap. It is what lets the results screen tell a misconception (sure and wrong) apart from a gap (unsure and wrong), and those two need different fixes: Socratic questioning for the first, Explain for the second. The student can hide the timer, so timed conditions are there for those who want them."
+        : "Wrong answers the student was sure of are grouped by the belief behind them. Repeated wrong answers usually come from one misconception, so the fix is a single session, not a list of 5 mistakes to go through. Answers that were right but guessed are shown in ochre and scheduled again, so a lucky mark doesn't count as mastery.",
+    };
+  }
+}
+</script>
+</body>
+</html>

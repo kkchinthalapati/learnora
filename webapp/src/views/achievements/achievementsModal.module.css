@@ -147,7 +147,7 @@
 
 .goalsGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s-3);
 }
 
@@ -284,7 +284,6 @@
   background: var(--accent);
   color: var(--accent-on);
   border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--accent-glow);
 }
 
 .filterCount {

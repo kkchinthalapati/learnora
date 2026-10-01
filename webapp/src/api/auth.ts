@@ -1,4 +1,6 @@
 import { supabase, SUPABASE_URL } from "../lib/supabase";
+import { appUrl } from "../lib/appUrl";
+import { PASSWORD_RULE_MESSAGE } from "../lib/passwordStrength";
 
 /* Direct port of js/api.js's `Auth` object (:86-348) — minus `getSession` and
  * `logout`, which Step 4 already ported into `AuthProvider`/`useAuth().signOut`
@@ -27,10 +29,7 @@ const MIN_SIGNUP_AGE = 13;
  * (Authentication → URL Configuration) or Supabase silently falls back to the
  * project's Site URL. That is a dashboard setting, not something this repo can
  * set — see the migration ledger. */
-function authRedirect(path: string): string {
-  const base = import.meta.env.BASE_URL || "/";
-  return `${window.location.origin}${base}${path.replace(/^\//, "")}`;
-}
+const authRedirect = appUrl;
 
 interface AuthErrorLike {
   message?: string;
@@ -62,9 +61,42 @@ function calculateAge(dob: string): number {
 function friendlyAuthError(error: AuthErrorLike | null | undefined): string {
   const msg = error?.message?.toLowerCase() || "";
   const code = error?.code ?? error?.status;
+  const status = typeof error?.status === "number" ? error.status : undefined;
 
-  if (code === 429 || msg.includes("rate limit") || msg.includes("too many")) {
+  /* The confirmation-email limit is hourly, not per minute — telling a
+     student to "wait a minute" sends them straight back into the same 429. */
+  if (
+    code === "over_email_send_rate_limit" ||
+    msg.includes("email rate limit")
+  ) {
+    return "We've sent too many emails from Learnora in the last hour. Please try again later — and check your spam folder for an earlier email first.";
+  }
+  if (
+    code === 429 ||
+    status === 429 ||
+    msg.includes("rate limit") ||
+    msg.includes("too many")
+  ) {
     return "Too many requests. Please wait a minute and try again.";
+  }
+  /* GoTrue enforces lowercase + uppercase + digit; its own message lists the
+     whole alphabet three times. */
+  if (
+    code === "weak_password" ||
+    msg.includes("should contain at least one character")
+  ) {
+    return PASSWORD_RULE_MESSAGE;
+  }
+  /* A gateway timeout (the confirmation email taking over 10s to send) reaches
+     supabase-js as an AuthRetryableFetchError whose message is the serialised
+     Response — literally "{}" — which is what students were being shown. */
+  if (
+    (status !== undefined && status >= 500) ||
+    msg === "{}" ||
+    msg.includes("timed out") ||
+    msg.includes("deadline exceeded")
+  ) {
+    return "Learnora's account service is slow to respond right now. Please wait a minute, then try again.";
   }
   if (msg.includes("invalid login") || msg.includes("invalid credentials")) {
     return "Incorrect email or password. Please try again.";
@@ -128,6 +160,7 @@ export const authApi = {
     email: string,
     password: string,
     dob: string,
+    consentGiven: boolean,
   ): Promise<SignupOutcome> {
     if (!dob) throw new Error("Please enter your date of birth.");
     const age = calculateAge(dob);
@@ -139,12 +172,20 @@ export const authApi = {
     if (age < MIN_SIGNUP_AGE) {
       throw new Error(`You must be at least ${MIN_SIGNUP_AGE} years old.`);
     }
+    /* Consent is optional at sign-up and asked for at first use instead
+     * (lib/aiConsent.ts). It is always written explicitly — true or false —
+     * so a new account is never mistaken for a legacy one with no flag. */
 
+    /* `consent_given` rides in the same user-metadata bag as `full_name` and
+     * `dob`. The `sync_profile_from_auth_user` trigger (see the migration
+     * alongside this file) copies it into `public.profiles` on insert, so
+     * there is no separate write to make here — one signup call is the whole
+     * flow, same as name and date of birth already were. */
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: name, dob },
+        data: { full_name: name, dob, consent_given: consentGiven },
         emailRedirectTo: authRedirect("/verify"),
       },
     });
@@ -167,11 +208,6 @@ export const authApi = {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: authRedirect("/reset-password"),
     });
-    if (error) throw new Error(friendlyAuthError(error));
-  },
-
-  async updatePassword(newPassword: string): Promise<void> {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw new Error(friendlyAuthError(error));
   },
 
@@ -213,6 +249,14 @@ export const authApi = {
     currentPassword: string,
     newPassword: string,
   ): Promise<void> {
+    await this.verifyPassword(currentPassword);
+    await applyPasswordChange(newPassword);
+  },
+
+  /** Prove the caller knows the account password before a destructive
+   *  action (wipe, password change). Same re-auth trick as above; throws a
+   *  friendly error on a wrong password or a rate limit. */
+  async verifyPassword(currentPassword: string): Promise<void> {
     if (!currentPassword) {
       throw new Error("Please enter your current password.");
     }
@@ -248,8 +292,6 @@ export const authApi = {
       }
       throw new Error("Your current password is incorrect.");
     }
-
-    await applyPasswordChange(newPassword);
   },
 
   /** Sign out all other sessions (not the current one). */
@@ -260,7 +302,12 @@ export const authApi = {
 
   /** Delete the account — requires an edge function since the client SDK
    * cannot delete users (admin-only operation). */
-  async deleteAccount(): Promise<void> {
+  /* `password` re-authenticates the person at the keyboard. The session token
+     proves the account; it does not prove that whoever is holding the laptop
+     is its owner, and this action is irreversible. The edge function decides
+     whether a password is required — an OAuth-only account has none — so it
+     is optional here rather than enforced client-side. */
+  async deleteAccount(password?: string): Promise<void> {
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -272,6 +319,7 @@ export const authApi = {
         Authorization: `Bearer ${session.access_token}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({ password: password ?? "" }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));

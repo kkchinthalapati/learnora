@@ -1,41 +1,34 @@
-import { useLocation } from "react-router";
+import { Link, useLocation } from "react-router";
 import { Icon } from "./Icon";
 import { IconButton } from "./IconButton";
 import { useAuth } from "../context/auth";
-import { useAppearance } from "../context/appearance";
 import { useOptionalCommandPalette } from "../context/commandPalette";
 import { useLiveClock } from "../hooks/useLiveClock";
 import { useTranslation } from "../hooks/useTranslation";
-import { getGreeting } from "../lib/greeting";
 import { sectionLabel, viewOwnsPageTitle } from "../lib/sectionLabel";
-import { resolveDark, THEME_KEY } from "../lib/appearance";
-import { Storage } from "../lib/storage";
 import styles from "./Header.module.css";
+import { HelpCenter } from "./HelpCenter";
+
+/* The shortcut hint in the platform's own terms: "⌘K" means nothing on the
+   Windows and Chromebook laptops most students use. */
+const IS_MAC =
+  typeof navigator !== "undefined" &&
+  /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+const SEARCH_SHORTCUT = IS_MAC ? "⌘K" : "Ctrl K";
 
 export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   const { pathname } = useLocation();
-  const { user, signOut } = useAuth();
-  const { appearance, setAppearance } = useAppearance();
+  const { user } = useAuth();
   const commandPalette = useOptionalCommandPalette();
   const time = useLiveClock();
   const t = useTranslation();
 
-  const firstName =
-    (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0] ||
-    "Student";
-  const isDark = resolveDark(appearance.mode);
-  const showDashboardGreeting = pathname === "/";
   /* Views listed in viewOwnsPageTitle() render their own hero <h1>; the shell
      yields the title to them so the page does not name itself twice. */
   const ownsTitle = !viewOwnsPageTitle(pathname);
-  const showClock = showDashboardGreeting || pathname.startsWith("/timer");
-
-  const toggleTheme = () => {
-    const nextMode = isDark ? "light" : "dark";
-    setAppearance({ mode: nextMode });
-    Storage.set("learnora_mode", nextMode);
-    Storage.set(THEME_KEY, nextMode);
-  };
+  /* Today's own headline greets the student and its meta line carries the
+     date, so the shell adds neither there (2026-09 redesign). */
+  const showClock = pathname.startsWith("/timer");
 
   return (
     <header className={styles.header}>
@@ -52,39 +45,39 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
           {ownsTitle ? (
             <h1 className={styles.title}>{sectionLabel(pathname, t)}</h1>
           ) : null}
-          {showDashboardGreeting ? (
-            <p className={styles.subtitle}>{getGreeting(firstName)}</p>
-          ) : null}
         </div>
       </div>
 
       <div className={styles.headerRight}>
+        <HelpCenter />
+        {/* Ask the tutor and search live in the sidebar (⌘J / ⌘K) since the
+            2026-09 redesign; theme lives in Settings → Appearance. Search
+            stays here only on phones, where the sidebar is a drawer. */}
         <button
           type="button"
           className={styles.searchTrigger}
           onClick={() => commandPalette?.open()}
           aria-label="Search and command palette"
-          title="Search or run commands (Cmd+K / Ctrl+K)"
+          title={`Search or run commands (${SEARCH_SHORTCUT})`}
         >
           <Icon name="search" size={16} />
           <span className={styles.searchTriggerLabel}>Search</span>
-          <kbd className={styles.searchKbd}>⌘K</kbd>
+          <kbd className={styles.searchKbd}>{SEARCH_SHORTCUT}</kbd>
         </button>
         {showClock ? <span className={styles.clock}>{time}</span> : null}
-        <IconButton
-          aria-label="Log Out"
-          title="Log Out"
-          onClick={() => void signOut()}
-        >
-          <Icon name="log-out" size={20} />
-        </IconButton>
-        <IconButton
-          aria-label="Toggle Theme"
-          title="Toggle Theme"
-          onClick={toggleTheme}
-        >
-          <Icon name={isDark ? "sun" : "moon"} size={22} />
-        </IconButton>
+        {/* Log out moved to the sidebar's Account group and Settings; an
+            icon here was one mis-tap from ending the session. */}
+        {user ? null : (
+          <div className={styles.guestAuthGroup}>
+            <span className={styles.guestBadge}>Guest Mode</span>
+            <Link to="/login" className={styles.signInLink}>
+              Sign In
+            </Link>
+            <Link to="/signup" className={styles.signUpBtn}>
+              Sign Up
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   );

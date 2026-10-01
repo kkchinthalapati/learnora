@@ -20,7 +20,7 @@ ${productDescription}
 
 ## Get started
 
-Open [the Learnora study app](${SITE_URL}/app/) to sign in or create an account. Read [About Learnora](${SITE_URL}/about), [Privacy](${SITE_URL}/privacy), [Terms](${SITE_URL}/terms.html), or [developer resources](${SITE_URL}/developers).
+Open [the Learnora study app](${SITE_URL}/app/) to sign in or create an account. Read [About Learnora](${SITE_URL}/about), [Privacy](${SITE_URL}/privacy), [Terms](${SITE_URL}/app/terms), or [developer resources](${SITE_URL}/developers).
 
 ## For AI agents
 
@@ -91,7 +91,7 @@ function pageHtml({ title, description, canonicalPath, body, schema = null }) {
 <body>
   <header><nav class="wrap"><a class="brand" href="/">Learn<span>ora</span></a><a class="nav-link" href="/app/">Open study app</a></nav></header>
   ${body}
-  <footer><div class="wrap">Learnora AI Study Planner · <a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy</a> · <a href="/terms.html">Terms</a> · <a href="/llms.txt">Agent guide</a></div></footer>
+  <footer><div class="wrap">Learnora AI Study Planner · <a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy</a> · <a href="/app/terms">Terms</a> · <a href="/llms.txt">Agent guide</a></div></footer>
 </body>
 </html>`;
 }
