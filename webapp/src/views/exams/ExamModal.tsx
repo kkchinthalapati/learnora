@@ -7,6 +7,14 @@ import { useDeleteExam, useSaveExam } from "../../hooks/useExams";
 import { useFolders } from "../../hooks/useFolders";
 import { localDateStr } from "../../lib/date";
 import type { Exam } from "../../api/types";
+import {
+  SYLLABUS_SPECS,
+  defaultTier,
+  getSpec,
+  isTier,
+  specLabel,
+  suggestSpecs,
+} from "../../lib/syllabus";
 import { DIFFICULTIES, STATUSES } from "./examMeta";
 import styles from "./exams.module.css";
 
@@ -45,6 +53,7 @@ export function ExamModal({
   const dateId = useId();
   const statusId = useId();
   const folderId = useId();
+  const specId = useId();
 
   const editing = exam !== null;
   const [name, setName] = useState(exam?.exam_name ?? "");
@@ -58,6 +67,26 @@ export function ExamModal({
   const [difficulty, setDifficulty] = useState(exam?.difficulty ?? "Medium");
   const [status, setStatus] = useState(exam?.status ?? "Scheduled");
   const [folder, setFolder] = useState(exam?.folder_id ?? "");
+  /* An id the catalogue no longer knows reads as "no spec" rather than a
+     select stuck on a value it has no option for. */
+  const [spec, setSpec] = useState(getSpec(exam?.syllabus_id)?.id ?? "");
+  const chosenSpec = getSpec(spec);
+  const [tier, setTier] = useState<string>(
+    chosenSpec && isTier(chosenSpec, exam?.syllabus_tier)
+      ? exam!.syllabus_tier!
+      : chosenSpec
+        ? defaultTier(chosenSpec)
+        : "",
+  );
+  /* Offered only while nothing is chosen: a nudge from the name the student
+     already typed, never a silent pick. */
+  const suggestion = !spec ? (suggestSpecs(name)[0] ?? null) : null;
+
+  function chooseSpec(id: string) {
+    setSpec(id);
+    const next = getSpec(id);
+    setTier(next ? (isTier(next, tier) ? tier : defaultTier(next)) : "");
+  }
   const [dateInvalid, setDateInvalid] = useState(false);
   const [nameInvalid, setNameInvalid] = useState(false);
   /* `saveExam.isPending` only flips after a re-render, so a double-click's
@@ -119,6 +148,8 @@ export function ExamModal({
           difficulty,
           status: editing ? status : "Scheduled",
           folder_id: folder || null,
+          syllabus_id: chosenSpec?.id ?? null,
+          syllabus_tier: chosenSpec && isTier(chosenSpec, tier) ? tier : null,
         },
         id: exam?.id ?? null,
       });
@@ -219,6 +250,64 @@ export function ExamModal({
                 </option>
               ))}
             </select>
+          </div>
+        )}
+
+        {/* Which specification this is. Optional, but it is what lets the
+            app pitch every question, explanation and plan block at this
+            exam instead of at the subject in general. */}
+        <div className={styles.inputGroup}>
+          <label htmlFor={specId}>Exam board and specification (optional)</label>
+          <select
+            id={specId}
+            value={spec}
+            onChange={(e) => chooseSpec(e.target.value)}
+          >
+            <option value="">Not listed / not sure</option>
+            {(["GCSE", "IB"] as const).map((qual) => (
+              <optgroup key={qual} label={qual}>
+                {SYLLABUS_SPECS.filter((s) => s.qualification === qual).map(
+                  (s) => (
+                    <option key={s.id} value={s.id}>
+                      {specLabel(s)}
+                    </option>
+                  ),
+                )}
+              </optgroup>
+            ))}
+          </select>
+          {suggestion && (
+            <button
+              type="button"
+              className={styles.specSuggestion}
+              onClick={() => chooseSpec(suggestion.id)}
+            >
+              Use {specLabel(suggestion)}?
+            </button>
+          )}
+        </div>
+
+        {chosenSpec && chosenSpec.tiers.length > 1 && (
+          <div className={styles.inputGroup}>
+            <span>Which tier?</span>
+            <div
+              className={`${styles.segmented} ${styles.segmentedTwo}`}
+              role="radiogroup"
+              aria-label="Tier"
+            >
+              {chosenSpec.tiers.map((level) => (
+                <label key={level} className={styles.segmentedOption}>
+                  <input
+                    type="radio"
+                    name="exam-tier"
+                    value={level}
+                    checked={tier === level}
+                    onChange={() => setTier(level)}
+                  />
+                  <span>{level}</span>
+                </label>
+              ))}
+            </div>
           </div>
         )}
 

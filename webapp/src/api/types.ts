@@ -24,6 +24,12 @@ export interface Exam {
    *  was added to materials, decks and quizzes: rows written before the
    *  column existed, and fixtures that predate it, are still valid exams. */
   folder_id?: string | null;
+  /** The exam specification this exam is, from the syllabus catalogue
+   *  (lib/syllabus), e.g. "aqa-gcse-biology-8461". Optional for the same
+   *  reason as `folder_id`; an id the catalogue does not know reads as none. */
+  syllabus_id?: string | null;
+  /** "Foundation" | "Higher" for GCSE, "SL" | "HL" for IB. */
+  syllabus_tier?: string | null;
 }
 
 export interface Folder {
