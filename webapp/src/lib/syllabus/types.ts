@@ -72,6 +72,12 @@ export interface SyllabusSpec {
   topics: SyllabusTopic[];
   /** The board's public page for the specification. */
   specUrl: string;
+  /** Specs that share content share practice questions: the three GCSE
+   *  Maths specs all read 'gcse-maths'. Defaults to `id`. */
+  questionBankKey?: string;
+  /** Where the board publishes past papers. Learnora links there and never
+   *  copies them: every board reserves its papers (docs/QUESTION_SOURCES.md). */
+  pastPapersUrl: string;
 }
 
 /** A topic with its share of the exam worked out for one tier. */

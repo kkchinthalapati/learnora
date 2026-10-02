@@ -35,6 +35,11 @@ function t(
   return { ref, title, unit, keywords, ...opts };
 }
 
+/* Official past-paper pages. Linked, never copied: every board reserves its
+   papers, and the IB sells its own (docs/QUESTION_SOURCES.md). */
+const AQA_PAST_PAPERS = "https://www.aqa.org.uk/past-papers-and-mark-schemes-finder";
+const IB_PAST_PAPERS = "https://www.follettibstore.com/";
+
 const GCSE_TIERS: SyllabusTier[] = ["Foundation", "Higher"];
 const IB_TIERS: SyllabusTier[] = ["SL", "HL"];
 
@@ -70,6 +75,7 @@ const AQA_BIOLOGY: SyllabusSpec = {
   papers: aqaSciencePapers(["4.1", "4.2", "4.3", "4.4"], ["4.5", "4.6", "4.7"]),
   weightSource: "estimated",
   specUrl: "https://www.aqa.org.uk/subjects/biology/gcse/biology-8461",
+  pastPapersUrl: AQA_PAST_PAPERS,
   units: [
     { code: "4.1", title: "Cell biology" },
     { code: "4.2", title: "Organisation" },
@@ -124,6 +130,7 @@ const AQA_CHEMISTRY: SyllabusSpec = {
   ),
   weightSource: "estimated",
   specUrl: "https://www.aqa.org.uk/subjects/chemistry/gcse/chemistry-8462",
+  pastPapersUrl: AQA_PAST_PAPERS,
   units: [
     { code: "4.1", title: "Atomic structure and the periodic table" },
     { code: "4.2", title: "Bonding, structure, and the properties of matter" },
@@ -186,6 +193,7 @@ const AQA_PHYSICS: SyllabusSpec = {
   papers: aqaSciencePapers(["4.1", "4.2", "4.3", "4.4"], ["4.5", "4.6", "4.7", "4.8"]),
   weightSource: "estimated",
   specUrl: "https://www.aqa.org.uk/subjects/physics/gcse/physics-8463",
+  pastPapersUrl: AQA_PAST_PAPERS,
   units: [
     { code: "4.1", title: "Energy" },
     { code: "4.2", title: "Electricity" },
@@ -265,6 +273,7 @@ function gcseMaths(
   code: string,
   marksPerPaper: number,
   specUrl: string,
+  pastPapersUrl: string,
 ): SyllabusSpec {
   const paper = (n: number): SyllabusPaper => ({
     name: `Paper ${n}${n === 1 ? " (non-calculator)" : " (calculator)"}`,
@@ -285,6 +294,9 @@ function gcseMaths(
     papers: [paper(1), paper(2), paper(3)],
     weightSource: "official",
     specUrl,
+    pastPapersUrl,
+    /* One DfE subject content, so one set of practice questions. */
+    questionBankKey: "gcse-maths",
     units: GCSE_MATHS_UNITS,
     topics: GCSE_MATHS_TOPICS,
   };
@@ -305,6 +317,7 @@ const IB_BIOLOGY: SyllabusSpec = {
   internalAssessment: IB_IA,
   weightSource: "estimated",
   specUrl: "https://www.ibo.org/programmes/diploma-programme/curriculum/sciences/biology/",
+  pastPapersUrl: IB_PAST_PAPERS,
   units: [
     { code: "A", title: "Unity and diversity" },
     { code: "B", title: "Form and function" },
@@ -368,6 +381,7 @@ const IB_CHEMISTRY: SyllabusSpec = {
   internalAssessment: IB_IA,
   weightSource: "estimated",
   specUrl: "https://www.ibo.org/programmes/diploma-programme/curriculum/sciences/chemistry/",
+  pastPapersUrl: IB_PAST_PAPERS,
   units: [
     { code: "S1", title: "Models of the particulate nature of matter" },
     { code: "S2", title: "Models of bonding and structure" },
@@ -415,6 +429,7 @@ const IB_PHYSICS: SyllabusSpec = {
   internalAssessment: IB_IA,
   weightSource: "estimated",
   specUrl: "https://www.ibo.org/programmes/diploma-programme/curriculum/sciences/physics/",
+  pastPapersUrl: IB_PAST_PAPERS,
   units: [
     { code: "A", title: "Space, time and motion" },
     { code: "B", title: "The particulate nature of matter" },
@@ -454,9 +469,9 @@ export const SYLLABUS_SPECS: readonly SyllabusSpec[] = [
   AQA_BIOLOGY,
   AQA_CHEMISTRY,
   AQA_PHYSICS,
-  gcseMaths("aqa-gcse-maths-8300", "AQA", "8300", 80, "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300"),
-  gcseMaths("edexcel-gcse-maths-1ma1", "Pearson Edexcel", "1MA1", 80, "https://qualifications.pearson.com/en/qualifications/edexcel-gcses/mathematics-2015.html"),
-  gcseMaths("ocr-gcse-maths-j560", "OCR", "J560", 100, "https://www.ocr.org.uk/qualifications/gcse/mathematics-j560-from-2015/"),
+  gcseMaths("aqa-gcse-maths-8300", "AQA", "8300", 80, "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300", AQA_PAST_PAPERS),
+  gcseMaths("edexcel-gcse-maths-1ma1", "Pearson Edexcel", "1MA1", 80, "https://qualifications.pearson.com/en/qualifications/edexcel-gcses/mathematics-2015.html", "https://qualifications.pearson.com/en/support/support-topics/exams/past-papers.html"),
+  gcseMaths("ocr-gcse-maths-j560", "OCR", "J560", 100, "https://www.ocr.org.uk/qualifications/gcse/mathematics-j560-from-2015/", "https://www.ocr.org.uk/qualifications/past-paper-finder/"),
   IB_BIOLOGY,
   IB_CHEMISTRY,
   IB_PHYSICS,

@@ -24,6 +24,11 @@ export function getSpec(id: string | null | undefined): SyllabusSpec | null {
   return id ? (BY_ID.get(id) ?? null) : null;
 }
 
+/** The key a spec's practice questions are stored under in question_bank. */
+export function bankKey(spec: SyllabusSpec): string {
+  return spec.questionBankKey ?? spec.id;
+}
+
 /** "AQA GCSE Biology (8461)", "IB Chemistry". */
 export function specLabel(spec: SyllabusSpec): string {
   const qual = spec.board === spec.qualification ? spec.qualification : `${spec.board} ${spec.qualification}`;
