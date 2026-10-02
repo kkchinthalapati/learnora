@@ -39,6 +39,7 @@ function render(path = "/exams/5") {
   return renderWithAuth(
     <Routes>
       <Route path="/exams/:examId" element={<ExamDetailView />} />
+      <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
     </Routes>,
     { session: fakeSession() },
     { initialEntries: [path] },
@@ -135,5 +136,43 @@ describe("ExamDetailView", () => {
     expect(screen.getAllByRole("listitem").length).toBeGreaterThan(8);
     expect(save.closest("[data-print-hide]")).not.toBeNull();
     vi.useRealTimers();
+  });
+  it("builds a practice quiz from the bank on the top topics and opens it", async () => {
+    serveExam({ syllabus_id: "aqa-gcse-biology-8461", syllabus_tier: "Higher" });
+    server.use(
+      http.get(`${REST}/question_bank`, () =>
+        HttpResponse.json([
+          {
+            id: "b1",
+            source: "learnora",
+            source_ref: null,
+            licence: "learnora",
+            attribution: null,
+            spec_key: "aqa-gcse-biology-8461",
+            topic_ref: "4.1.1",
+            tier: null,
+            question: "Which structure is only in plant cells?",
+            choices: ["Nucleus", "Cell wall"],
+            correct_index: 1,
+            explanation: "Cellulose cell wall.",
+          },
+        ]),
+      ),
+      http.post(`${REST}/quizzes`, async ({ request }) => {
+        const [body] = (await request.json()) as Record<string, unknown>[];
+        return HttpResponse.json({ id: "quiz-77", ...body });
+      }),
+    );
+    render();
+    const button = await screen.findByRole("button", { name: "Practise top topics" });
+    button.click();
+    expect(await screen.findByRole("heading", { name: "Quiz runner" })).toBeInTheDocument();
+  });
+
+  it("offers no practice for a spec the bank doesn't cover yet", async () => {
+    serveExam({ syllabus_id: "ib-biology-2025", syllabus_tier: "HL" });
+    render();
+    await screen.findByText("IB Biology HL");
+    expect(screen.queryByRole("button", { name: "Practise top topics" })).toBeNull();
   });
 });

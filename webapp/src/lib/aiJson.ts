@@ -17,6 +17,9 @@ export interface QuizQuestion {
   correctIndex: number;
   topic?: string;
   feedback?: string;
+  /** Licence credit for a question from the practice bank (e.g. Oak
+   *  National Academy, OGL v3.0), shown beneath it. */
+  attribution?: string;
 }
 
 export interface FlashcardDraft {

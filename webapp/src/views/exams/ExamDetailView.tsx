@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "../../context/toast";
+import { createBankQuiz, hasBank } from "../../api/questionBank";
+import { quizzesKeys } from "../../hooks/useQuizzes";
 import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
@@ -26,6 +30,7 @@ import {
   formatForecastRange,
 } from "../../lib/quizForecast";
 import {
+  nextSpecTopics,
   prioritiseSpecTopics,
   specCoverage,
   type SpecTopicPriority,
@@ -68,6 +73,11 @@ export function ExamDetailView() {
   const { all: ledger } = useMisconceptions();
   const [editing, setEditing] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { showToast } = useToast();
+  /* Which practice quiz is being built: "top" or a topic ref. */
+  const [practising, setPractising] = useState<string | null>(null);
 
   const exam = (exams.data ?? []).find((e) => String(e.id) === examId) ?? null;
   const spec = getSpec(exam?.syllabus_id);
@@ -116,6 +126,27 @@ export function ExamDetailView() {
     );
   }
 
+  /* A quiz from the practice bank on these topics, opened in the quiz
+     runner so the attempt feeds the same evidence as any other quiz. */
+  const practise = async (key: string, refs: string[], count: number, title: string) => {
+    if (!spec || practising) return;
+    setPractising(key);
+    try {
+      const made = await createBankQuiz({ spec, tier: effectiveTier, topicOrder: refs, count, title });
+      if (!made) {
+        showToast("There are no practice questions for this yet.", { error: true });
+        return;
+      }
+      void qc.invalidateQueries({ queryKey: quizzesKeys.all });
+      navigate(`/quiz/${made.quizId}`);
+    } catch (err) {
+      showToast(`Couldn't start practice. ${(err as Error).message}`, { error: true });
+    } finally {
+      setPractising(null);
+    }
+  };
+  const canPractise = spec ? hasBank(spec) : false;
+
   /* Shows every topic first, so the printed report is complete, then opens
      the browser's print dialog — which is also its "Save as PDF". */
   const printReport = () => {
@@ -138,6 +169,22 @@ export function ExamDetailView() {
           <div className={styles.headerActions} data-print-hide>
             <Button onClick={() => setEditing(true)}>Edit exam</Button>
             {derived && <Button onClick={printReport}>Save as PDF</Button>}
+            {derived && canPractise && (
+              <Button
+                busy={practising === "top"}
+                disabled={practising !== null}
+                onClick={() =>
+                  void practise(
+                    "top",
+                    nextSpecTopics(derived.priorities, 3).map((p) => p.topic.ref),
+                    10,
+                    `${exam.exam_name}: practice on your top topics`,
+                  )
+                }
+              >
+                Practise top topics
+              </Button>
+            )}
             {derived && derived.priorities[0] && (
               <Link
                 className={styles.primaryLink}
@@ -190,6 +237,20 @@ export function ExamDetailView() {
                     </span>
                     {p.openMisconceptions > 0 && (
                       <span>{plural(p.openMisconceptions, "open misconception")}</span>
+                    )}
+                    {canPractise && (
+                      <button
+                        type="button"
+                        className={styles.inlineAction}
+                        data-print-hide
+                        disabled={practising !== null}
+                        aria-label={`Practise ${p.topic.title}`}
+                        onClick={() =>
+                          void practise(p.topic.ref, [p.topic.ref], 5, `${p.topic.title} (${p.topic.ref}) practice`)
+                        }
+                      >
+                        {practising === p.topic.ref ? "Starting…" : "Practise"}
+                      </button>
                     )}
                     <Link data-print-hide to={`/study?topic=${encodeURIComponent(p.topic.title)}`}>
                       Study

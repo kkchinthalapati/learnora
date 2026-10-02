@@ -39,6 +39,15 @@ export interface SeedEntry {
   tier?: string;
 }
 
+/** Question-bank keys that have questions today (the Learnora seed covers
+ *  these; the Oak import adds to the same keys). */
+export const BANKED_SPEC_KEYS: ReadonlySet<string> = new Set([
+  "aqa-gcse-biology-8461",
+  "aqa-gcse-chemistry-8462",
+  "aqa-gcse-physics-8463",
+  "gcse-maths",
+]);
+
 export const OAK_ATTRIBUTION =
   "Oak National Academy. Contains public sector information licensed under the Open Government Licence v3.0.";
 

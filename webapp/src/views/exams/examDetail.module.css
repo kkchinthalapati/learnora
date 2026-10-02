@@ -98,6 +98,26 @@
   color: var(--text-muted);
 }
 
+.inlineAction {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inlineAction:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.inlineAction + a {
+  margin-left: 0 !important;
+}
+
 .topicMeta a {
   margin-left: auto;
   color: var(--accent-text);

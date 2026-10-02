@@ -460,6 +460,9 @@ function QuizSession({
             beside it rendered the same TeX. Text-only otherwise (see
             renderMathText), so nothing else in a question becomes markup. */}
         <h2 className={styles.question}>{renderMathText(question.question)}</h2>
+        {question.attribution ? (
+          <p className={styles.attribution}>{question.attribution}</p>
+        ) : null}
 
         {answered ? null : (
           <ConfidencePicker value={confidence} onChange={setConfidence} />

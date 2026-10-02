@@ -92,6 +92,9 @@ function toQuestion(value: unknown): QuizQuestion | null {
     correctIndex: dedupedCorrectIndex,
     topic: typeof value.topic === "string" ? value.topic : undefined,
     feedback: typeof value.feedback === "string" ? value.feedback : undefined,
+    ...(typeof value.attribution === "string" && value.attribution.trim()
+      ? { attribution: value.attribution.slice(0, 300) }
+      : {}),
   };
 }
 
