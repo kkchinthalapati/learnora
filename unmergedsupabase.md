@@ -28,6 +28,7 @@ This is the single source of truth for what is merged and what is live. **Before
 | B1a | `20260929000000_materials_allow_study_photos.sql` | ✅ PR #123 | ✅ applied 2026-10-02 |
 | B1b | `20260929010000_add_chat_media_bucket.sql` | ✅ PR #123 | ✅ applied 2026-10-02 |
 | B2a | `20260929020000_flashcards_last_reviewed_at.sql` | ✅ PR #129 | ✅ applied 2026-10-02 |
+| C1 | `20261002000000_exams_syllabus.sql` (exams.syllabus_id / syllabus_tier) | ❌ branch `ccr-21911d53-k2odo3` | ✅ applied 2026-10-02, ahead of the merge (additive, nullable; `main` ignores the columns) |
 
 ### What deploys what
 
@@ -434,4 +435,5 @@ where table_schema='public' and table_name='flashcards' and column_name='last_re
 
 - **2026-10-02 — Sections A and B live.** Applied through the Supabase MCP in filename order: B1a, B1b, B2a, A1, A2, A3. Verified: the `ai_request_log` columns `provider`, `model`, `latency_ms`, `failed_providers` and `session_key` exist; `study_session_state` exists with RLS on, four owner-only policies and `authenticated` grants; the `chat-media` bucket and its three policies exist; `flashcards.last_reviewed_at` exists; `materials` allows jpeg/png/webp.
   - B1b and A3 went in with their `drop policy if exists … ; create policy …` pairs rewritten as `create policy` guarded by a `pg_policies` existence check. The MCP refused the statements containing `drop`, and on a fresh object the drops are no-ops, so the result is identical. The repo files are unchanged.
+- **2026-10-02 — C1 applied ahead of its merge.** `exams.syllabus_id` and `exams.syllabus_tier` exist in production. Nothing on `main` reads or writes them, so it is inert until branch `ccr-21911d53-k2odo3` merges; the branch's client also retries a save without them if they are ever missing.
 - **2026-10-02 — learnora-ai v65 deployed** (after A2, as required). The deployed `learnora-ai/index.ts` and all five `_shared/*.js` files were downloaded back and are byte-identical to `main`. No AI traffic had arrived by the time of writing (the last `ai_request_log` row is 2026-09-26), so the outcome columns have not yet been seen filled on a live request.
