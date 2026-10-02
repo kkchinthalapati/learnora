@@ -272,3 +272,38 @@
     grid-template-columns: 1fr;
   }
 }
+
+.paperForm {
+  display: grid;
+  grid-template-columns: minmax(7rem, max-content) minmax(0, 16rem);
+  gap: var(--s-2) var(--s-3);
+  align-items: center;
+  margin-top: var(--s-3);
+  font-size: var(--fs-sm);
+}
+
+.paperForm label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.paperForm input,
+.paperForm select {
+  min-height: 40px;
+  padding: 0 var(--s-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.paperForm > div {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 480px) {
+  .paperForm {
+    grid-template-columns: 1fr;
+  }
+}

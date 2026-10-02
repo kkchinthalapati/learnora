@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/mocks/server";
@@ -174,5 +175,54 @@ describe("ExamDetailView", () => {
     render();
     await screen.findByText("IB Biology HL");
     expect(screen.queryByRole("button", { name: "Practise top topics" })).toBeNull();
+  });
+  describe("past papers", () => {
+    it("links to the board's papers and logs a self-marked score", async () => {
+      const user = userEvent.setup();
+      serveExam({ syllabus_id: "aqa-gcse-biology-8461", syllabus_tier: "Higher" });
+      let posted: Record<string, unknown>[] | undefined;
+      server.use(
+        http.post(`${REST}/past_paper_attempts`, async ({ request }) => {
+          posted = (await request.json()) as Record<string, unknown>[];
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      render();
+      const link = await screen.findByRole("link", { name: "AQA past papers and mark schemes" });
+      expect(link).toHaveAttribute("href", "https://www.aqa.org.uk/past-papers-and-mark-schemes-finder");
+
+      await user.click(screen.getByRole("button", { name: "Log a past paper" }));
+      expect(screen.getByLabelText("Out of")).toHaveValue("100");
+      await user.type(screen.getByLabelText("Your marks"), "62");
+      await user.type(screen.getByLabelText("Series (optional)"), "June 2023");
+      await user.click(screen.getByRole("button", { name: "Save score" }));
+
+      await waitFor(() => expect(posted).toBeDefined());
+      expect(posted![0]).toMatchObject({ exam_id: 5, paper: "Paper 1", series: "June 2023", marks: 62, max_marks: 100 });
+    });
+
+    it("refuses more marks than the paper has", async () => {
+      const user = userEvent.setup();
+      serveExam({ syllabus_id: "aqa-gcse-biology-8461", syllabus_tier: "Higher" });
+      render();
+      await user.click(await screen.findByRole("button", { name: "Log a past paper" }));
+      await user.type(screen.getByLabelText("Your marks"), "120");
+      await user.click(screen.getByRole("button", { name: "Save score" }));
+      expect(await screen.findByText("Your marks can't be more than the total.")).toBeInTheDocument();
+    });
+
+    it("summarises logged papers", async () => {
+      serveExam({ syllabus_id: "aqa-gcse-biology-8461", syllabus_tier: "Higher" });
+      server.use(
+        http.get(`${REST}/past_paper_attempts`, () =>
+          HttpResponse.json([
+            { id: "p2", exam_id: 5, paper: "Paper 2", series: null, marks: "70", max_marks: "100", sat_on: "2026-09-20", notes: null, created_at: "2026-09-20T00:00:00Z" },
+            { id: "p1", exam_id: 5, paper: "Paper 1", series: "June 2023", marks: "50", max_marks: "100", sat_on: "2026-09-01", notes: null, created_at: "2026-09-01T00:00:00Z" },
+          ]),
+        ),
+      );
+      render();
+      expect(await screen.findByText("Average 60% over 2 papers; latest 70%.")).toBeInTheDocument();
+    });
   });
 });

@@ -41,6 +41,7 @@ import {
   scopeToSpec,
 } from "../../lib/examEvidence";
 import { ExamModal } from "./ExamModal";
+import { PastPapersCard } from "./PastPapersCard";
 import styles from "./examDetail.module.css";
 
 /* One exam, and the evidence behind every number the app says about it.
@@ -265,6 +266,8 @@ export function ExamDetailView() {
               </Button>
             )}
           </Card>
+
+          <PastPapersCard examId={exam.id} spec={spec} tier={effectiveTier} />
 
           <div className={styles.grid}>
             <Card padding="lg" as="section" aria-labelledby="forecast-heading">

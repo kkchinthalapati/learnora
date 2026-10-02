@@ -87,6 +87,13 @@ export const handlers = [
   http.head(rest("flashcards"), () => new HttpResponse(null, { status: 200 })),
   http.patch(rest("flashcards"), () => new HttpResponse(null, { status: 204 })),
 
+  /* The practice-question bank (reference data) and the student's logged
+     past papers. Empty by default; tests that need rows serve their own. */
+  http.get(rest("question_bank"), () => HttpResponse.json([])),
+  http.get(rest("past_paper_attempts"), () => HttpResponse.json([])),
+  http.post(rest("past_paper_attempts"), () => new HttpResponse(null, { status: 201 })),
+  http.delete(rest("past_paper_attempts"), () => new HttpResponse(null, { status: 204 })),
+
   http.get(rest("quizzes"), () => HttpResponse.json([])),
   http.post(rest("quizzes"), () => new HttpResponse(null, { status: 201 })),
   http.delete(rest("quizzes"), () => new HttpResponse(null, { status: 204 })),
