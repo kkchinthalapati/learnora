@@ -243,3 +243,12 @@
     justify-content: flex-end;
   }
 }
+
+/* The inline quick fix takes its own full-width line under the row. */
+.row {
+  flex-wrap: wrap;
+}
+
+.fix {
+  flex-basis: 100%;
+}

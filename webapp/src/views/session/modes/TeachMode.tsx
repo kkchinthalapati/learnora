@@ -12,6 +12,8 @@ import {
   type TeachingTurn,
 } from "../../../api/aiFeynman";
 import { useMisconceptions, useRecordMisconceptions } from "../../../hooks/useMisconceptions";
+import { detectFromExplanation } from "../../../lib/misconceptionCatalogue";
+import { MisconceptionRepair } from "../../../components/learning/MisconceptionRepair";
 import { candidatesFromTeachingTurn } from "../../../lib/misconceptions";
 import { isFlagOn } from "../../../lib/flags";
 import { Pending } from "../Pending";
@@ -126,6 +128,12 @@ export function TeachMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
   };
 
   const gaps = last ? [...(last.remainingGaps ?? []), ...last.confusionPoints] : [];
+  /* A well-known misconception stated in the student's own explanation is
+     named and repaired here, while the explanation has not yet landed. */
+  const repair =
+    last && !done && last.understandingScore < TEACH_DONE_SCORE
+      ? detectFromExplanation(last.userExplanation, draft?.topic ?? session.objective)
+      : null;
   const covered = last?.solvedPoints ?? [];
 
   return (
@@ -183,6 +191,16 @@ export function TeachMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
                 </span>
               ))}
             </div>
+          ) : null}
+
+          {repair && last ? (
+            <MisconceptionRepair
+              key={last.id ?? last.userExplanation}
+              entry={repair}
+              sourceId={`teach:${session.id}:${last.id ?? data.turns.length}`}
+              tool="feynman"
+              detail={`While teaching ${draft?.topic ?? session.objective}: "${last.userExplanation.slice(0, 200)}"`}
+            />
           ) : null}
 
           {done ? (

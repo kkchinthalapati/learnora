@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router";
@@ -800,5 +800,74 @@ describe("QuizRunner results routing", () => {
 
     await waitFor(() => expect(keys).toHaveLength(2));
     expect(keys[0]).not.toEqual(keys[1]);
+  });
+  /* A wrong pick that states a known misconception is named, repaired and
+     checked on the spot, and the outcome goes to the ledger. */
+  describe("misconception repair", () => {
+    function serveLedger() {
+      const observations: Record<string, unknown>[] = [];
+      let stored: Record<string, unknown> | null = null;
+      server.use(
+        http.get(rest("misconceptions"), () => HttpResponse.json(stored ? [stored] : [])),
+        http.post(rest("misconceptions"), async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          stored = {
+            id: "m-1",
+            user_id: "user-1",
+            status: "open",
+            times_observed: 1,
+            times_corrected: 0,
+            first_seen_at: "2026-10-01T00:00:00Z",
+            last_seen_at: "2026-10-01T00:00:00Z",
+            resolved_at: null,
+            ...body,
+          };
+          return HttpResponse.json(stored);
+        }),
+        http.post(rest("misconception_observations"), async ({ request }) => {
+          observations.push((await request.json()) as Record<string, unknown>);
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      return observations;
+    }
+
+    const OSMOSIS = [
+      {
+        id: "o1",
+        question: "In osmosis, what moves across a partially permeable membrane?",
+        choices: ["Water molecules", "Salt moves across", "Protein molecules"],
+        correctIndex: 0,
+        topic: "Osmosis",
+      },
+    ];
+
+    it("names the belief, checks the fix, and records evidence then a correction", async () => {
+      const user = userEvent.setup();
+      serveQuiz(OSMOSIS, "Cells");
+      const observations = serveLedger();
+      renderRunner();
+
+      await user.click(await screen.findByRole("button", { name: "Salt moves across" }));
+      const repair = await screen.findByRole("region", { name: "Common mix-up" });
+      expect(repair).toHaveTextContent("the solute (salt or sugar) moves across the membrane");
+
+      await waitFor(() => expect(observations.some((o) => o.kind === "evidence")).toBe(true));
+
+      await user.click(within(repair).getByRole("button", { name: "Water molecules" }));
+      expect(await within(repair).findByText("That's it.")).toBeInTheDocument();
+      await waitFor(() => expect(observations.some((o) => o.kind === "correction")).toBe(true));
+    });
+
+    it("stays quiet on a wrong pick that doesn't state a known belief", async () => {
+      const user = userEvent.setup();
+      serveQuiz(OSMOSIS, "Cells");
+      serveLedger();
+      renderRunner();
+
+      await user.click(await screen.findByRole("button", { name: "Protein molecules" }));
+      expect(await screen.findByRole("button", { name: /See results/ })).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Common mix-up" })).toBeNull();
+    });
   });
 });
