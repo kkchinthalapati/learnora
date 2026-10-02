@@ -239,7 +239,7 @@
 @media print {
   .printOnly {
     display: block;
-    font-size: 12px;
+    font-size: var(--fs-xs);
     margin: 0 0 8px;
   }
 
