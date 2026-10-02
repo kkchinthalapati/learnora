@@ -156,6 +156,38 @@ describe("buildDemands — tasks", () => {
 });
 
 describe("buildDemands — exams", () => {
+  it("names a spec topic on each sitting when the exam has a spec, weakest-weighted first", () => {
+    const demands = buildDemands({
+      ...EMPTY,
+      exams: [
+        exam({
+          id: 9,
+          exam_name: "Biology",
+          exam_date: "2026-09-07",
+          syllabus_id: "aqa-gcse-biology-8461",
+          syllabus_tier: "Higher",
+        }),
+      ],
+      topicEvidence: [
+        { topic: "Respiration", answered: 10, correct: 2, accuracy: 20, provisional: false },
+      ],
+    });
+    expect(demands[0].label).toBe("Biology: Respiration (4.4.2)");
+    expect(demands[0].href).toBe("/exams/9");
+    // a week of sittings rotates through a few topics rather than one
+    expect(new Set(demands.map((d) => d.label)).size).toBeGreaterThan(1);
+    expect(new Set(demands.map((d) => d.label)).size).toBeLessThanOrEqual(4);
+  });
+
+  it("keeps the plain prep label for an exam without a spec", () => {
+    const [first] = buildDemands({
+      ...EMPTY,
+      exams: [exam({ id: 2, exam_name: "History", exam_date: "2026-09-03" })],
+    });
+    expect(first.label).toBe("History prep");
+    expect(first.href).toBe("/exams");
+  });
+
   it("spreads prep across the days before the exam, one sitting per day", () => {
     const demands = buildDemands({
       ...EMPTY,

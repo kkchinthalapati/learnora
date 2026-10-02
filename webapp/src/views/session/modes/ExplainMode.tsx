@@ -125,6 +125,7 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
             mode: "explain",
             watchingFor: session.watchingFor?.text,
           }),
+          topic: [session.subject, session.objective].filter(Boolean).join(" "),
           settings,
         }),
       (answer) => {

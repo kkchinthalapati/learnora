@@ -145,6 +145,7 @@ export function SocraticMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
             step: anchor,
             mode: "socratic",
           }),
+          topic: [session.subject, session.objective].filter(Boolean).join(" "),
           settings,
         }),
       (shown) => save({ hints: [...data.hints, level], hintText: shown }),

@@ -20,7 +20,7 @@ import { callEdge } from "./ai";
 import type { CognitiveLayer, CognitiveStackTrace } from "./aiDebugger";
 import { extractJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
-import { levelRules, studentLevel } from "../lib/studentLevel";
+import { levelRules, studentStandard } from "../lib/studentLevel";
 import { isLimitOrRefusal } from "./aiLimit";
 
 export function buildExplainPlanPrompt(
@@ -28,13 +28,14 @@ export function buildExplainPlanPrompt(
   objective: string,
   level: string,
   watchingFor?: string,
+  specLine = "",
 ): string {
   return `You are planning a short step-by-step explanation for a student who wants to understand something.
 
 SUBJECT: ${fenceUntrusted(subject)}
 WHAT THEY WANT TO UNDERSTAND (their own words): """${fenceUntrusted(objective)}"""
 ${watchingFor ? `A BELIEF THEY HAVE HELD BEFORE (from their own past work): """${fenceUntrusted(watchingFor)}"""\n` : ""}
-${levelRules(level)}
+${levelRules(level, specLine)}
 
 Plan exactly 3 steps that build the idea from its foundation up: step 1 is the idea underneath everything else, step 3 is the thing they asked about. Each step is one idea a student can hold in their head.
 
@@ -67,10 +68,13 @@ export async function planExplanation(
     timestamp: new Date().toISOString(),
   };
   try {
-    const level = await studentLevel();
+    const { level, specLine } = await studentStandard(`${subject} ${objective}`);
     const { text } = await callEdge({
       history: [
-        { role: "user", content: buildExplainPlanPrompt(subject, objective, level, watchingFor) },
+        {
+          role: "user",
+          content: buildExplainPlanPrompt(subject, objective, level, watchingFor, specLine),
+        },
       ],
       mode: "solver",
       tool: "debugger",

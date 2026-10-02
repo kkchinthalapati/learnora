@@ -184,6 +184,7 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
             step: question.question,
             mode: "practice",
           }),
+          topic: [session.subject, session.objective].filter(Boolean).join(" "),
           settings,
         }),
       (a) => setAside({ q, a }),

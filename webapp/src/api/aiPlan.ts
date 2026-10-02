@@ -19,6 +19,7 @@
  */
 
 import { callEdge } from "./ai";
+import { getSpec, isTier, specWithTierLabel } from "../lib/syllabus";
 import { tasksApi } from "./tasks";
 import { examsApi } from "./exams";
 import { flashcardsApi } from "./flashcards";
@@ -257,8 +258,15 @@ export async function loadWorkspaceContext(todayStr = localDateStr()): Promise<{
       .filter((e) => e.status !== "Completed" && e.exam_date >= todayStr)
       .sort((a, b) => a.exam_date.localeCompare(b.exam_date))
       .map(
-        (e) =>
-          `${e.exam_name} on ${e.exam_date} (difficulty: ${e.difficulty || "unspecified"})`,
+        (e) => {
+          /* The spec tells the plan and the chat what this exam examines;
+             without it they only have the name the student typed. */
+          const spec = getSpec(e.syllabus_id);
+          const specText = spec
+            ? `; specification: ${specWithTierLabel(spec, isTier(spec, e.syllabus_tier) ? e.syllabus_tier : null)}`
+            : "";
+          return `${e.exam_name} on ${e.exam_date} (difficulty: ${e.difficulty || "unspecified"}${specText})`;
+        },
       )
       .join(", ") || "None";
 
