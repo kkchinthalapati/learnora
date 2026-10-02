@@ -21,6 +21,9 @@ import type { CognitiveLayer, CognitiveStackTrace } from "./aiDebugger";
 import { extractJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { levelRules, studentStandard } from "../lib/studentLevel";
+import { loadGroundingPassages } from "./grounding";
+import { formatGroundingForPrompt, passageLabel } from "../lib/grounding";
+import { sourceSnippet } from "../lib/sourceSnippet";
 import { isLimitOrRefusal } from "./aiLimit";
 
 export function buildExplainPlanPrompt(
@@ -29,6 +32,7 @@ export function buildExplainPlanPrompt(
   level: string,
   watchingFor?: string,
   specLine = "",
+  grounding = "",
 ): string {
   return `You are planning a short step-by-step explanation for a student who wants to understand something.
 
@@ -36,7 +40,7 @@ SUBJECT: ${fenceUntrusted(subject)}
 WHAT THEY WANT TO UNDERSTAND (their own words): """${fenceUntrusted(objective)}"""
 ${watchingFor ? `A BELIEF THEY HAVE HELD BEFORE (from their own past work): """${fenceUntrusted(watchingFor)}"""\n` : ""}
 ${levelRules(level, specLine)}
-
+${grounding ? `\n${grounding}\n` : ""}
 Plan exactly 3 steps that build the idea from its foundation up: step 1 is the idea underneath everything else, step 3 is the thing they asked about. Each step is one idea a student can hold in their head.
 
 Rules:
@@ -68,12 +72,22 @@ export async function planExplanation(
     timestamp: new Date().toISOString(),
   };
   try {
-    const { level, specLine } = await studentStandard(`${subject} ${objective}`);
+    const [{ level, specLine }, passages] = await Promise.all([
+      studentStandard(`${subject} ${objective}`),
+      loadGroundingPassages(objective),
+    ]);
     const { text } = await callEdge({
       history: [
         {
           role: "user",
-          content: buildExplainPlanPrompt(subject, objective, level, watchingFor, specLine),
+          content: buildExplainPlanPrompt(
+            subject,
+            objective,
+            level,
+            watchingFor,
+            specLine,
+            formatGroundingForPrompt(passages, fenceUntrusted),
+          ),
         },
       ],
       mode: "solver",
@@ -107,6 +121,15 @@ export async function planExplanation(
       ...base,
       layers,
       rootCauseSummary: typeof parsed?.trap === "string" ? parsed.trap.trim() : "",
+      ...(passages.length
+        ? {
+            sources: passages.map((p) => ({
+              materialId: p.materialId,
+              label: passageLabel(p),
+              excerpt: sourceSnippet(p.text),
+            })),
+          }
+        : {}),
     };
   } catch (err) {
     if (isLimitOrRefusal(err)) throw err;

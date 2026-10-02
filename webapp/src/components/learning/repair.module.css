@@ -78,3 +78,36 @@
 .outcome {
   font-size: var(--fs-sm);
 }
+
+/* SourceAttribution — the student's notes an explanation drew on. */
+
+.sources {
+  margin-top: var(--s-3);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--glass-border-subtle);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.sources ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.sourcesLabel {
+  margin: 0 0 var(--s-1);
+  font-weight: 700;
+}
+
+.sources a {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.excerpt {
+  color: var(--text-faint);
+}

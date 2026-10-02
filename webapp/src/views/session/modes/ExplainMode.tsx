@@ -7,6 +7,7 @@ import {
   type CognitiveStackTrace,
   type MicroRepairChallenge,
 } from "../../../api/aiDebugger";
+import { SourceAttribution } from "../../../components/learning/SourceAttribution";
 import { planExplanation } from "../../../api/aiExplain";
 import { learningEventsApi } from "../../../api/learningEvents";
 import { normaliseTopicKey } from "../../../lib/topicKey";
@@ -239,6 +240,9 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
               }
             >
               <p>{layer.explanation}</p>
+              {data.trace?.sources?.length ? (
+                <SourceAttribution sources={data.trace.sources} />
+              ) : null}
             </TutorTurn>
           ) : null}
 
