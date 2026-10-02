@@ -15,6 +15,7 @@ import { useCreateModal } from "../../context/createModal";
 import { decksKeys } from "../../hooks/useDecks";
 import { flashcardsKeys } from "../../hooks/useFlashcards";
 import { useLifeContext } from "../../hooks/useLifeContext";
+import { SYLLABUS_SPECS, defaultTier, getSpec, specLabel, suggestSpecs } from "../../lib/syllabus";
 import { useSaveExam } from "../../hooks/useExams";
 import { useUpdateProfile } from "../../hooks/useAuthActions";
 import type { QuizQuestion } from "../../lib/aiJson";
@@ -89,6 +90,9 @@ export function FirstRunView() {
   const [checkAnswer, setCheckAnswer] = useState<number | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [examDate, setExamDate] = useState("");
+  /* "" = not chosen yet (a suggestion from the topic may apply), "none" =
+     the student said it isn't listed. */
+  const [specChoice, setSpecChoice] = useState("");
   const [length, setLength] = useState<(typeof SESSION_LENGTHS)[number]["id"] | null>(null);
   const [saving, setSaving] = useState(false);
   const savedCards = useRef(false);
@@ -124,6 +128,22 @@ export function FirstRunView() {
   };
 
   const chosenLevel = LEVELS.find((l) => l.id === levelId) ?? null;
+  /* The specification, when the level is one the ledger covers: the
+     student's pick, or the best match for their topic until they pick. The
+     tier starts at the superset (Higher / HL) and can be changed on the
+     exam later. */
+  const specQualification =
+    chosenLevel?.examType === "gcse" ? "GCSE" : chosenLevel?.examType === "ib" ? "IB" : null;
+  const specOptions = specQualification
+    ? SYLLABUS_SPECS.filter((s) => s.qualification === specQualification)
+    : [];
+  const chosenSpec = !specQualification
+    ? null
+    : specChoice === "none"
+      ? null
+      : specChoice
+        ? getSpec(specChoice)
+        : (suggestSpecs(topic, specQualification)[0] ?? null);
   const levelLabel = async () =>
     chosenLevel?.examType
       ? examBoardLabel(chosenLevel.examType)
@@ -256,7 +276,12 @@ export function FirstRunView() {
     if (examDate && examDate >= localDateStr()) {
       try {
         await saveExam.mutateAsync({
-          payload: { exam_name: `${topic} exam`, exam_date: examDate },
+          payload: {
+            exam_name: `${topic} exam`,
+            exam_date: examDate,
+            syllabus_id: chosenSpec?.id ?? null,
+            syllabus_tier: chosenSpec ? defaultTier(chosenSpec) : null,
+          },
         });
       } catch {
         /* Addable from Plan ▸ Exams; not a reason to hold them here. */
@@ -493,6 +518,23 @@ export function FirstRunView() {
                 onChange={(e) => setExamDate(e.target.value)}
               />
             </label>
+            {specOptions.length > 0 && examDate ? (
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Which exam board? (optional)</span>
+                <select
+                  className={styles.dateInput}
+                  value={chosenSpec?.id ?? "none"}
+                  onChange={(e) => setSpecChoice(e.target.value)}
+                >
+                  <option value="none">Not listed / not sure</option>
+                  {specOptions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {specLabel(s)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <div className={styles.field} role="group" aria-labelledby="length-label">
               <span id="length-label" className={styles.fieldLabel}>
                 How long do you usually study in one go?

@@ -231,3 +231,24 @@
   height: 100%;
   background: var(--accent);
 }
+
+.printOnly {
+  display: none;
+}
+
+@media print {
+  .printOnly {
+    display: block;
+    font-size: 12px;
+    margin: 0 0 8px;
+  }
+
+  .topicRow,
+  .grid > * {
+    break-inside: avoid;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

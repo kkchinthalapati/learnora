@@ -121,4 +121,19 @@ describe("ExamDetailView", () => {
     expect(screen.getByText(/4 more and a forecast appears here/)).toBeInTheDocument();
     expect(screen.getByText(/When you were certain/)).toBeInTheDocument();
   });
+  it("prints a complete report: every topic shown, controls hidden", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const print = vi.spyOn(window, "print").mockImplementation(() => {});
+    serveExam({ syllabus_id: "aqa-gcse-biology-8461", syllabus_tier: "Higher" });
+    render();
+
+    const save = await screen.findByRole("button", { name: "Save as PDF" });
+    expect(screen.getAllByRole("listitem")).toHaveLength(8);
+    save.click();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(print).toHaveBeenCalled();
+    expect(screen.getAllByRole("listitem").length).toBeGreaterThan(8);
+    expect(save.closest("[data-print-hide]")).not.toBeNull();
+    vi.useRealTimers();
+  });
 });

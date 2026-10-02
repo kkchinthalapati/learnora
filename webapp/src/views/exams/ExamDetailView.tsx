@@ -116,19 +116,28 @@ export function ExamDetailView() {
     );
   }
 
+  /* Shows every topic first, so the printed report is complete, then opens
+     the browser's print dialog — which is also its "Save as PDF". */
+  const printReport = () => {
+    setShowAll(true);
+    window.setTimeout(() => window.print(), 50);
+  };
+
   const days = daysUntil(exam.exam_date, localDateStr());
   const when =
     days < 0 ? `Sat on ${exam.exam_date}` : days === 0 ? "Today" : `In ${plural(days, "day")} · ${exam.exam_date}`;
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-print-root>
+      <p className={styles.printOnly}>Learnora progress report · generated {localDateStr()}</p>
       <PageHeader
         eyebrow={spec ? specWithTierLabel(spec, tier) : "No specification chosen"}
         title={exam.exam_name}
         sub={when}
         actions={
-          <div className={styles.headerActions}>
+          <div className={styles.headerActions} data-print-hide>
             <Button onClick={() => setEditing(true)}>Edit exam</Button>
+            {derived && <Button onClick={printReport}>Save as PDF</Button>}
             {derived && derived.priorities[0] && (
               <Link
                 className={styles.primaryLink}
@@ -182,13 +191,15 @@ export function ExamDetailView() {
                     {p.openMisconceptions > 0 && (
                       <span>{plural(p.openMisconceptions, "open misconception")}</span>
                     )}
-                    <Link to={`/study?topic=${encodeURIComponent(p.topic.title)}`}>Study</Link>
+                    <Link data-print-hide to={`/study?topic=${encodeURIComponent(p.topic.title)}`}>
+                      Study
+                    </Link>
                   </div>
                 </li>
               ))}
             </ol>
             {derived.priorities.length > TOP_TOPICS && (
-              <Button variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
+              <Button variant="ghost" size="sm" data-print-hide onClick={() => setShowAll((v) => !v)}>
                 {showAll ? "Show the top topics only" : `Show all ${derived.priorities.length} topics`}
               </Button>
             )}
