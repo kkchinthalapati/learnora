@@ -12,6 +12,8 @@ import type { TranslationKey } from "../../lib/i18n";
 import type { Exam } from "../../api/types";
 import { DayDetailModal } from "./DayDetailModal";
 import { ExamModal } from "./ExamModal";
+import { Link } from "react-router";
+import { getSpec, isTier, specWithTierLabel } from "../../lib/syllabus";
 import { ExamPrepModal } from "./ExamPrepModal";
 import { MAX_EXAM_BARS_PER_DAY } from "./examMeta";
 import { PlanSectionNav } from "../plan/PlanSectionNav";
@@ -87,6 +89,8 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
     { weekday: "short", month: "short", day: "numeric" },
   );
 
+  const spec = getSpec(exam.syllabus_id);
+
   const badgeClass =
     readiness?.tier === "Exam ready"
       ? styles.badgeReady
@@ -97,12 +101,19 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
   return (
     <article className={styles.upcomingCard}>
       <div className={styles.upcomingLeft}>
-        <h3 className={styles.upcomingName}>{exam.exam_name}</h3>
+        {/* The name opens the exam's own page: its topics by marks, the
+            evidence behind the forecast, its misconceptions. */}
+        <h3 className={styles.upcomingName}>
+          <Link to={`/exams/${exam.id}`} className={styles.upcomingNameLink}>
+            {exam.exam_name}
+          </Link>
+        </h3>
         {/* One line of text, not five flex items: the separators were
             items too, so a narrow card wrapped them onto lines of their own
             ("• medium • •"). */}
         <p className={styles.upcomingMeta}>
           {prettyDate} · {countdownPill} · {(exam.difficulty || "Medium").replace(/^./, (c) => c.toUpperCase())}
+          {spec ? ` · ${specWithTierLabel(spec, isTier(spec, exam.syllabus_tier) ? exam.syllabus_tier : null)}` : ""}
         </p>
       </div>
 

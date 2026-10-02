@@ -40,6 +40,9 @@ const LazyTasksView = lazy(async () => ({
 const LazyExamsView = lazy(async () => ({
   default: (await import("./views/exams/ExamsView")).ExamsView,
 }));
+const LazyExamDetailView = lazy(async () => ({
+  default: (await import("./views/exams/ExamDetailView")).ExamDetailView,
+}));
 const LazyTimerView = lazy(async () => ({
   default: (await import("./views/timer/TimerView")).TimerView,
 }));
@@ -276,6 +279,11 @@ export function AppRoutes() {
             <Route path="/exams" element={
               <DeferredView>
                 <LazyExamsView />
+              </DeferredView>
+            } />
+            <Route path="/exams/:examId" element={
+              <DeferredView>
+                <LazyExamDetailView />
               </DeferredView>
             } />
             <Route path="/timer" element={

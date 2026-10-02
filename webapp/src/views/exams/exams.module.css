@@ -734,3 +734,13 @@
   justify-content: center;
   border-radius: var(--r-sm);
 }
+
+.upcomingNameLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.upcomingNameLink:hover,
+.upcomingNameLink:focus-visible {
+  text-decoration: underline;
+}
