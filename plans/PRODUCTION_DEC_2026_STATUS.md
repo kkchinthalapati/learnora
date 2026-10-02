@@ -36,8 +36,9 @@ Tracks the "Learnora production by December 2026" plan against the code. Branch:
 - Not done:
   - AP/SAT
   - Other GCSE boards for the sciences
-  - The past-paper question bank. It needs licensed sources: exam board past papers are
-    copyrighted.
+  - Board past papers inside the app: every board reserves them (AQA refuses apps outright).
+    The exam page links to the official papers instead, and logs self-marked scores
+    (past-paper tracker). See `docs/QUESTION_SOURCES.md`.
 
 ### 1.2 Misconception repair: done on the branch
 
@@ -81,10 +82,11 @@ Tracks the "Learnora production by December 2026" plan against the code. Branch:
 | 2.2 Progress export | ✅ "Save as PDF" on the exam page (print stylesheet, no new dependency) |
 | 2.3 Session recovery | ✅ Live now that A3 is applied (client shipped in PR #122) |
 | 2.4 Push notifications | Already exists (`send-push-reminders`); lapsed-topic wording not reviewed |
-| 2.5 Fallback question bank | ❌ Needs licensed content |
+| 2.5 Fallback question bank | ✅ `question_bank` with 228 Learnora-written questions (every AQA GCSE science section and every GCSE Maths strand). It feeds exam-page practice, and Practice mode falls back to it when the AI is unavailable. Oak National Academy (OGL) importer is ready; it needs a free API key. See `docs/QUESTION_SOURCES.md` |
 | 2.6 Peer benchmarking | ❌ Not started (needs a privacy review) |
 
 ## Before merging the branch
 
 1. Review and merge `ccr-21911d53-k2odo3`. Vercel deploys the webapp.
-2. No further Supabase step: C1 is already applied.
+2. No further Supabase step: C1–C3 are already applied, and the bank is seeded.
+3. Optional: run the Oak import (`docs/QUESTION_SOURCES.md`, "To do").
