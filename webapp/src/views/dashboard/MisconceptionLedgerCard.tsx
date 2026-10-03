@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
+import { detectFromDiagnosis } from "../../lib/misconceptionCatalogue";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
@@ -57,6 +59,8 @@ export function MisconceptionLedgerCard() {
   const { ranked, isPending, isError } = useMisconceptions();
   const dismiss = useDismissMisconception();
   const [expanded, setExpanded] = useState(false);
+  /* The row whose quick fix is open, if any. */
+  const [fixing, setFixing] = useState<string | null>(null);
 
   const shown = expanded ? ranked : ranked.slice(0, VISIBLE_ROWS);
 
@@ -161,6 +165,15 @@ export function MisconceptionLedgerCard() {
                 </div>
 
                 <div className={styles.rowActions}>
+                  {detectFromDiagnosis(m.concept, m.summary) && (
+                    <Button
+                      variant="ghost"
+                      aria-expanded={fixing === m.id}
+                      onClick={() => setFixing((id) => (id === m.id ? null : m.id))}
+                    >
+                      Quick fix
+                    </Button>
+                  )}
                   <Button variant="secondary" onClick={() => handleWorkOnIt(m)}>
                     Work on it
                   </Button>
@@ -173,6 +186,23 @@ export function MisconceptionLedgerCard() {
                     <Icon name="x" size={14} />
                   </button>
                 </div>
+                {/* A diagnosis the catalogue knows comes with a ready-made
+                    repair and check, so it can be fixed right here. */}
+                {fixing === m.id && (() => {
+                  const entry = detectFromDiagnosis(m.concept, m.summary);
+                  return entry ? (
+                    <div className={styles.fix}>
+                      <MisconceptionRepair
+                        entry={entry}
+                        sourceId={`ledger:${m.id}`}
+                        tool={m.originTool}
+                        detail="Opened from Mistakes to Review"
+                        recordEvidence={false}
+                        ledgerRow={{ subject: m.subject, concept: m.concept, summary: m.summary }}
+                      />
+                    </div>
+                  ) : null;
+                })()}
               </li>
             ))}
           </ul>

@@ -24,7 +24,6 @@
  *  tier may use requests for training (see AI_PROVIDERS.md). */
 export const DISCLOSED_PROVIDER_IDS = Object.freeze([
   "gemini",
-  "cerebras",
   "groq",
   "cloudflare",
   "github-models",

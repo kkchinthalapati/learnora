@@ -1378,3 +1378,13 @@
   color: var(--accent-text);
   text-decoration: underline;
 }
+
+.examNameLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.examNameLink:hover,
+.examNameLink:focus-visible {
+  text-decoration: underline;
+}

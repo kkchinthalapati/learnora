@@ -23,7 +23,6 @@ export interface AiProviderDisclosure {
 export const AI_PROVIDERS: readonly AiProviderDisclosure[] = [
   { id: "gemini", company: "Google", service: "Gemini", role: "primary" },
   { id: "anthropic", company: "Anthropic", service: "Claude", role: "primary" },
-  { id: "cerebras", company: "Cerebras", service: "Cerebras Inference (open models)", role: "backup" },
   { id: "groq", company: "Groq", service: "GroqCloud (open models)", role: "backup" },
   { id: "cloudflare", company: "Cloudflare", service: "Workers AI (open models)", role: "backup" },
   { id: "github-models", company: "GitHub (Microsoft)", service: "GitHub Models", role: "backup" },

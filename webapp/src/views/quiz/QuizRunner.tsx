@@ -30,6 +30,8 @@ import { clearQuizProgress } from "../../lib/continuity";
 import { ConfidencePicker } from "../../components/learning/ConfidencePicker";
 import type { Confidence } from "../../components/learning/options";
 import { TestResults } from "./TestResults";
+import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
+import { detectFromWrongAnswer } from "../../lib/misconceptionCatalogue";
 
 /* The quiz runner — ports js/router.js's `startQuiz` (:827-945).
  *
@@ -430,6 +432,16 @@ function QuizSession({
     hostTone = answered.correct ? "correct" : "incorrect";
   }
 
+  const repair =
+    answered && !answered.correct
+      ? detectFromWrongAnswer({
+          question: question.question,
+          topic: question.topic,
+          chosen: question.choices[answered.chosenIndex] ?? "",
+          correct: question.choices[question.correctIndex] ?? "",
+        })
+      : null;
+
   return (
     <div className={styles.view}>
       <Card variant="panel" padding="lg" className={styles.panel}>
@@ -448,6 +460,9 @@ function QuizSession({
             beside it rendered the same TeX. Text-only otherwise (see
             renderMathText), so nothing else in a question becomes markup. */}
         <h2 className={styles.question}>{renderMathText(question.question)}</h2>
+        {question.attribution ? (
+          <p className={styles.attribution}>{question.attribution}</p>
+        ) : null}
 
         {answered ? null : (
           <ConfidencePicker value={confidence} onChange={setConfidence} />
@@ -499,6 +514,19 @@ function QuizSession({
               <Icon name="sparkles" size={14} /> Ask AI why
             </Button>
           </div>
+        ) : null}
+
+        {/* A wrong pick that states a well-known misconception gets that
+            misconception named and repaired here, with a check question —
+            rather than the same explanation the question already gave. */}
+        {repair && answered ? (
+          <MisconceptionRepair
+            key={`${attemptKey}:${question.id ?? index}`}
+            entry={repair}
+            sourceId={`${attemptKey}:${question.id ?? index}`}
+            tool="quiz"
+            detail={`Chose "${question.choices[answered.chosenIndex]}" for "${question.question}"`}
+          />
         ) : null}
 
         {answered ? (

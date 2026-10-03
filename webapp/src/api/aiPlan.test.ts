@@ -108,6 +108,29 @@ describe("loadWorkspaceContext", () => {
     );
   });
 
+  it("names an exam's specification and tier when it has one", async () => {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/exams`, () =>
+        HttpResponse.json([
+          {
+            id: 1,
+            user_id: "user-1",
+            exam_name: "Biology final",
+            exam_date: "2026-08-20",
+            difficulty: "hard",
+            status: "Scheduled",
+            syllabus_id: "aqa-gcse-biology-8461",
+            syllabus_tier: "Foundation",
+          },
+        ]),
+      ),
+    );
+    const { upcomingExams } = await loadWorkspaceContext(TODAY);
+    expect(upcomingExams).toBe(
+      "Biology final on 2026-08-20 (difficulty: hard; specification: AQA GCSE Biology (8461), Foundation tier)",
+    );
+  });
+
   it('says "None" rather than an empty string when there is nothing', async () => {
     server.use(
       http.get(rest("tasks"), () => HttpResponse.json([])),

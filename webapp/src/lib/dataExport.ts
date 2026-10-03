@@ -33,6 +33,14 @@ export const EXPORTED_TABLES = [
   "notebook_sources",
   "notebook_messages",
   "notebook_artifacts",
+  /* Added 2026-10: the student's diagnosed misconceptions and their trail,
+     the learning-event stream behind the forecasts, study sessions synced
+     across devices, and logged past-paper scores. */
+  "misconceptions",
+  "misconception_observations",
+  "learning_events",
+  "study_session_state",
+  "past_paper_attempts",
 ] as const;
 
 /** `profiles` keys its row on `id`, not `user_id`, like everything else. */

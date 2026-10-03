@@ -159,7 +159,13 @@ export function NextExamCard({ headless = false }: { headless?: boolean } = {}) 
           <span className={styles.countdownUnit}>{unit}</span>
         </div>
         <div>
-          <div className={styles.examName}>{next.exam_name}</div>
+          <div className={styles.examName}>
+            {/* The exam's own page: topics by marks and the evidence behind
+                the forecast. */}
+            <Link to={`/exams/${next.id}`} className={styles.examNameLink}>
+              {next.exam_name}
+            </Link>
+          </div>
           <div className={styles.examMeta}>
             <span className={styles.examMetaDate}>
               <Icon name="calendar" size={14} />

@@ -369,4 +369,117 @@ describe("ExamModal", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+  /* The specification is what pitches every AI surface at this exam. */
+  describe("exam specification", () => {
+    function capturePost() {
+      const box: { body?: Record<string, unknown>[] } = {};
+      server.use(
+        http.post(REST, async ({ request }) => {
+          box.body = (await request.json()) as Record<string, unknown>[];
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      return box;
+    }
+
+    it("saves the chosen spec with the superset tier by default", async () => {
+      const user = userEvent.setup();
+      const box = capturePost();
+      renderModal({ initialDate: FUTURE });
+
+      await user.type(screen.getByLabelText("What's the exam?"), "Summer exam");
+      await user.selectOptions(
+        screen.getByLabelText(/Exam board and specification/),
+        "aqa-gcse-biology-8461",
+      );
+      expect(screen.getByRole("radio", { name: "Higher" })).toBeChecked();
+      await user.click(screen.getByRole("radio", { name: "Foundation" }));
+      await user.click(screen.getByRole("button", { name: "Add exam" }));
+
+      await waitFor(() => expect(box.body).toBeDefined());
+      expect(box.body![0]).toMatchObject({
+        syllabus_id: "aqa-gcse-biology-8461",
+        syllabus_tier: "Foundation",
+      });
+    });
+
+    it("offers a spec that matches the exam's name, and only while none is chosen", async () => {
+      const user = userEvent.setup();
+      renderModal({ initialDate: FUTURE });
+
+      await user.type(screen.getByLabelText("What's the exam?"), "IB Physics mock");
+      const nudge = screen.getByRole("button", { name: "Use IB Physics?" });
+      await user.click(nudge);
+
+      expect(screen.getByLabelText(/Exam board and specification/)).toHaveValue(
+        "ib-physics-2025",
+      );
+      expect(screen.getByRole("radio", { name: "HL" })).toBeChecked();
+      expect(screen.queryByRole("button", { name: /^Use / })).toBeNull();
+    });
+
+    it("prefills an existing exam's spec and tier", () => {
+      renderModal({
+        exam: existingExam({
+          syllabus_id: "aqa-gcse-maths-8300",
+          syllabus_tier: "Foundation",
+        }),
+      });
+      expect(screen.getByLabelText(/Exam board and specification/)).toHaveValue(
+        "aqa-gcse-maths-8300",
+      );
+      expect(screen.getByRole("radio", { name: "Foundation" })).toBeChecked();
+    });
+
+    it("treats an unknown spec id as none and sends nulls", async () => {
+      const user = userEvent.setup();
+      let patched: Record<string, unknown> | undefined;
+      server.use(
+        http.patch(REST, async ({ request }) => {
+          patched = (await request.json()) as Record<string, unknown>;
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+      renderModal({ exam: existingExam({ syllabus_id: "retired-spec" }) });
+
+      expect(screen.getByLabelText(/Exam board and specification/)).toHaveValue("");
+      await user.click(screen.getByRole("button", { name: "Save changes" }));
+      await waitFor(() => expect(patched).toBeDefined());
+      expect(patched).toMatchObject({ syllabus_id: null, syllabus_tier: null });
+    });
+
+    it("still saves the exam when the spec columns do not exist yet", async () => {
+      const user = userEvent.setup();
+      const bodies: Record<string, unknown>[][] = [];
+      server.use(
+        http.post(REST, async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>[];
+          bodies.push(body);
+          if ("syllabus_id" in body[0]) {
+            return HttpResponse.json(
+              {
+                code: "PGRST204",
+                message: "Could not find the 'syllabus_id' column of 'exams' in the schema cache",
+              },
+              { status: 400 },
+            );
+          }
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      const { onClose } = renderModal({ initialDate: FUTURE });
+
+      await user.type(screen.getByLabelText("What's the exam?"), "Biology");
+      await user.selectOptions(
+        screen.getByLabelText(/Exam board and specification/),
+        "aqa-gcse-biology-8461",
+      );
+      await user.click(screen.getByRole("button", { name: "Add exam" }));
+
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(bodies).toHaveLength(2);
+      expect(bodies[1][0]).not.toHaveProperty("syllabus_id");
+      expect(bodies[1][0]).toMatchObject({ exam_name: "Biology" });
+    });
+  });
 });

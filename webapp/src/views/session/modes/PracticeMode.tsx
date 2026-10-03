@@ -5,6 +5,7 @@ import { Button } from "../../../components/Button";
 import { ConfidencePicker } from "../../../components/learning/ConfidencePicker";
 import type { Confidence } from "../../../components/learning/options";
 import { generateQuizQuestions } from "../../../api/aiQuiz";
+import { bankPracticeFor } from "../../../api/questionBank";
 import { askInSession, buildSessionContext } from "../../../api/aiSession";
 import { TutorTurn } from "../../../components/learning/TutorTurn";
 import { useMisconceptions, useRecordMisconceptions } from "../../../hooks/useMisconceptions";
@@ -20,6 +21,9 @@ import text from "../../../styles/text.module.css";
 import styles from "../session.module.css";
 
 export const PRACTICE_PROBLEMS = 6;
+/** Fewer bank questions than this is not a practice set; the AI's error
+ *  is shown instead. */
+const MIN_BANK_PROBLEMS = 3;
 /** Exam traps: the Practice preset with a clock. */
 export const TRAPS_MINUTES = 10;
 
@@ -76,6 +80,9 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
       .slice(0, 2);
     task.run(
       () =>
+        /* When the AI can't write problems (an outage, or today's allowance
+           is used up), practice still runs: the question bank has exam-style
+           questions on the spec topic this objective maps to. */
         generateQuizQuestions({
           sourceText: `Topic: ${fenceUntrusted(session.objective)}${
             mixedWith.length
@@ -87,6 +94,13 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
           topic: fenceUntrusted(session.objective),
           settings,
           options: { questionCount: PRACTICE_PROBLEMS },
+        }).catch(async (err) => {
+          const fromBank = await bankPracticeFor(
+            [session.subject, session.objective].filter(Boolean).join(" "),
+            PRACTICE_PROBLEMS,
+          ).catch(() => null);
+          if (fromBank && fromBank.length >= MIN_BANK_PROBLEMS) return fromBank;
+          throw err;
         }),
       (questions) => {
         ctl.update((s) => ({
@@ -184,6 +198,7 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
             step: question.question,
             mode: "practice",
           }),
+          topic: [session.subject, session.objective].filter(Boolean).join(" "),
           settings,
         }),
       (a) => setAside({ q, a }),
@@ -234,6 +249,9 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                 </span>
               </div>
               <p className={styles.problem}>{question.question}</p>
+              {question.attribution ? (
+                <p className={styles.caption}>{question.attribution}</p>
+              ) : null}
               <ul className={styles.options} aria-label="Choices">
                 {question.choices.map((choice, i) => {
                   const struck = data.struck[index]?.includes(i);

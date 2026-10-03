@@ -14,6 +14,13 @@
 import type { Exam, Task, WeakTopic } from "../api/types";
 import type { StudyDemand } from "./autoSchedule";
 import { dateInDays, formatRecurrenceCleanText, parseLocalDate } from "./date";
+import { defaultTier, getSpec, isTier } from "./syllabus";
+import {
+  nextSpecTopics,
+  prioritiseSpecTopics,
+  type MisconceptionLike,
+} from "./specPriorities";
+import type { TopicEvidence } from "./studentEvidence";
 
 /** Minutes per due flashcard, and the sane bounds on a single review sitting.
  *  Roughly 30 seconds a card at a steady pace; 200 cards is a bad evening, not
@@ -26,6 +33,10 @@ const DEFAULT_TASK_MINS = 30;
 /** Undated tasks are real work, but scheduling all of them would bury the
  *  dated ones. The few most recently added get a slot; the rest wait. */
 const MAX_UNDATED_TASKS = 3;
+
+/** Distinct spec topics a week of prep sittings rotates through. More than a
+ *  handful and no topic gets a second look before the week is out. */
+const MAX_FOCUS_TOPICS = 4;
 
 const EXAM_PREP_MINS: Record<string, number> = {
   Hard: 55,
@@ -69,6 +80,11 @@ export interface DemandSources {
   dueCardCount: number;
   /** Topics the quizzes keep catching. Two at most get a block. */
   weakTopics?: WeakTopic[];
+  /** Per-topic quiz accuracy. With an exam's spec, it decides which spec
+   *  topic each prep sitting is for. */
+  topicEvidence?: TopicEvidence[];
+  /** The misconception ledger, for the same decision. */
+  misconceptions?: MisconceptionLike[];
   today: string;
   /** How far ahead we are scheduling. Beyond this, nothing is proposed. */
   horizonDays: number;
@@ -137,19 +153,36 @@ export function buildDemands(src: DemandSources): StudyDemand[] {
 
     const sittings = Math.min(horizonDays, daysUntil + 1);
     const mins = EXAM_PREP_MINS[exam.difficulty ?? ""] ?? EXAM_PREP_MINS.Medium;
+    /* With a spec, each sitting names the topic worth most marks still on
+       the table, cycling through the top few, instead of a bare "prep". */
+    const spec = getSpec(exam.syllabus_id);
+    const focus = spec
+      ? nextSpecTopics(
+          prioritiseSpecTopics(
+            spec,
+            isTier(spec, exam.syllabus_tier) ? exam.syllabus_tier : defaultTier(spec),
+            src.topicEvidence ?? [],
+            src.misconceptions ?? [],
+          ),
+          Math.max(1, Math.min(sittings, MAX_FOCUS_TOPICS)),
+        )
+      : [];
     for (let i = 0; i < sittings; i += 1) {
       const on = dateInDays(i, today);
       if (on > exam.exam_date) break;
+      const topic = focus.length ? focus[i % focus.length].topic : null;
       demands.push({
         id: `exam:${exam.id}:${i}`,
-        label: `${exam.exam_name} prep`,
+        label: topic
+          ? `${exam.exam_name}: ${topic.title} (${topic.ref})`
+          : `${exam.exam_name} prep`,
         kind: "exam",
         estMins: mins,
         load: 3,
         dueDate: on,
         notBefore: on,
         subject: exam.exam_name,
-        href: "/exams",
+        href: spec ? `/exams/${exam.id}` : "/exams",
         /* The closer the exam, the more a prep sitting outranks everything
            else that day. Flat across sittings so the near days do not all
            lose to the far ones. */

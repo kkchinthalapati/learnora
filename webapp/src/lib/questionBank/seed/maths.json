@@ -1,0 +1,676 @@
+[
+ {
+  "ref": "N1-N9",
+  "q": "Write 360 as a product of prime factors.",
+  "c": [
+   "2³ × 3² × 5",
+   "2² × 3² × 10",
+   "2⁴ × 3 × 5",
+   "6² × 10"
+  ],
+  "a": 0,
+  "why": "360 = 8 × 9 × 5 = 2³ × 3² × 5."
+ },
+ {
+  "ref": "N1-N9",
+  "q": "What is the highest common factor of 24 and 36?",
+  "c": [
+   "6",
+   "12",
+   "72",
+   "4"
+  ],
+  "a": 1,
+  "why": "Factors of 24 and 36 in common: 1, 2, 3, 4, 6, 12. The highest is 12."
+ },
+ {
+  "ref": "N1-N9",
+  "q": "Write 0.00042 in standard form.",
+  "c": [
+   "4.2 × 10⁻⁴",
+   "4.2 × 10⁴",
+   "42 × 10⁻⁵",
+   "0.42 × 10⁻³"
+  ],
+  "a": 0,
+  "why": "Move the decimal point 4 places right: 4.2 × 10⁻⁴."
+ },
+ {
+  "ref": "N1-N9",
+  "q": "Simplify √50.",
+  "c": [
+   "5√2",
+   "25√2",
+   "10√5",
+   "2√5"
+  ],
+  "a": 0,
+  "why": "√50 = √25 × √2 = 5√2.",
+  "tier": "Higher"
+ },
+ {
+  "ref": "N10-N12",
+  "q": "What is 3/4 as a percentage?",
+  "c": [
+   "34%",
+   "43%",
+   "75%",
+   "0.75%"
+  ],
+  "a": 2,
+  "why": "3 ÷ 4 = 0.75 = 75%."
+ },
+ {
+  "ref": "N10-N12",
+  "q": "Work out 2/3 ÷ 4/5.",
+  "c": [
+   "8/15",
+   "5/6",
+   "8/12",
+   "6/5"
+  ],
+  "a": 1,
+  "why": "Multiply by the reciprocal: 2/3 × 5/4 = 10/12 = 5/6."
+ },
+ {
+  "ref": "N10-N12",
+  "q": "Which fraction is equal to 0.375?",
+  "c": [
+   "3/8",
+   "3/75",
+   "37/100",
+   "5/8"
+  ],
+  "a": 0,
+  "why": "3 ÷ 8 = 0.375."
+ },
+ {
+  "ref": "N10-N12",
+  "q": "What is 15% of 80?",
+  "c": [
+   "8",
+   "12",
+   "15",
+   "65"
+  ],
+  "a": 1,
+  "why": "10% is 8 and 5% is 4, so 15% is 12."
+ },
+ {
+  "ref": "N13-N16",
+  "q": "Round 3.14159 to 3 significant figures.",
+  "c": [
+   "3.14",
+   "3.142",
+   "3.1",
+   "3.15"
+  ],
+  "a": 0,
+  "why": "The first three significant figures are 3, 1, 4; the next digit (1) rounds down."
+ },
+ {
+  "ref": "N13-N16",
+  "q": "A length is 12 cm to the nearest cm. What is the lower bound?",
+  "c": [
+   "11 cm",
+   "11.5 cm",
+   "11.9 cm",
+   "12.5 cm"
+  ],
+  "a": 1,
+  "why": "Half a unit below: 12 − 0.5 = 11.5 cm."
+ },
+ {
+  "ref": "N13-N16",
+  "q": "Estimate 4.9 × 21.3 ÷ 0.48.",
+  "c": [
+   "Around 20",
+   "Around 200",
+   "Around 2000",
+   "Around 50"
+  ],
+  "a": 1,
+  "why": "Round to 1 s.f.: 5 × 20 ÷ 0.5 = 200."
+ },
+ {
+  "ref": "N13-N16",
+  "q": "How many grams are in 2.5 kg?",
+  "c": [
+   "25 g",
+   "250 g",
+   "2500 g",
+   "25 000 g"
+  ],
+  "a": 2,
+  "why": "1 kg = 1000 g, so 2.5 kg = 2500 g."
+ },
+ {
+  "ref": "A1-A7",
+  "q": "Expand and simplify 3(x + 4) − 2(x − 1).",
+  "c": [
+   "x + 14",
+   "x + 10",
+   "5x + 14",
+   "x + 2"
+  ],
+  "a": 0,
+  "why": "3x + 12 − 2x + 2 = x + 14."
+ },
+ {
+  "ref": "A1-A7",
+  "q": "Factorise x² + 5x + 6.",
+  "c": [
+   "(x + 2)(x + 3)",
+   "(x + 1)(x + 6)",
+   "(x − 2)(x − 3)",
+   "x(x + 5) + 6"
+  ],
+  "a": 0,
+  "why": "2 and 3 multiply to 6 and add to 5."
+ },
+ {
+  "ref": "A1-A7",
+  "q": "Make r the subject of A = πr².",
+  "c": [
+   "r = A/π",
+   "r = √(A/π)",
+   "r = √A/π",
+   "r = A²/π"
+  ],
+  "a": 1,
+  "why": "Divide by π, then square root: r = √(A/π)."
+ },
+ {
+  "ref": "A1-A7",
+  "q": "If a = 3 and b = −2, what is a² − 2b?",
+  "c": [
+   "5",
+   "7",
+   "13",
+   "−1"
+  ],
+  "a": 2,
+  "why": "9 − 2(−2) = 9 + 4 = 13."
+ },
+ {
+  "ref": "A8-A16",
+  "q": "What is the gradient of the line y = 3x − 5?",
+  "c": [
+   "−5",
+   "3",
+   "5",
+   "−3"
+  ],
+  "a": 1,
+  "why": "In y = mx + c, the gradient m is 3."
+ },
+ {
+  "ref": "A8-A16",
+  "q": "Which line is parallel to y = 2x + 1?",
+  "c": [
+   "y = x + 2",
+   "y = 2x − 7",
+   "y = −2x + 1",
+   "y = ½x + 1"
+  ],
+  "a": 1,
+  "why": "Parallel lines have the same gradient, 2."
+ },
+ {
+  "ref": "A8-A16",
+  "q": "Where does the line 2y = 4x + 6 cross the y-axis?",
+  "c": [
+   "(0, 6)",
+   "(0, 3)",
+   "(0, 2)",
+   "(3, 0)"
+  ],
+  "a": 1,
+  "why": "Rearrange: y = 2x + 3, so the y-intercept is 3."
+ },
+ {
+  "ref": "A8-A16",
+  "q": "What is the gradient of a line through (1, 2) and (3, 8)?",
+  "c": [
+   "2",
+   "3",
+   "6",
+   "1/3"
+  ],
+  "a": 1,
+  "why": "(8 − 2) ÷ (3 − 1) = 6 ÷ 2 = 3."
+ },
+ {
+  "ref": "A17-A22",
+  "q": "Solve 5x − 7 = 18.",
+  "c": [
+   "x = 2.2",
+   "x = 5",
+   "x = 25",
+   "x = 11"
+  ],
+  "a": 1,
+  "why": "5x = 25, so x = 5."
+ },
+ {
+  "ref": "A17-A22",
+  "q": "Solve x² − 9 = 0.",
+  "c": [
+   "x = 3 only",
+   "x = 3 or x = −3",
+   "x = 9",
+   "x = 4.5"
+  ],
+  "a": 1,
+  "why": "x² = 9, so x = ±3."
+ },
+ {
+  "ref": "A17-A22",
+  "q": "Solve the simultaneous equations x + y = 10 and x − y = 4.",
+  "c": [
+   "x = 7, y = 3",
+   "x = 6, y = 4",
+   "x = 5, y = 5",
+   "x = 3, y = 7"
+  ],
+  "a": 0,
+  "why": "Adding gives 2x = 14, so x = 7 and y = 3."
+ },
+ {
+  "ref": "A17-A22",
+  "q": "Solve 3x + 2 < 14.",
+  "c": [
+   "x < 4",
+   "x > 4",
+   "x < 5.3",
+   "x < 12"
+  ],
+  "a": 0,
+  "why": "3x < 12, so x < 4."
+ },
+ {
+  "ref": "A23-A25",
+  "q": "What is the nth term of 5, 8, 11, 14, …?",
+  "c": [
+   "3n + 2",
+   "5n + 3",
+   "n + 3",
+   "3n + 5"
+  ],
+  "a": 0,
+  "why": "The difference is 3, and 3 × 1 + 2 = 5."
+ },
+ {
+  "ref": "A23-A25",
+  "q": "What is the next term of the geometric sequence 3, 6, 12, 24, …?",
+  "c": [
+   "30",
+   "36",
+   "48",
+   "72"
+  ],
+  "a": 2,
+  "why": "Each term is multiplied by 2: 24 × 2 = 48."
+ },
+ {
+  "ref": "A23-A25",
+  "q": "Is 50 a term in the sequence 4n + 2?",
+  "c": [
+   "Yes: it is the 12th term",
+   "No: 50 is not in the sequence",
+   "Yes: it is the 13th term",
+   "No: the sequence only has odd numbers"
+  ],
+  "a": 0,
+  "why": "4n + 2 = 50 gives n = 12, a whole number, so 50 is the 12th term."
+ },
+ {
+  "ref": "A23-A25",
+  "q": "What is the 10th term of 7, 12, 17, 22, …?",
+  "c": [
+   "47",
+   "52",
+   "57",
+   "50"
+  ],
+  "a": 1,
+  "why": "nth term = 5n + 2, so the 10th term is 52."
+ },
+ {
+  "ref": "R1-R8",
+  "q": "Share £60 in the ratio 2 : 3.",
+  "c": [
+   "£20 and £40",
+   "£24 and £36",
+   "£30 and £30",
+   "£12 and £48"
+  ],
+  "a": 1,
+  "why": "5 parts: £60 ÷ 5 = £12; 2 × 12 = £24 and 3 × 12 = £36."
+ },
+ {
+  "ref": "R1-R8",
+  "q": "A car travels 150 km in 2.5 hours. What is its average speed?",
+  "c": [
+   "37.5 km/h",
+   "60 km/h",
+   "375 km/h",
+   "152.5 km/h"
+  ],
+  "a": 1,
+  "why": "Speed = distance ÷ time = 150 ÷ 2.5 = 60 km/h."
+ },
+ {
+  "ref": "R1-R8",
+  "q": "A map has a scale of 1 : 50 000. Two towns are 4 cm apart on the map. How far apart are they?",
+  "c": [
+   "200 m",
+   "2 km",
+   "20 km",
+   "200 km"
+  ],
+  "a": 1,
+  "why": "4 × 50 000 = 200 000 cm = 2 km."
+ },
+ {
+  "ref": "R1-R8",
+  "q": "An object has mass 600 g and volume 200 cm³. What is its density?",
+  "c": [
+   "0.33 g/cm³",
+   "3 g/cm³",
+   "400 g/cm³",
+   "120 000 g/cm³"
+  ],
+  "a": 1,
+  "why": "Density = mass ÷ volume = 600 ÷ 200 = 3 g/cm³."
+ },
+ {
+  "ref": "R9-R16",
+  "q": "£200 is invested at 5% compound interest a year. What is it worth after 2 years?",
+  "c": [
+   "£210",
+   "£220",
+   "£220.50",
+   "£240"
+  ],
+  "a": 2,
+  "why": "200 × 1.05² = £220.50."
+ },
+ {
+  "ref": "R9-R16",
+  "q": "A price rises from £40 to £50. What is the percentage increase?",
+  "c": [
+   "10%",
+   "20%",
+   "25%",
+   "80%"
+  ],
+  "a": 2,
+  "why": "Increase £10 ÷ original £40 = 25%."
+ },
+ {
+  "ref": "R9-R16",
+  "q": "y is directly proportional to x. When x = 4, y = 20. Find y when x = 7.",
+  "c": [
+   "23",
+   "28",
+   "35",
+   "140"
+  ],
+  "a": 2,
+  "why": "y = 5x, so y = 35."
+ },
+ {
+  "ref": "R9-R16",
+  "q": "After a 10% decrease, a coat costs £72. What was the original price?",
+  "c": [
+   "£64.80",
+   "£79.20",
+   "£80",
+   "£82"
+  ],
+  "a": 2,
+  "why": "£72 is 90% of the original, so original = 72 ÷ 0.9 = £80."
+ },
+ {
+  "ref": "G1-G15",
+  "q": "What is the sum of the interior angles of a pentagon?",
+  "c": [
+   "360°",
+   "540°",
+   "720°",
+   "180°"
+  ],
+  "a": 1,
+  "why": "(n − 2) × 180 = 3 × 180 = 540°."
+ },
+ {
+  "ref": "G1-G15",
+  "q": "Two parallel lines are crossed by a transversal. Alternate angles are…",
+  "c": [
+   "Equal",
+   "Add up to 180°",
+   "Add up to 90°",
+   "Always 45°"
+  ],
+  "a": 0,
+  "why": "Alternate (Z) angles are equal."
+ },
+ {
+  "ref": "G1-G15",
+  "q": "What is the size of each exterior angle of a regular hexagon?",
+  "c": [
+   "30°",
+   "60°",
+   "120°",
+   "72°"
+  ],
+  "a": 1,
+  "why": "Exterior angles sum to 360°: 360 ÷ 6 = 60°."
+ },
+ {
+  "ref": "G1-G15",
+  "q": "What is the angle in a semicircle (angle subtended by a diameter at the circumference)?",
+  "c": [
+   "45°",
+   "90°",
+   "180°",
+   "60°"
+  ],
+  "a": 1,
+  "why": "The angle in a semicircle is always a right angle.",
+  "tier": "Higher"
+ },
+ {
+  "ref": "G16-G23",
+  "q": "A right-angled triangle has shorter sides 6 cm and 8 cm. How long is the hypotenuse?",
+  "c": [
+   "10 cm",
+   "14 cm",
+   "48 cm",
+   "100 cm"
+  ],
+  "a": 0,
+  "why": "√(6² + 8²) = √100 = 10 cm."
+ },
+ {
+  "ref": "G16-G23",
+  "q": "What is the area of a circle with radius 3 cm? (Give your answer in terms of π.)",
+  "c": [
+   "6π cm²",
+   "9π cm²",
+   "3π cm²",
+   "36π cm²"
+  ],
+  "a": 1,
+  "why": "A = πr² = 9π cm²."
+ },
+ {
+  "ref": "G16-G23",
+  "q": "In a right-angled triangle, the side opposite angle x is 5 and the hypotenuse is 10. What is x?",
+  "c": [
+   "30°",
+   "45°",
+   "60°",
+   "90°"
+  ],
+  "a": 0,
+  "why": "sin x = 5 ÷ 10 = 0.5, so x = 30°."
+ },
+ {
+  "ref": "G16-G23",
+  "q": "What is the volume of a cuboid 2 cm by 3 cm by 5 cm?",
+  "c": [
+   "10 cm³",
+   "15 cm³",
+   "30 cm³",
+   "31 cm³"
+  ],
+  "a": 2,
+  "why": "2 × 3 × 5 = 30 cm³."
+ },
+ {
+  "ref": "G24-G25",
+  "q": "a = (3, 2) and b = (1, −4) as column vectors. What is a + b?",
+  "c": [
+   "(4, −2)",
+   "(2, 6)",
+   "(4, 6)",
+   "(3, −8)"
+  ],
+  "a": 0,
+  "why": "Add the components: (3 + 1, 2 − 4) = (4, −2)."
+ },
+ {
+  "ref": "G24-G25",
+  "q": "What is 3a if a = (2, −1)?",
+  "c": [
+   "(5, 2)",
+   "(6, −3)",
+   "(6, 3)",
+   "(2, −3)"
+  ],
+  "a": 1,
+  "why": "Multiply each component by 3: (6, −3)."
+ },
+ {
+  "ref": "G24-G25",
+  "q": "If AB = a and BC = b, what is AC?",
+  "c": [
+   "a − b",
+   "a + b",
+   "b − a",
+   "2a"
+  ],
+  "a": 1,
+  "why": "Go from A to B then B to C: AC = a + b."
+ },
+ {
+  "ref": "G24-G25",
+  "q": "What does it mean if vector p = 2q?",
+  "c": [
+   "p and q are perpendicular",
+   "p is parallel to q and twice as long",
+   "p and q are equal",
+   "p is half of q"
+  ],
+  "a": 1,
+  "why": "A scalar multiple means the vectors are parallel."
+ },
+ {
+  "ref": "P1-P9",
+  "q": "A fair six-sided dice is rolled. What is the probability of rolling a number greater than 4?",
+  "c": [
+   "1/6",
+   "1/3",
+   "1/2",
+   "2/3"
+  ],
+  "a": 1,
+  "why": "Two outcomes (5, 6) out of 6: 2/6 = 1/3."
+ },
+ {
+  "ref": "P1-P9",
+  "q": "The probability it rains tomorrow is 0.3. What is the probability it does not rain?",
+  "c": [
+   "0.3",
+   "0.7",
+   "1.3",
+   "0.03"
+  ],
+  "a": 1,
+  "why": "Probabilities of all outcomes add to 1: 1 − 0.3 = 0.7."
+ },
+ {
+  "ref": "P1-P9",
+  "q": "A coin is flipped twice. What is the probability of two heads?",
+  "c": [
+   "1/2",
+   "1/3",
+   "1/4",
+   "1/8"
+  ],
+  "a": 2,
+  "why": "Independent events: ½ × ½ = ¼."
+ },
+ {
+  "ref": "P1-P9",
+  "q": "A spinner is spun 200 times and lands on red 50 times. What is the relative frequency of red?",
+  "c": [
+   "0.25",
+   "0.5",
+   "50",
+   "4"
+  ],
+  "a": 0,
+  "why": "Relative frequency = 50 ÷ 200 = 0.25."
+ },
+ {
+  "ref": "S1-S6",
+  "q": "What is the median of 3, 9, 4, 7, 2?",
+  "c": [
+   "4",
+   "5",
+   "7",
+   "9"
+  ],
+  "a": 0,
+  "why": "In order: 2, 3, 4, 7, 9. The middle value is 4."
+ },
+ {
+  "ref": "S1-S6",
+  "q": "What is the mean of 4, 6, 8, 10?",
+  "c": [
+   "6",
+   "7",
+   "8",
+   "28"
+  ],
+  "a": 1,
+  "why": "(4 + 6 + 8 + 10) ÷ 4 = 28 ÷ 4 = 7."
+ },
+ {
+  "ref": "S1-S6",
+  "q": "What is the range of 12, 5, 18, 9?",
+  "c": [
+   "5",
+   "13",
+   "18",
+   "23"
+  ],
+  "a": 1,
+  "why": "Range = largest − smallest = 18 − 5 = 13."
+ },
+ {
+  "ref": "S1-S6",
+  "q": "A scatter graph shows that as one variable increases, the other decreases. What kind of correlation is this?",
+  "c": [
+   "Positive",
+   "Negative",
+   "No correlation",
+   "Causal"
+  ],
+  "a": 1,
+  "why": "One rising as the other falls is negative correlation."
+ }
+]

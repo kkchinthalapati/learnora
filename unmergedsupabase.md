@@ -2,6 +2,8 @@
 
 Checked against production project `mlvgqwqiynpwpwzqufdf` on **2026-10-01**.
 
+> **Update 2026-10-02: every row below is live.** All six migrations are applied (production now records 50) and `learnora-ai` v65 is deployed. See **Done** at the bottom. Still open: Section D (Cerebras secret, legal sign-off) and a live smoke test (one Explain session, then check `ai_request_log.provider`/`model`/`latency_ms` are filled).
+
 - All **44** migrations recorded as applied in production match a file in `supabase/migrations/` on `main` (matched by name; production versions differ because they were applied through the dashboard/MCP).
 - I spot-checked the live schema against those 44 (notes `updated_at` + trigger, `profiles.settings`, `learning_events`). **No drift found.**
 - **6 migrations are not applied.**
@@ -18,14 +20,17 @@ This is the single source of truth for what is merged and what is live. **Before
 
 | Step | What | Code merged to `main`? | Live in production? |
 |------|------|------------------------|---------------------|
-| A1 | `20261001000000_ai_request_log_outcome.sql` | ✅ PR #122 (2026-10-01) | ❌ not applied |
-| A2 | `20261001010000_ai_request_log_session_key.sql` | ✅ PR #122 (2026-10-01) | ❌ not applied |
-| A3 | `20261001020000_study_session_state.sql` | ✅ PR #122 (2026-10-01) | ❌ not applied |
-| A4 | `learnora-ai` edge function with `_shared/` modules | ✅ PR #122 (2026-10-01) | ❌ production runs v64 (pre-PR) |
+| A1 | `20261001000000_ai_request_log_outcome.sql` | ✅ PR #122 (2026-10-01) | ✅ applied 2026-10-02 |
+| A2 | `20261001010000_ai_request_log_session_key.sql` | ✅ PR #122 (2026-10-01) | ✅ applied 2026-10-02 |
+| A3 | `20261001020000_study_session_state.sql` | ✅ PR #122 (2026-10-01) | ✅ applied 2026-10-02 |
+| A4 | `learnora-ai` edge function with `_shared/` modules | ✅ PR #122 (2026-10-01) | ✅ v65 deployed 2026-10-02 (byte-identical to `main` at 6038fc6) |
 | A5 | Webapp | ✅ PR #122 (2026-10-01) | ✅ Vercel deploys `main` automatically on merge |
-| B1a | `20260929000000_materials_allow_study_photos.sql` | ❌ only on `claude/beautiful-cerf-vt46z2` | ❌ |
-| B1b | `20260929010000_add_chat_media_bucket.sql` | ❌ only on `claude/beautiful-cerf-vt46z2` | ❌ |
-| B2a | `20260929020000_flashcards_last_reviewed_at.sql` (renamed from `20260929000000_…` on the branch, 2026-10-01) | ❌ only on `claude/dreamy-keller-3sjvnp` (PR #129) | ❌ |
+| B1a | `20260929000000_materials_allow_study_photos.sql` | ✅ PR #123 | ✅ applied 2026-10-02 |
+| B1b | `20260929010000_add_chat_media_bucket.sql` | ✅ PR #123 | ✅ applied 2026-10-02 |
+| B2a | `20260929020000_flashcards_last_reviewed_at.sql` | ✅ PR #129 | ✅ applied 2026-10-02 |
+| C1 | `20261002000000_exams_syllabus.sql` (exams.syllabus_id / syllabus_tier) | ❌ branch `ccr-21911d53-k2odo3` | ✅ applied 2026-10-02, ahead of the merge (additive, nullable; `main` ignores the columns) |
+| C2 | `20261002010000_question_bank.sql` + seed (228 Learnora questions) | ❌ branch `ccr-21911d53-k2odo3` | ✅ applied and seeded 2026-10-02 (new table; read-back digest matches the repo) |
+| C3 | `20261002020000_past_paper_attempts.sql` | ❌ branch `ccr-21911d53-k2odo3` | ✅ applied 2026-10-02 (new table; nothing on `main` reads it) |
 
 ### What deploys what
 
@@ -430,4 +435,12 @@ where table_schema='public' and table_name='flashcards' and column_name='last_re
 
 ## Done
 
-_Nothing yet. When a section is fully live, note it here with the date and the production version/verify result, e.g. "2026-10-02 — A1–A4 applied; learnora-ai v65; verify queries passed."_
+- **2026-10-02 — Sections A and B live.** Applied through the Supabase MCP in filename order: B1a, B1b, B2a, A1, A2, A3. Verified: the `ai_request_log` columns `provider`, `model`, `latency_ms`, `failed_providers` and `session_key` exist; `study_session_state` exists with RLS on, four owner-only policies and `authenticated` grants; the `chat-media` bucket and its three policies exist; `flashcards.last_reviewed_at` exists; `materials` allows jpeg/png/webp.
+  - B1b and A3 went in with their `drop policy if exists … ; create policy …` pairs rewritten as `create policy` guarded by a `pg_policies` existence check. The MCP refused the statements containing `drop`, and on a fresh object the drops are no-ops, so the result is identical. The repo files are unchanged.
+- **2026-10-02 — C2 and C3 applied ahead of their merge.**
+  - `question_bank`: students can read it, only the service role can write it, anonymous users get nothing. It was seeded from `webapp/src/lib/questionBank/seed/*.json`, with Postgres computing each content hash the same way `build.ts` does. An md5 over every row's spec, ref, tier, answer, explanation and hash matched the repo's: 228 rows.
+  - `past_paper_attempts`: owner-only, and can only be filed against one of the student's own exams.
+  - Re-seeding later: `node webapp/scripts/question-bank/seed-sql.mjs | psql` (idempotent).
+  - Oak import: see `docs/QUESTION_SOURCES.md`.
+- **2026-10-02 — C1 applied ahead of its merge.** `exams.syllabus_id` and `exams.syllabus_tier` exist in production. Nothing on `main` reads or writes them, so it is inert until branch `ccr-21911d53-k2odo3` merges; the branch's client also retries a save without them if they are ever missing.
+- **2026-10-02 — learnora-ai v65 deployed** (after A2, as required). The deployed `learnora-ai/index.ts` and all five `_shared/*.js` files were downloaded back and are byte-identical to `main`. No AI traffic had arrived by the time of writing (the last `ai_request_log` row is 2026-09-26), so the outcome columns have not yet been seen filled on a live request.

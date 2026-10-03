@@ -14,7 +14,7 @@
  */
 
 import { callEdge } from "./ai";
-import { levelRules, studentLevel } from "../lib/studentLevel";
+import { levelRules, studentStandard } from "../lib/studentLevel";
 import { quizzesApi } from "./quizzes";
 import { type QuizQuestion, extractQuizJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
@@ -244,7 +244,7 @@ export async function generateQuizQuestions({ sourceText, topic, settings, optio
             options.personality ?? AI_PERSONA_QUIZ_HOST[settings.aiPersona],
           count: options.questionCount ?? QUIZ_DEFAULTS.questionCount,
           misconceptionFocus,
-        }) + `\n\n${levelRules(await studentLevel().catch(() => "secondary school"))}`,
+        }) + `\n\n${await quizLevelRules(topic)}`,
       },
     ],
     mode: "quiz",
@@ -256,4 +256,14 @@ export async function generateQuizQuestions({ sourceText, topic, settings, optio
   if (questions.length === 0) throw new QuizShapeError();
 
   return questions;
+}
+
+/* The quiz is pitched at the exam its topic belongs to when there is one
+   (lib/examSpec), and at the student's general level otherwise. */
+async function quizLevelRules(topic: string | undefined): Promise<string> {
+  const { level, specLine } = await studentStandard(topic).catch(() => ({
+    level: "secondary school",
+    specLine: "",
+  }));
+  return levelRules(level, specLine);
 }

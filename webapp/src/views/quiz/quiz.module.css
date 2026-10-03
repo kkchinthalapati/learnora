@@ -510,3 +510,11 @@
   font-size: var(--fs-xs);
   color: var(--text-muted);
 }
+
+/* Licence credit under a practice-bank question (e.g. Oak National Academy,
+   Open Government Licence). */
+.attribution {
+  margin: calc(var(--s-2) * -1) 0 var(--s-3);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}

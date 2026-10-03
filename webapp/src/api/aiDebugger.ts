@@ -1,4 +1,5 @@
 import { AiError, callEdge } from "./ai";
+import type { GroundingSource } from "./grounding";
 import { learningEventsApi } from "./learningEvents";
 import { normaliseTopicKey } from "../lib/topicKey";
 import { extractJSON } from "../lib/aiJson";
@@ -45,6 +46,9 @@ export interface CognitiveStackTrace {
      misconception ledger refuses it. A trace without this field was
      produced by the model and can be trusted as far as the model goes. */
   degraded?: DegradedDiagnosis;
+  /* Passages of the student's own notes the explanation was given, shown
+     beneath it as its sources. Absent when none matched. */
+  sources?: GroundingSource[];
 }
 
 export interface InteractiveExercise {

@@ -2,7 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { supabase } from "./supabase";
 import { fakeSession } from "../test/auth";
 import { getFramework } from "./region";
-import { levelRules, studentLevel } from "./studentLevel";
+import { levelRules, studentLevel, studentStandard } from "./studentLevel";
+import { http, HttpResponse } from "msw";
+import { server } from "../test/mocks/server";
+import { SUPABASE_URL } from "./supabase";
+import { queryClient } from "./queryClient";
+import { localDateStr } from "./date";
+import type { Exam } from "../api/types";
 
 function signedInWith(onboarding: Record<string, unknown> | undefined) {
   const session = fakeSession({
@@ -41,5 +47,62 @@ describe("levelRules", () => {
     expect(rules).toContain("STUDENT LEVEL: GCSE");
     expect(rules).toMatch(/never list higher-level detail as missing/);
     expect(levelRules("GCSE / A-Level")).toContain("aim at the first (the lower)");
+  });
+});
+
+describe("studentStandard", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    queryClient.clear();
+  });
+
+  const future = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return localDateStr(d);
+  };
+
+  function withExams(exams: Partial<Exam>[]) {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/exams`, () =>
+        HttpResponse.json(
+          exams.map((e, i) => ({
+            id: i + 1,
+            user_id: "user-1",
+            exam_name: "Exam",
+            exam_date: future(30),
+            difficulty: "Medium",
+            status: "Scheduled",
+            ...e,
+          })),
+        ),
+      ),
+    );
+  }
+
+  it("pitches a topic at the exam spec it belongs to, with its section", async () => {
+    signedInWith({ goal: "school", examType: "gcse" });
+    withExams([
+      { syllabus_id: "aqa-gcse-maths-8300", syllabus_tier: "Foundation" },
+      { syllabus_id: "aqa-gcse-biology-8461", syllabus_tier: "Higher" },
+    ]);
+    const { level, specLine } = await studentStandard("Limiting factors in photosynthesis");
+    expect(level).toBe("AQA GCSE Biology (8461), Higher tier");
+    expect(specLine).toContain('4.4.1 "Photosynthesis"');
+    expect(levelRules(level, specLine)).toContain(specLine);
+  });
+
+  it("falls back to the general level when the topic is in no spec", async () => {
+    signedInWith({ goal: "school", examType: "gcse" });
+    withExams([{ syllabus_id: "aqa-gcse-biology-8461" }]);
+    expect(await studentStandard("The Tudors")).toEqual({ level: "GCSE", specLine: "" });
+  });
+
+  it("falls back when exams cannot be read", async () => {
+    signedInWith({ goal: "school", examType: "gcse" });
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/exams`, () => HttpResponse.json({}, { status: 500 })),
+    );
+    expect(await studentStandard("Photosynthesis")).toEqual({ level: "GCSE", specLine: "" });
   });
 });

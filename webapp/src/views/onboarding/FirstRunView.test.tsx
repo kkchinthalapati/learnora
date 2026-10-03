@@ -126,6 +126,41 @@ describe("FirstRunView", () => {
     expect(screen.getByRole("heading", { level: 2, name: /two questions/i })).toBeInTheDocument();
   });
 
+  it("saves the exam with the specification its topic suggests, at the superset tier", async () => {
+    const user = userEvent.setup();
+    let posted: Record<string, unknown>[] | undefined;
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/exams`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>[];
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    render();
+    await user.click(await screen.findByRole("button", { name: "GCSE" }));
+    await user.type(await screen.findByLabelText(/what you're studying/i), "Biology photosynthesis");
+    await user.click(screen.getByRole("button", { name: /^start$/i }));
+    await user.click(await screen.findByRole("button", { name: /it falls/i }));
+    await user.click(screen.getByRole("button", { name: /show me how/i }));
+    await user.click(await screen.findByRole("button", { name: /check me/i }));
+    await user.click(await screen.findByRole("button", { name: /down/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    const future = new Date();
+    future.setDate(future.getDate() + 60);
+    const date = future.toISOString().slice(0, 10);
+    const dateInput = await screen.findByLabelText(/when is your exam/i);
+    await user.type(dateInput, date);
+    const board = screen.getByLabelText(/which exam board/i);
+    expect(board).toHaveValue("aqa-gcse-biology-8461");
+    await user.click(screen.getByRole("button", { name: /save and see my plan/i }));
+
+    await waitFor(() => expect(posted).toBeDefined());
+    expect(posted![0]).toMatchObject({
+      syllabus_id: "aqa-gcse-biology-8461",
+      syllabus_tier: "Higher",
+    });
+  });
+
   it("offers retry and a way out when the lesson fails to load", async () => {
     generate.mockRejectedValueOnce(new Error("busy"));
     const user = userEvent.setup();

@@ -44,7 +44,7 @@ export function PrivacyView() {
           <div>
             <h1 className={styles.title}>Privacy Policy</h1>
             <p className={styles.meta}>
-              Effective Date: September 4, 2026 &bull; Last Updated: September
+              Effective Date: September 4, 2026 &bull; Last Updated: October 3,
               2026
             </p>
           </div>

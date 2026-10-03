@@ -4,6 +4,8 @@ import { useFlashcardsDueCount } from "./useFlashcards";
 import { useLifeContext } from "./useLifeContext";
 import { useTasks } from "./useTasks";
 import { useWeakTopics } from "./useQuizzes";
+import { useStudentEvidence } from "./useStudentEvidence";
+import { useMisconceptions } from "./useMisconceptions";
 import { availabilityRange, type DayAvailability } from "../lib/availability";
 import {
   autoSchedule,
@@ -66,6 +68,9 @@ export function useStudySchedule(
   const exams = useExams({ enabled });
   const dueCount = useFlashcardsDueCount({ enabled });
   const weakTopics = useWeakTopics(2, { enabled });
+  /* Only read when an exam names a spec; otherwise these change nothing. */
+  const { evidence } = useStudentEvidence();
+  const { all: ledger } = useMisconceptions();
 
   /* Recomputed once a day rather than once a render. `localDateStr()` is not a
      stable dependency — it changes at midnight — and threading a live clock in
@@ -104,6 +109,8 @@ export function useStudySchedule(
         exams: exams.data ?? [],
         dueCardCount: dueCount.data ?? 0,
         weakTopics: weakTopics.data ?? [],
+        topicEvidence: evidence.topics,
+        misconceptions: ledger,
         today: todayDate,
         horizonDays,
       }),
@@ -112,6 +119,8 @@ export function useStudySchedule(
       exams.data,
       dueCount.data,
       weakTopics.data,
+      evidence.topics,
+      ledger,
       todayDate,
       horizonDays,
     ],

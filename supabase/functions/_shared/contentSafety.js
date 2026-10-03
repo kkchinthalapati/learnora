@@ -90,7 +90,7 @@ const UNSAFE_PATTERNS = [
    look-alikes. */
 
 // Zero-width and invisible formatting characters, plus the soft hyphen.
-const INVISIBLE = /[­᠎​-‏‪-‮⁠-⁤﻿]/g;
+const INVISIBLE = /[\u00ad\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]/g;
 // Characters picked apart one at a time: "b-o-m-b", "b.o.m.b", "b/o/m/b".
 const SPELLED_OUT = /\b[a-z0-9](?:[-./|+][a-z0-9]\b){2,}/gi;
 // The same with spaces ("b o m b"). A run may not start on "a" or "I", or
@@ -98,9 +98,9 @@ const SPELLED_OUT = /\b[a-z0-9](?:[-./|+][a-z0-9]\b){2,}/gi;
 const SPACED_OUT = /\b(?![ai]\s)[a-z0-9](?:\s[a-z0-9]\b){2,}/gi;
 // Cyrillic and Greek letters that render identically to Latin ones.
 const LOOKALIKES = {
-  "а": "a", "в": "b", "е": "e", "к": "k", "м": "m", "н": "h", "о": "o", "р": "p",
-  "с": "c", "т": "t", "у": "y", "х": "x", "і": "i", "ј": "j", "ѕ": "s",
-  "α": "a", "β": "b", "ε": "e", "ι": "i", "κ": "k", "ν": "v", "ο": "o", "ρ": "p", "τ": "t", "υ": "u",
+  "\u0430": "a", "\u0432": "b", "\u0435": "e", "\u043a": "k", "\u043c": "m", "\u043d": "h", "\u043e": "o", "\u0440": "p",
+  "\u0441": "c", "\u0442": "t", "\u0443": "y", "\u0445": "x", "\u0456": "i", "\u0458": "j", "\u0455": "s",
+  "\u03b1": "a", "\u03b2": "b", "\u03b5": "e", "\u03b9": "i", "\u03ba": "k", "\u03bd": "v", "\u03bf": "o", "\u03c1": "p", "\u03c4": "t", "\u03c5": "u",
 };
 const LOOKALIKE_CHARS = new RegExp(`[${Object.keys(LOOKALIKES).join("")}]`, "gi");
 const LEET = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s" };
@@ -111,7 +111,7 @@ const LEET_WORD = /[a-z0-9@$]*[a-z][a-z0-9@$]*/gi;
 function baseNormalize(text) {
   return text
     .normalize("NFKD") // full-width letters → ASCII; "é" → "e" + combining mark
-    .replace(/[̀-ͯ]/g, "") // …and the combining mark goes
+    .replace(/[\u0300-\u036f]/g, "") // …and the combining mark goes
     .replace(INVISIBLE, "")
     .replace(/[_*~`]+/g, "")
     .replace(/\s{2,}/g, " ");

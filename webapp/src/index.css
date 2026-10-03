@@ -354,3 +354,29 @@ body[data-font-size="lg"] {
   --s-12: 53px;
   --s-16: 70px;
 }
+
+/* Printing (and "Save as PDF"): only the element marked data-print-root is
+   printed, without the app's navigation around it. Controls inside it that
+   make no sense on paper carry data-print-hide. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  [data-print-root],
+  [data-print-root] * {
+    visibility: visible;
+  }
+
+  [data-print-root] {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    background: #fff;
+    color: #000;
+  }
+
+  [data-print-root] [data-print-hide] {
+    display: none !important;
+  }
+}
