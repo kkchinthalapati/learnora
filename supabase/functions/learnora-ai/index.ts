@@ -188,16 +188,6 @@ type AIProvider = {
 const BUILTIN_PROVIDERS: AIProvider[] = [
   /* ---- Free tiers, strongest first --------------------------------- */
   {
-    // ~1M tokens/day, and the fastest inference in the chain.
-    id: "cerebras",
-    keyEnv: "CEREBRAS_API_KEY",
-    modelEnv: "CEREBRAS_MODEL",
-    defaultModel: "gpt-oss-120b",
-    url: "https://api.cerebras.ai/v1/chat/completions",
-    jsonMode: true,
-    cost: "free",
-  },
-  {
     // Free tier, rate-limited per minute rather than per token.
     id: "groq",
     keyEnv: "GROQ_API_KEY",
