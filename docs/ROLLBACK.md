@@ -59,6 +59,67 @@ create index if not exists ai_request_log_user_tool_created_idx
   on public.ai_request_log (user_id, tool, created_at);
 ```
 
+### `20261005010000_mistake_loop.sql`
+Adds the repair-loop columns to `misconceptions` and `misconception_observations`,
+a `'repair'` observation kind, a per-user unique `idempotency_key`, and replaces
+`apply_misconception_observation()` with the new rule: resolved only by a
+correct answer on a new question at least 2 days after the repair. Two new
+triggers: clients can no longer write loop state directly, and repairs are
+stamped with the server clock. Existing rows keep their status; open rows
+need a repair like new ones.
+The webapp tolerates this being absent: reads fall back to the old columns,
+loop writes are skipped, and Today's "Mistakes to fix" stays hidden.
+Revert keeps the columns (unused) and restores the old rule; it deletes only
+`'repair'` observations.
+
+```sql
+drop trigger if exists misconceptions_guard_loop on public.misconceptions;
+drop trigger if exists misconception_observations_stamp on public.misconception_observations;
+drop function if exists public.guard_misconception_loop_columns();
+drop function if exists public.stamp_misconception_observation();
+delete from public.misconception_observations where kind = 'repair';
+alter table public.misconception_observations
+  drop constraint if exists misconception_observations_kind_check;
+alter table public.misconception_observations
+  add constraint misconception_observations_kind_check
+  check (kind in ('evidence', 'correction'));
+-- then re-run the create-or-replace of apply_misconception_observation()
+-- from 20260907000000_add_misconception_ledger.sql
+```
+
+Verify:
+```sql
+select column_name from information_schema.columns
+where table_name = 'misconceptions' and column_name in ('repaired_at','retest_due_at','provisional');
+select indexname from pg_indexes where indexname = 'misconception_observations_user_idempotency_key';
+select tgname from pg_trigger where tgname in ('misconceptions_guard_loop','misconception_observations_stamp');
+```
+
+### `20261005020000_study_profile_any_board.sql`
+Relaxes `profiles_exam_type_check` and `profiles_region_check` to shape checks
+(every existing row passes; nothing is rewritten), adds `country`, `board`,
+`age_band`, `study_profile` to `profiles`, and the owner-only
+`subject_outlines` table (rows can never be marked verified by a client).
+The webapp tolerates this being absent: the wizard writes only the legacy
+`exam_type`/`region` and keeps the rest on the device.
+Revert drops the outlines table and the new columns. Re-adding the old
+checks fails if any row now holds a new exam_type or region; set those to
+`'other'` / null first.
+
+```sql
+drop table if exists public.subject_outlines;
+alter table public.profiles drop column if exists country,
+  drop column if exists board, drop column if exists age_band,
+  drop column if exists study_profile, drop column if exists study_profile_updated_at;
+```
+
+Verify:
+```sql
+select pg_get_constraintdef(oid) from pg_constraint
+where conname in ('profiles_exam_type_check','profiles_region_check');
+select to_regclass('public.subject_outlines');
+```
+
 ## How to apply to production safely
 
 Run these yourself, in order. Do not use `supabase db push`: production's
@@ -80,9 +141,14 @@ the CLI may try to re-run old files.
    ```
    Five rows and a non-null regclass means nothing to do. If not, paste A1,
    then A2, then A3 into the SQL Editor, in that order.
-4. Paste each newer file from `supabase/migrations/` (version above
-   `20261002020000`) into the SQL Editor **one at a time, in filename order**.
-   Each is idempotent; if one errors, stop and fix before the next.
+4. Paste each newer file into the SQL Editor **one at a time, in this
+   order**, and stop at the first error:
+   1. `20261005000000_drop_duplicate_ai_request_log_index.sql`
+   2. `20261005010000_mistake_loop.sql`
+   3. `20261005020000_study_profile_any_board.sql`
+   Each is idempotent and safe to re-run. The untracked
+   `20260718000000_baseline_dashboard_tables.sql` in a local checkout is not
+   part of this branch; don't apply it.
 5. After each, run its verify query (in this file's per-migration section)
    and check Database ▸ Advisors for new security warnings.
 6. Record each as applied so the CLI history stays honest:
