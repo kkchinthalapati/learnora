@@ -526,6 +526,7 @@ function QuizSession({
             sourceId={`${attemptKey}:${question.id ?? index}`}
             tool="quiz"
             detail={`Chose "${question.choices[answered.chosenIndex]}" for "${question.question}"`}
+            failedQuestion={question.question}
           />
         ) : null}
 

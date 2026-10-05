@@ -857,6 +857,18 @@ describe("QuizRunner results routing", () => {
       await user.click(within(repair).getByRole("button", { name: "Water molecules" }));
       expect(await within(repair).findByText("That's it.")).toBeInTheDocument();
       await waitFor(() => expect(observations.some((o) => o.kind === "correction")).toBe(true));
+
+      /* The card is the repair: it starts the retest clock, and both the
+         failed question and the check are tied to it so neither can later
+         count as the "new" retest question. */
+      await waitFor(() => expect(observations.some((o) => o.kind === "repair")).toBe(true));
+      const repairObs = observations.find((o) => o.kind === "repair")!;
+      const evidence = observations.find((o) => o.kind === "evidence")!;
+      const check = observations.find((o) => o.kind === "correction")!;
+      expect(repairObs.question_key).toBe(check.question_key);
+      expect(evidence.question_key).toMatch(/^q/);
+      expect(evidence.question_key).not.toBe(check.question_key);
+      expect(repairObs.idempotency_key).toBeTruthy();
     });
 
     it("stays quiet on a wrong pick that doesn't state a known belief", async () => {

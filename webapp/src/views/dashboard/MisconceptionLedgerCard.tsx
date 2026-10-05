@@ -198,7 +198,7 @@ export function MisconceptionLedgerCard() {
                         tool={m.originTool}
                         detail="Opened from Mistakes to Review"
                         recordEvidence={false}
-                        ledgerRow={{ subject: m.subject, concept: m.concept, summary: m.summary }}
+                        ledgerRow={m}
                       />
                     </div>
                   ) : null;
