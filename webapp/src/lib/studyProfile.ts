@@ -463,3 +463,28 @@ export function resumeStep(p: StudyProfile): ProfileStep {
   if (!p.deeperSkipped && !deeperAnswered) return "deeper";
   return "plan";
 }
+
+/* ── Small helpers for the wizard ──────────────────────────────────────── */
+
+/** The browser's country, as a starting guess for the country step:
+ *  "en-GB" → "GB", "pt" → "BR" via likely subtags. Null when unknown. */
+export function countryFromLocale(lang: string | undefined): string | null {
+  if (!lang) return null;
+  try {
+    const region = new Intl.Locale(lang).maximize().region ?? null;
+    return region && COUNTRY_CODES.includes(region) ? region : null;
+  } catch {
+    return null;
+  }
+}
+
+/** "in 12 days" beside an exam date; says so when the date has passed,
+ *  since a past exam is left out of the plan. */
+export function examCountdown(date: string, today: string): string {
+  const days = Math.round((Date.parse(`${date}T12:00:00`) - Date.parse(`${today}T12:00:00`)) / 86_400_000);
+  if (Number.isNaN(days)) return "";
+  if (days < 0) return "That date has passed, so it won't be planned for.";
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
+}

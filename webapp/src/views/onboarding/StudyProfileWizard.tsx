@@ -7,7 +7,14 @@ import { useLifeContext } from "../../hooks/useLifeContext";
 import { useSaveExam } from "../../hooks/useExams";
 import { draftOutline, studyProfileApi } from "../../api/studyProfile";
 import { localDateStr } from "../../lib/date";
-import { CHRONOTYPES, WEEK_ORDER, WEEKDAY_SHORT, formatClock, type Weekday } from "../../lib/lifeContext";
+import {
+  CHRONOTYPES,
+  WEEK_ORDER,
+  WEEKDAY_SHORT,
+  formatClock,
+  formatDuration,
+  type Weekday,
+} from "../../lib/lifeContext";
 import { normaliseTopicKey } from "../../lib/topicKey";
 import {
   COUNTRY_CODES,
@@ -18,7 +25,9 @@ import {
   type ProfileStep as StepId,
   buildFirstPlan,
   canBuildPlan,
+  countryFromLocale,
   countryName,
+  examCountdown,
   equalWeights,
   examSystemsFor,
   isUnderAge,
@@ -115,7 +124,10 @@ export function StudyProfileWizard() {
       studyProfileApi.fetchOutlines().catch(() => ({})),
     ]).then(([p, o]) => {
       if (!live) return;
-      setProfile(p);
+      /* A starting guess for the country step, from the browser. Not saved
+         until they answer something, and changeable like any answer. */
+      const guess = p.country ? null : countryFromLocale(navigator.language);
+      setProfile(guess ? { ...p, country: guess } : p);
       setOutlines(o);
       setStep(resumeStep(p));
     });
@@ -462,6 +474,7 @@ export function StudyProfileWizard() {
                             })
                           }
                         />
+                        {s.examDate ? <span className={styles.fieldNote}>{examCountdown(s.examDate, today)}</span> : null}
                       </label>
                       <Button
                         variant="ghost"
@@ -673,6 +686,13 @@ export function StudyProfileWizard() {
               })}
               {plan ? (
                 <>
+                  {plan.blocks.length > 0 ? (
+                    <p className={styles.sub}>
+                      {plan.blocks.length} session{plan.blocks.length === 1 ? "" : "s"},{" "}
+                      {formatDuration(plan.blocks.reduce((n, b) => n + b.endMin - b.startMin, 0))} over the next
+                      seven days. Each one says why it is there.
+                    </p>
+                  ) : null}
                   {plan.blocks.length === 0 ? (
                     <p className={styles.sub}>No free time fits a session this week. Try more minutes or fewer fixed hours.</p>
                   ) : (

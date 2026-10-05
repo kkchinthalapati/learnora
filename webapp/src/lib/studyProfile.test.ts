@@ -4,7 +4,9 @@ import {
   aiContext,
   buildFirstPlan,
   canBuildPlan,
+  countryFromLocale,
   countryName,
+  examCountdown,
   equalWeights,
   examSystemsFor,
   isSupportedSubject,
@@ -196,5 +198,20 @@ describe("the plan respects their best time of day", () => {
     for (const b of night.blocks) expect(b.startMin).toBeGreaterThanOrEqual(17 * 60);
     for (const b of early.blocks) expect(b.endMin).toBeLessThanOrEqual(12 * 60);
     expect(night.blocks[0].reason).toContain("you focus best later in the day");
+  });
+});
+
+describe("wizard helpers", () => {
+  it("guesses the country from the browser language", () => {
+    expect(countryFromLocale("en-GB")).toBe("GB");
+    expect(countryFromLocale("hi-IN")).toBe("IN");
+    expect(countryFromLocale("not a locale")).toBeNull();
+    expect(countryFromLocale(undefined)).toBeNull();
+  });
+
+  it("counts down to an exam, and warns about a past date", () => {
+    expect(examCountdown("2026-10-17", TODAY)).toBe("In 12 days");
+    expect(examCountdown("2026-10-06", TODAY)).toBe("Tomorrow");
+    expect(examCountdown("2026-10-01", TODAY)).toMatch(/passed/);
   });
 });
