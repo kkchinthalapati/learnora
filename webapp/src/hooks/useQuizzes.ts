@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { quizzesApi } from "../api/quizzes";
 import { misconceptionsApi } from "../api/misconceptions";
-import { candidatesFromQuizAnswers } from "../lib/misconceptions";
+import {
+  candidatesFromQuizAnswers,
+  type Misconception,
+  type MisconceptionCandidate,
+} from "../lib/misconceptions";
+import { answeredQuestions, quizLoopCandidates, unmatchedWrong } from "../lib/quizMistakes";
+import { labelWrongAnswers } from "../api/mistakeLabel";
+import { parseStoredAnswers, parseStoredQuestions } from "../views/quiz/quizMeta";
 import { misconceptionsKeys } from "./useMisconceptions";
 import { foldersKeys } from "./useFolders";
 import type { Folder, Quiz } from "../api/types";
@@ -138,23 +145,36 @@ function recordQuizMisconceptions(
   const evidence = (
     answers as Array<{ topic?: string; correct?: boolean; confidence?: string | null }>
   ).filter((a) => !(a.correct && a.confidence === "guess"));
-  const candidates = candidatesFromQuizAnswers(evidence, {
-    subject,
-    attemptId: attemptKey,
-  });
-  if (candidates.length === 0) return;
+  const write = async (candidates: MisconceptionCandidate[]) => {
+    if (candidates.length === 0) return;
+    const written = await misconceptionsApi.record(candidates);
+    if (written.length > 0) {
+      void qc.invalidateQueries({ queryKey: misconceptionsKeys.all });
+    }
+  };
+
+  /* With the quiz's questions in hand, each wrong answer is matched under
+     the mistake loop (lib/quizMistakes.ts): catalogue, then a provisional AI
+     label, then a generic error type, each with its repair and question
+     key. Without them (cache cold) it is the topic-level write quizzes
+     always made, which the loop still accepts. */
+  const questions = quiz ? parseStoredQuestions(quiz.questions_json) : [];
+  const run =
+    questions.length > 0 && attemptKey
+      ? (async () => {
+          const answered = answeredQuestions(questions, parseStoredAnswers(answers));
+          const known = (qc.getQueryData<Misconception[]>(misconceptionsKeys.all) ?? [])
+            .filter((m) => m.provisional && m.subject === subject)
+            .map((m) => m.concept);
+          const labels = await labelWrongAnswers(subject, unmatchedWrong(answered), known);
+          await write(quizLoopCandidates(answered, { subject, attemptKey, labels }));
+        })()
+      : write(candidatesFromQuizAnswers(evidence, { subject, attemptId: attemptKey }));
 
   /* Deliberately not awaited and never surfaced. The student has finished the
      quiz; a ledger write is bookkeeping behind their result screen and must
      not be able to turn into an error toast on it. */
-  void misconceptionsApi
-    .record(candidates)
-    .then((written) => {
-      if (written.length > 0) {
-        void qc.invalidateQueries({ queryKey: misconceptionsKeys.all });
-      }
-    })
-    .catch((err) => console.warn("[misconceptions] quiz write failed:", err));
+  void run.catch((err) => console.warn("[misconceptions] quiz write failed:", err));
 }
 
 /* Wrong and guessed questions go to Recall as cards (api/missedQuestions.ts),
