@@ -50,6 +50,21 @@ export interface Misconception {
   firstSeenAt: string;
   lastSeenAt: string;
   resolvedAt: string | null;
+  /* The repair loop (lib/mistakeLoop.ts, migration 20261005010000). Optional
+     so rows read before that migration, and test fixtures, still type. */
+  /** AI-labelled and not in the catalogue: unverified. */
+  provisional?: boolean;
+  /** Set when no named belief fits: what kind of slip it was. */
+  errorType?: "concept" | "misread" | "calculation" | "time" | null;
+  catalogueId?: string | null;
+  /** The re-teach and contrast example shown as the repair. */
+  repairText?: string | null;
+  contrastText?: string | null;
+  repairedAt?: string | null;
+  retestDueAt?: string | null;
+  /** Questions that can't count as a "new" retest: the ones failed, and the
+   *  repair's own check. */
+  excludedQuestionKeys?: string[];
 }
 
 /** A row of `public.misconception_observations`. */
