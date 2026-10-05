@@ -15,7 +15,7 @@
 
 import type { Exam } from "../api/types";
 import { autoSchedule, type ScheduledBlock, type StudyDemand } from "./autoSchedule";
-import { availabilityRange } from "./availability";
+import { availabilityRange, windowEnergy } from "./availability";
 import {
   DEFAULT_LIFE_CONTEXT,
   type Chronotype,
@@ -368,8 +368,10 @@ export function buildFirstPlan(
         id: `subject:${si}:${d}`,
         label: topic ? `${s.name}: ${topic}` : s.name,
         kind: "subject",
-        estMins: s.confidence === 1 ? 40 : 30,
-        load: 2,
+        /* One sitting of the length they chose. Focus work (load 3), so the
+           scheduler puts it in the hours they said they work best. */
+        estMins: life.maxBlockMins,
+        load: 3,
         notBefore: dateInDays(d, today),
         dueDate: dateInDays(Math.min(horizonDays - 1, d + 1), today),
         subject: s.name,
@@ -377,7 +379,22 @@ export function buildFirstPlan(
     }
   });
 
-  const windows = availabilityRange(life, today, horizonDays).flatMap((d) => d.windows);
+  /* availability gives each free stretch as one window, and the scheduler
+     fills a window from its start — so a free day put every session at
+     wake-up time, whatever the student said about their best hours. Cut
+     into session-sized pieces, each scored for its own energy, the
+     scheduler can choose the evening for a night owl. */
+  const piece = life.maxBlockMins + life.breakMins;
+  const windows = availabilityRange(life, today, horizonDays)
+    .flatMap((d) => d.windows)
+    .flatMap((w) => {
+      const out: typeof w[] = [];
+      for (let start = w.startMin; start + life.minBlockMins <= w.endMin; start += piece) {
+        const end = Math.min(w.endMin, start + piece);
+        out.push({ ...w, startMin: start, endMin: end, energy: windowEnergy(life.chronotype, start, end) });
+      }
+      return out;
+    });
   const schedule = autoSchedule(demands, windows, {
     maxBlockMins: life.maxBlockMins,
     minBlockMins: life.minBlockMins,

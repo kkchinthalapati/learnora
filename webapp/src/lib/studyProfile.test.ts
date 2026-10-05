@@ -181,3 +181,20 @@ describe("young-user safety", () => {
     expect(Object.keys(aiContext(p, "Biology")).sort()).toEqual(["board", "level", "subject"]);
   });
 });
+
+describe("the plan respects their best time of day", () => {
+  const base = profile({
+    busyFrom: null,
+    busyUntil: null,
+    subjects: [{ name: "Chemistry", specId: null, examDate: null, confidence: 2 }],
+  });
+
+  it("a night owl's sessions land in the evening, a morning person's before noon", () => {
+    const night = buildFirstPlan({ ...base, bestTime: "night" }, {}, TODAY);
+    const early = buildFirstPlan({ ...base, bestTime: "early" }, {}, TODAY);
+    expect(night.blocks.length).toBeGreaterThan(0);
+    for (const b of night.blocks) expect(b.startMin).toBeGreaterThanOrEqual(17 * 60);
+    for (const b of early.blocks) expect(b.endMin).toBeLessThanOrEqual(12 * 60);
+    expect(night.blocks[0].reason).toContain("you focus best later in the day");
+  });
+});
