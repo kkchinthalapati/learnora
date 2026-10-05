@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
 import { detectFromDiagnosis } from "../../lib/misconceptionCatalogue";
+import { isNamedPattern, mistakeTitle } from "../../lib/mistakeLoop";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
@@ -138,13 +139,13 @@ export function MisconceptionLedgerCard() {
                     >
                       {SEVERITY_LABEL[m.severity]}
                     </span>
-                    <h3 className={styles.concept}>{m.concept}</h3>
+                    <h3 className={styles.concept}>{mistakeTitle(m)}</h3>
                     {m.subject && (
                       <span className={styles.subject}>{m.subject}</span>
                     )}
                   </div>
 
-                  {m.summary && <p className={styles.summary}>{m.summary}</p>}
+                  {m.summary && isNamedPattern(m) && <p className={styles.summary}>{m.summary}</p>}
 
                   <p className={styles.provenance}>
                     {m.timesObserved > 1 ? (

@@ -388,7 +388,12 @@ export function formatMisconceptionsForPrompt(
     "- These are diagnoses recorded by this app's own tools from the student's real work. They are evidence, not guesses.",
   ];
 
-  const shown = scoped.slice(0, MAX_PROMPT_MISCONCEPTIONS);
+  /* A provisional AI label seen once is one model guess about one answer
+     (lib/mistakeLoop.ts isNamedPattern); it is not fed back as a diagnosis.
+     Seen twice, it goes in, marked as unverified. */
+  const shown = scoped
+    .filter((m) => !m.provisional || m.timesObserved >= 2)
+    .slice(0, MAX_PROMPT_MISCONCEPTIONS);
   for (const m of shown) {
     const seen = m.timesObserved > 1 ? `seen ${m.timesObserved}x` : "seen once";
     const fixed =
@@ -398,7 +403,9 @@ export function formatMisconceptionsForPrompt(
       `  · [${m.severity}] ${fenceUntrusted(m.concept)}` +
         (m.subject ? ` (${fenceUntrusted(m.subject)})` : "") +
         `: ${fenceUntrusted(m.summary)}` +
-        ` — ${seen}${fixed}${state}, last on ${lastSeenDay(m)}, first found by ${m.originTool}.`,
+        ` — ${seen}${fixed}${state}, last on ${lastSeenDay(m)}, first found by ${m.originTool}` +
+        (m.provisional ? " (unverified AI reading; treat as a hypothesis)" : "") +
+        ".",
     );
   }
 

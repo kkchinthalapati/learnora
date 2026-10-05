@@ -299,3 +299,14 @@ describe("readiness follows the loop", () => {
     expect(fixed).toBe(base);
   });
 });
+
+describe("provisional labels in AI prompts", () => {
+  it("leave out a one-off AI label and mark a repeated one unverified", async () => {
+    const { formatMisconceptionsForPrompt } = await import("./misconceptions");
+    const once = ledgerRow({ id: "a", concept: "One-off guess", provisional: true, timesObserved: 1 });
+    const twice = ledgerRow({ id: "b", concept: "Repeated pattern", provisional: true, timesObserved: 2 });
+    const prompt = formatMisconceptionsForPrompt([once, twice], { now: new Date(at(1)) });
+    expect(prompt).not.toContain("One-off guess");
+    expect(prompt).toMatch(/Repeated pattern.*unverified AI reading/);
+  });
+});
