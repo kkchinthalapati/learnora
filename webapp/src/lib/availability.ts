@@ -313,7 +313,7 @@ export function dayAvailability(
       ),
     }));
 
-  const windows = trimToCapacity(scored, capacityMins, ctx.minBlockMins);
+  const windows = trimToCapacity(scored, capacityMins, ctx.minBlockMins, ctx.chronotype);
 
   return {
     date,
@@ -338,6 +338,7 @@ export function trimToCapacity(
   windows: FreeWindow[],
   capacityMins: number,
   minBlockMins: number,
+  chronotype: Chronotype = "neutral",
 ): FreeWindow[] {
   const byEnergy = [...windows].sort((a, b) => b.energy - a.energy);
   const kept: FreeWindow[] = [];
@@ -356,8 +357,8 @@ export function trimToCapacity(
        hours are at the back of every window they have. */
     const mid = (w.startMin + w.endMin) / 2;
     const frontIsBetter =
-      windowEnergy("neutral", w.startMin, mid) >=
-      windowEnergy("neutral", mid, w.endMin);
+      windowEnergy(chronotype, w.startMin, mid) >=
+      windowEnergy(chronotype, mid, w.endMin);
     kept.push(
       frontIsBetter
         ? { ...w, endMin: w.startMin + budget }
