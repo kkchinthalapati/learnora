@@ -8,6 +8,7 @@ import { useFlashcards, useFlashcardsDueCount } from "../../hooks/useFlashcards"
 import { useContinuity } from "../../hooks/useContinuity";
 import { useRemoteSessionResume } from "../../hooks/useRemoteSessionResume";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
+import { MistakeLoopSection } from "./MistakeLoopSection";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { useSessionsSince } from "../../hooks/useSessions";
 import { useTasks } from "../../hooks/useTasks";
@@ -177,6 +178,7 @@ export function TodayView() {
             void navigate("/timer");
           }}
         />
+        <MistakeLoopSection misconceptions={misconceptions} now={now} />
         {completed ? (
           <SessionCompletePanel session={completed} onClose={dismissCompletedFocus} />
         ) : null}

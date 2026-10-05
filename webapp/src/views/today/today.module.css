@@ -464,3 +464,18 @@
     transition: none;
   }
 }
+
+/* ---- Mistakes to fix (MistakeLoopSection) ---- */
+
+.dot[data-kind="repair"] {
+  background: var(--danger);
+}
+
+.dot[data-kind="retest"] {
+  background: var(--recall);
+}
+
+.rowDetail {
+  grid-column: 1 / -1;
+  padding-bottom: var(--s-4);
+}
