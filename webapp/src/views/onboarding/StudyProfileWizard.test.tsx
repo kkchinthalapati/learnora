@@ -127,3 +127,31 @@ describe("StudyProfileWizard", () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("/plan"));
   });
 });
+
+describe("editing a draft outline", () => {
+  it("keeps the new line while typing, and plans with the typed topics", async () => {
+    vi.mocked(draftOutline).mockRejectedValue(new Error("offline"));
+    start({
+      ...ANSWERED,
+      country: "NG",
+      system: "other",
+      board: "WAEC",
+      subjects: [{ name: "Literature", specId: null, examDate: null, confidence: 2 }],
+      deeperSkipped: true,
+    });
+    expect(await screen.findByText(/Couldn't draft topics right now/)).toBeInTheDocument();
+    const box = screen.getByRole("textbox", { name: "One topic per line" });
+    await userEvent.type(box, "Poetry{enter}Drama");
+    expect(box).toHaveValue("Poetry\nDrama");
+    await waitFor(() =>
+      expect(studyProfileApi.saveOutline).toHaveBeenLastCalledWith(
+        "Literature",
+        [expect.objectContaining({ title: "Poetry" }), expect.objectContaining({ title: "Drama" })],
+        "student",
+        expect.anything(),
+      ),
+    );
+    const plan = await screen.findByRole("list", { name: "Plan for the next seven days" });
+    expect(within(plan).getAllByRole("listitem")[0]).toHaveTextContent(/Literature: (Poetry|Drama)/);
+  });
+});

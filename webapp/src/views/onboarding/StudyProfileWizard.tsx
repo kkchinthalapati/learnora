@@ -86,10 +86,14 @@ export function StudyProfileWizard() {
   const [step, setStep] = useState<StepId>("age");
   const [newSubject, setNewSubject] = useState("");
   const [outlines, setOutlines] = useState<Record<string, OutlineTopic[]>>({});
+  /* What is in each topic box as typed. Rebuilt from the cleaned list on
+     every keystroke, a trailing new line vanished and Enter did nothing. */
+  const [outlineText, setOutlineText] = useState<Record<string, string>>({});
   const [drafting, setDrafting] = useState<Record<string, "loading" | "error">>({});
   const [saving, setSaving] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const outlineTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const today = localDateStr();
 
   useEffect(() => {
@@ -620,14 +624,23 @@ export function StudyProfileWizard() {
                       <textarea
                         className={styles.input}
                         rows={5}
-                        value={(topics ?? []).map((t) => t.title).join("\n")}
+                        value={outlineText[key] ?? (topics ?? []).map((t) => t.title).join("\n")}
                         onChange={(e) => {
-                          const next = equalWeights(e.target.value.split("\n"));
-                          setOutlines((o) => ({ ...o, [key]: next }));
+                          const text = e.target.value;
+                          setOutlineText((t) => ({ ...t, [key]: text }));
+                          const topics = equalWeights(text.split("\n"));
+                          setOutlines((o) => ({ ...o, [key]: topics }));
+                          /* Saved as typed, like every other answer. */
+                          if (outlineTimer.current) clearTimeout(outlineTimer.current);
+                          outlineTimer.current = setTimeout(
+                            () =>
+                              void studyProfileApi.saveOutline(s.name, topics, "student", {
+                                level: p.level,
+                                board: p.board,
+                              }),
+                            500,
+                          );
                         }}
-                        onBlur={() =>
-                          void studyProfileApi.saveOutline(s.name, outlines[key] ?? [], "student", { level: p.level, board: p.board })
-                        }
                       />
                     </label>
                   </Card>
