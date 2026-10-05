@@ -51,6 +51,9 @@ export interface SpecTopicPriority {
 export interface MisconceptionLike {
   concept: string;
   status: "open" | "improving" | "resolved";
+  /* Read by buildDemands to book retests (lib/mistakeLoop.ts). */
+  subject?: string;
+  retestDueAt?: string | null;
 }
 
 /* Need for a topic nothing has measured: enough to be scheduled, below a

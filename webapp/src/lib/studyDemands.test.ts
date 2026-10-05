@@ -303,3 +303,31 @@ describe("buildDemands — together", () => {
     expect(new Set(demands.map((d) => d.id)).size).toBe(demands.length);
   });
 });
+
+describe("retests from the mistake loop", () => {
+  const base = { tasks: [], exams: [], dueCardCount: 0, today: "2026-10-05", horizonDays: 7 };
+
+  it("books a retest on its due day, and none for resolved or unrepaired mistakes", () => {
+    const demands = buildDemands({
+      ...base,
+      misconceptions: [
+        { concept: "Osmosis", subject: "Biology", status: "improving", retestDueAt: "2026-10-07T09:00:00" },
+        { concept: "Fixed", status: "resolved", retestDueAt: "2026-10-06T09:00:00" },
+        { concept: "Unrepaired", status: "open", retestDueAt: null },
+        { concept: "Far off", status: "improving", retestDueAt: "2026-11-30T09:00:00" },
+      ],
+    });
+    const retests = demands.filter((d) => d.id.startsWith("retest:"));
+    expect(retests).toEqual([
+      expect.objectContaining({ label: "Retest: Osmosis", notBefore: "2026-10-07", dueDate: "2026-10-07", subject: "Biology" }),
+    ]);
+  });
+
+  it("an overdue retest lands today", () => {
+    const [r] = buildDemands({
+      ...base,
+      misconceptions: [{ concept: "Late", status: "open", retestDueAt: "2026-10-01T09:00:00" }],
+    }).filter((d) => d.id.startsWith("retest:"));
+    expect(r.dueDate).toBe("2026-10-05");
+  });
+});
