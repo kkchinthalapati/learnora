@@ -283,3 +283,18 @@ export function retestsDue(ms: readonly Misconception[], now: Date): Misconcepti
       new Date(m.retestDueAt).getTime() <= now.getTime(),
   );
 }
+
+const ERROR_TYPE_LABEL: Record<string, string> = {
+  concept: "Gap in the idea",
+  misread: "Misread question",
+  calculation: "Calculation slip",
+  time: "Ran out of time",
+};
+
+/** What a row is called. A provisional AI label seen once is a guess, so it
+ *  isn't presented as a named pattern until it has been seen twice. */
+export function mistakeTitle(m: Misconception): string {
+  if (!isNamedPattern(m)) return m.subject ? `A ${m.subject} question you missed` : "A question you missed";
+  if (m.errorType) return `${ERROR_TYPE_LABEL[m.errorType] ?? "Mistake"}: ${m.concept}`;
+  return m.concept;
+}

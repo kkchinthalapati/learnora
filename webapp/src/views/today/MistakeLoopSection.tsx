@@ -8,7 +8,7 @@ import { useSettings } from "../../context/settings";
 import { isLoopSupported } from "../../api/misconceptions";
 import { aiRetestQuestion, bankRetestQuestion, type RetestQuestion } from "../../api/retestQuestion";
 import { getKnownMisconception } from "../../lib/misconceptionCatalogue";
-import { isNamedPattern, needsRepair, retestsDue } from "../../lib/mistakeLoop";
+import { isNamedPattern, mistakeTitle, needsRepair, retestsDue } from "../../lib/mistakeLoop";
 import type { Misconception } from "../../lib/misconceptions";
 import { localDateStr } from "../../lib/date";
 import styles from "./today.module.css";
@@ -19,21 +19,6 @@ import styles from "./today.module.css";
  * (lib/mistakeLoop.ts) says whether that fixed it. */
 
 const MAX_ROWS = 3;
-
-const ERROR_TYPE_LABEL: Record<string, string> = {
-  concept: "Gap in the idea",
-  misread: "Misread question",
-  calculation: "Calculation slip",
-  time: "Ran out of time",
-};
-
-/** What a row is called. A provisional AI label seen once is a guess, so it
- *  isn't presented as a named pattern until it has been seen twice. */
-export function mistakeTitle(m: Misconception): string {
-  if (!isNamedPattern(m)) return m.subject ? `A ${m.subject} question you missed` : "A question you missed";
-  if (m.errorType) return `${ERROR_TYPE_LABEL[m.errorType] ?? "Mistake"}: ${m.concept}`;
-  return m.concept;
-}
 
 function RepairRow({ m }: { m: Misconception }) {
   const [open, setOpen] = useState(false);
