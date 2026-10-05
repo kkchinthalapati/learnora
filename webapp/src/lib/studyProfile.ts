@@ -426,3 +426,23 @@ export function buildFirstPlan(
 export function aiContext(p: StudyProfile, subject: string): { subject: string; level: string | null; board: string | null } {
   return { subject, level: p.level, board: p.board };
 }
+
+/* ── Where a returning student resumes ─────────────────────────────────── */
+
+export const PROFILE_STEPS = ["age", "country", "system", "subjects", "week", "habits", "goals", "deeper", "plan"] as const;
+export type ProfileStep = (typeof PROFILE_STEPS)[number];
+
+/** The first step still missing an answer: where a returning student resumes. */
+export function resumeStep(p: StudyProfile): ProfileStep {
+  if (!p.ageBand || isUnderAge(p)) return "age";
+  if (!p.country) return "country";
+  if (!p.system || (p.system === OTHER_SYSTEM && !p.board)) return "system";
+  if (p.subjects.length === 0) return "subjects";
+  const missing = missingRequired(p);
+  if (missing.includes("availability")) return "week";
+  if (missing.includes("bestTime") || missing.includes("sessionLength")) return "habits";
+  if (missing.includes("confidence") || missing.includes("target")) return "goals";
+  const deeperAnswered = p.devices.length || p.methods.length || p.pastProblems || p.learningStyle;
+  if (!p.deeperSkipped && !deeperAnswered) return "deeper";
+  return "plan";
+}

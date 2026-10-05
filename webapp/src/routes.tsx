@@ -114,6 +114,9 @@ const LazyWelcomeToProView = lazy(async () => ({
 /* The first-run wizard. Deferred like the rest: it is a screen each account
    sees once, and it pulls in the folder/exam mutations to create a first
    subject, so it has no business in the bundle everyone else downloads. */
+const LazyStudyProfileWizard = lazy(async () => ({
+  default: (await import("./views/onboarding/StudyProfileWizard")).StudyProfileWizard,
+}));
 const LazyWelcomeView = lazy(async () => ({
   default: (await import("./views/onboarding/WelcomeView")).WelcomeView,
 }));
@@ -226,6 +229,16 @@ export function AppRoutes() {
           element={
             <DeferredView>
               <LazyWelcomeView />
+            </DeferredView>
+          }
+        />
+        {/* The full study profile: any country, board and subject. Outside
+            the gate for the same reason as /welcome, which links here. */}
+        <Route
+          path="/setup/profile"
+          element={
+            <DeferredView>
+              <LazyStudyProfileWizard />
             </DeferredView>
           }
         />
