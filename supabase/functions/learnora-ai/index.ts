@@ -125,7 +125,7 @@ function isSafetyError(err: any): boolean {
 
    Model IDs are read from the environment with the constants here as
    fallbacks. Free-tier model names change often, and re-deploying an edge
-   function to rename a model is a bad trade — set e.g. CEREBRAS_MODEL to
+   function to rename a model is a bad trade — set e.g. GROQ_MODEL to
    override without touching this file.
 
    Adding a provider is one entry here plus its key in Supabase secrets. A
@@ -199,7 +199,7 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
     // catalogue. GROQ_MODEL overrides it without a redeploy.
     //
     // Groq names it with its publisher prefix: plain `gpt-oss-120b` (the
-    // Cerebras spelling) 404s here as "does not exist", which is what the
+    // unprefixed spelling) 404s here as "does not exist", which is what the
     // live logs showed on 2026-09-24. The prefixed ID is the one Groq's
     // models page lists.
     defaultModel: "openai/gpt-oss-120b",

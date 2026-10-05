@@ -44,7 +44,7 @@ export const PRIMARY_PROVIDERS_TEXT = list(
   AI_PROVIDERS.filter((p) => p.role === "primary").map((p) => `${p.company} (${p.service})`),
 );
 
-/** "Cerebras, Groq, Cloudflare, …". */
+/** "Groq, Cloudflare, GitHub (Microsoft), …". */
 export const BACKUP_PROVIDERS_TEXT = list(companies("backup"));
 
 /** One sentence for a consent prompt: names the main providers and says

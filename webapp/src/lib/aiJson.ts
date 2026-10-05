@@ -1,6 +1,6 @@
 /* Ports the hardened JSON extractors from js/ai.js (:257-418).
  *
- * The edge function walks a chain of providers (Cerebras, Groq, Mistral,
+ * The edge function walks a chain of providers (Groq, Cloudflare,
  * GitHub Models, OpenRouter, Gemini — see supabase/functions/learnora-ai).
  * Only some of them honour `response_format: json_object`, which permits an
  * object at the top level, so the same request can come back as
