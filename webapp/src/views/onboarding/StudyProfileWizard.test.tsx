@@ -155,3 +155,21 @@ describe("editing a draft outline", () => {
     expect(within(plan).getAllByRole("listitem")[0]).toHaveTextContent(/Literature: (Poetry|Drama)/);
   });
 });
+
+describe("returning to change one answer", () => {
+  it("jumps straight to an earlier step from the progress dots", async () => {
+    start({
+      ...ANSWERED,
+      country: "GB",
+      system: "gcse",
+      board: "AQA",
+      subjects: [{ name: "Biology", specId: "aqa-gcse-biology-8461", examDate: null, confidence: 2 }],
+      deeperSkipped: true,
+    });
+    expect(await screen.findByRole("heading", { name: "Your first week" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Go to step 5: time" }));
+    expect(screen.getByRole("heading", { name: "How much time do you have?" })).toBeInTheDocument();
+    /* Nothing past the furthest answered step is offered. */
+    expect(screen.queryByRole("button", { name: /Go to step 10/ })).toBeNull();
+  });
+});

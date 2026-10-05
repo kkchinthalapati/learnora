@@ -730,3 +730,24 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* Study profile wizard: a reached step's dot jumps back to it. The bar is
+   3px tall, so the button reaches past it to give a usable target. */
+.dot {
+  position: relative;
+}
+
+.dotJump {
+  position: absolute;
+  inset: -12px 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.dotJump:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+  border-radius: var(--r-pill);
+}

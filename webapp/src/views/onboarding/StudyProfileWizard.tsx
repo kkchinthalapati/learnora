@@ -41,6 +41,18 @@ import styles from "./welcome.module.css";
  * unanswered step. Five answers build the plan; "go deeper" is optional. */
 
 
+const STEP_NAMES: Record<StepId, string> = {
+  age: "age",
+  country: "country",
+  system: "exams",
+  subjects: "subjects",
+  week: "time",
+  habits: "best times",
+  goals: "confidence and goals",
+  deeper: "go deeper",
+  plan: "your plan",
+};
+
 const AGE_BANDS: { id: AgeBand; label: string }[] = [
   { id: "under13", label: "Under 13" },
   { id: "13-15", label: "13–15" },
@@ -131,6 +143,7 @@ export function StudyProfileWizard() {
 
   const p = profile ?? EMPTY_PROFILE;
   const index = STEPS.indexOf(step);
+  const reachable = Math.max(index, STEPS.indexOf(resumeStep(p)));
   const systems = useMemo(() => examSystemsFor(p.country), [p.country]);
   const boards = useMemo(() => supportedBoards(p.system), [p.system]);
   const seededSubjects = boards.find((b) => b.board === p.board)?.subjects ?? [];
@@ -247,8 +260,20 @@ export function StudyProfileWizard() {
 
         <div className={styles.progress}>
           <ol className={styles.dots}>
+            {/* Any step up to the furthest one answered can be jumped to, so
+                someone back from Settings to change one answer doesn't page
+                back through all of them. */}
             {STEPS.map((id, i) => (
-              <li key={id} className={`${styles.dot} ${i <= index ? styles.dotDone : ""}`} />
+              <li key={id} className={`${styles.dot} ${i <= index ? styles.dotDone : ""}`}>
+                {i <= reachable && i !== index ? (
+                  <button
+                    type="button"
+                    className={styles.dotJump}
+                    aria-label={`Go to step ${i + 1}: ${STEP_NAMES[id]}`}
+                    onClick={() => setStep(id)}
+                  />
+                ) : null}
+              </li>
             ))}
           </ol>
           <p className={styles.progressLabel}>
