@@ -18,6 +18,7 @@
  */
 
 import { fenceUntrusted } from "./actionTags";
+import { observationKey, questionKey } from "./questionKey";
 
 export type MisconceptionStatus = "open" | "improving" | "resolved";
 export type MisconceptionSeverity = "critical" | "moderate" | "minor";
@@ -100,6 +101,20 @@ export interface MisconceptionCandidate {
    *  asking "why was I wrong?" about a quiz answer is not a second mistake,
    *  so it must not inflate `times_observed`. */
   skipIfSourceRecorded?: boolean;
+  /* The repair loop (lib/mistakeLoop.ts). All optional: a tool that has no
+     question behind its judgement leaves them out, and its corrections then
+     move a row to "improving" at most. */
+  /** `questionKey()` of the question answered. */
+  questionKey?: string;
+  /** Same key on a retry or replay, so the write happens once. */
+  idempotencyKey?: string;
+  /** When it happened, for a write replayed later. */
+  occurredAt?: string;
+  provisional?: boolean;
+  errorType?: Misconception["errorType"];
+  catalogueId?: string;
+  repairText?: string;
+  contrastText?: string;
 }
 
 /** Below this, a concept name is noise rather than a diagnosis — a stray
@@ -699,6 +714,19 @@ export function candidatesFromQuizAnswers(
         tool: "quiz",
         sourceId: context.attemptId,
         kind: answer.correct ? "correction" : "evidence",
+        /* The question identifies a retest as new (lib/mistakeLoop.ts), and
+           with the attempt it makes the write idempotent across retries. */
+        ...(answer.question ? { questionKey: questionKey(answer.question) } : {}),
+        ...(answer.question && context.attemptId
+          ? {
+              idempotencyKey: observationKey(
+                "quiz",
+                context.attemptId,
+                questionKey(answer.question),
+                answer.correct ? "c" : "e",
+              ),
+            }
+          : {}),
         detail: answer.correct
           ? `Answered correctly on ${topic}.`
           : answer.chosen
