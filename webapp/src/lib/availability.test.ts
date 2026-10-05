@@ -383,3 +383,14 @@ describe("availabilityRange", () => {
     }
   });
 });
+
+describe("trimToCapacity follows the student's chronotype", () => {
+  it("keeps the evening end of a long free stretch for a night owl", () => {
+    const at = (t: string) => toMinutes(t)!;
+    const whole = { date: "2026-10-05", startMin: at("07:30"), endMin: at("23:00"), energy: 0.7 };
+    const [night] = trimToCapacity([whole], 60, 25, "night");
+    const [early] = trimToCapacity([whole], 60, 25, "early");
+    expect(night.startMin).toBeGreaterThanOrEqual(at("17:00"));
+    expect(early.endMin).toBeLessThanOrEqual(at("12:00"));
+  });
+});

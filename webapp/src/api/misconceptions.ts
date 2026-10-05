@@ -37,6 +37,15 @@ interface MisconceptionRow {
   first_seen_at: string;
   last_seen_at: string;
   resolved_at: string | null;
+  /* Present once 20261005010000_mistake_loop.sql is applied. */
+  provisional?: boolean;
+  error_type?: Misconception["errorType"];
+  catalogue_id?: string | null;
+  repair_text?: string | null;
+  contrast_text?: string | null;
+  repaired_at?: string | null;
+  retest_due_at?: string | null;
+  excluded_question_keys?: string[] | null;
 }
 
 interface ObservationRow {
@@ -63,6 +72,14 @@ const toMisconception = (r: MisconceptionRow): Misconception => ({
   firstSeenAt: r.first_seen_at,
   lastSeenAt: r.last_seen_at,
   resolvedAt: r.resolved_at,
+  provisional: r.provisional ?? false,
+  errorType: r.error_type ?? null,
+  catalogueId: r.catalogue_id ?? null,
+  repairText: r.repair_text ?? null,
+  contrastText: r.contrast_text ?? null,
+  repairedAt: r.repaired_at ?? null,
+  retestDueAt: r.retest_due_at ?? null,
+  excludedQuestionKeys: r.excluded_question_keys ?? [],
 });
 
 const toObservation = (r: ObservationRow): MisconceptionObservation => ({
@@ -75,8 +92,50 @@ const toObservation = (r: ObservationRow): MisconceptionObservation => ({
   occurredAt: r.occurred_at,
 });
 
-const ROW_COLUMNS =
+const BASE_COLUMNS =
   "id, subject, concept, concept_key, summary, status, severity, origin_tool, times_observed, times_corrected, first_seen_at, last_seen_at, resolved_at";
+const LOOP_COLUMNS =
+  ", provisional, error_type, catalogue_id, repair_text, contrast_text, repaired_at, retest_due_at, excluded_question_keys";
+
+/* The webapp deploys on merge; the loop migration is applied by hand, maybe
+   later. Until it is, selecting or writing its columns fails with "column
+   does not exist", and the ledger must keep working exactly as before. The
+   first such error switches the loop off for this page load. */
+let loopSupported: boolean | null = null;
+
+/** For tests. */
+export function resetLoopSupport(): void {
+  loopSupported = null;
+}
+
+export function isLoopSupported(): boolean {
+  return loopSupported !== false;
+}
+
+function isMissingColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    /column .* does not exist|could not find the .* column/i.test(error.message ?? "")
+  );
+}
+
+const columns = () => BASE_COLUMNS + (loopSupported === false ? "" : LOOP_COLUMNS);
+
+/** One observation of the repair loop, written idempotently. */
+export interface LoopObservationInput {
+  misconceptionId: string;
+  kind: "evidence" | "correction" | "repair";
+  sourceTool: MisconceptionTool;
+  questionKey: string | null;
+  idempotencyKey: string;
+  occurredAt?: string;
+  dueAt?: string | null;
+  detail: string;
+}
+
+export type LoopWriteResult = "written" | "unsupported";
 
 /** Severity only ever ratchets upward on an existing row. A Sparring omission
  *  (minor) arriving after a Debugger trace (critical) describes the same belief
@@ -88,18 +147,93 @@ const SEVERITY_RANK: Record<MisconceptionSeverity, number> = {
   critical: 3,
 };
 
+/** What a candidate adds to its row under the loop. A named diagnosis
+ *  (anything not provisional) verifies a provisional row; a provisional one
+ *  never un-verifies a named row. Repair text, once written, is kept unless
+ *  the catalogue supplies its own. */
+function loopFields(existing: MisconceptionRow | null, c: MisconceptionCandidate) {
+  const provisional = existing
+    ? (existing.provisional ?? false) && (c.provisional ?? false)
+    : (c.provisional ?? false);
+  const fromCatalogue = !!c.catalogueId;
+  const keepRepair = !!existing?.repair_text && !fromCatalogue;
+  return {
+    provisional,
+    error_type: c.errorType ?? existing?.error_type ?? null,
+    catalogue_id: c.catalogueId ?? existing?.catalogue_id ?? null,
+    repair_text: keepRepair ? existing!.repair_text : (c.repairText ?? existing?.repair_text ?? null),
+    contrast_text: keepRepair
+      ? (existing!.contrast_text ?? null)
+      : (c.contrastText ?? existing?.contrast_text ?? null),
+  };
+}
+
+type ObservationInsert = {
+  misconception_id: string;
+  source_tool: MisconceptionTool;
+  source_id: string | null;
+  kind: "evidence" | "correction" | "repair";
+  detail: string;
+  question_key: string | null;
+  idempotency_key: string | null;
+  due_at?: string | null;
+  occurred_at?: string;
+};
+
+const LOOP_OBSERVATION_FIELDS = ["question_key", "idempotency_key", "due_at", "occurred_at"] as const;
+
+/** Insert one observation. With an idempotency key it is an insert that
+ *  ignores a duplicate on (user_id, idempotency_key), so a retry or an offline
+ *  replay lands once. Before the loop migration, the loop fields are dropped
+ *  and it is a plain insert, as it always was — unless `loopOnly`, where
+ *  there is nothing meaningful left to write. */
+async function writeObservation(
+  userId: string,
+  obs: ObservationInsert,
+  { loopOnly = false }: { loopOnly?: boolean } = {},
+): Promise<{ error: unknown; unsupported?: boolean }> {
+  const plain = () => {
+    const p: Record<string, unknown> = { ...obs, user_id: userId };
+    for (const f of LOOP_OBSERVATION_FIELDS) delete p[f];
+    return p;
+  };
+  if (loopSupported === false) {
+    if (loopOnly || obs.kind === "repair") return { error: null, unsupported: true };
+    const { error } = await supabase.from("misconception_observations").insert(plain());
+    return { error };
+  }
+  const full = { ...obs, user_id: userId };
+  const { error } = obs.idempotency_key
+    ? await supabase
+        .from("misconception_observations")
+        .upsert(full, { onConflict: "user_id,idempotency_key", ignoreDuplicates: true })
+    : await supabase.from("misconception_observations").insert(full);
+  if (error && isMissingColumn(error as { code?: string; message?: string })) {
+    loopSupported = false;
+    return writeObservation(userId, obs, { loopOnly });
+  }
+  return { error };
+}
+
 export const misconceptionsApi = {
   /** The whole ledger, newest activity first. Small by nature — a student
    *  accumulates tens of rows, not thousands — so it is fetched whole and
    *  filtered in `lib/misconceptions.ts` rather than re-queried per view. */
   async fetchAll(): Promise<Misconception[]> {
     await requireUserId();
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("misconceptions")
-      .select(ROW_COLUMNS)
+      .select(columns())
       .order("last_seen_at", { ascending: false });
+    if (error && loopSupported !== false && isMissingColumn(error)) {
+      loopSupported = false;
+      ({ data, error } = await supabase
+        .from("misconceptions")
+        .select(columns())
+        .order("last_seen_at", { ascending: false }));
+    }
     if (error) throw error;
-    return (data ?? []).map((r) => toMisconception(r as MisconceptionRow));
+    return (data ?? []).map((r) => toMisconception(r as unknown as MisconceptionRow));
   },
 
   /** The evidence trail behind one row, newest first. This is what backs the
@@ -161,11 +295,11 @@ export const misconceptionsApi = {
            repairs. */
         const { data: existingRows } = await supabase
           .from("misconceptions")
-          .select(ROW_COLUMNS)
+          .select(columns())
           .eq("subject", candidate.subject)
           .eq("concept_key", key)
           .limit(1);
-        const existing = (existingRows?.[0] as MisconceptionRow | undefined) ?? null;
+        const existing = (existingRows?.[0] as unknown as MisconceptionRow | undefined) ?? null;
 
         const severity: MisconceptionSeverity =
           existing &&
@@ -188,10 +322,7 @@ export const misconceptionsApi = {
           !!candidate.summary &&
           !isPlaceholderSummary(candidate.summary);
 
-        const { data: upserted, error: upsertError } = await supabase
-          .from("misconceptions")
-          .upsert(
-            {
+        const base = {
               ...(existing ? { id: existing.id } : {}),
               user_id: userId,
               subject: candidate.subject,
@@ -205,14 +336,23 @@ export const misconceptionsApi = {
                   : candidate.summary,
               severity,
               origin_tool: existing?.origin_tool ?? candidate.tool,
-            },
-            { onConflict: "user_id,subject,concept_key" },
-          )
-          .select(ROW_COLUMNS)
-          .single();
+        };
+        const upsertRow = (payload: object) =>
+          supabase
+            .from("misconceptions")
+            .upsert(payload, { onConflict: "user_id,subject,concept_key" })
+            .select(columns())
+            .single();
+        let { data: upserted, error: upsertError } = await upsertRow(
+          loopSupported === false ? base : { ...base, ...loopFields(existing, candidate) },
+        );
+        if (upsertError && loopSupported !== false && isMissingColumn(upsertError)) {
+          loopSupported = false;
+          ({ data: upserted, error: upsertError } = await upsertRow(base));
+        }
 
         if (upsertError) throw upsertError;
-        const row = upserted as MisconceptionRow;
+        const row = upserted as unknown as MisconceptionRow;
 
         if (candidate.skipIfSourceRecorded && candidate.sourceId) {
           const { data: prior } = await supabase
@@ -228,17 +368,17 @@ export const misconceptionsApi = {
           }
         }
 
-        const { error: obsError } = await supabase
-          .from("misconception_observations")
-          .insert({
-            user_id: userId,
-            misconception_id: row.id,
-            source_tool: candidate.tool,
-            source_id: candidate.sourceId ?? null,
-            kind: candidate.kind,
-            detail: candidate.detail,
-          });
-        if (obsError) throw obsError;
+        const result = await writeObservation(userId, {
+          misconception_id: row.id,
+          source_tool: candidate.tool,
+          source_id: candidate.sourceId ?? null,
+          kind: candidate.kind,
+          detail: candidate.detail,
+          question_key: candidate.questionKey ?? null,
+          idempotency_key: candidate.idempotencyKey ?? null,
+          ...(candidate.occurredAt ? { occurred_at: candidate.occurredAt } : {}),
+        });
+        if (result.error) throw result.error;
 
         written.push(toMisconception(row));
       } catch (err) {
@@ -250,6 +390,32 @@ export const misconceptionsApi = {
     }
 
     return written;
+  },
+
+  /**
+   * One step of the repair loop against an existing row: the repair being
+   * shown, or a retest answered. Idempotent: the same key twice is one
+   * write. Resolves "unsupported" (and writes nothing) until the loop
+   * migration is applied, so the old ledger behaviour is untouched. Throws on
+   * a real failure so the offline queue can retry it.
+   */
+  async recordObservation(input: LoopObservationInput): Promise<LoopWriteResult> {
+    const userId = await requireUserId();
+    if (loopSupported === false) return "unsupported";
+    const result = await writeObservation(userId, {
+      misconception_id: input.misconceptionId,
+      source_tool: input.sourceTool,
+      source_id: null,
+      kind: input.kind,
+      detail: input.detail,
+      question_key: input.questionKey,
+      idempotency_key: input.idempotencyKey,
+      due_at: input.dueAt ?? null,
+      ...(input.occurredAt ? { occurred_at: input.occurredAt } : {}),
+    }, { loopOnly: true });
+    if (result.unsupported) return "unsupported";
+    if (result.error) throw result.error;
+    return "written";
   },
 
   /** Student-initiated dismissal, for a row they judge wrong or no longer

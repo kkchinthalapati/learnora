@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { KnownMisconception } from "../../lib/misconceptionCatalogue";
-import type { MisconceptionTool } from "../../lib/misconceptions";
+import type { Misconception, MisconceptionTool } from "../../lib/misconceptions";
 import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
+import { useRecordRepair } from "../../hooks/useMistakeLoop";
+import { misconceptionsApi } from "../../api/misconceptions";
+import { observationKey, questionKey } from "../../lib/questionKey";
 import styles from "./repair.module.css";
 
 /* A named misconception, repaired on the spot.
@@ -9,9 +12,11 @@ import styles from "./repair.module.css";
  * Shown when a wrong answer (or a diagnosis) matches the catalogue: name the
  * belief, say in two sentences why it is wrong, re-teach it a different way,
  * then check it with one question. The outcome goes to the ledger — the
- * belief as evidence the moment it is shown, and a correction only when the
- * check is passed — so "fixed" in the ledger means the student showed it,
- * not that they were told. */
+ * belief as evidence the moment it is shown, the repair itself (which starts
+ * the retest clock, lib/mistakeLoop.ts), and a correction when the check is
+ * passed. Passing the check moves the row to "improving" only: it is the
+ * question just taught, so it proves recall, not repair. "Fixed" waits for a
+ * different question at least two days later. */
 
 export function MisconceptionRepair({
   entry,
@@ -20,6 +25,7 @@ export function MisconceptionRepair({
   detail,
   recordEvidence = true,
   ledgerRow,
+  failedQuestion,
 }: {
   entry: KnownMisconception;
   /** Stable id of what triggered this (an attempt + question), so a re-render
@@ -31,9 +37,13 @@ export function MisconceptionRepair({
   /** False when the mistake is already on record (opened from the ledger). */
   recordEvidence?: boolean;
   /** Write to this existing ledger row instead of the catalogue's concept. */
-  ledgerRow?: { subject: string; concept: string; summary: string };
+  ledgerRow?: Pick<Misconception, "subject" | "concept" | "summary"> &
+    Partial<Pick<Misconception, "id" | "timesObserved" | "originTool">>;
+  /** The question that was got wrong, so it can't later count as a retest. */
+  failedQuestion?: string;
 }) {
   const record = useRecordMisconceptions();
+  const recordRepair = useRecordRepair();
   const [picked, setPicked] = useState<number | null>(null);
   const recorded = useRef(false);
 
@@ -46,9 +56,42 @@ export function MisconceptionRepair({
   };
 
   useEffect(() => {
-    if (recorded.current || !recordEvidence) return;
+    if (recorded.current) return;
     recorded.current = true;
-    record([{ ...base, kind: "evidence", sourceId, detail, skipIfSourceRecorded: true }]);
+    const repairOf = (row: Pick<Misconception, "id" | "timesObserved" | "originTool">) =>
+      recordRepair(row, { sourceId, checkQuestion: entry.check.question, tool });
+    if (!recordEvidence) {
+      /* Already on record: the card is the repair. */
+      if (ledgerRow?.id) {
+        repairOf({
+          id: ledgerRow.id,
+          timesObserved: ledgerRow.timesObserved ?? 1,
+          originTool: ledgerRow.originTool ?? tool,
+        });
+      }
+      return;
+    }
+    const failedKey = failedQuestion ? questionKey(failedQuestion) : undefined;
+    void misconceptionsApi
+      .record([
+        {
+          ...base,
+          kind: "evidence",
+          sourceId,
+          detail,
+          skipIfSourceRecorded: true,
+          catalogueId: entry.id,
+          repairText: entry.remediation,
+          contrastText: `Not: "${entry.belief}" ${entry.whyWrong}`,
+          ...(failedKey
+            ? { questionKey: failedKey, idempotencyKey: observationKey("repaircard", sourceId, failedKey) }
+            : {}),
+        },
+      ])
+      .then(([row]) => {
+        if (row) repairOf(row);
+      })
+      .catch((err) => console.warn("[misconceptions] repair card write failed:", err));
     // Once per mount: the evidence is what triggered this card.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -64,6 +107,8 @@ export function MisconceptionRepair({
           sourceId: `${sourceId}:check`,
           detail: `Answered the check correctly: "${entry.check.question}"`,
           skipIfSourceRecorded: true,
+          questionKey: questionKey(entry.check.question),
+          idempotencyKey: observationKey("check", sourceId, questionKey(entry.check.question)),
         },
       ]);
     }
@@ -114,7 +159,9 @@ export function MisconceptionRepair({
         {picked !== null && (
           <p className={styles.outcome} role="status">
             <strong>{correct ? "That's it." : "Not quite."}</strong> {entry.check.explanation}
-            {correct ? " That counts towards fixing this one." : " It's worth another look before the exam."}
+            {correct
+              ? " That's a start. We'll check it again with a different question in a couple of days, and it counts as fixed if you get that one too."
+              : " It's worth another look before the exam."}
           </p>
         )}
       </div>

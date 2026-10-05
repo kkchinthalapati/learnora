@@ -13,7 +13,7 @@
 
 import type { Exam, Task, WeakTopic } from "../api/types";
 import type { StudyDemand } from "./autoSchedule";
-import { dateInDays, formatRecurrenceCleanText, parseLocalDate } from "./date";
+import { dateInDays, formatRecurrenceCleanText, localDateStr, parseLocalDate } from "./date";
 import { defaultTier, getSpec, isTier } from "./syllabus";
 import {
   nextSpecTopics,
@@ -30,6 +30,8 @@ const MIN_REVIEW_MINS = 10;
 const MAX_REVIEW_MINS = 40;
 
 const DEFAULT_TASK_MINS = 30;
+/** One new question, answered on Today. */
+const RETEST_MINS = 5;
 /** Undated tasks are real work, but scheduling all of them would bury the
  *  dated ones. The few most recently added get a slot; the rest wait. */
 const MAX_UNDATED_TASKS = 3;
@@ -205,6 +207,28 @@ export function buildDemands(src: DemandSources): StudyDemand[] {
       subject: weak.topic,
       href: "/analytics",
       boost: 6,
+    });
+  }
+
+  /* 5. Retests from the mistake loop (lib/mistakeLoop.ts). A repaired
+        mistake is only fixed once a new question is answered on or after its
+        retest date, so the retest gets booked on that day, not before. They
+        are short and run on Today, where the question is. */
+  for (const m of src.misconceptions ?? []) {
+    if (m.status === "resolved" || !m.retestDueAt) continue;
+    const due = localDateStr(new Date(m.retestDueAt));
+    if (due > horizonEnd) continue;
+    const on = due < today ? today : due;
+    demands.push({
+      id: `retest:${m.concept}`,
+      label: `Retest: ${m.concept}`,
+      kind: "review",
+      estMins: RETEST_MINS,
+      load: 2,
+      notBefore: on,
+      dueDate: on,
+      subject: m.subject ?? null,
+      href: "/",
     });
   }
 

@@ -5,6 +5,7 @@ import { tasksApi } from "../api/tasks";
 import { queryClient } from "./queryClient";
 import { learningEventsApi, type RecordLearningEventInput } from "../api/learningEvents";
 import { requireUserId } from "../api/session";
+import { misconceptionsApi, type LoopObservationInput } from "../api/misconceptions";
 
 export const OFFLINE_QUEUE_KEY = "learnora:offline_queue";
 export const OFFLINE_QUEUE_EVENT = "learnora:offline_queue_changed";
@@ -38,6 +39,9 @@ export interface OfflineActionPayloadMap {
   submitSrsReview: SrsReviewPayload;
   logSession: LogSessionPayload;
   toggleTask: ToggleTaskPayload;
+  /** A repair shown or a retest answered (lib/mistakeLoop.ts). Replay-safe:
+   *  the server drops a second write with the same idempotency key. */
+  recordLoopObservation: { input: LoopObservationInput; userId: string };
 }
 
 export type OfflineActionType = keyof OfflineActionPayloadMap;
@@ -157,6 +161,13 @@ export function enqueueOfflineAction<T extends OfflineActionType>(
     const p = payload as OfflineActionPayloadMap["recordLearningEvent"];
     const existing = queue.find(a => a.type === type &&
       (a.payload as typeof p).userId === p.userId && (a.payload as typeof p).input.clientId === p.input.clientId);
+    if (existing) return existing as OfflineAction<T>;
+  }
+  if (type === "recordLoopObservation") {
+    const p = payload as OfflineActionPayloadMap["recordLoopObservation"];
+    const existing = queue.find(a => a.type === type &&
+      (a.payload as typeof p).userId === p.userId &&
+      (a.payload as typeof p).input.idempotencyKey === p.input.idempotencyKey);
     if (existing) return existing as OfflineAction<T>;
   }
   const id = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -293,8 +304,8 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
         if (!action) break; // everything left belongs to another account
 
         // Do not upload another account's evidence or consume its retry budget.
-        if (action.type === "recordLearningEvent") {
-          const owner = (action.payload as OfflineActionPayloadMap["recordLearningEvent"]).userId;
+        if (action.type === "recordLearningEvent" || action.type === "recordLoopObservation") {
+          const owner = (action.payload as { userId: string }).userId;
           if (await requireUserId().catch(() => null) !== owner) {
             skippedIds.add(action.id);
             continue;
@@ -325,6 +336,10 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
             const p = action.payload as ToggleTaskPayload;
             await tasksApi.toggle(p.id, p.currentStatus);
             queryClient.invalidateQueries({ queryKey: ["tasks"] });
+          } else if (action.type === "recordLoopObservation") {
+            const p = action.payload as OfflineActionPayloadMap["recordLoopObservation"];
+            await misconceptionsApi.recordObservation(p.input);
+            queryClient.invalidateQueries({ queryKey: ["misconceptions"] });
           }
 
           // Successful execution: remove this item. Not necessarily index 0
@@ -611,4 +626,34 @@ if (typeof window !== "undefined") {
   window.addEventListener("online", () => {
     flushOfflineQueue();
   });
+}
+
+/**
+ * Record a repair or a retest answer: online now, or queued when offline or
+ * the request never reached the server. The time it happened is stamped
+ * here, once, so a replay days later still counts from when the student
+ * answered (the server only refuses times in the future, and stamps repairs
+ * itself). An HTTP rejection is rethrown, not queued.
+ */
+export async function recordLoopObservation(
+  input: LoopObservationInput,
+): Promise<{ queued: boolean }> {
+  const stamped: LoopObservationInput = {
+    ...input,
+    occurredAt: input.occurredAt ?? new Date().toISOString(),
+  };
+  const userId = await requireUserId();
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    enqueueOfflineAction("recordLoopObservation", { input: stamped, userId });
+    return { queued: true };
+  }
+  try {
+    await misconceptionsApi.recordObservation(stamped);
+    queryClient.invalidateQueries({ queryKey: ["misconceptions"] });
+    return { queued: false };
+  } catch (error) {
+    if (!isConnectivityFailure(error)) throw error;
+    enqueueOfflineAction("recordLoopObservation", { input: stamped, userId });
+    return { queued: true };
+  }
 }

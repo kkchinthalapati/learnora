@@ -10,6 +10,7 @@ import {
   detectPlanDeficit,
   peakFocusHint,
   proposeRebalance,
+  rebalanceDayLabel,
   rebalanceLimitsFrom,
   RebalanceError,
   resolveExamState,
@@ -810,7 +811,9 @@ describe("planRebalancer", () => {
         {
           subject: "Math",
           durationMins: 30,
-          reason: "Catch-up from Tue Aug 25 · before Maths Final",
+          /* The day label follows the runtime locale ("Tue Aug 25" in
+             en-US, "Tue 25 Aug" in en-GB), so build it the same way. */
+          reason: `Catch-up from ${rebalanceDayLabel("2026-08-25")} · before Maths Final`,
           catchUpFrom: "2026-08-25",
           startHint: "6 AM – 9 AM (Peak Focus)",
         },

@@ -468,3 +468,57 @@ export const friendRequests = [
     created_at: daysAgo(2),
   },
 ];
+
+/* The misconception ledger, with the repair loop's fields
+   (lib/mistakeLoop.ts): one repaired mistake whose retest is due, and one
+   generic slip still waiting for its repair. */
+const isoDaysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+export const misconceptions = [
+  {
+    id: "mc-retest",
+    subject: "Biology",
+    concept: "Photosynthesis and respiration",
+    concept_key: "photosynthesis respiration",
+    summary: "Plants photosynthesise instead of respiring, or only respire at night.",
+    status: "improving",
+    severity: "moderate",
+    origin_tool: "quiz",
+    times_observed: 1,
+    times_corrected: 1,
+    first_seen_at: isoDaysAgo(4),
+    last_seen_at: isoDaysAgo(3),
+    resolved_at: null,
+    provisional: false,
+    error_type: null,
+    catalogue_id: "bio-plants-dont-respire",
+    repair_text: null,
+    contrast_text: null,
+    repaired_at: isoDaysAgo(3),
+    retest_due_at: isoDaysAgo(1),
+    excluded_question_keys: [],
+  },
+  {
+    id: "mc-repair",
+    subject: "Mathematics",
+    concept: "Percentage change",
+    concept_key: "percentage change",
+    summary: "Missed: A price rises from £40 to £50. What is the percentage increase?",
+    status: "open",
+    severity: "moderate",
+    origin_tool: "quiz",
+    times_observed: 1,
+    times_corrected: 0,
+    first_seen_at: isoDaysAgo(1),
+    last_seen_at: isoDaysAgo(1),
+    resolved_at: null,
+    provisional: false,
+    error_type: "calculation",
+    catalogue_id: null,
+    repair_text:
+      "The method may be right but a step went wrong. Redo it one line at a time, writing each intermediate value, and check units and signs at every line.",
+    contrast_text: 'You chose "20%"; the answer is "25%". Find the first step where the two part ways.',
+    repaired_at: null,
+    retest_due_at: null,
+    excluded_question_keys: [],
+  },
+];

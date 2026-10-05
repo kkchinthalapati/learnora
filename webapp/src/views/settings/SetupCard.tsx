@@ -175,6 +175,21 @@ export function SetupCard() {
         </div>
       </div>
 
+      <div className={styles.field}>
+        <div className={styles.fieldLabel}>
+          <span className={styles.labelText}>Subjects and study plan</span>
+          <p className={styles.fieldDesc}>
+            Your country, exam board, subjects, exam dates and study hours.
+            Your answers are kept, so you can change one and rebuild your plan.
+          </p>
+        </div>
+        <div className={styles.fieldAction}>
+          <Button variant="secondary" size="sm" onClick={() => navigate("/setup/profile")}>
+            Edit study profile
+          </Button>
+        </div>
+      </div>
+
       <div className={styles.actionsRight}>
         <Button
           variant="primary"

@@ -556,6 +556,18 @@ export function FirstRunView() {
             <Button type="submit" variant="primary" size="lg" busy={saving}>
               {saving ? "Saving" : "Save and see my plan"}
             </Button>
+            {/* Several subjects, another country or a board the app doesn't
+                know yet: the full study profile (any board, free-text
+                subjects, exam dates per subject). */}
+            <button
+              type="button"
+              className={styles.skipLink}
+              onClick={() => {
+                void markDone(false).then(() => navigate("/setup/profile"));
+              }}
+            >
+              Set up all my subjects instead
+            </button>
             <button type="button" className={styles.skipLink} onClick={() => void skip()}>
               Skip for now
             </button>

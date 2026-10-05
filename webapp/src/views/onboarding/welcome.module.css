@@ -421,7 +421,11 @@
   outline-offset: 2px;
 }
 
-.chipOn {
+/* `:hover` too: `.chip:hover` outranks a bare `.chipOn`, so a selected chip
+   under the pointer lost its accent background but kept the accent-on text
+   colour, which is dark-on-dark in the dark theme. */
+.chipOn,
+.chipOn:hover {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-on);
@@ -725,4 +729,25 @@
   font-weight: 600;
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* Study profile wizard: a reached step's dot jumps back to it. The bar is
+   3px tall, so the button reaches past it to give a usable target. */
+.dot {
+  position: relative;
+}
+
+.dotJump {
+  position: absolute;
+  inset: -12px 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.dotJump:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+  border-radius: var(--r-pill);
 }

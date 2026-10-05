@@ -15,7 +15,7 @@ limit or an outage at either is a visible failure. With five, it isn't.
 Each key goes in Supabase, not in the repo. Either:
 
 ```bash
-supabase secrets set CEREBRAS_API_KEY=your_key_here
+supabase secrets set GROQ_API_KEY=your_key_here
 ```
 
 or Supabase Dashboard → **Project Settings → Edge Functions → Secrets**.
@@ -48,15 +48,14 @@ uploaded photo of a worksheet still needs it.
 | # | Provider | Secret | Get a key | Cost |
 |---|---|---|---|---|
 | — | **Google Gemini** | `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com/apikey) | Free tier; generous |
-| 1 | **Cerebras** | `CEREBRAS_API_KEY` | [cloud.cerebras.ai](https://cloud.cerebras.ai/) | Free, ~1M tokens/day, fastest in the chain |
-| 2 | **Groq** | `GROQ_API_KEY` | [console.groq.com/keys](https://console.groq.com/keys) | Free, rate-limited per minute |
-| 3 | **Cloudflare Workers AI** | `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | [dash.cloudflare.com](https://dash.cloudflare.com/) → AI | Free daily allowance |
-| 4 | **GitHub Models** | `GITHUB_MODELS_TOKEN` | [github.com/settings/tokens](https://github.com/settings/tokens) | Free with a GitHub account |
-| 5 | **Mistral** | `MISTRAL_API_KEY` | [console.mistral.ai](https://console.mistral.ai/) | Free "Experiment" tier (see caveat below) |
-| 6 | **OpenRouter** | `OPENROUTER_API_KEY` | [openrouter.ai/keys](https://openrouter.ai/keys) | Free `:free` models, weakest here |
-| 7 | **NVIDIA NIM** | `NVIDIA_API_KEY` | [build.nvidia.com](https://build.nvidia.com/) | Free credits, then billed |
-| 8 | **OpenAI** | `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com/api-keys) | Paid from the first token |
-| 9 | **Anthropic** | `CLAUDE_API_KEY` | [console.anthropic.com](https://console.anthropic.com/) | Paid from the first token |
+| 1 | **Groq** | `GROQ_API_KEY` | [console.groq.com/keys](https://console.groq.com/keys) | Free, rate-limited per minute |
+| 2 | **Cloudflare Workers AI** | `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | [dash.cloudflare.com](https://dash.cloudflare.com/) → AI | Free daily allowance |
+| 3 | **GitHub Models** | `GITHUB_MODELS_TOKEN` | [github.com/settings/tokens](https://github.com/settings/tokens) | Free with a GitHub account |
+| 4 | **Mistral** | `MISTRAL_API_KEY` | [console.mistral.ai](https://console.mistral.ai/) | Free "Experiment" tier (see caveat below) |
+| 5 | **OpenRouter** | `OPENROUTER_API_KEY` | [openrouter.ai/keys](https://openrouter.ai/keys) | Free `:free` models, weakest here |
+| 6 | **NVIDIA NIM** | `NVIDIA_API_KEY` | [build.nvidia.com](https://build.nvidia.com/) | Free credits, then billed |
+| 7 | **OpenAI** | `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com/api-keys) | Paid from the first token |
+| 8 | **Anthropic** | `CLAUDE_API_KEY` | [console.anthropic.com](https://console.anthropic.com/) | Paid from the first token |
 
 ### The order is deliberate: free, then credits, then paid
 
@@ -91,7 +90,6 @@ value in the table below as the fallback:
 | Secret | Default |
 |---|---|
 | `GEMINI_MODELS` | `gemini-2.0-flash` (comma-separated, tried in order) |
-| `CEREBRAS_MODEL` | `gpt-oss-120b` |
 | `GROQ_MODEL` | `llama-3.3-70b-versatile` |
 | `CLOUDFLARE_MODEL` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
 | `GITHUB_MODELS_MODEL` | `openai/gpt-4.1-mini` |
@@ -239,7 +237,7 @@ deliberately:
 
 The chain is ordered so the strongest free models run first, but a request that
 falls through to the last provider will produce a noticeably weaker answer than
-one served by Gemini or Cerebras. `modelUsed` in the response body says which
+one served by Gemini or Groq. `modelUsed` in the response body says which
 provider answered, so if quality complaints come in, that field will tell you
 whether the chain is falling through more than expected.
 

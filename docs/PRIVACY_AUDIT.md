@@ -46,11 +46,10 @@ The edge function walks a provider chain until one returns usable text
 | Order | Provider | Endpoint | Secret |
 |---|---|---|---|
 | 1 | Google Gemini | Google Generative AI SDK | `GEMINI_API_KEY` |
-| 2 | Cerebras | `api.cerebras.ai` | `CEREBRAS_API_KEY` |
-| 3 | Groq | `api.groq.com` | `GROQ_API_KEY` |
-| 4 | Mistral | `api.mistral.ai` | `MISTRAL_API_KEY` |
-| 5 | GitHub Models | `models.github.ai` | `GITHUB_MODELS_TOKEN` |
-| 6 | OpenRouter | `openrouter.ai` | `OPENROUTER_API_KEY` |
+| 2 | Groq | `api.groq.com` | `GROQ_API_KEY` |
+| 3 | Mistral | `api.mistral.ai` | `MISTRAL_API_KEY` |
+| 4 | GitHub Models | `models.github.ai` | `GITHUB_MODELS_TOKEN` |
+| 5 | OpenRouter | `openrouter.ai` | `OPENROUTER_API_KEY` |
 
 A provider with no key set is skipped silently
 (`index.ts:751-754`), so **which providers actually receive student data is a
@@ -181,7 +180,7 @@ Nothing in `privacy.html` tells a student that their coursework leaves
 Learnora's infrastructure at all. The sentence that comes closest — "avoid
 submitting confidential or unnecessary personal information in prompts or
 uploads" — is advice about *content quality*; a reader would not infer from
-it that the upload is transmitted to Google, Cerebras, Groq, Mistral,
+it that the upload is transmitted to Google, Groq, Mistral,
 GitHub, or OpenRouter. Missing entirely: that sub-processors exist, who
 they are, what reaches them, and what they may do with it.
 

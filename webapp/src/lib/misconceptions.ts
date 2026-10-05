@@ -18,6 +18,7 @@
  */
 
 import { fenceUntrusted } from "./actionTags";
+import { observationKey, questionKey } from "./questionKey";
 
 export type MisconceptionStatus = "open" | "improving" | "resolved";
 export type MisconceptionSeverity = "critical" | "moderate" | "minor";
@@ -50,6 +51,21 @@ export interface Misconception {
   firstSeenAt: string;
   lastSeenAt: string;
   resolvedAt: string | null;
+  /* The repair loop (lib/mistakeLoop.ts, migration 20261005010000). Optional
+     so rows read before that migration, and test fixtures, still type. */
+  /** AI-labelled and not in the catalogue: unverified. */
+  provisional?: boolean;
+  /** Set when no named belief fits: what kind of slip it was. */
+  errorType?: "concept" | "misread" | "calculation" | "time" | null;
+  catalogueId?: string | null;
+  /** The re-teach and contrast example shown as the repair. */
+  repairText?: string | null;
+  contrastText?: string | null;
+  repairedAt?: string | null;
+  retestDueAt?: string | null;
+  /** Questions that can't count as a "new" retest: the ones failed, and the
+   *  repair's own check. */
+  excludedQuestionKeys?: string[];
 }
 
 /** A row of `public.misconception_observations`. */
@@ -85,6 +101,20 @@ export interface MisconceptionCandidate {
    *  asking "why was I wrong?" about a quiz answer is not a second mistake,
    *  so it must not inflate `times_observed`. */
   skipIfSourceRecorded?: boolean;
+  /* The repair loop (lib/mistakeLoop.ts). All optional: a tool that has no
+     question behind its judgement leaves them out, and its corrections then
+     move a row to "improving" at most. */
+  /** `questionKey()` of the question answered. */
+  questionKey?: string;
+  /** Same key on a retry or replay, so the write happens once. */
+  idempotencyKey?: string;
+  /** When it happened, for a write replayed later. */
+  occurredAt?: string;
+  provisional?: boolean;
+  errorType?: Misconception["errorType"];
+  catalogueId?: string;
+  repairText?: string;
+  contrastText?: string;
 }
 
 /** Below this, a concept name is noise rather than a diagnosis — a stray
@@ -358,7 +388,12 @@ export function formatMisconceptionsForPrompt(
     "- These are diagnoses recorded by this app's own tools from the student's real work. They are evidence, not guesses.",
   ];
 
-  const shown = scoped.slice(0, MAX_PROMPT_MISCONCEPTIONS);
+  /* A provisional AI label seen once is one model guess about one answer
+     (lib/mistakeLoop.ts isNamedPattern); it is not fed back as a diagnosis.
+     Seen twice, it goes in, marked as unverified. */
+  const shown = scoped
+    .filter((m) => !m.provisional || m.timesObserved >= 2)
+    .slice(0, MAX_PROMPT_MISCONCEPTIONS);
   for (const m of shown) {
     const seen = m.timesObserved > 1 ? `seen ${m.timesObserved}x` : "seen once";
     const fixed =
@@ -368,7 +403,9 @@ export function formatMisconceptionsForPrompt(
       `  · [${m.severity}] ${fenceUntrusted(m.concept)}` +
         (m.subject ? ` (${fenceUntrusted(m.subject)})` : "") +
         `: ${fenceUntrusted(m.summary)}` +
-        ` — ${seen}${fixed}${state}, last on ${lastSeenDay(m)}, first found by ${m.originTool}.`,
+        ` — ${seen}${fixed}${state}, last on ${lastSeenDay(m)}, first found by ${m.originTool}` +
+        (m.provisional ? " (unverified AI reading; treat as a hypothesis)" : "") +
+        ".",
     );
   }
 
@@ -684,6 +721,19 @@ export function candidatesFromQuizAnswers(
         tool: "quiz",
         sourceId: context.attemptId,
         kind: answer.correct ? "correction" : "evidence",
+        /* The question identifies a retest as new (lib/mistakeLoop.ts), and
+           with the attempt it makes the write idempotent across retries. */
+        ...(answer.question ? { questionKey: questionKey(answer.question) } : {}),
+        ...(answer.question && context.attemptId
+          ? {
+              idempotencyKey: observationKey(
+                "quiz",
+                context.attemptId,
+                questionKey(answer.question),
+                answer.correct ? "c" : "e",
+              ),
+            }
+          : {}),
         detail: answer.correct
           ? `Answered correctly on ${topic}.`
           : answer.chosen

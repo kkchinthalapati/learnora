@@ -97,6 +97,8 @@ const TABLES: Record<string, unknown[]> = {
   quiz_attempts: fx.quizAttempts,
   weekly_plans: fx.plans,
   notebooks: fx.notebooks,
+  misconceptions: fx.misconceptions,
+  misconception_observations: [],
   profiles: [
     {
       id: fx.USER_ID,
