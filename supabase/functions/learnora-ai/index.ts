@@ -992,6 +992,87 @@ function recordOutcome(
   (globalThis as any).EdgeRuntime?.waitUntil?.(work);
 }
 
+/* ── Quiz verification: daily caps and the review log ───────────────────
+   Verification is a second model call per generated quiz, so it is capped:
+   per student (QUIZ_VERIFY_USER_DAILY, default 20 quizzes) and in total
+   (QUIZ_VERIFY_GLOBAL_DAILY, default 2000). Past a cap, or when the count
+   can't be read, quizzes go out unverified and the client labels them or,
+   in a seeded subject, serves practice-bank questions instead. Each check
+   is logged as an ai_request_log row with mode 'verify' (service role;
+   it is not billed to any of the student's tool allowances). */
+
+async function adminClient() {
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey) return null;
+  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+  return createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+function envInt(name: string, fallback: number): number {
+  const n = Number(Deno.env.get(name));
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+async function verificationAllowed(userId: string): Promise<boolean> {
+  try {
+    const admin = await adminClient();
+    if (!admin) return false;
+    const since = new Date();
+    since.setUTCHours(0, 0, 0, 0);
+    const [mine, all] = await Promise.all([
+      admin.from("ai_request_log").select("id", { count: "exact", head: true })
+        .eq("mode", "verify").eq("user_id", userId).gte("created_at", since.toISOString()),
+      admin.from("ai_request_log").select("id", { count: "exact", head: true })
+        .eq("mode", "verify").gte("created_at", since.toISOString()),
+    ]);
+    if (mine.error || all.error) return false;
+    return (mine.count ?? 0) < envInt("QUIZ_VERIFY_USER_DAILY", 20)
+      && (all.count ?? 0) < envInt("QUIZ_VERIFY_GLOBAL_DAILY", 2000);
+  } catch (err) {
+    console.warn("[quiz-check] cap check failed; leaving unverified", err);
+    return false;
+  }
+}
+
+function logVerification(userId: string): void {
+  const work = (async () => {
+    try {
+      const admin = await adminClient();
+      await admin?.from("ai_request_log").insert({ user_id: userId, mode: "verify", tool: "verify" });
+    } catch (err) {
+      console.warn("[quiz-check] verification not logged", err);
+    }
+  })();
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+}
+
+/* A seeded-subject question the checker rejected, for a human to look at
+   (docs/question_review.sql). No student id: the question is what matters. */
+function logRejectedQuestion(
+  q: { question: string; choices: string[]; correctIndex: number },
+  reason: string,
+  meta: { subject?: string; specId?: string },
+): void {
+  const work = (async () => {
+    try {
+      const admin = await adminClient();
+      await admin?.from("question_review_log").insert({
+        source: "verification",
+        question: { question: q.question, choices: q.choices, correctIndex: q.correctIndex },
+        reason: String(reason).slice(0, 200),
+        subject: meta.subject ? String(meta.subject).slice(0, 80) : null,
+        spec_id: meta.specId ? String(meta.specId).slice(0, 80) : null,
+      });
+    } catch (err) {
+      console.warn("[quiz-check] rejected question not logged", err);
+    }
+  })();
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+}
+
 /* A request that reached no provider at all (every channel failed) has not
    used the student's allowance, so its log row is taken back. A student on
    the free plan has three quiz generations a day; an outage should not spend
@@ -1226,7 +1307,7 @@ Deno.serve(async (req) => {
     let logId: string | undefined;
 
     try {
-        const { history, file, settings, mode, tool, context, sessionKey } = await req.json();
+        const { history, file, settings, mode, tool, context, sessionKey, quizMeta } = await req.json();
         const s = settings || {};
 
         /* Instructions and workspace data written by the app, kept out of the
@@ -1327,28 +1408,34 @@ Deno.serve(async (req) => {
         const budgetExhausted = () => deadline.aborted;
 
         /* A second opinion on a generated quiz (see _shared/quizQuality.js):
-           Gemini first, then one fallback provider. Best-effort — skipped when
-           the request is too close to its budget, and any failure returns null
-           so the quiz goes out unverified rather than not at all. */
-        const verifyQuiz = async (system: string, prompt: string): Promise<string | null> => {
+           an independent model call solves each question and must agree with
+           its key. Cheapest route first — QUIZ_VERIFIER_MODEL, else the first
+           Gemini model — then one fallback provider. Skipped near the request
+           budget; a null result leaves the questions unverified, never
+           dropped. `checkedBy` records which model agreed. */
+        let checkedBy = "second-model";
+        const secondaryCall = async (system: string, prompt: string, label: string): Promise<string | null> => {
             if (TOTAL_BUDGET_MS - (Date.now() - startedAt) < 12_000) return null;
             const checkKey = geminiPermitted() ? Deno.env.get('GEMINI_API_KEY') : undefined;
             if (checkKey) {
                 try {
-                    const modelName = (Deno.env.get('GEMINI_MODELS') || "gemini-3.6-flash")
-                        .split(",")[0].trim();
+                    const modelName = (Deno.env.get('QUIZ_VERIFIER_MODEL')
+                        || (Deno.env.get('GEMINI_MODELS') || "gemini-3.6-flash").split(",")[0]).trim();
                     const checker = new GoogleGenerativeAI(checkKey)
                         .getGenerativeModel({ model: modelName, systemInstruction: system });
                     const result: any = await Promise.race([
                         checker.generateContent(prompt),
                         new Promise((_, reject) =>
-                            setTimeout(() => reject(new Error("quiz check timed out")), 20_000)
+                            setTimeout(() => reject(new Error(`${label} timed out`)), 20_000)
                         ),
                     ]);
                     const checked = salvageJson(cleanJsonResponse(result.response.text()));
-                    if (checked) return checked;
+                    if (checked) {
+                        checkedBy = `gemini/${modelName}`;
+                        return checked;
+                    }
                 } catch (err) {
-                    console.warn("[quiz-check] Gemini check failed", err);
+                    console.warn(`[${label}] Gemini call failed`, err);
                 }
             }
             for (const provider of providerChain()) {
@@ -1362,20 +1449,58 @@ Deno.serve(async (req) => {
                         mode: "quiz",
                         signal: deadline,
                     })));
-                    if (checked) return checked;
+                    if (checked) {
+                        checkedBy = provider.id;
+                        return checked;
+                    }
                 } catch (err) {
-                    console.warn(`[quiz-check] ${provider.id} check failed`, err);
+                    console.warn(`[${label}] ${provider.id} call failed`, err);
                 }
-                // One fallback attempt is enough for a best-effort check.
+                // One fallback attempt is enough for a best-effort second call.
                 return null;
             }
             return null;
         };
+        const verifyQuiz = (system: string, prompt: string) => secondaryCall(system, prompt, "quiz-check");
+
+        /* One replacement batch for questions the checker rejected, written
+           against the same request and told what not to repeat. */
+        const regenerateQuiz = (n: number, avoid: string[]) =>
+            secondaryCall(
+                systemInstruction,
+                `${currentMsg}\n\nWrite exactly ${n} NEW multiple-choice question${n === 1 ? "" : "s"} on the same material, in the same JSON format ({"questions":[...]}). Do not repeat or rephrase these, which failed a correctness check:\n${avoid.map((q) => `- ${String(q).slice(0, 300)}`).join("\n")}`,
+                "quiz-regenerate",
+            );
 
         /* Only the quiz generator itself: other tools send mode "quiz" purely
            for its JSON handling and have their own shapes. */
-        const finishText = async (text: string): Promise<string> =>
-            mode === "quiz" && tool === "quiz" ? await improveQuiz(text, verifyQuiz) : text;
+        const finishText = async (text: string): Promise<string> => {
+            if (!(mode === "quiz" && tool === "quiz")) return text;
+            const canVerify = await verificationAllowed(user.id);
+            if (canVerify) logVerification(user.id);
+            return await improveQuiz(text, verifyQuiz, {
+                canVerify,
+                regenerate: regenerateQuiz,
+                checkedBy: undefined,
+                onRejected: (q: { question: string; choices: string[]; correctIndex: number }, reason: string) => {
+                    if (quizMeta?.seeded) logRejectedQuestion(q, reason, quizMeta);
+                },
+            }).then((out: string) => {
+                /* Stamp the model that actually agreed onto the verified rows. */
+                try {
+                    const parsed = JSON.parse(out);
+                    if (Array.isArray(parsed?.questions)) {
+                        for (const q of parsed.questions) {
+                            if (q?.verification) q.verification.by = checkedBy;
+                        }
+                        return JSON.stringify(parsed);
+                    }
+                } catch {
+                    /* improveQuiz returned the text untouched. */
+                }
+                return out;
+            });
+        };
 
         // =========================================================================
         // CHANNEL 1: GEMINI — first because it is the only provider in the chain
