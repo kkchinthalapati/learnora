@@ -156,3 +156,45 @@ describe("QuizRunner hint ladder", () => {
     expect(screen.queryByText(LADDER.step)).toBeNull();
   });
 });
+
+describe("the worked solution hands the question to the mistake loop", () => {
+  it("writes the miss and a repair, so a retest is scheduled", async () => {
+    const observations: Array<Record<string, unknown>> = [];
+    server.use(
+      http.get(rest("misconceptions"), () => HttpResponse.json([])),
+      http.post(rest("misconceptions"), async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          id: "m-1",
+          status: "open",
+          times_observed: 0,
+          times_corrected: 0,
+          first_seen_at: "2026-10-06T00:00:00Z",
+          last_seen_at: "2026-10-06T00:00:00Z",
+          resolved_at: null,
+          origin_tool: "quiz",
+          ...body,
+        });
+      }),
+      http.post(rest("misconception_observations"), async ({ request }) => {
+        observations.push((await request.json()) as Record<string, unknown>);
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderRunner();
+    await user.click(await screen.findByRole("button", { name: /I'm stuck/ }));
+    await user.click(await screen.findByRole("button", { name: /Another hint|Show the worked/ }));
+    await user.click(await screen.findByRole("button", { name: "Show the worked solution" }));
+    await user.click(screen.getByRole("button", { name: /Next Question/ }));
+    await user.click(await screen.findByRole("button", { name: "4" }));
+    await user.click(screen.getByRole("button", { name: /See results/ }));
+
+    await waitFor(() => expect(observations.some((o) => o.kind === "repair")).toBe(true));
+    const evidence = observations.find((o) => o.kind === "evidence")!;
+    const repair = observations.find((o) => o.kind === "repair")!;
+    expect(evidence.detail).toMatch(/worked solution/);
+    expect(repair.question_key).toBe(evidence.question_key);
+    expect(repair.due_at).toBeTruthy();
+  });
+});
