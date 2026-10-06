@@ -43,3 +43,6 @@ test-results/
 
 .vercel
 .env*
+
+# Eval runs (evals/run.mjs) — local only
+evals/results/
