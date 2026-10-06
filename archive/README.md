@@ -30,3 +30,13 @@ for the standing instruction to skip this directory during normal analysis.
 They're kept (rather than deleted) only because the *reasoning* inside them —
 why a given primitive or route shape was chosen — is occasionally worth
 digging up; git history alone makes that harder to search.
+
+**Added 2026-10-06 (repo cleanup):**
+
+- **`qa/`** — the QA audit and fix-progress reports from September and early October 2026 (`QA_*`, `aitestingledger.md`). Findings were fixed or carried into `WAITINGONLEDGER.md`.
+- **`docs/`** — the "close the loop" plan and spec, the structural-repair batch ledger, and the 2026-09-02 landing/limits audit.
+- **`plans/distributed-toasting-nygaard.md`** — the finished accessibility pass.
+- **`design_handoff_learnora_redesign/`** — the September 2026 redesign handoff; it shipped. `webapp/DESIGN.md` and `tokens.css` still cite it for the reasoning.
+- **`screenshots/`** — early feature screenshots, unreferenced.
+- **`sql/`** — the original hand-written `supabase_*.sql` setup scripts, superseded by `supabase/migrations/`.
+- **`migrations-unapplied/`** — the reconstructed baseline migration. It was never recorded in production and must not be applied there; see `WAITINGONLEDGER.md` 2 and 6.3.

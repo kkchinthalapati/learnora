@@ -15,6 +15,16 @@ If you're specifically asked to research *why* a past decision was made
 (a component's shape, a route's structure), `archive/` is fair game — just
 don't use it to infer what's currently true or what's currently left to do.
 
+## Keep `WAITINGONLEDGER.md` current
+
+`WAITINGONLEDGER.md` at the repo root lists everything the code is waiting on
+that a person must do: migrations to apply, edge functions to deploy, secrets
+and API keys to set, domain/billing/legal decisions. Update it **in the same
+commit** as any change that adds, changes or completes such a dependency (new
+migration, edited edge function, new env var or secret, merged PR with a
+follow-up step). Mark rows verified only with a date and only after checking
+production; otherwise leave them `UNVERIFIED`.
+
 ## Where the app actually lives
 
 - **`webapp/`** — the live React app (Vite + TS + Vitest). This is where

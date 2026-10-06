@@ -142,6 +142,18 @@ alter table public.question_bank drop column if exists review_status,
 
 Reviewing what it collects: `docs/question_review.sql`.
 
+### `20260901000000_add_diagram_artifact_type.sql`
+**Applied to production 2026-10-06.** Widens `notebook_artifacts_type_check` to
+admit `'diagram'`. Revert only if no diagram artifacts exist (the old constraint
+would then reject the existing rows):
+
+```sql
+delete from public.notebook_artifacts where type = 'diagram';
+alter table public.notebook_artifacts drop constraint if exists notebook_artifacts_type_check;
+alter table public.notebook_artifacts add constraint notebook_artifacts_type_check
+  check (type in ('feynman','cheat_sheet','flashcards','quiz','summary'));
+```
+
 ### `learnora-ai` edge function (quiz verification)
 Not deployed by merging. Deploy with `supabase functions deploy learnora-ai`
 after the migration above. Optional secrets: `QUIZ_VERIFIER_MODEL` (a cheaper
@@ -176,9 +188,8 @@ the CLI may try to re-run old files.
    1. `20261005000000_drop_duplicate_ai_request_log_index.sql`
    2. `20261005010000_mistake_loop.sql`
    3. `20261005020000_study_profile_any_board.sql`
-   Each is idempotent and safe to re-run. The untracked
-   `20260718000000_baseline_dashboard_tables.sql` in a local checkout is not
-   part of this branch; don't apply it.
+   Each is idempotent and safe to re-run. The reconstructed baseline lives in
+   `archive/migrations-unapplied/` and must not be applied to production.
 5. After each, run its verify query (in this file's per-migration section)
    and check Database ▸ Advisors for new security warnings.
 6. Record each as applied so the CLI history stays honest:
