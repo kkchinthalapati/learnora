@@ -99,6 +99,11 @@ function toQuestion(value: unknown): QuizQuestion | null {
     ...(typeof value.attribution === "string" && value.attribution.trim()
       ? { attribution: value.attribution.slice(0, 300) }
       : {}),
+    /* The checker's verdict and a bank ref travel with the question, so the
+       runner can label it and reports reach the right row. */
+    ...(typeof value.verified === "boolean" ? { verified: value.verified } : {}),
+    ...(value.generic === true ? { generic: true } : {}),
+    ...(typeof value.ref === "string" && /^bank:[A-Za-z0-9-]{1,80}$/.test(value.ref) ? { ref: value.ref } : {}),
   };
 }
 

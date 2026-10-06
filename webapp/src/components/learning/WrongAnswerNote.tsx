@@ -2,6 +2,8 @@ import { ExplainMistake } from "../../views/quiz/ExplainMistake";
 import type { QuizQuestion } from "../../lib/aiJson";
 import { questionKey } from "../../lib/questionKey";
 import { renderMathText } from "../../lib/markdownToReact";
+import { ReportProblem } from "./ReportProblem";
+import { questionRef } from "../../lib/questionVetting";
 import styles from "./wrongAnswer.module.css";
 
 /* Under any wrong answer, in any mode with answers: the right answer stated
@@ -16,12 +18,15 @@ export function WrongAnswerNote({
   chosenIndex,
   explanation,
   subject = "",
+  refFor,
 }: {
   question: QuizQuestion;
   chosenIndex: number;
   /** The stored explanation: question feedback or the bank's. */
   explanation?: string | null;
   subject?: string;
+  /** The question's report ref, when the caller knows it (a saved quiz). */
+  refFor?: string;
 }) {
   const right = question.choices[question.correctIndex];
   const why = explanation?.trim();
@@ -33,7 +38,14 @@ export function WrongAnswerNote({
         </p>
       ) : null}
       {why ? (
-        <p>{renderMathText(why)}</p>
+        <>
+          <p>{renderMathText(why)}</p>
+          <ReportProblem
+            questionRef={refFor ?? questionRef(question)}
+            questionText={question.question}
+            about="explanation"
+          />
+        </>
       ) : (
         <ExplainMistake
           question={question}

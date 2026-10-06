@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
@@ -33,6 +33,10 @@ import { TestResults } from "./TestResults";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
 import { HintLadderPanel } from "../../components/learning/HintLadderPanel";
 import { ExplainMistake } from "./ExplainMistake";
+import { ReportProblem } from "../../components/learning/ReportProblem";
+import { questionReportsApi } from "../../api/questionReports";
+import { isUnverified, questionRef, withoutFlagged } from "../../lib/questionVetting";
+import { useQuery } from "@tanstack/react-query";
 import { getRung } from "../../lib/hintState";
 import { questionKey } from "../../lib/questionKey";
 import { detectFromWrongAnswer } from "../../lib/misconceptionCatalogue";
@@ -66,8 +70,22 @@ export function QuizRunner() {
   const { quizId = "" } = useParams();
   const { data: quiz, isPending, isError, error } = useQuiz(quizId);
   const [sitting, setSitting] = useState(0);
+  /* Questions pulled after reports (question_flags) are skipped. A failed
+     lookup flags nothing, so it can never empty a quiz. */
+  const parsed = useMemo(() => (quiz ? parseStoredQuestions(quiz.questions_json) : []), [quiz]);
+  const flags = useQuery({
+    queryKey: ["question_flags", quizId, parsed.length],
+    /* Never holds the quiz up: offline or slow, it starts unfiltered. */
+    queryFn: () =>
+      Promise.race([
+        questionReportsApi.flagged(parsed.map((q) => questionRef(q, quizId))),
+        new Promise<Set<string>>((resolve) => setTimeout(() => resolve(new Set()), 1500)),
+      ]),
+    enabled: parsed.length > 0,
+    staleTime: 5 * 60_000,
+  });
 
-  if (isPending) {
+  if (isPending || (parsed.length > 0 && flags.isPending)) {
     return (
       <div className={styles.view} aria-busy="true">
         <Skeleton label="Loading quiz" height={220} />
@@ -108,7 +126,7 @@ export function QuizRunner() {
     );
   }
 
-  const questions = parseStoredQuestions(quiz.questions_json);
+  const questions = withoutFlagged(parsed, flags.data ?? new Set<string>(), quiz.id);
 
   /* Every question was unusable (or there were none). The vanilla would have
      rendered "Question 1 of 0" and an empty choice list. */
@@ -503,6 +521,13 @@ function QuizSession({
         {question.attribution ? (
           <p className={styles.attribution}>{question.attribution}</p>
         ) : null}
+        {isUnverified(question) ? (
+          <p className={styles.attribution}>
+            {question.generic
+              ? "Unverified: there's no built-in syllabus for this subject yet."
+              : "Unverified: our answer checker couldn't confirm this one."}
+          </p>
+        ) : null}
 
         {answered ? null : (
           <ConfidencePicker value={confidence} onChange={setConfidence} />
@@ -590,6 +615,8 @@ function QuizSession({
             failedQuestion={question.question}
           />
         ) : null}
+
+        <ReportProblem questionRef={questionRef(question, quizId)} questionText={question.question} />
 
         {answered ? (
           <div className={styles.nextRow}>

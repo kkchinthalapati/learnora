@@ -198,3 +198,35 @@ describe("the worked solution hands the question to the mistake loop", () => {
     expect(repair.due_at).toBeTruthy();
   });
 });
+
+describe("questions pulled after reports", () => {
+  it("are skipped, and every question offers 'Report a problem'", async () => {
+    const { questionRef } = await import("../../lib/questionVetting");
+    const pulled = questionRef(QUESTIONS[0], "quiz-1");
+    server.use(http.get(rest("question_flags"), () => HttpResponse.json([{ question_ref: pulled }])));
+    renderRunner();
+    expect(await screen.findByRole("heading", { name: /What is 2 \+ 2/ })).toBeInTheDocument();
+    expect(screen.getByText(/Question 1 of 1/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Report a problem" })).toBeInTheDocument();
+  });
+
+  it("an unverified question is labelled", async () => {
+    server.use(
+      http.get(rest("quizzes"), () =>
+        HttpResponse.json([
+          {
+            id: "quiz-1",
+            user_id: "user-1",
+            material_id: null,
+            folder_id: null,
+            title: "Mixed",
+            questions_json: [{ ...QUESTIONS[1], verified: false }],
+            created_at: "2026-07-01T00:00:00.000Z",
+          },
+        ]),
+      ),
+    );
+    renderRunner();
+    expect(await screen.findByText(/Unverified: our answer checker couldn't confirm/)).toBeInTheDocument();
+  });
+});

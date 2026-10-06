@@ -21,6 +21,8 @@ import { buildQuickCheckSource, missedTopics, scoreQuickCheck, QUICK_CHECK_QUEST
 import { normaliseTopicKey } from "../../lib/topicKey";
 import type { QuizQuestion } from "../../lib/aiJson";
 import { WrongAnswerNote } from "../learning/WrongAnswerNote";
+import { ReportProblem } from "../learning/ReportProblem";
+import { questionRef } from "../../lib/questionVetting";
 import styles from "./QuickCheck.module.css";
 
 export interface QuickCheckResult {
@@ -202,6 +204,7 @@ export function QuickCheck({
       {chosen != null && chosen !== q.correctIndex ? (
         <WrongAnswerNote question={q} chosenIndex={chosen} explanation={q.feedback} />
       ) : null}
+      <ReportProblem questionRef={questionRef(q)} questionText={q.question} />
       <div className={styles.actions}>
         <Button variant="secondary" onClick={onSkip}>Skip</Button>
         {last ? (

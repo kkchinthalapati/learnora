@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Button } from "../../components/Button";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
 import { WrongAnswerNote } from "../../components/learning/WrongAnswerNote";
+import { ReportProblem } from "../../components/learning/ReportProblem";
+import { questionRef } from "../../lib/questionVetting";
 import repairStyles from "../../components/learning/repair.module.css";
 import { useExams } from "../../hooks/useExams";
 import { useRecordRepair, useRecordRetest } from "../../hooks/useMistakeLoop";
@@ -189,6 +191,7 @@ function RetestRow({ m }: { m: Misconception }) {
                 />
               ) : null}
               {load.q.attribution ? <p className={repairStyles.sources}>{load.q.attribution}</p> : null}
+              <ReportProblem questionRef={load.q.ref ?? questionRef(load.q)} questionText={load.q.question} />
             </div>
           ) : null}
         </div>

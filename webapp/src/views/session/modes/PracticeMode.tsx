@@ -19,6 +19,8 @@ import { useAiTask } from "../useAiTask";
 import type { ModeProps } from "../modeTypes";
 import text from "../../../styles/text.module.css";
 import { WrongAnswerNote } from "../../../components/learning/WrongAnswerNote";
+import { ReportProblem } from "../../../components/learning/ReportProblem";
+import { questionRef } from "../../../lib/questionVetting";
 import styles from "../session.module.css";
 
 export const PRACTICE_PROBLEMS = 6;
@@ -299,6 +301,7 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                       explanation={question.feedback}
                     />
                   ) : null}
+                  <ReportProblem questionRef={questionRef(question)} questionText={question.question} />
                   <div className={styles.actions}>
                     <Button variant="primary" onClick={next}>
                       {data.questions && index + 1 >= data.questions.length ? "Finish" : "Next problem"}
