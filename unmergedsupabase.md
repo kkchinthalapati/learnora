@@ -31,6 +31,11 @@ This is the single source of truth for what is merged and what is live. **Before
 | C1 | `20261002000000_exams_syllabus.sql` (exams.syllabus_id / syllabus_tier) | ❌ branch `ccr-21911d53-k2odo3` | ✅ applied 2026-10-02, ahead of the merge (additive, nullable; `main` ignores the columns) |
 | C2 | `20261002010000_question_bank.sql` + seed (228 Learnora questions) | ❌ branch `ccr-21911d53-k2odo3` | ✅ applied and seeded 2026-10-02 (new table; read-back digest matches the repo) |
 | C3 | `20261002020000_past_paper_attempts.sql` | ❌ branch `ccr-21911d53-k2odo3` | ✅ applied 2026-10-02 (new table; nothing on `main` reads it) |
+| D1 | `20261005000000_drop_duplicate_ai_request_log_index.sql` | ✅ PR #132 | ✅ applied 2026-10-06 |
+| D2 | `20261005010000_mistake_loop.sql` | ✅ PR #132 | ✅ applied 2026-10-06 |
+| D3 | `20261005020000_study_profile_any_board.sql` | ✅ PR #132 | ✅ applied 2026-10-06 |
+| E1 | `20261006000000_question_verification_and_reports.sql` | ❌ branch `tutor-hints-verification` | ✅ applied 2026-10-06, ahead of the merge (additive; the webapp tolerates it either way) |
+| E2 | `learnora-ai` with quiz verification (caps, regeneration, review log) | ❌ branch `tutor-hints-verification` | ❌ needs `supabase functions deploy learnora-ai` after merge |
 
 ### What deploys what
 

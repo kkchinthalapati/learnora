@@ -120,6 +120,36 @@ where conname in ('profiles_exam_type_check','profiles_region_check');
 select to_regclass('public.subject_outlines');
 ```
 
+### `20261006000000_question_verification_and_reports.sql`
+**Applied to production 2026-10-06** (checked afterwards with a rolled-back
+test: flag after 3 reporters, bank row moved to `review`, cross-user insert
+refused, 21st report in a day refused; nothing left behind).
+Adds `question_bank.review_status` / `human_reviewed` / `verification` /
+`report_count`, and the `question_reports`, `question_flags` and
+`question_review_log` tables with their triggers. The webapp tolerates it
+being absent (bank fetch falls back, flags read as none, reports say
+"unavailable"). Revert loses reports and the review log.
+
+```sql
+drop table if exists public.question_flags, public.question_reports, public.question_review_log;
+drop function if exists public.limit_question_reports();
+drop function if exists public.flag_reported_question();
+drop index if exists public.ai_request_log_verify_created_idx;
+alter table public.question_bank drop column if exists review_status,
+  drop column if exists human_reviewed, drop column if exists verification,
+  drop column if exists report_count;
+```
+
+Reviewing what it collects: `docs/question_review.sql`.
+
+### `learnora-ai` edge function (quiz verification)
+Not deployed by merging. Deploy with `supabase functions deploy learnora-ai`
+after the migration above. Optional secrets: `QUIZ_VERIFIER_MODEL` (a cheaper
+checker model), `QUIZ_VERIFY_USER_DAILY` (default 20), `QUIZ_VERIFY_GLOBAL_DAILY`
+(default 2000). Rollback: redeploy the previous version from the dashboard
+(Edge Functions ▸ learnora-ai ▸ versions). Until it is deployed, quizzes come
+back without verdicts and the webapp serves them as before.
+
 ## How to apply to production safely
 
 Run these yourself, in order. Do not use `supabase db push`: production's
