@@ -3,9 +3,13 @@ import { quizzesApi } from "../api/quizzes";
 import { misconceptionsApi } from "../api/misconceptions";
 import {
   candidatesFromQuizAnswers,
+  conceptKey,
   type Misconception,
   type MisconceptionCandidate,
 } from "../lib/misconceptions";
+import { recordLoopObservation } from "../lib/offlineSync";
+import { retestDueAt } from "../lib/mistakeLoop";
+import { observationKey } from "../lib/questionKey";
 import { answeredQuestions, quizLoopCandidates, unmatchedWrong } from "../lib/quizMistakes";
 import { labelWrongAnswers } from "../api/mistakeLabel";
 import { parseStoredAnswers, parseStoredQuestions } from "../views/quiz/quizMeta";
@@ -143,11 +147,34 @@ function recordQuizMisconceptions(
      know it: it earns no correction on the ledger (and the scheduler
      brings it back sooner). Wrong answers count whatever the confidence. */
   const evidence = (
-    answers as Array<{ topic?: string; correct?: boolean; confidence?: string | null }>
-  ).filter((a) => !(a.correct && a.confidence === "guess"));
+    answers as Array<{ topic?: string; correct?: boolean; confidence?: string | null; hintRung?: number }>
+  ).filter((a) => !(a.correct && (a.confidence === "guess" || (a.hintRung ?? 0) > 0)));
   const write = async (candidates: MisconceptionCandidate[]) => {
     if (candidates.length === 0) return;
     const written = await misconceptionsApi.record(candidates);
+    /* A question the student was walked through: the worked solution is its
+       repair, so the loop books a retest on a different question. Keyed per
+       attempt and question, so a replayed attempt writes it once. */
+    const now = new Date();
+    await Promise.all(
+      candidates
+        .filter((c) => c.workedSolution && c.questionKey)
+        .map((c) => {
+          const row = written.find(
+            (w) => w.conceptKey === conceptKey(c.concept) && w.subject === c.subject,
+          );
+          if (!row) return null;
+          return recordLoopObservation({
+            misconceptionId: row.id,
+            kind: "repair",
+            sourceTool: "quiz",
+            questionKey: c.questionKey!,
+            idempotencyKey: observationKey("worked", attemptKey ?? "quiz", c.questionKey!),
+            dueAt: retestDueAt(now, row.timesObserved + 1),
+            detail: "Walked through the worked solution.",
+          }).catch((err) => console.warn("[mistakeLoop] worked-solution repair not recorded:", err));
+        }),
+    );
     if (written.length > 0) {
       void qc.invalidateQueries({ queryKey: misconceptionsKeys.all });
     }

@@ -81,3 +81,35 @@ describe("quiz answers → the mistake loop", () => {
     expect(quizLoopCandidates(guessed, { subject: "", attemptKey: "a", labels: new Map() })).toEqual([]);
   });
 });
+
+describe("hints and the worked solution", () => {
+  const Q: QuizQuestion[] = [
+    { id: "h1", question: "Capital of Peru?", choices: ["Lima", "Quito"], correctIndex: 0, topic: "Geography" },
+    { id: "h2", question: "What is 7 × 8?", choices: ["54", "56"], correctIndex: 1, topic: "Arithmetic" },
+  ];
+
+  it("a right answer after a hint earns no ledger correction", () => {
+    const answered = answeredQuestions(Q, [{ questionId: "h1", chosenIndex: 0, correct: true, topic: "Geography", hintRung: 2 }]);
+    expect(quizLoopCandidates(answered, { subject: "", attemptKey: "a", labels: new Map() })).toEqual([]);
+  });
+
+  it("the worked solution counts as a miss, filed as a concept gap and handed to the loop", () => {
+    const answered = answeredQuestions(Q, [
+      { questionId: "h2", chosenIndex: -1, correct: false, topic: "Arithmetic", hintRung: 3 },
+    ]);
+    expect(answered[0]).toMatchObject({ isCorrect: false, workedSolution: true });
+    const [c] = quizLoopCandidates(answered, { subject: "Maths", attemptKey: "a", labels: new Map() });
+    expect(c).toMatchObject({
+      kind: "evidence",
+      concept: "Arithmetic",
+      errorType: "concept",
+      workedSolution: true,
+      detail: expect.stringContaining("worked solution"),
+    });
+  });
+
+  it("even a stored 'correct' with the full ladder counts as wrong", () => {
+    const answered = answeredQuestions(Q, [{ questionId: "h1", chosenIndex: 0, correct: true, topic: "Geography", hintRung: 3 }]);
+    expect(answered[0].isCorrect).toBe(false);
+  });
+});

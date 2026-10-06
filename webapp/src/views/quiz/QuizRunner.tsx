@@ -31,6 +31,9 @@ import { ConfidencePicker } from "../../components/learning/ConfidencePicker";
 import type { Confidence } from "../../components/learning/options";
 import { TestResults } from "./TestResults";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
+import { HintLadderPanel } from "../../components/learning/HintLadderPanel";
+import { getRung } from "../../lib/hintState";
+import { questionKey } from "../../lib/questionKey";
 import { detectFromWrongAnswer } from "../../lib/misconceptionCatalogue";
 
 /* The quiz runner — ports js/router.js's `startQuiz` (:827-945).
@@ -152,6 +155,9 @@ interface QuizDraftState {
    *  duplicated tab, a replayed mutation — records one attempt. Optional so a
    *  draft written by an older build still resumes. */
   attemptKey?: string;
+  /** A hint was used in this run. Counts as progress: otherwise a reload
+   *  before the first answer minted a new attempt and wiped the hints. */
+  hinted?: boolean;
 }
 
 function isUsableDraft(
@@ -168,7 +174,7 @@ function isUsableDraft(
        the moment the quiz mounts, so opening a quiz and leaving meant the
        next visit opened on "Resume quiz? (question 1 of 2)" — a dialog
        about an attempt the student never started. */
-    draft.answers.length > 0
+    (draft.answers.length > 0 || draft.hinted === true)
   );
 }
 
@@ -234,6 +240,7 @@ function QuizSession({
   const [attemptKey, setAttemptKey] = useState(
     () => resumedDraft?.attemptKey ?? newAttemptKey(),
   );
+  const [hinted, setHinted] = useState(() => resumedDraft?.hinted === true);
 
   /* When the current question went on screen — choose() stamps the elapsed
    * seconds into the stored answer, which is the Speed Demon achievement's
@@ -253,7 +260,7 @@ function QuizSession({
 
   const draft = useQuizDraft<QuizDraftState>(
     draftKey,
-    { index, answers, attemptKey },
+    { index, answers, attemptKey, hinted },
     { enabled: !finished, warnOnUnload: !finished && answers.length > 0 },
   );
 
@@ -276,6 +283,7 @@ function QuizSession({
       setAnswers([]);
       setAnswered(null);
       setAttemptKey(newAttemptKey());
+      setHinted(false);
       draft.clear();
     });
     return () => {
@@ -345,11 +353,15 @@ function QuizSession({
     const correct = chosenIndex === question.correctIndex;
     setAnswered({ chosenIndex, correct });
 
+    /* Hints used before answering travel with the answer: a hinted right
+       answer earns no ledger correction (lib/tutorPolicy.ts hintOutcome). */
+    const hintRung = getRung(attemptKey, questionKey(question.question));
     const entry = {
       questionId: question.id ?? index,
       chosenIndex,
       correct,
       topic: question.topic,
+      ...(hintRung > 0 ? { hintRung } : {}),
       secondsSpent: Math.max(
         0,
         Math.round((Date.now() - questionShownAt.current) / 1000),
@@ -367,6 +379,30 @@ function QuizSession({
      * it went unnoticed, but `answers_json` is what the evidence layer
      * reads for per-topic accuracy, so the duplicate quietly weighted one
      * question twice in the misconception ledger. */
+    setAnswers((prev) => {
+      const at = prev.findIndex((a) => a.questionId === entry.questionId);
+      if (at === -1) return [...prev, entry];
+      const merged = [...prev];
+      merged[at] = entry;
+      return merged;
+    });
+  };
+
+  /* Reaching the worked solution is a miss: recorded as a wrong answer
+     with no pick, so the score, readiness and the mistake loop all treat it
+     as one, and the loop retests it later on a different question. */
+  const workedThrough = () => {
+    if (answered) return;
+    setAnswered({ chosenIndex: -1, correct: false });
+    const entry = {
+      questionId: question.id ?? index,
+      chosenIndex: -1,
+      correct: false,
+      topic: question.topic,
+      hintRung: 3,
+      secondsSpent: Math.max(0, Math.round((Date.now() - questionShownAt.current) / 1000)),
+      confidence: null,
+    };
     setAnswers((prev) => {
       const at = prev.findIndex((a) => a.questionId === entry.questionId);
       if (at === -1) return [...prev, entry];
@@ -427,8 +463,11 @@ function QuizSession({
   let hostTone: HostTone = null;
   if (answered) {
     const { verdict, detail } = hostFeedback(question, answered.correct);
-    hostVerdict = verdict;
-    hostMessage = detail;
+    hostVerdict =
+      answered.chosenIndex === -1
+        ? "Worked through together — this one comes back as a fresh question soon."
+        : verdict;
+    hostMessage = answered.chosenIndex === -1 ? "" : detail;
     hostTone = answered.correct ? "correct" : "incorrect";
   }
 
@@ -494,7 +533,15 @@ function QuizSession({
           })}
         </div>
 
-        {answered && !answered.correct && chat ? (
+        <HintLadderPanel
+          question={question}
+          attemptKey={attemptKey}
+          answered={!!answered}
+          onClimb={() => setHinted(true)}
+          onWorked={workedThrough}
+        />
+
+        {answered && !answered.correct && answered.chosenIndex !== -1 && chat ? (
           /* The runner states the right answer; this is for "but why?".
              Sent with the question, the pick and the answer so the student
              does not have to retype any of it. */

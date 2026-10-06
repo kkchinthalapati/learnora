@@ -1,0 +1,46 @@
+/* The hint ladder under a quiz question (HintLadderPanel). Same quiet panel
+   language as the misconception repair card beside it. */
+
+.ladder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+
+.rung {
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.rung[data-rung="3"] {
+  border-left-color: var(--recall);
+}
+
+.rung p {
+  margin: 0;
+}
+
+.rungLabel {
+  margin-bottom: var(--s-1) !important;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}

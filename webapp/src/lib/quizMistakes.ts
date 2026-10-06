@@ -21,7 +21,11 @@ export interface AnsweredQuestion {
   chosen: string;
   correct: string;
   isCorrect: boolean;
+  /** A guess, or a right answer reached with a hint: no ledger correction. */
   guessed: boolean;
+  /** The worked solution was shown (lib/tutorPolicy.ts): a miss the loop
+   *  retests, with the worked solution as its repair. */
+  workedSolution: boolean;
 }
 
 export function answeredQuestions(
@@ -38,8 +42,9 @@ export function answeredQuestions(
         topic: (a.topic ?? q.topic ?? "").trim(),
         chosen: q.choices[a.chosenIndex] ?? "",
         correct: q.choices[q.correctIndex] ?? "",
-        isCorrect: a.correct,
-        guessed: a.confidence === "guess",
+        isCorrect: a.correct && (a.hintRung ?? 0) < 3,
+        guessed: a.confidence === "guess" || (a.hintRung ?? 0) > 0,
+        workedSolution: (a.hintRung ?? 0) >= 3,
       },
     ];
   });
@@ -79,14 +84,23 @@ export function quizLoopCandidates(
       continue;
     }
 
-    const match = matchWrongAnswer(a, ctx.labels.get(qk));
+    /* A worked-through question has no pick to read a belief from, so it is
+       a plain concept gap under its topic. */
+    const match = a.workedSolution
+      ? ({ kind: "generic", errorType: "concept" } as const)
+      : matchWrongAnswer(a, ctx.labels.get(qk));
     const repair = repairFor(match, a);
     const common = {
       subject: ctx.subject,
       severity: "moderate" as const,
       tool: "quiz" as const,
       kind: "evidence" as const,
-      detail: a.chosen ? `Chose "${a.chosen}".` : `Left "${a.question}" unanswered.`,
+      detail: a.workedSolution
+        ? `Needed the worked solution for "${a.question}".`
+        : a.chosen
+          ? `Chose "${a.chosen}".`
+          : `Left "${a.question}" unanswered.`,
+      workedSolution: a.workedSolution,
       questionKey: qk,
       idempotencyKey: key("e"),
       repairText: repair.reteach,
