@@ -108,16 +108,92 @@ test('the full pass removes the bad questions and shuffles the rest', async () =
   assert.strictEqual(out.questions[0].choices[out.questions[0].correctIndex], 'Oxygen');
 });
 
-test('fails open when the checker is missing, throws, or rejects everything', async () => {
+test('a checker that is missing, throws or is unreadable leaves questions unverified, not dropped', async () => {
   const input = JSON.stringify({ questions: [GOOD, ROOT2_WRONG_KEY] });
   for (const verify of [
     async () => null,
     async () => { throw new Error('provider down'); },
-    async () => JSON.stringify({ results: [{ i: 0, answer: 3 }, { i: 1, answer: 3 }] }),
+    async () => 'Sure! Here are my thoughts',
   ]) {
     const out = JSON.parse(await improveQuiz(input, verify, seeded(1)));
     assert.strictEqual(out.questions.length, 2);
+    assert.ok(out.questions.every((q) => q.verified === false));
+    assert.strictEqual(out.verification.checked, false);
   }
+});
+
+test('agreement is stored as verified, with who checked it', async () => {
+  const input = JSON.stringify({ questions: [GOOD] });
+  const verify = async () => JSON.stringify({ results: [{ i: 0, answer: 0, confidence: 0.95 }] });
+  const out = JSON.parse(await improveQuiz(input, verify, { random: seeded(2), checkedBy: 'gemini-x' }));
+  assert.strictEqual(out.questions[0].verified, true);
+  assert.strictEqual(out.questions[0].verification.by, 'gemini-x');
+  assert.strictEqual(out.verification.verified, 1);
+});
+
+test('disagreement and low confidence are rejected, never sent, and reported', async () => {
+  const input = JSON.stringify({ questions: [GOOD, ROOT2_WRONG_KEY, { ...GOOD, question: 'Unsure one?' }] });
+  const verify = async () => JSON.stringify({
+    results: [
+      { i: 0, answer: 0, confidence: 0.9 },
+      { i: 1, answer: 1, confidence: 0.9 },
+      { i: 2, answer: 0, confidence: 0.4 },
+    ],
+  });
+  const rejected = [];
+  const out = JSON.parse(await improveQuiz(input, verify, {
+    random: seeded(3),
+    onRejected: (q, reason) => rejected.push([q.question, reason]),
+  }));
+  assert.deepStrictEqual(out.questions.map((q) => q.question), [GOOD.question]);
+  assert.deepStrictEqual(rejected.map(([, r]) => r), ['checker disagreed with the key', 'low confidence']);
+  assert.strictEqual(out.verification.rejected, 2);
+});
+
+test('rejections trigger one regeneration, checked the same way', async () => {
+  const input = JSON.stringify({ questions: [GOOD, ROOT2_WRONG_KEY] });
+  const fresh = { ...GOOD, question: 'Which gas do animals breathe out?', choices: ['Carbon dioxide', 'Argon'], correctIndex: 0 };
+  let regenerations = 0;
+  let checks = 0;
+  const verify = async () => {
+    checks += 1;
+    return checks === 1
+      ? JSON.stringify({ results: [{ i: 0, answer: 0 }, { i: 1, answer: 1 }] })
+      : JSON.stringify({ results: [{ i: 0, answer: 0, confidence: 0.9 }] });
+  };
+  const out = JSON.parse(await improveQuiz(input, verify, {
+    random: seeded(4),
+    regenerate: async (n, avoid) => {
+      regenerations += 1;
+      assert.strictEqual(n, 1);
+      assert.deepStrictEqual(avoid, [ROOT2_WRONG_KEY.question]);
+      return JSON.stringify({ questions: [fresh] });
+    },
+  }));
+  assert.strictEqual(regenerations, 1);
+  assert.deepStrictEqual(out.questions.map((q) => q.question).sort(), [GOOD.question, fresh.question].sort());
+  assert.ok(out.questions.every((q) => q.verified === true));
+  assert.strictEqual(out.verification.regenerated, 1);
+});
+
+test('a regeneration that also fails leaves the quiz short, for the client to top up from the bank', async () => {
+  const input = JSON.stringify({ questions: [ROOT2_WRONG_KEY] });
+  const verify = async () => JSON.stringify({ results: [{ i: 0, answer: 1 }] });
+  const out = JSON.parse(await improveQuiz(input, verify, {
+    random: seeded(5),
+    regenerate: async () => JSON.stringify({ questions: [{ ...ROOT2_WRONG_KEY, question: 'Still wrong?' }] }),
+  }));
+  assert.strictEqual(out.questions.length, 0);
+  assert.strictEqual(out.verification.rejected, 2);
+});
+
+test('past the daily cap nothing is sent to the checker and questions go out unverified', async () => {
+  const input = JSON.stringify({ questions: [GOOD] });
+  let called = false;
+  const out = JSON.parse(await improveQuiz(input, async () => { called = true; return null; }, { canVerify: false, random: seeded(6) }));
+  assert.strictEqual(called, false);
+  assert.strictEqual(out.questions[0].verified, false);
+  assert.strictEqual(out.verification.capped, true);
 });
 
 test('leaves non-quiz JSON and extra fields alone', async () => {
