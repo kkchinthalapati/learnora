@@ -32,6 +32,7 @@ import type { Confidence } from "../../components/learning/options";
 import { TestResults } from "./TestResults";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
 import { HintLadderPanel } from "../../components/learning/HintLadderPanel";
+import { ExplainMistake } from "./ExplainMistake";
 import { getRung } from "../../lib/hintState";
 import { questionKey } from "../../lib/questionKey";
 import { detectFromWrongAnswer } from "../../lib/misconceptionCatalogue";
@@ -540,6 +541,19 @@ function QuizSession({
           onClimb={() => setHinted(true)}
           onWorked={workedThrough}
         />
+
+        {/* No stored explanation and no named mix-up: the tutor's, on request,
+            so a wrong answer is never left with only a verdict. */}
+        {answered && !answered.correct && answered.chosenIndex !== -1 && !hostMessage && !repair ? (
+          <ExplainMistake
+            question={question}
+            chosenIndex={answered.chosenIndex}
+            topic={question.topic}
+            subject=""
+            materialId={null}
+            attemptId={attemptKey}
+          />
+        ) : null}
 
         {answered && !answered.correct && answered.chosenIndex !== -1 && chat ? (
           /* The runner states the right answer; this is for "but why?".
