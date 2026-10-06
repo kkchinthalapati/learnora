@@ -1,0 +1,2107 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "hint-m1",
+      "type": "hint_step",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the gradient of the line y = 3x + 2?",
+        "choices": [
+          "2",
+          "3",
+          "5",
+          "-2"
+        ],
+        "correctIndex": 1,
+        "topic": "Straight-line graphs"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-m2",
+      "type": "hint_step",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Solve 2x + 5 = 11.",
+        "choices": [
+          "3",
+          "8",
+          "6",
+          "2.5"
+        ],
+        "correctIndex": 0,
+        "topic": "Linear equations"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-m3",
+      "type": "hint_step",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is 15% of 80?",
+        "choices": [
+          "12",
+          "15",
+          "8",
+          "1.2"
+        ],
+        "correctIndex": 0,
+        "topic": "Percentages"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-m4",
+      "type": "hint_step",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the area of a circle with radius 3 cm?",
+        "choices": [
+          "9π cm²",
+          "6π cm²",
+          "3π cm²",
+          "18π cm²"
+        ],
+        "correctIndex": 0,
+        "topic": "Circles"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-m5",
+      "type": "hint_step",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is (−3)²?",
+        "choices": [
+          "9",
+          "−9",
+          "6",
+          "−6"
+        ],
+        "correctIndex": 0,
+        "topic": "Indices"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-m6",
+      "type": "hint_step",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the probability of rolling an even number on a fair six-sided dice?",
+        "choices": [
+          "1/2",
+          "1/3",
+          "1/6",
+          "2/3"
+        ],
+        "correctIndex": 0,
+        "topic": "Probability"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-m7",
+      "type": "hint_step",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is 0.5 × 0.4?",
+        "choices": [
+          "0.2",
+          "2",
+          "0.02",
+          "0.9"
+        ],
+        "correctIndex": 0,
+        "topic": "Decimals"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-m8",
+      "type": "hint_step",
+      "subject": "Mathematics",
+      "level": "KS3",
+      "seeded": true,
+      "input": {
+        "question": "What do the interior angles of a triangle add up to?",
+        "choices": [
+          "180°",
+          "360°",
+          "90°",
+          "270°"
+        ],
+        "correctIndex": 0,
+        "topic": "Angles"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-b1",
+      "type": "hint_step",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Where in a cell does most aerobic respiration take place?",
+        "choices": [
+          "Mitochondria",
+          "Ribosomes",
+          "Nucleus",
+          "Cell membrane"
+        ],
+        "correctIndex": 0,
+        "topic": "Respiration"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-b2",
+      "type": "hint_step",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "When do the cells of a plant respire?",
+        "choices": [
+          "Only at night",
+          "All the time, day and night",
+          "Only in daylight",
+          "Only when they are not photosynthesising"
+        ],
+        "correctIndex": 1,
+        "topic": "Photosynthesis and respiration"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-b3",
+      "type": "hint_step",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "In osmosis, what moves across a partially permeable membrane?",
+        "choices": [
+          "Water molecules",
+          "Salt particles",
+          "Sugar molecules",
+          "Protein molecules"
+        ],
+        "correctIndex": 0,
+        "topic": "Osmosis"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-b4",
+      "type": "hint_step",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Which blood vessels carry blood away from the heart?",
+        "choices": [
+          "Arteries",
+          "Veins",
+          "Capillaries",
+          "Valves"
+        ],
+        "correctIndex": 0,
+        "topic": "Circulatory system"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-c1",
+      "type": "hint_step",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the charge on an electron?",
+        "choices": [
+          "Negative",
+          "Positive",
+          "No charge",
+          "It depends on the atom"
+        ],
+        "correctIndex": 0,
+        "topic": "Atomic structure"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-c2",
+      "type": "hint_step",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the relative formula mass of H₂O? (H = 1, O = 16)",
+        "choices": [
+          "18",
+          "17",
+          "34",
+          "10"
+        ],
+        "correctIndex": 0,
+        "topic": "Relative formula mass"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-c3",
+      "type": "hint_step",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What happens to the total mass in a closed system during a chemical reaction?",
+        "choices": [
+          "It stays the same",
+          "It increases",
+          "It decreases",
+          "It doubles"
+        ],
+        "correctIndex": 0,
+        "topic": "Conservation of mass"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-c4",
+      "type": "hint_step",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the pH of a neutral solution at 25 °C?",
+        "choices": [
+          "7",
+          "0",
+          "14",
+          "1"
+        ],
+        "correctIndex": 0,
+        "topic": "pH scale"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-p1",
+      "type": "hint_step",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the unit of force?",
+        "choices": [
+          "Newton",
+          "Joule",
+          "Watt",
+          "Pascal"
+        ],
+        "correctIndex": 0,
+        "topic": "Forces"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-p2",
+      "type": "hint_step",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "A car moves at a constant velocity. What is the resultant force on it?",
+        "choices": [
+          "Zero",
+          "Forwards, in the direction of motion",
+          "Backwards, against the motion",
+          "Equal to its weight"
+        ],
+        "correctIndex": 0,
+        "topic": "Newton's first law"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-p3",
+      "type": "hint_step",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "A car travels 100 m in 20 s. What is its average speed?",
+        "choices": [
+          "5 m/s",
+          "2000 m/s",
+          "0.2 m/s",
+          "120 m/s"
+        ],
+        "correctIndex": 0,
+        "topic": "Speed"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-p4",
+      "type": "hint_step",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Ignoring air resistance, a heavy ball and a light ball are dropped together. Which lands first?",
+        "choices": [
+          "They land at the same time",
+          "The heavy ball",
+          "The light ball",
+          "It depends on their size"
+        ],
+        "correctIndex": 0,
+        "topic": "Free fall"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-i1",
+      "type": "hint_step",
+      "subject": "Biology",
+      "level": "IB",
+      "seeded": true,
+      "input": {
+        "question": "How do enzymes speed up reactions?",
+        "choices": [
+          "By lowering the activation energy",
+          "By adding energy to the reactants",
+          "By being used up in the reaction",
+          "By raising the temperature"
+        ],
+        "correctIndex": 0,
+        "topic": "Enzymes"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-i2",
+      "type": "hint_step",
+      "subject": "Chemistry",
+      "level": "IB",
+      "seeded": true,
+      "input": {
+        "question": "What is the sign of ΔH for an endothermic reaction?",
+        "choices": [
+          "Positive",
+          "Negative",
+          "Zero",
+          "It depends on the catalyst"
+        ],
+        "correctIndex": 0,
+        "topic": "Energetics"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-i3",
+      "type": "hint_step",
+      "subject": "Physics",
+      "level": "IB",
+      "seeded": true,
+      "input": {
+        "question": "What is the momentum of a 2 kg object moving at 3 m/s?",
+        "choices": [
+          "6 kg m/s",
+          "1.5 kg m/s",
+          "5 kg m/s",
+          "9 kg m/s"
+        ],
+        "correctIndex": 0,
+        "topic": "Momentum"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-u1",
+      "type": "hint_step",
+      "subject": "History",
+      "level": "KS3",
+      "seeded": false,
+      "input": {
+        "question": "In which year did the First World War begin?",
+        "choices": [
+          "1914",
+          "1918",
+          "1939",
+          "1905"
+        ],
+        "correctIndex": 0,
+        "topic": "The First World War"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "hint-u2",
+      "type": "hint_step",
+      "subject": "Geography",
+      "level": "KS3",
+      "seeded": false,
+      "input": {
+        "question": "Which layer of the Earth is liquid?",
+        "choices": [
+          "The outer core",
+          "The inner core",
+          "The crust",
+          "The whole mantle"
+        ],
+        "correctIndex": 0,
+        "topic": "Structure of the Earth"
+      },
+      "pass": "Nudge and step parse, neither names, quotes or points to the correct choice (leaksAnswer is false), the worked solution states the correct answer, and every rung reads at the stated level."
+    },
+    {
+      "id": "explain-m1",
+      "type": "explanation",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the gradient of the line y = 3x + 2?",
+        "choices": [
+          "2",
+          "3",
+          "5",
+          "-2"
+        ],
+        "correctIndex": 1,
+        "topic": "Straight-line graphs",
+        "chosenIndex": 0,
+        "subject": "Mathematics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-m2",
+      "type": "explanation",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Solve 2x + 5 = 11.",
+        "choices": [
+          "3",
+          "8",
+          "6",
+          "2.5"
+        ],
+        "correctIndex": 0,
+        "topic": "Linear equations",
+        "chosenIndex": 1,
+        "subject": "Mathematics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-m3",
+      "type": "explanation",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is 15% of 80?",
+        "choices": [
+          "12",
+          "15",
+          "8",
+          "1.2"
+        ],
+        "correctIndex": 0,
+        "topic": "Percentages",
+        "chosenIndex": 2,
+        "subject": "Mathematics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-m4",
+      "type": "explanation",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the area of a circle with radius 3 cm?",
+        "choices": [
+          "9π cm²",
+          "6π cm²",
+          "3π cm²",
+          "18π cm²"
+        ],
+        "correctIndex": 0,
+        "topic": "Circles",
+        "chosenIndex": 1,
+        "subject": "Mathematics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-m5",
+      "type": "explanation",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is (−3)²?",
+        "choices": [
+          "9",
+          "−9",
+          "6",
+          "−6"
+        ],
+        "correctIndex": 0,
+        "topic": "Indices",
+        "chosenIndex": 1,
+        "subject": "Mathematics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-m6",
+      "type": "explanation",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the probability of rolling an even number on a fair six-sided dice?",
+        "choices": [
+          "1/2",
+          "1/3",
+          "1/6",
+          "2/3"
+        ],
+        "correctIndex": 0,
+        "topic": "Probability",
+        "chosenIndex": 1,
+        "subject": "Mathematics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-m7",
+      "type": "explanation",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is 0.5 × 0.4?",
+        "choices": [
+          "0.2",
+          "2",
+          "0.02",
+          "0.9"
+        ],
+        "correctIndex": 0,
+        "topic": "Decimals",
+        "chosenIndex": 3,
+        "subject": "Mathematics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-m8",
+      "type": "explanation",
+      "subject": "Mathematics",
+      "level": "KS3",
+      "seeded": true,
+      "input": {
+        "question": "What do the interior angles of a triangle add up to?",
+        "choices": [
+          "180°",
+          "360°",
+          "90°",
+          "270°"
+        ],
+        "correctIndex": 0,
+        "topic": "Angles",
+        "chosenIndex": 1,
+        "subject": "Mathematics",
+        "level": "KS3"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-b1",
+      "type": "explanation",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Where in a cell does most aerobic respiration take place?",
+        "choices": [
+          "Mitochondria",
+          "Ribosomes",
+          "Nucleus",
+          "Cell membrane"
+        ],
+        "correctIndex": 0,
+        "topic": "Respiration",
+        "chosenIndex": 1,
+        "subject": "Biology",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-b2",
+      "type": "explanation",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "When do the cells of a plant respire?",
+        "choices": [
+          "Only at night",
+          "All the time, day and night",
+          "Only in daylight",
+          "Only when they are not photosynthesising"
+        ],
+        "correctIndex": 1,
+        "topic": "Photosynthesis and respiration",
+        "chosenIndex": 0,
+        "subject": "Biology",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-b3",
+      "type": "explanation",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "In osmosis, what moves across a partially permeable membrane?",
+        "choices": [
+          "Water molecules",
+          "Salt particles",
+          "Sugar molecules",
+          "Protein molecules"
+        ],
+        "correctIndex": 0,
+        "topic": "Osmosis",
+        "chosenIndex": 1,
+        "subject": "Biology",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-b4",
+      "type": "explanation",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Which blood vessels carry blood away from the heart?",
+        "choices": [
+          "Arteries",
+          "Veins",
+          "Capillaries",
+          "Valves"
+        ],
+        "correctIndex": 0,
+        "topic": "Circulatory system",
+        "chosenIndex": 1,
+        "subject": "Biology",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-c1",
+      "type": "explanation",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the charge on an electron?",
+        "choices": [
+          "Negative",
+          "Positive",
+          "No charge",
+          "It depends on the atom"
+        ],
+        "correctIndex": 0,
+        "topic": "Atomic structure",
+        "chosenIndex": 1,
+        "subject": "Chemistry",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-c2",
+      "type": "explanation",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the relative formula mass of H₂O? (H = 1, O = 16)",
+        "choices": [
+          "18",
+          "17",
+          "34",
+          "10"
+        ],
+        "correctIndex": 0,
+        "topic": "Relative formula mass",
+        "chosenIndex": 1,
+        "subject": "Chemistry",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-c3",
+      "type": "explanation",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What happens to the total mass in a closed system during a chemical reaction?",
+        "choices": [
+          "It stays the same",
+          "It increases",
+          "It decreases",
+          "It doubles"
+        ],
+        "correctIndex": 0,
+        "topic": "Conservation of mass",
+        "chosenIndex": 2,
+        "subject": "Chemistry",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-c4",
+      "type": "explanation",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the pH of a neutral solution at 25 °C?",
+        "choices": [
+          "7",
+          "0",
+          "14",
+          "1"
+        ],
+        "correctIndex": 0,
+        "topic": "pH scale",
+        "chosenIndex": 1,
+        "subject": "Chemistry",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-p1",
+      "type": "explanation",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the unit of force?",
+        "choices": [
+          "Newton",
+          "Joule",
+          "Watt",
+          "Pascal"
+        ],
+        "correctIndex": 0,
+        "topic": "Forces",
+        "chosenIndex": 1,
+        "subject": "Physics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-p2",
+      "type": "explanation",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "A car moves at a constant velocity. What is the resultant force on it?",
+        "choices": [
+          "Zero",
+          "Forwards, in the direction of motion",
+          "Backwards, against the motion",
+          "Equal to its weight"
+        ],
+        "correctIndex": 0,
+        "topic": "Newton's first law",
+        "chosenIndex": 1,
+        "subject": "Physics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-p3",
+      "type": "explanation",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "A car travels 100 m in 20 s. What is its average speed?",
+        "choices": [
+          "5 m/s",
+          "2000 m/s",
+          "0.2 m/s",
+          "120 m/s"
+        ],
+        "correctIndex": 0,
+        "topic": "Speed",
+        "chosenIndex": 2,
+        "subject": "Physics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-p4",
+      "type": "explanation",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Ignoring air resistance, a heavy ball and a light ball are dropped together. Which lands first?",
+        "choices": [
+          "They land at the same time",
+          "The heavy ball",
+          "The light ball",
+          "It depends on their size"
+        ],
+        "correctIndex": 0,
+        "topic": "Free fall",
+        "chosenIndex": 1,
+        "subject": "Physics",
+        "level": "GCSE"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-i1",
+      "type": "explanation",
+      "subject": "Biology",
+      "level": "IB",
+      "seeded": true,
+      "input": {
+        "question": "How do enzymes speed up reactions?",
+        "choices": [
+          "By lowering the activation energy",
+          "By adding energy to the reactants",
+          "By being used up in the reaction",
+          "By raising the temperature"
+        ],
+        "correctIndex": 0,
+        "topic": "Enzymes",
+        "chosenIndex": 2,
+        "subject": "Biology",
+        "level": "IB"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-i2",
+      "type": "explanation",
+      "subject": "Chemistry",
+      "level": "IB",
+      "seeded": true,
+      "input": {
+        "question": "What is the sign of ΔH for an endothermic reaction?",
+        "choices": [
+          "Positive",
+          "Negative",
+          "Zero",
+          "It depends on the catalyst"
+        ],
+        "correctIndex": 0,
+        "topic": "Energetics",
+        "chosenIndex": 1,
+        "subject": "Chemistry",
+        "level": "IB"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-i3",
+      "type": "explanation",
+      "subject": "Physics",
+      "level": "IB",
+      "seeded": true,
+      "input": {
+        "question": "What is the momentum of a 2 kg object moving at 3 m/s?",
+        "choices": [
+          "6 kg m/s",
+          "1.5 kg m/s",
+          "5 kg m/s",
+          "9 kg m/s"
+        ],
+        "correctIndex": 0,
+        "topic": "Momentum",
+        "chosenIndex": 2,
+        "subject": "Physics",
+        "level": "IB"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-u1",
+      "type": "explanation",
+      "subject": "History",
+      "level": "KS3",
+      "seeded": false,
+      "input": {
+        "question": "In which year did the First World War begin?",
+        "choices": [
+          "1914",
+          "1918",
+          "1939",
+          "1905"
+        ],
+        "correctIndex": 0,
+        "topic": "The First World War",
+        "chosenIndex": 1,
+        "subject": "History",
+        "level": "KS3"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "explain-u2",
+      "type": "explanation",
+      "subject": "Geography",
+      "level": "KS3",
+      "seeded": false,
+      "input": {
+        "question": "Which layer of the Earth is liquid?",
+        "choices": [
+          "The outer core",
+          "The inner core",
+          "The crust",
+          "The whole mantle"
+        ],
+        "correctIndex": 0,
+        "topic": "Structure of the Earth",
+        "chosenIndex": 1,
+        "subject": "Geography",
+        "level": "KS3"
+      },
+      "pass": "Valid JSON with 'explanation' and 'misconception'; the explanation names the correct answer, does not call the chosen answer right, and reads at the stated level."
+    },
+    {
+      "id": "check-ok-m2",
+      "type": "quiz_question",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Solve 2x + 5 = 11.",
+        "choices": [
+          "3",
+          "8",
+          "6",
+          "2.5"
+        ],
+        "correctIndex": 0,
+        "topic": "Linear equations"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-m3",
+      "type": "quiz_question",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is 15% of 80?",
+        "choices": [
+          "12",
+          "15",
+          "8",
+          "1.2"
+        ],
+        "correctIndex": 0,
+        "topic": "Percentages"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-m6",
+      "type": "quiz_question",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the probability of rolling an even number on a fair six-sided dice?",
+        "choices": [
+          "1/2",
+          "1/3",
+          "1/6",
+          "2/3"
+        ],
+        "correctIndex": 0,
+        "topic": "Probability"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-m7",
+      "type": "quiz_question",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is 0.5 × 0.4?",
+        "choices": [
+          "0.2",
+          "2",
+          "0.02",
+          "0.9"
+        ],
+        "correctIndex": 0,
+        "topic": "Decimals"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-b2",
+      "type": "quiz_question",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "When do the cells of a plant respire?",
+        "choices": [
+          "Only at night",
+          "All the time, day and night",
+          "Only in daylight",
+          "Only when they are not photosynthesising"
+        ],
+        "correctIndex": 1,
+        "topic": "Photosynthesis and respiration"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-b3",
+      "type": "quiz_question",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "In osmosis, what moves across a partially permeable membrane?",
+        "choices": [
+          "Water molecules",
+          "Salt particles",
+          "Sugar molecules",
+          "Protein molecules"
+        ],
+        "correctIndex": 0,
+        "topic": "Osmosis"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-b4",
+      "type": "quiz_question",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Which blood vessels carry blood away from the heart?",
+        "choices": [
+          "Arteries",
+          "Veins",
+          "Capillaries",
+          "Valves"
+        ],
+        "correctIndex": 0,
+        "topic": "Circulatory system"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-c2",
+      "type": "quiz_question",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the relative formula mass of H₂O? (H = 1, O = 16)",
+        "choices": [
+          "18",
+          "17",
+          "34",
+          "10"
+        ],
+        "correctIndex": 0,
+        "topic": "Relative formula mass"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-c3",
+      "type": "quiz_question",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What happens to the total mass in a closed system during a chemical reaction?",
+        "choices": [
+          "It stays the same",
+          "It increases",
+          "It decreases",
+          "It doubles"
+        ],
+        "correctIndex": 0,
+        "topic": "Conservation of mass"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-c4",
+      "type": "quiz_question",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the pH of a neutral solution at 25 °C?",
+        "choices": [
+          "7",
+          "0",
+          "14",
+          "1"
+        ],
+        "correctIndex": 0,
+        "topic": "pH scale"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-p2",
+      "type": "quiz_question",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "A car moves at a constant velocity. What is the resultant force on it?",
+        "choices": [
+          "Zero",
+          "Forwards, in the direction of motion",
+          "Backwards, against the motion",
+          "Equal to its weight"
+        ],
+        "correctIndex": 0,
+        "topic": "Newton's first law"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-p3",
+      "type": "quiz_question",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "A car travels 100 m in 20 s. What is its average speed?",
+        "choices": [
+          "5 m/s",
+          "2000 m/s",
+          "0.2 m/s",
+          "120 m/s"
+        ],
+        "correctIndex": 0,
+        "topic": "Speed"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-i1",
+      "type": "quiz_question",
+      "subject": "Biology",
+      "level": "IB",
+      "seeded": true,
+      "input": {
+        "question": "How do enzymes speed up reactions?",
+        "choices": [
+          "By lowering the activation energy",
+          "By adding energy to the reactants",
+          "By being used up in the reaction",
+          "By raising the temperature"
+        ],
+        "correctIndex": 0,
+        "topic": "Enzymes"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-i2",
+      "type": "quiz_question",
+      "subject": "Chemistry",
+      "level": "IB",
+      "seeded": true,
+      "input": {
+        "question": "What is the sign of ΔH for an endothermic reaction?",
+        "choices": [
+          "Positive",
+          "Negative",
+          "Zero",
+          "It depends on the catalyst"
+        ],
+        "correctIndex": 0,
+        "topic": "Energetics"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-ok-i3",
+      "type": "quiz_question",
+      "subject": "Physics",
+      "level": "IB",
+      "seeded": true,
+      "input": {
+        "question": "What is the momentum of a 2 kg object moving at 3 m/s?",
+        "choices": [
+          "6 kg m/s",
+          "1.5 kg m/s",
+          "5 kg m/s",
+          "9 kg m/s"
+        ],
+        "correctIndex": 0,
+        "topic": "Momentum"
+      },
+      "expect": "verified",
+      "pass": "The question checker (VERIFIER_SYSTEM + judgeQuestions) verifies this correctly keyed, self-contained question."
+    },
+    {
+      "id": "check-bad-m1",
+      "type": "quiz_question",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the gradient of the line y = 3x + 2?",
+        "choices": [
+          "2",
+          "3",
+          "5",
+          "-2"
+        ],
+        "correctIndex": 2,
+        "topic": "Straight-line graphs"
+      },
+      "expect": "rejected",
+      "pass": "The checker rejects a question whose stored key is wrong, so it is never shown."
+    },
+    {
+      "id": "check-bad-m4",
+      "type": "quiz_question",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the area of a circle with radius 3 cm?",
+        "choices": [
+          "9π cm²",
+          "6π cm²",
+          "3π cm²",
+          "18π cm²"
+        ],
+        "correctIndex": 1,
+        "topic": "Circles"
+      },
+      "expect": "rejected",
+      "pass": "The checker rejects a question whose stored key is wrong, so it is never shown."
+    },
+    {
+      "id": "check-bad-m5",
+      "type": "quiz_question",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is (−3)²?",
+        "choices": [
+          "9",
+          "−9",
+          "6",
+          "−6"
+        ],
+        "correctIndex": 1,
+        "topic": "Indices"
+      },
+      "expect": "rejected",
+      "pass": "The checker rejects a question whose stored key is wrong, so it is never shown."
+    },
+    {
+      "id": "check-bad-m8",
+      "type": "quiz_question",
+      "subject": "Mathematics",
+      "level": "KS3",
+      "seeded": true,
+      "input": {
+        "question": "What do the interior angles of a triangle add up to?",
+        "choices": [
+          "180°",
+          "360°",
+          "90°",
+          "270°"
+        ],
+        "correctIndex": 1,
+        "topic": "Angles"
+      },
+      "expect": "rejected",
+      "pass": "The checker rejects a question whose stored key is wrong, so it is never shown."
+    },
+    {
+      "id": "check-bad-b1",
+      "type": "quiz_question",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Where in a cell does most aerobic respiration take place?",
+        "choices": [
+          "Mitochondria",
+          "Ribosomes",
+          "Nucleus",
+          "Cell membrane"
+        ],
+        "correctIndex": 1,
+        "topic": "Respiration"
+      },
+      "expect": "rejected",
+      "pass": "The checker rejects a question whose stored key is wrong, so it is never shown."
+    },
+    {
+      "id": "check-bad-c1",
+      "type": "quiz_question",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the charge on an electron?",
+        "choices": [
+          "Negative",
+          "Positive",
+          "No charge",
+          "It depends on the atom"
+        ],
+        "correctIndex": 1,
+        "topic": "Atomic structure"
+      },
+      "expect": "rejected",
+      "pass": "The checker rejects a question whose stored key is wrong, so it is never shown."
+    },
+    {
+      "id": "check-bad-p1",
+      "type": "quiz_question",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "What is the unit of force?",
+        "choices": [
+          "Newton",
+          "Joule",
+          "Watt",
+          "Pascal"
+        ],
+        "correctIndex": 1,
+        "topic": "Forces"
+      },
+      "expect": "rejected",
+      "pass": "The checker rejects a question whose stored key is wrong, so it is never shown."
+    },
+    {
+      "id": "check-bad-p4",
+      "type": "quiz_question",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Ignoring air resistance, a heavy ball and a light ball are dropped together. Which lands first?",
+        "choices": [
+          "They land at the same time",
+          "The heavy ball",
+          "The light ball",
+          "It depends on their size"
+        ],
+        "correctIndex": 1,
+        "topic": "Free fall"
+      },
+      "expect": "rejected",
+      "pass": "The checker rejects a question whose stored key is wrong, so it is never shown."
+    },
+    {
+      "id": "check-bad-two-primes",
+      "type": "quiz_question",
+      "subject": "Mathematics",
+      "level": "KS3",
+      "seeded": true,
+      "input": {
+        "question": "Which of these is a prime number?",
+        "choices": [
+          "2",
+          "3",
+          "4",
+          "6"
+        ],
+        "correctIndex": 0,
+        "topic": "Primes"
+      },
+      "expect": "rejected",
+      "pass": "The checker rejects a question with two correct options."
+    },
+    {
+      "id": "check-bad-figure",
+      "type": "quiz_question",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "question": "Using the graph above, what is the acceleration of the trolley?",
+        "choices": [
+          "2 m/s²",
+          "4 m/s²",
+          "0.5 m/s²",
+          "8 m/s²"
+        ],
+        "correctIndex": 0,
+        "topic": "Acceleration"
+      },
+      "expect": "rejected",
+      "pass": "The checker rejects a question that depends on a figure the student can't see."
+    },
+    {
+      "id": "match-belief-m1",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What is the gradient of the line y = 3x + 2?",
+          "chosen": "2",
+          "correct": "3",
+          "topic": "Straight-line graphs"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "intercept",
+          "y-intercept",
+          "constant"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-m4",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What is the area of a circle with radius 3 cm?",
+          "chosen": "6π cm²",
+          "correct": "9π cm²",
+          "topic": "Circles"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "circumference",
+          "2πr",
+          "perimeter"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-m5",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What is (−3)²?",
+          "chosen": "−9",
+          "correct": "9",
+          "topic": "Indices"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "negative",
+          "sign",
+          "square"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-m7",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What is 0.5 × 0.4?",
+          "chosen": "0.9",
+          "correct": "0.2",
+          "topic": "Decimals"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "add",
+          "multiplying",
+          "smaller"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-m8",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "KS3",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What do the interior angles of a triangle add up to?",
+          "chosen": "360°",
+          "correct": "180°",
+          "topic": "Angles"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "quadrilateral",
+          "full turn",
+          "360"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-b1",
+      "type": "misconception_match",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Biology",
+        "item": {
+          "question": "Where in a cell does most aerobic respiration take place?",
+          "chosen": "Ribosomes",
+          "correct": "Mitochondria",
+          "topic": "Respiration"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "ribosome",
+          "protein",
+          "organelle"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-b2",
+      "type": "misconception_match",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Biology",
+        "item": {
+          "question": "When do the cells of a plant respire?",
+          "chosen": "Only at night",
+          "correct": "All the time, day and night",
+          "topic": "Photosynthesis and respiration"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "night",
+          "respire",
+          "photosynthesis"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-b3",
+      "type": "misconception_match",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Biology",
+        "item": {
+          "question": "In osmosis, what moves across a partially permeable membrane?",
+          "chosen": "Salt particles",
+          "correct": "Water molecules",
+          "topic": "Osmosis"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "solute",
+          "salt",
+          "particles"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-b4",
+      "type": "misconception_match",
+      "subject": "Biology",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Biology",
+        "item": {
+          "question": "Which blood vessels carry blood away from the heart?",
+          "chosen": "Veins",
+          "correct": "Arteries",
+          "topic": "Circulatory system"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "vein",
+          "artery",
+          "direction"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-c1",
+      "type": "misconception_match",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Chemistry",
+        "item": {
+          "question": "What is the charge on an electron?",
+          "chosen": "Positive",
+          "correct": "Negative",
+          "topic": "Atomic structure"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "proton",
+          "charge",
+          "positive"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-c3",
+      "type": "misconception_match",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Chemistry",
+        "item": {
+          "question": "What happens to the total mass in a closed system during a chemical reaction?",
+          "chosen": "It decreases",
+          "correct": "It stays the same",
+          "topic": "Conservation of mass"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "mass",
+          "lost",
+          "used up",
+          "destroyed"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-p1",
+      "type": "misconception_match",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Physics",
+        "item": {
+          "question": "What is the unit of force?",
+          "chosen": "Joule",
+          "correct": "Newton",
+          "topic": "Forces"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "energy",
+          "work",
+          "joule"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-p2",
+      "type": "misconception_match",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Physics",
+        "item": {
+          "question": "A car moves at a constant velocity. What is the resultant force on it?",
+          "chosen": "Forwards, in the direction of motion",
+          "correct": "Zero",
+          "topic": "Newton's first law"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "force",
+          "motion",
+          "keep moving"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-p4",
+      "type": "misconception_match",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Physics",
+        "item": {
+          "question": "Ignoring air resistance, a heavy ball and a light ball are dropped together. Which lands first?",
+          "chosen": "The heavy ball",
+          "correct": "They land at the same time",
+          "topic": "Free fall"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "heavier",
+          "mass",
+          "weight",
+          "faster"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-belief-i1",
+      "type": "misconception_match",
+      "subject": "Biology",
+      "level": "IB",
+      "seeded": true,
+      "input": {
+        "subject": "Biology",
+        "item": {
+          "question": "How do enzymes speed up reactions?",
+          "chosen": "By being used up in the reaction",
+          "correct": "By lowering the activation energy",
+          "topic": "Enzymes"
+        }
+      },
+      "expect": {
+        "label": true,
+        "keywords": [
+          "used up",
+          "consumed",
+          "catalyst"
+        ]
+      },
+      "pass": "The labeller names a belief (not 'none') whose concept or belief mentions at least one expected keyword."
+    },
+    {
+      "id": "match-slip-m1",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What is the gradient of the line y = 3x + 2?",
+          "chosen": "5",
+          "correct": "3",
+          "topic": "Straight-line graphs"
+        }
+      },
+      "expect": {
+        "label": false
+      },
+      "pass": "An arithmetic or recall slip is not dressed up as a named belief: the labeller answers 'none'."
+    },
+    {
+      "id": "match-slip-m2",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "Solve 2x + 5 = 11.",
+          "chosen": "8",
+          "correct": "3",
+          "topic": "Linear equations"
+        }
+      },
+      "expect": {
+        "label": false
+      },
+      "pass": "An arithmetic or recall slip is not dressed up as a named belief: the labeller answers 'none'."
+    },
+    {
+      "id": "match-slip-m3",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What is 15% of 80?",
+          "chosen": "8",
+          "correct": "12",
+          "topic": "Percentages"
+        }
+      },
+      "expect": {
+        "label": false
+      },
+      "pass": "An arithmetic or recall slip is not dressed up as a named belief: the labeller answers 'none'."
+    },
+    {
+      "id": "match-slip-m4",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What is the area of a circle with radius 3 cm?",
+          "chosen": "3π cm²",
+          "correct": "9π cm²",
+          "topic": "Circles"
+        }
+      },
+      "expect": {
+        "label": false
+      },
+      "pass": "An arithmetic or recall slip is not dressed up as a named belief: the labeller answers 'none'."
+    },
+    {
+      "id": "match-slip-m5",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What is (−3)²?",
+          "chosen": "6",
+          "correct": "9",
+          "topic": "Indices"
+        }
+      },
+      "expect": {
+        "label": false
+      },
+      "pass": "An arithmetic or recall slip is not dressed up as a named belief: the labeller answers 'none'."
+    },
+    {
+      "id": "match-slip-m6",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What is the probability of rolling an even number on a fair six-sided dice?",
+          "chosen": "1/3",
+          "correct": "1/2",
+          "topic": "Probability"
+        }
+      },
+      "expect": {
+        "label": false
+      },
+      "pass": "An arithmetic or recall slip is not dressed up as a named belief: the labeller answers 'none'."
+    },
+    {
+      "id": "match-slip-m7",
+      "type": "misconception_match",
+      "subject": "Mathematics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Mathematics",
+        "item": {
+          "question": "What is 0.5 × 0.4?",
+          "chosen": "0.02",
+          "correct": "0.2",
+          "topic": "Decimals"
+        }
+      },
+      "expect": {
+        "label": false
+      },
+      "pass": "An arithmetic or recall slip is not dressed up as a named belief: the labeller answers 'none'."
+    },
+    {
+      "id": "match-slip-c2",
+      "type": "misconception_match",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Chemistry",
+        "item": {
+          "question": "What is the relative formula mass of H₂O? (H = 1, O = 16)",
+          "chosen": "17",
+          "correct": "18",
+          "topic": "Relative formula mass"
+        }
+      },
+      "expect": {
+        "label": false
+      },
+      "pass": "An arithmetic or recall slip is not dressed up as a named belief: the labeller answers 'none'."
+    },
+    {
+      "id": "match-slip-c4",
+      "type": "misconception_match",
+      "subject": "Chemistry",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Chemistry",
+        "item": {
+          "question": "What is the pH of a neutral solution at 25 °C?",
+          "chosen": "0",
+          "correct": "7",
+          "topic": "pH scale"
+        }
+      },
+      "expect": {
+        "label": false
+      },
+      "pass": "An arithmetic or recall slip is not dressed up as a named belief: the labeller answers 'none'."
+    },
+    {
+      "id": "match-slip-p1",
+      "type": "misconception_match",
+      "subject": "Physics",
+      "level": "GCSE",
+      "seeded": true,
+      "input": {
+        "subject": "Physics",
+        "item": {
+          "question": "What is the unit of force?",
+          "chosen": "Watt",
+          "correct": "Newton",
+          "topic": "Forces"
+        }
+      },
+      "expect": {
+        "label": false
+      },
+      "pass": "An arithmetic or recall slip is not dressed up as a named belief: the labeller answers 'none'."
+    }
+  ]
+}

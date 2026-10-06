@@ -122,6 +122,10 @@ export const handlers = [
     () => new HttpResponse(null, { status: 201 }),
   ),
 
+  /* Questions pulled after reports. Read before every quiz; none is the
+     normal case. */
+  http.get(rest("question_flags"), () => HttpResponse.json([])),
+
   http.get(rest("study_sessions"), () => HttpResponse.json([])),
   http.post(
     rest("study_sessions"),

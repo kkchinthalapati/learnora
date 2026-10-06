@@ -24,6 +24,11 @@ export interface RetestQuestion {
   correctIndex: number;
   source: "bank" | "ai";
   attribution?: string | null;
+  /** Why the right answer is right: the bank's explanation or the AI's
+   *  feedback, shown on a miss. */
+  explanation?: string | null;
+  /** "bank:<uuid>" for a bank question, for reports and flags. */
+  ref?: string;
 }
 
 type Row = Pick<Misconception, "concept" | "summary" | "excludedQuestionKeys">;
@@ -46,6 +51,8 @@ export async function bankRetestQuestion(
     correctIndex: picked.correct_index,
     source: "bank",
     attribution: picked.attribution ?? null,
+    explanation: picked.explanation ?? null,
+    ref: `bank:${picked.id}`,
   };
 }
 
@@ -58,6 +65,12 @@ export async function aiRetestQuestion(m: Row, settings: Settings): Promise<Rete
   });
   const picked = pickRetestQuestion(questions, m.excludedQuestionKeys ?? []);
   return picked
-    ? { question: picked.question, choices: picked.choices, correctIndex: picked.correctIndex, source: "ai" }
+    ? {
+        question: picked.question,
+        choices: picked.choices,
+        correctIndex: picked.correctIndex,
+        source: "ai",
+        explanation: picked.feedback ?? null,
+      }
     : null;
 }

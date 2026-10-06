@@ -20,6 +20,18 @@ export interface QuizQuestion {
   /** Licence credit for a question from the practice bank (e.g. Oak
    *  National Academy, OGL v3.0), shown beneath it. */
   attribution?: string;
+  /** Set by the server's quiz checker: true when a second model solved it
+   *  and agreed with the key, false when it couldn't be checked (shown as
+   *  unverified). Absent on questions from before the checker recorded it. */
+  verified?: boolean;
+  /** "bank:<uuid>" for a practice-bank question; reports and review flags
+   *  are keyed by it. */
+  ref?: string;
+  /** In a subject with no built-in syllabus (lib/questionVetting.ts): shown
+   *  with the unverified label even when the checker agreed. */
+  generic?: boolean;
+  /** Who agreed with the key, and when (server checker). */
+  verification?: { by: string; at: string };
 }
 
 export interface FlashcardDraft {

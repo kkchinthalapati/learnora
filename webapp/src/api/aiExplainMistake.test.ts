@@ -151,6 +151,8 @@ describe("parseMistakeExplanation", () => {
 describe("explainMistake", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
+    // Explanations are cached per question; each test asks afresh.
+    localStorage.removeItem("learnora_mistake_explanations_v1");
   });
 
   afterEach(() => {
@@ -167,6 +169,28 @@ describe("explainMistake", () => {
     expect(body.tool).toBe("debugger");
     expect(body.mode).toBe("solver");
     expect(body.history?.[0].content).toContain(INPUT.question);
+  });
+
+  it("pitches the explanation at the student's level", async () => {
+    let prompt = "";
+    replyWith(JSON.stringify(GOOD), (b) => {
+      prompt = (b as { history: { content: string }[] }).history[0].content;
+    });
+    await explainMistake({ ...INPUT, level: "GCSE Foundation" });
+    expect(prompt).toContain("GCSE Foundation");
+  });
+
+  it("caches a verified question's explanation, and not an unverified one's", async () => {
+    let calls = 0;
+    replyWith(JSON.stringify(GOOD), () => (calls += 1));
+    await explainMistake(INPUT);
+    await explainMistake(INPUT);
+    expect(calls).toBe(1);
+
+    const unverified = { ...INPUT, question: "Another question?", verified: false };
+    await explainMistake(unverified);
+    await explainMistake(unverified);
+    expect(calls).toBe(3);
   });
 
   it("grounds the prompt in the quiz's source material", async () => {

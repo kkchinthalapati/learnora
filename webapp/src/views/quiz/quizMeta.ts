@@ -26,6 +26,10 @@ export interface StoredAnswer {
    *  Drives "confident but wrong" and the ochre "guessed" marks on results.
    *  Absent on attempts recorded before it existed, and when not given. */
   confidence?: Confidence | null;
+  /** Hint-ladder rung reached before answering (lib/tutorPolicy.ts): 1-2 a
+   *  hint was used, 3 the worked solution was shown and the answer counts
+   *  as wrong (chosenIndex is then -1). Absent when no help was used. */
+  hintRung?: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -95,6 +99,11 @@ function toQuestion(value: unknown): QuizQuestion | null {
     ...(typeof value.attribution === "string" && value.attribution.trim()
       ? { attribution: value.attribution.slice(0, 300) }
       : {}),
+    /* The checker's verdict and a bank ref travel with the question, so the
+       runner can label it and reports reach the right row. */
+    ...(typeof value.verified === "boolean" ? { verified: value.verified } : {}),
+    ...(value.generic === true ? { generic: true } : {}),
+    ...(typeof value.ref === "string" && /^bank:[A-Za-z0-9-]{1,80}$/.test(value.ref) ? { ref: value.ref } : {}),
   };
 }
 
@@ -130,6 +139,9 @@ function toAnswer(value: unknown): StoredAnswer | null {
       value.confidence === "certain"
         ? value.confidence
         : undefined,
+    ...(value.hintRung === 1 || value.hintRung === 2 || value.hintRung === 3
+      ? { hintRung: value.hintRung }
+      : {}),
   };
 }
 

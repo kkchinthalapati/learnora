@@ -23,6 +23,7 @@ import { supabase } from "../lib/supabase";
 import { hasAiConsent } from "../lib/aiConsent";
 import { extractJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
+import { labelPrompt } from "../lib/tutorPolicy";
 import { QUOTAS } from "../lib/entitlements";
 import type { ProvisionalLabel } from "../lib/mistakeLoop";
 import { questionKey } from "../lib/questionKey";
@@ -37,31 +38,8 @@ export interface LabelItem {
   topic: string;
 }
 
-export function buildLabelPrompt(
-  subject: string,
-  items: LabelItem[],
-  knownConcepts: string[],
-): string {
-  const list = items
-    .map(
-      (it, i) =>
-        `${i}. Topic: ${fenceUntrusted(it.topic) || "(none)"}\n   Question: """${fenceUntrusted(it.question)}"""\n   Picked: """${fenceUntrusted(it.chosen) || "(no answer)"}"""\n   Right answer: """${fenceUntrusted(it.correct)}"""`,
-    )
-    .join("\n");
-  const known = knownConcepts.length
-    ? `\nLabels already used for this student in this subject (reuse one exactly if it fits): ${knownConcepts
-        .slice(0, 20)
-        .map((c) => `"${fenceUntrusted(c)}"`)
-        .join(", ")}.`
-    : "";
-  return `A secondary-school student answered these ${subject ? `${fenceUntrusted(subject)} ` : ""}questions wrongly.
-For each, decide whether the picked option reveals a specific wrong BELIEF (not a slip, misreading or arithmetic error).
-If it does, name it. If you are not confident, answer none for that item.${known}
-
-${list}
-
-Reply with JSON only:
-{"items":[{"i":0,"concept":"short name of the idea, max 60 chars","belief":"the wrong belief in the student's words, one sentence","reteach":"the right idea said a different way, max 2 sentences","contrast":"one example putting the wrong belief beside the right one"} or {"i":1,"none":true}]}`;
+export function buildLabelPrompt(subject: string, items: LabelItem[], knownConcepts: string[]): string {
+  return labelPrompt(subject, items, knownConcepts, fenceUntrusted);
 }
 
 function clean(v: unknown, max: number): string {

@@ -21,6 +21,9 @@ import { fenceUntrusted } from "../lib/actionTags";
 import { AI_PERSONA_QUIZ_HOST, type Settings } from "../lib/settings";
 import { misconceptionsApi } from "./misconceptions";
 import { rankMisconceptions, type Misconception } from "../lib/misconceptions";
+import { seededMatch, vetGeneratedQuestions, type SeededMatch } from "../lib/questionVetting";
+import { bankToQuiz, fetchBankQuestions } from "./questionBank";
+import { pickPractice } from "../lib/questionBank";
 import type { Quiz } from "./types";
 
 /** Applied whenever the caller omits a value — the vanilla's `CREATE_DEFAULTS`
@@ -217,6 +220,8 @@ export async function generateQuizQuestions({ sourceText, topic, settings, optio
   /* Best-effort, like every other context read in this app: a quiz that is
      merely generic is a far smaller loss than no quiz at all, so a failed
      ledger read falls back to the prompt exactly as it was. */
+  const wanted = options.questionCount ?? QUIZ_DEFAULTS.questionCount;
+  const seeded = seededMatch(topic);
   let misconceptionFocus = "";
   try {
     misconceptionFocus = buildMisconceptionFocus(
@@ -250,12 +255,38 @@ export async function generateQuizQuestions({ sourceText, topic, settings, optio
     mode: "quiz",
     tool: "quiz",
     settings,
+    quizMeta: seeded
+      ? { seeded: true, subject: seeded.spec.subject, specId: seeded.spec.id }
+      : { seeded: false },
   });
 
-  const questions = extractQuizJSON(text);
+  /* The server's checker has already removed rejected questions. In a
+     seeded subject only verified ones are shown, and any gap is filled from
+     the practice bank; elsewhere everything is labelled unverified
+     (lib/questionVetting.ts). */
+  const { serve, shortBy } = vetGeneratedQuestions(extractQuizJSON(text), { seeded: !!seeded, wanted });
+  const questions = seeded && shortBy > 0 ? [...serve, ...(await bankTopUp(seeded, shortBy, serve))] : serve;
   if (questions.length === 0) throw new QuizShapeError();
 
   return questions;
+}
+
+/** Practice-bank questions for a seeded topic, to fill a quiz the checker
+ *  left short. Never throws: a short quiz beats none. */
+async function bankTopUp(
+  match: SeededMatch,
+  count: number,
+  have: QuizQuestion[],
+): Promise<QuizQuestion[]> {
+  try {
+    const rows = await fetchBankQuestions(match.spec, [match.topic.ref], null);
+    const seen = new Set(have.map((q) => q.question.trim().toLowerCase()));
+    const fresh = rows.filter((r) => !seen.has(r.question.trim().toLowerCase()));
+    return bankToQuiz(match.spec, pickPractice(fresh, [match.topic.ref], count));
+  } catch (err) {
+    console.warn("[quiz] bank top-up unavailable:", err);
+    return [];
+  }
 }
 
 /* The quiz is pitched at the exam its topic belongs to when there is one

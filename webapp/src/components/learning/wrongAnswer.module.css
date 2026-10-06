@@ -1,0 +1,12 @@
+/* WrongAnswerNote: the right answer and why, under a wrong pick. */
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+  font-size: var(--fs-sm);
+}
+
+.note p {
+  margin: 0;
+}

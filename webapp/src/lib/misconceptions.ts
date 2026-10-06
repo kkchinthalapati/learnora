@@ -115,6 +115,9 @@ export interface MisconceptionCandidate {
   catalogueId?: string;
   repairText?: string;
   contrastText?: string;
+  /** The student was walked through the worked solution: the caller records
+   *  that as the repair, so the loop schedules a retest. */
+  workedSolution?: boolean;
 }
 
 /** Below this, a concept name is noise rather than a diagnosis — a stray

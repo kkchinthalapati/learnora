@@ -74,6 +74,9 @@ export interface EdgePayload {
    *  session's calls once against the daily allowance (see
    *  checkAndLogRateLimit). Set automatically while a session is open. */
   sessionKey?: string;
+  /** For quiz generation: whether the topic is in a seeded syllabus, so the
+   *  server logs questions its checker rejects for human review. */
+  quizMeta?: { seeded: boolean; subject?: string; specId?: string };
 }
 
 /* The open Study session, if any. Module state rather than a parameter on

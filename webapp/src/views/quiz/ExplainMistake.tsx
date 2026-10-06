@@ -11,6 +11,9 @@ import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
 import type { QuizQuestion } from "../../lib/aiJson";
 import { renderMathText } from "../../lib/markdownToReact";
 import { candidatesFromMistakeExplanation } from "../../lib/misconceptions";
+import { studentLevel } from "../../lib/studentLevel";
+import { ReportProblem } from "../../components/learning/ReportProblem";
+import { questionRef } from "../../lib/questionVetting";
 import styles from "./quiz.module.css";
 
 /* "Why was I wrong?" under one wrong answer.
@@ -88,7 +91,7 @@ export function ExplainMistake({
   const [logged, setLogged] = useState(false);
 
   const explain = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       explainMistake({
         question: question.question,
         choices: question.choices,
@@ -97,6 +100,9 @@ export function ExplainMistake({
         topic,
         subject,
         materialId,
+        /* Pitched at what the student said they study (onboarding, exams). */
+        level: await studentLevel().catch(() => null),
+        verified: question.verified,
       }),
     onSuccess: (result) => {
       if (!result.explanation) return;
@@ -160,6 +166,11 @@ export function ExplainMistake({
           Logged to your misconception ledger.
         </p>
       ) : null}
+      <ReportProblem
+        questionRef={questionRef(question)}
+        questionText={question.question}
+        about="explanation"
+      />
     </section>
   );
 }

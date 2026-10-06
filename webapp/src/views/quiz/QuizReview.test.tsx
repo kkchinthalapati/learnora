@@ -85,6 +85,7 @@ function choiceRow(text: string) {
 
 describe("QuizReview", () => {
   beforeEach(() => {
+    localStorage.removeItem("learnora_mistake_explanations_v1");
     mockAuthSession("user-1");
   });
 
