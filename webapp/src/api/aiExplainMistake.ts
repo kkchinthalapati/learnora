@@ -2,6 +2,8 @@ import { AiError, callEdge } from "./ai";
 import { materialsApi } from "./materials";
 import { fenceUntrusted } from "../lib/actionTags";
 import { extractJSON } from "../lib/aiJson";
+import { levelGuidance } from "../lib/tutorPolicy";
+import { questionKey } from "../lib/questionKey";
 
 /* "Why was I wrong?" — one quiz mistake, explained.
  *
@@ -47,6 +49,11 @@ export interface ExplainMistakeInput {
   subject?: string;
   /** The quiz's source material, when it has one. Read on demand. */
   materialId?: string | null;
+  /** The student's stated level, so the explanation is pitched at it. */
+  level?: string | null;
+  /** False for a question the quiz checker couldn't verify: its
+   *  explanation isn't cached, since the question may be replaced. */
+  verified?: boolean;
 }
 
 export type ExplainMistakeResult =
@@ -171,6 +178,8 @@ The student chose: """${fenceUntrusted(chosen)}"""${
       : ""
   }
 
+${levelGuidance(input.level)}
+
 Work out the most likely wrong belief that would lead someone to pick the student's answer, then explain it.
 
 Return ONLY this JSON object:
@@ -270,9 +279,43 @@ function studentFacingReason(err: unknown): string {
 const UNREADABLE_MESSAGE =
   "The tutor answered, but not in a form we could show. Try again, or read the explanation under the question.";
 
+const CACHE_KEY = "learnora_mistake_explanations_v1";
+const CACHE_MAX = 150;
+const cacheId = (input: ExplainMistakeInput) =>
+  [questionKey(input.question), input.chosenIndex, (input.level ?? "").toLowerCase()].join("|");
+
+function readCache(): Record<string, { e: MistakeExplanation; at: number }> {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_KEY) ?? "{}") ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/** A previous explanation of this exact mistake at this level, if any. */
+export function cachedExplanation(input: ExplainMistakeInput): MistakeExplanation | null {
+  return readCache()[cacheId(input)]?.e ?? null;
+}
+
+function storeExplanation(input: ExplainMistakeInput, e: MistakeExplanation): void {
+  if (input.verified === false) return;
+  const all = readCache();
+  all[cacheId(input)] = { e, at: Date.now() };
+  const entries = Object.entries(all).sort((a, b) => b[1].at - a[1].at).slice(0, CACHE_MAX);
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(Object.fromEntries(entries)));
+  } catch {
+    /* A full or blocked store only means the next view asks again. */
+  }
+}
+
 export async function explainMistake(
   input: ExplainMistakeInput,
 ): Promise<ExplainMistakeResult> {
+  /* Explanations of verified questions are kept on the device, so asking
+     again (or reopening the review) doesn't spend another call. */
+  const cached = cachedExplanation(input);
+  if (cached) return { explanation: cached };
   const excerpt = await loadSourceExcerpt(input);
   let text: string;
   try {
@@ -300,5 +343,6 @@ export async function explainMistake(
   if (!explanation) {
     return { degraded: { reason: "unreadable", message: UNREADABLE_MESSAGE } };
   }
+  storeExplanation(input, explanation);
   return { explanation };
 }
