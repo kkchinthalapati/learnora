@@ -18,6 +18,7 @@ import { SessionComposer } from "../SessionComposer";
 import { useAiTask } from "../useAiTask";
 import type { ModeProps } from "../modeTypes";
 import text from "../../../styles/text.module.css";
+import { WrongAnswerNote } from "../../../components/learning/WrongAnswerNote";
 import styles from "../session.module.css";
 
 export const PRACTICE_PROBLEMS = 6;
@@ -288,9 +289,16 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                       ? answer.confidence === "guess"
                         ? "✓ Right, but you guessed. It will come back sooner so it sticks. "
                         : "✓ Right. "
-                      : "✕ Not this one. "}
-                    {question.feedback ?? ""}
+                      : "✕ Not this one."}
+                    {answer.correct ? (question.feedback ?? "") : ""}
                   </p>
+                  {!answer.correct ? (
+                    <WrongAnswerNote
+                      question={question}
+                      chosenIndex={answer.chosen}
+                      explanation={question.feedback}
+                    />
+                  ) : null}
                   <div className={styles.actions}>
                     <Button variant="primary" onClick={next}>
                       {data.questions && index + 1 >= data.questions.length ? "Finish" : "Next problem"}

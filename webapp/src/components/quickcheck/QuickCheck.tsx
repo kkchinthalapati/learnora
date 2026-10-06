@@ -20,6 +20,7 @@ import { useSettings } from "../../context/settings";
 import { buildQuickCheckSource, missedTopics, scoreQuickCheck, QUICK_CHECK_QUESTIONS } from "../../lib/quickCheck";
 import { normaliseTopicKey } from "../../lib/topicKey";
 import type { QuizQuestion } from "../../lib/aiJson";
+import { WrongAnswerNote } from "../learning/WrongAnswerNote";
 import styles from "./QuickCheck.module.css";
 
 export interface QuickCheckResult {
@@ -196,8 +197,11 @@ export function QuickCheck({
           );
         })}
       </div>
-      {chosen != null ? <p role="status">{chosen === q.correctIndex ? "Correct" : `Correct answer: ${q.choices[q.correctIndex]}`}</p> : null}
-      {chosen != null && q.feedback ? <p className={styles.feedback}>{q.feedback}</p> : null}
+      {chosen != null && chosen === q.correctIndex ? <p role="status">Correct</p> : null}
+      {chosen != null && chosen === q.correctIndex && q.feedback ? <p className={styles.feedback}>{q.feedback}</p> : null}
+      {chosen != null && chosen !== q.correctIndex ? (
+        <WrongAnswerNote question={q} chosenIndex={chosen} explanation={q.feedback} />
+      ) : null}
       <div className={styles.actions}>
         <Button variant="secondary" onClick={onSkip}>Skip</Button>
         {last ? (

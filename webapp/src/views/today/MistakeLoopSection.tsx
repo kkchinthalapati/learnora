@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../components/Button";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
+import { WrongAnswerNote } from "../../components/learning/WrongAnswerNote";
 import repairStyles from "../../components/learning/repair.module.css";
 import { useExams } from "../../hooks/useExams";
 import { useRecordRepair, useRecordRetest } from "../../hooks/useMistakeLoop";
@@ -173,6 +174,19 @@ function RetestRow({ m }: { m: Misconception }) {
                     : "Not this time. It's back on your list, with a fresh repair."}
                   {queued ? " Saved on this device; it will sync when you're back online." : ""}
                 </p>
+              ) : null}
+              {picked !== null && picked !== load.q.correctIndex ? (
+                <WrongAnswerNote
+                  question={{
+                    question: load.q.question,
+                    choices: load.q.choices,
+                    correctIndex: load.q.correctIndex,
+                    topic: m.concept,
+                  }}
+                  chosenIndex={picked}
+                  explanation={load.q.explanation}
+                  subject={m.subject}
+                />
               ) : null}
               {load.q.attribution ? <p className={repairStyles.sources}>{load.q.attribution}</p> : null}
             </div>
