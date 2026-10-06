@@ -27,6 +27,11 @@ export interface QuizQuestion {
   /** "bank:<uuid>" for a practice-bank question; reports and review flags
    *  are keyed by it. */
   ref?: string;
+  /** In a subject with no built-in syllabus (lib/questionVetting.ts): shown
+   *  with the unverified label even when the checker agreed. */
+  generic?: boolean;
+  /** Who agreed with the key, and when (server checker). */
+  verification?: { by: string; at: string };
 }
 
 export interface FlashcardDraft {

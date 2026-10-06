@@ -73,6 +73,10 @@ export function toQuizQuestions(
     correctIndex: row.correct_index,
     topic: topicTitle(row.topic_ref),
     feedback: row.explanation ?? undefined,
+    /* Written and checked by people, not generated: verified, and reported
+       or pulled by its bank ref. */
+    verified: true,
+    ref: `bank:${row.id}`,
   }));
 }
 

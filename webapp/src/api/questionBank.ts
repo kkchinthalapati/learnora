@@ -39,14 +39,21 @@ export async function fetchBankQuestions(
   tier: SyllabusTier | null,
 ): Promise<BankQuestion[]> {
   if (topicRefs.length === 0) return [];
-  let query = supabase
-    .from("question_bank")
-    .select(COLUMNS)
-    .eq("spec_key", bankKey(spec))
-    .in("topic_ref", topicRefs)
-    .limit(500);
-  if (tier) query = query.or(`tier.is.null,tier.eq.${tier}`);
-  const { data, error } = await query;
+  const build = () => {
+    let query = supabase
+      .from("question_bank")
+      .select(COLUMNS)
+      .eq("spec_key", bankKey(spec))
+      .in("topic_ref", topicRefs)
+      .limit(500);
+    if (tier) query = query.or(`tier.is.null,tier.eq.${tier}`);
+    return query;
+  };
+  /* Questions pulled after reports (review_status 'review') are not served.
+     Before migration 20261006000000 the column doesn't exist; then every row
+     is served, as it always was. */
+  let { data, error } = await build().eq("review_status", "active");
+  if (error && /review_status/.test(error.message)) ({ data, error } = await build());
   if (error) throw new Error(error.message);
   return (data ?? []) as BankQuestion[];
 }
