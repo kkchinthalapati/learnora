@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { renderMathText } from "../../../lib/markdownToReact";
 import { learningEventsApi } from "../../../api/learningEvents";
 import { normaliseTopicKey } from "../../../lib/topicKey";
 import { Button } from "../../../components/Button";
@@ -251,7 +252,7 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                     : "No timer"}
                 </span>
               </div>
-              <p className={styles.problem}>{question.question}</p>
+              <p className={styles.problem}>{renderMathText(question.question)}</p>
               {question.attribution ? (
                 <p className={styles.caption}>{question.attribution}</p>
               ) : null}
@@ -277,7 +278,7 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                         <span className={styles.key} aria-hidden="true">
                           {KEYS[i]}
                         </span>
-                        {struck ? <s>{choice}</s> : choice}
+                        {struck ? <s>{renderMathText(choice)}</s> : renderMathText(choice)}
                         {struck ? <span className={styles.srOnly}> (ruled out by a hint)</span> : null}
                       </button>
                     </li>

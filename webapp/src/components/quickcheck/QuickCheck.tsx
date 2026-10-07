@@ -1,4 +1,5 @@
 import { fenceUntrusted } from "../../lib/actionTags";
+import { renderMathText } from "../../lib/markdownToReact";
 import { buildTopicStates, scoreOf } from "../../lib/trajectory";
 import { getGradeScale, normaliseScore, renderGrade } from "../../lib/gradeScale";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
@@ -181,7 +182,7 @@ export function QuickCheck({
     <div className={styles.check}>
       {!grounded ? <p>No matching source text is available. These questions use general topic knowledge.</p> : null}
       <p className={styles.progress}>Question {index + 1} of {questions.length}</p>
-      <h3 className={styles.question}>{q.question}</h3>
+      <h3 className={styles.question}>{renderMathText(q.question)}</h3>
       <div className={styles.choices} role="group" aria-label="Answers">
         {q.choices.map((choice, i) => {
           const state =
@@ -194,7 +195,7 @@ export function QuickCheck({
               disabled={chosen != null}
               onClick={() => setAnswers((a) => a.map((v, j) => (j === index ? i : v)))}
             >
-              {choice}
+              {renderMathText(choice)}
             </button>
           );
         })}

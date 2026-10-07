@@ -120,9 +120,17 @@ Optional verification tuning (defaults are fine): `QUIZ_VERIFIER_MODEL`
 
 ### 4.5 Other keys
 
+**Oak import, as reviewed 2026-10-07** (run in review mode, nothing written): 1,050 questions, all `gcse-maths` (Year 10 and 11, foundation and higher). Four sampled answers hand-checked and correct. 692 contain LaTeX (`$$…$$`); no explanations. **There is no GCSE science from Oak**: the API's science programmes stop at Year 9, so the sciences stay on the 228 Learnora-written questions. Run it yourself, from `webapp/`:
+
+```bash
+OAK_API_KEY=… SUPABASE_URL=https://mlvgqwqiynpwpwzqufdf.supabase.co \n  SUPABASE_SERVICE_ROLE_KEY=… node scripts/question-bank/import-oak.mjs --apply
+```
+
+Re-running is safe (duplicates are skipped). To undo: `delete from question_bank where source = 'oak';`. Also add the OGL attribution line to the About or Terms page (see `docs/QUESTION_SOURCES.md`).
+
 | Item | Status |
 |------|--------|
-| Oak National Academy API key (free) to run the question-bank importer, `docs/QUESTION_SOURCES.md` | BLOCKED on you. Optional: 228 hand-written questions are live without it. |
+| **Apply the Oak import** (1,050 GCSE Maths questions). Key obtained 2026-10-07 and a review-mode run done (see below); only the write to production is left. Needs your `SUPABASE_SERVICE_ROLE_KEY`, which no agent has. | **READY** (after PR #133 merges, so Practice, QuickCheck and retests render the LaTeX) |
 | A provider key in your shell to run the eval harness: `GEMINI_API_KEY=... node evals/run.mjs --provider gemini` | BLOCKED on you. 100 fixtures built and graders tested; **never run against a real model**, so the pass rate is unknown. Use `--dry-run` to see prompts for free. |
 
 ## 5. Domain, hosting, accounts
@@ -162,4 +170,5 @@ Optional verification tuning (defaults are fine): `QUIZ_VERIFIER_MODEL`
 | 2026-10-06 | Applied `question_verification_and_reports` |
 | 2026-10-06 | Applied `drop_duplicate_ai_request_log_index`, `mistake_loop`, `study_profile_any_board` |
 | 2026-10-02 | Applied A1-A3, B1a/b, B2a, C1-C3; deployed `learnora-ai` v65-66; question bank seeded (228) |
+| 2026-10-07 | Oak API key obtained; importer reviewed (maths only) |
 | 2026-10-06 | Cleanup: stale docs, SQL, screenshots, design handoff and the unapplied baseline moved to `archive/` |

@@ -44,7 +44,7 @@ Sources:
 
 ## To do (needs a person)
 
-1. **Get an Oak API key.** It's free: request one at https://open-api.thenational.academy.
+1. **Oak API key: obtained 2026-10-07.** Only the `--apply` write is left. Note: Oak's API has no GCSE science (its science programmes end at Year 9), so the import is GCSE Maths only (1,050 questions at the last run). (Keys are free: https://open-api.thenational.academy.)
    Then run:
    ```bash
    cd webapp

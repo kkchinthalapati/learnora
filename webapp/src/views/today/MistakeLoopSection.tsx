@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { renderMathText } from "../../lib/markdownToReact";
 import { Button } from "../../components/Button";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
 import { WrongAnswerNote } from "../../components/learning/WrongAnswerNote";
@@ -147,7 +148,7 @@ function RetestRow({ m }: { m: Misconception }) {
           ) : null}
           {load.state === "ready" ? (
             <div className={repairStyles.check} role="group" aria-label="Retest question">
-              <p className={repairStyles.checkQuestion}>{load.q.question}</p>
+              <p className={repairStyles.checkQuestion}>{renderMathText(load.q.question)}</p>
               <div className={repairStyles.choices}>
                 {load.q.choices.map((choice, i) => (
                   <button
@@ -165,7 +166,7 @@ function RetestRow({ m }: { m: Misconception }) {
                     disabled={picked !== null}
                     onClick={() => answer(i, load.q)}
                   >
-                    {choice}
+                    {renderMathText(choice)}
                   </button>
                 ))}
               </div>
