@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Button } from "../../components/Button";
+import { ButtonLink } from "../../components/ButtonLink";
 import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
@@ -118,9 +119,7 @@ export function QuizRunner() {
           title="Quiz not found"
           message="It may have been deleted, or the link is out of date."
         >
-          <Link to={QUIZZES_PATH}>
-            <Button variant="primary">Back to Quizzes</Button>
-          </Link>
+          <ButtonLink to={QUIZZES_PATH} variant="primary">Back to Quizzes</ButtonLink>
         </EmptyState>
       </div>
     );

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { callEdge } from "../../api/ai";
 import type { Flashcard } from "../../api/types";
 import { Button } from "../../components/Button";
+import { ButtonLink } from "../../components/ButtonLink";
 import { CardImage } from "../../components/CardImage";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
@@ -146,9 +147,7 @@ export function ReviewView() {
             message="You're offline. Learnora keeps your due cards on this device while you're connected — once you've been online with this deck, it will be here next time."
           >
             {isDailyDrill ? null : (
-              <Link to="/review/daily-drill">
-                <Button variant="primary">Review your saved cards</Button>
-              </Link>
+              <ButtonLink to="/review/daily-drill" variant="primary">Review your saved cards</ButtonLink>
             )}
           </EmptyState>
         </div>
@@ -193,9 +192,7 @@ export function ReviewView() {
           title="This deck no longer exists."
           message="It may have been deleted from another tab or device."
         >
-          <Link to={FLASHCARDS_PATH}>
-            <Button variant="primary">Back to Flashcards</Button>
-          </Link>
+          <ButtonLink to={FLASHCARDS_PATH} variant="primary">Back to Flashcards</ButtonLink>
         </EmptyState>
       </div>
     );

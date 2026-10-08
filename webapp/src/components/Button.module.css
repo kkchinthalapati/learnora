@@ -15,6 +15,7 @@
   border: 1px solid transparent;
   border-radius: var(--r-md);
   cursor: pointer;
+  text-decoration: none;
   color: var(--text);
   background: transparent;
   transition:

@@ -12,6 +12,9 @@ import { getHintLadder } from "../../api/aiHints";
 
 vi.mock("../../api/aiHints", () => ({ getHintLadder: vi.fn() }));
 vi.mock("../../lib/studentLevel", () => ({ studentLevel: vi.fn(async () => "GCSE") }));
+/* The background AI labeller would otherwise hit the network and wait out
+   its retry delay before the ledger writes land. */
+vi.mock("../../api/mistakeLabel", () => ({ labelWrongAnswers: vi.fn(async () => new Map()) }));
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 

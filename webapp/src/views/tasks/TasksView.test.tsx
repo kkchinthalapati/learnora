@@ -170,7 +170,7 @@ describe("TasksView", () => {
     renderTasks();
     await screen.findByText("No tasks yet. Add one above.");
 
-    const input = screen.getByRole("textbox", { name: "New Task Input" });
+    const input = screen.getByRole("textbox", { name: "Task name" });
     await user.type(input, "Write essay");
     const due = screen.getByLabelText(/Due date/);
     await user.type(due, "2026-08-20");
@@ -201,7 +201,7 @@ describe("TasksView", () => {
     await screen.findByText("No tasks yet. Add one above.");
 
     await user.type(
-      screen.getByRole("textbox", { name: "New Task Input" }),
+      screen.getByRole("textbox", { name: "Task name" }),
       "Just do it{Enter}",
     );
 
@@ -520,7 +520,7 @@ describe("TasksView", () => {
       await screen.findByText("No tasks yet. Add one above.");
 
       await user.type(
-        screen.getByRole("textbox", { name: "New Task Input" }),
+        screen.getByRole("textbox", { name: "Task name" }),
         "Review biology",
       );
       await user.click(

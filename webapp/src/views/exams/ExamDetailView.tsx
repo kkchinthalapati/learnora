@@ -156,8 +156,14 @@ export function ExamDetailView() {
   };
 
   const days = daysUntil(exam.exam_date, localDateStr());
+  /* Same date format as the exam list, not the raw YYYY-MM-DD. */
+  const prettyDate = new Date(`${exam.exam_date}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
   const when =
-    days < 0 ? `Sat on ${exam.exam_date}` : days === 0 ? "Today" : `In ${plural(days, "day")} · ${exam.exam_date}`;
+    days < 0 ? `Sat on ${prettyDate}` : days === 0 ? "Today" : `In ${plural(days, "day")} · ${prettyDate}`;
 
   return (
     <div className={styles.page} data-print-root>

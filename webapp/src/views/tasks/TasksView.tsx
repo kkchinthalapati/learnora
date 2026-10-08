@@ -136,7 +136,7 @@ export function TasksView() {
                 placeholder={t("placeholder_task")}
                 autoComplete="off"
                 maxLength={TASK_MAX}
-                aria-label="New Task Input"
+                aria-label="Task name"
                 value={text}
                 onAnimationEnd={() => setShake(false)}
                 onChange={(e) => setText(e.target.value)}

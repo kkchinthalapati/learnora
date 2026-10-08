@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router";
 import { flashcardsApi, type CardFields } from "../../api/flashcards";
 import type { Flashcard } from "../../api/types";
 import { Button } from "../../components/Button";
+import { ButtonLink } from "../../components/ButtonLink";
 import { CardImage } from "../../components/CardImage";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
@@ -433,9 +434,7 @@ export function DeckCardsView() {
           title="This deck no longer exists."
           message="It may have been deleted from another tab or device."
         >
-          <Link to={FLASHCARDS_PATH}>
-            <Button variant="primary">Back to Flashcards</Button>
-          </Link>
+          <ButtonLink to={FLASHCARDS_PATH} variant="primary">Back to Flashcards</ButtonLink>
         </EmptyState>
       </div>
     );

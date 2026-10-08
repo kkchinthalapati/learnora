@@ -1,5 +1,6 @@
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
+import { ButtonLink } from "../../components/ButtonLink";
 import { Card } from "../../components/Card";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
@@ -34,9 +35,9 @@ function Shell({ children }: { children: React.ReactNode }) {
 function BackToFriends({ label = "Go to Friends" }: { label?: string }) {
   return (
     <div className={styles.landingActions}>
-      <Link to="/friends">
-        <Button variant="primary">{label}</Button>
-      </Link>
+      <ButtonLink to="/friends" variant="primary">
+        {label}
+      </ButtonLink>
     </div>
   );
 }
@@ -189,9 +190,7 @@ export function FriendInviteLanding() {
               ? "Accept"
               : "Send request"}
         </Button>
-        <Link to="/friends">
-          <Button>Not now</Button>
-        </Link>
+        <ButtonLink to="/friends">Not now</ButtonLink>
       </div>
     </Shell>
   );

@@ -1,8 +1,11 @@
 import { Link, useNavigate } from "react-router";
+import { useDocumentTitle } from "../../lib/routeTitle";
 import styles from "./NotFoundView.module.css";
 
 export function NotFoundView() {
   const navigate = useNavigate();
+  /* Unknown paths match no route title, so the tab just read "Learnora". */
+  useDocumentTitle("Page not found");
 
   return (
     <div className={styles.container}>
@@ -11,7 +14,7 @@ export function NotFoundView() {
           <span className={styles.badge}>404</span>
         </div>
 
-        <h2 className={styles.title}>Page Not Found</h2>
+        <h2 className={styles.title}>Page not found</h2>
 
         <p className={styles.description}>
           The page or workspace item you are looking for could not be found or has been moved.
