@@ -15,6 +15,10 @@ import {
   isDeadKeyError,
   permittedProviderIds,
 } from "../_shared/providerPolicy.js";
+import { addBodyUsage, addGeminiUsage, newUsage } from "../_shared/tokenUsage.js";
+
+/** Tokens one request spent across all its model calls (_shared/tokenUsage.js). */
+type TokenUsage = { input: number; output: number; reported: boolean };
 
 /* Origins allowed to call this function from a browser.
 
@@ -498,6 +502,8 @@ async function callProvider(
     userContent: string;
     mode?: string;
     signal?: AbortSignal;
+    /** Accumulates this request's token counts, when the provider reports them. */
+    usage?: TokenUsage;
   },
 ): Promise<string> {
   const key = Deno.env.get(provider.keyEnv);
@@ -540,6 +546,7 @@ async function callProvider(
     }
     // Some gateways report failures in the body with a 200 status.
     if (data?.error) throw new Error(`${provider.id} error: ${JSON.stringify(data.error)}`);
+    addBodyUsage(opts.usage, data);
 
     const content = extractContent(data, dialect);
     if (content === null) throw new Error(`${provider.id} returned an empty completion.`);
@@ -963,7 +970,7 @@ function geminiPermitted(): boolean {
    answer. Service role, because students have no UPDATE on the table. */
 function recordOutcome(
   logId: string | undefined,
-  outcome: { provider: string; model: string; startedAt: number; failed: string[] },
+  outcome: { provider: string; model: string; startedAt: number; failed: string[]; usage?: TokenUsage },
 ): void {
   if (!logId) return;
   const url = Deno.env.get("SUPABASE_URL");
@@ -982,6 +989,9 @@ function recordOutcome(
           model: outcome.model,
           latency_ms: Date.now() - outcome.startedAt,
           failed_providers: outcome.failed,
+          status: "ok",
+          input_tokens: outcome.usage?.reported ? outcome.usage.input : null,
+          output_tokens: outcome.usage?.reported ? outcome.usage.output : null,
         })
         .eq("id", logId);
     } catch (err) {
@@ -1074,11 +1084,19 @@ function logRejectedQuestion(
 }
 
 /* A request that reached no provider at all (every channel failed) has not
-   used the student's allowance, so its log row is taken back. A student on
-   the free plan has three quiz generations a day; an outage should not spend
-   them. Done with the service role because students have no DELETE on
-   ai_request_log — deliberately, or deleting rows would reset their quota. */
-async function refundRequest(logId: string | undefined): Promise<void> {
+   used the student's allowance, so its log row is marked refunded and stops
+   counting against every limit. A student on the free plan has three quiz
+   generations a day; an outage should not spend them. The row is kept, not
+   deleted as it used to be, so outages show up in the log: deleting made
+   total failures invisible. Service role, because students have no UPDATE on
+   ai_request_log — deliberately, or marking rows refunded would reset their
+   quota. */
+async function refundRequest(
+  logId: string | undefined,
+  status: "failed_all" | "vision_unavailable" = "failed_all",
+  startedAt?: number,
+  failed: string[] = [],
+): Promise<void> {
   if (!logId) return;
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -1088,7 +1106,15 @@ async function refundRequest(logId: string | undefined): Promise<void> {
     const admin = createClient(url, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    await admin.from("ai_request_log").delete().eq("id", logId);
+    await admin
+      .from("ai_request_log")
+      .update({
+        refunded: true,
+        status,
+        failed_providers: failed,
+        latency_ms: startedAt ? Date.now() - startedAt : null,
+      })
+      .eq("id", logId);
   } catch (err) {
     console.error("[rate-limit] refund failed", err);
   }
@@ -1199,6 +1225,7 @@ async function checkAndLogRateLimit(
       .from("ai_request_log")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
+      .eq("refunded", false)
       .gte("created_at", since);
 
     if (countError) {
@@ -1222,6 +1249,7 @@ async function checkAndLogRateLimit(
       .select("session_key")
       .eq("user_id", userId)
       .eq("tool", billedTool)
+      .eq("refunded", false)
       .gte("created_at", midnight.toISOString())
       .limit(1000);
     const rows: { session_key: string | null }[] = dailyError ? [] : (todayRows ?? []);
@@ -1305,6 +1333,7 @@ Deno.serve(async (req) => {
     const debugErrors: Record<string, string> = {};
     const startedAt = Date.now();
     let logId: string | undefined;
+    const usage: TokenUsage = newUsage();
 
     try {
         const { history, file, settings, mode, tool, context, sessionKey, quizMeta } = await req.json();
@@ -1429,6 +1458,7 @@ Deno.serve(async (req) => {
                             setTimeout(() => reject(new Error(`${label} timed out`)), 20_000)
                         ),
                     ]);
+                    addGeminiUsage(usage, result);
                     const checked = salvageJson(cleanJsonResponse(result.response.text()));
                     if (checked) {
                         checkedBy = `gemini/${modelName}`;
@@ -1448,6 +1478,7 @@ Deno.serve(async (req) => {
                         userContent: prompt,
                         mode: "quiz",
                         signal: deadline,
+                        usage,
                     })));
                     if (checked) {
                         checkedBy = provider.id;
@@ -1554,6 +1585,8 @@ Deno.serve(async (req) => {
                         ),
                     ]);
 
+                    addGeminiUsage(usage, result);
+
                     // A safety block is a verdict, not an outage. Returning it
                     // here stops the fallback chain: previously this threw,
                     // was swallowed as a generic error, and the same prompt was
@@ -1595,6 +1628,7 @@ Deno.serve(async (req) => {
                         model: modelName,
                         startedAt,
                         failed: Object.keys(debugErrors),
+                        usage,
                     });
                     return new Response(JSON.stringify({
                         text: text,
@@ -1623,7 +1657,7 @@ Deno.serve(async (req) => {
         // The allowance is handed back: no provider read the photo.
         if (isImageAttachment(file)) {
             console.warn("[vision] no image-capable provider answered", { mode, debugErrors });
-            await refundRequest(logId);
+            await refundRequest(logId, "vision_unavailable", startedAt, Object.keys(debugErrors));
             return visionUnavailableResponse(jsonHeaders);
         }
 
@@ -1679,6 +1713,7 @@ Deno.serve(async (req) => {
                     userContent: fallbackMsg,
                     mode,
                     signal: deadline,
+                    usage,
                 });
 
                 if (isJsonMode(mode)) {
@@ -1706,6 +1741,7 @@ Deno.serve(async (req) => {
                     model: Deno.env.get(provider.modelEnv) || provider.defaultModel,
                     startedAt,
                     failed: Object.keys(debugErrors).filter((id) => !/not set|Skipped/.test(debugErrors[id])),
+                    usage,
                 });
                 return new Response(JSON.stringify({
                     text,
@@ -1728,7 +1764,12 @@ Deno.serve(async (req) => {
             error: err.message || String(err),
         });
         // No provider answered, so the allowance this request took is returned.
-        await refundRequest(logId);
+        await refundRequest(
+            logId,
+            "failed_all",
+            startedAt,
+            Object.keys(debugErrors).filter((id) => !/not set|Skipped/.test(debugErrors[id])),
+        );
 
         return new Response(JSON.stringify({
             error: "AI is temporarily unavailable. Please try again in a moment."

@@ -64,6 +64,9 @@ export async function fetchDailyAiUsage(): Promise<DailyAiUsage> {
     .from("ai_request_log")
     .select("tool")
     .eq("user_id", userId)
+    /* A request no provider answered is kept but marked refunded, and the
+       limiter skips it; so must the meter. */
+    .eq("refunded", false)
     .gte("created_at", utcDayStart(now).toISOString());
 
   if (error) throw new Error(error.message);

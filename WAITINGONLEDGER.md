@@ -33,20 +33,20 @@ row is UNVERIFIED until you run `supabase secrets list`).
 
 | # | What | Status | Who | Command / where | Why it matters |
 |---|------|--------|-----|-----------------|----------------|
-| 1 | Review and merge **PR #133** (hint ladder, question verification, eval harness) | READY | you | https://github.com/kkchinthalapati/learnora/pull/133 | Vercel deploys the webapp on merge. Nothing else in section 1 depends on it, but 2 only matters once it is merged. |
-| 2 | **Deploy `learnora-ai`** with quiz verification (row E2) | READY | you | `supabase functions deploy learnora-ai` (after #133 merges; deploys the code on `main`) | Until then quizzes come back with no verdicts: no checker, no regeneration, no daily caps. The webapp serves them as before, so nothing is broken, but the verification feature is dark. Production is on v66. Rollback: Edge Functions > learnora-ai > versions. |
-| 3 | Smoke test AI after the deploy | BLOCKED on 2 | you | Generate one quiz in a seeded subject (e.g. GCSE Biology), then `select mode, provider, model, latency_ms from ai_request_log order by created_at desc limit 10;` Expect rows with `mode='verify'`. Then check `question_review_log` and the "unverified" label in an unseeded subject. | Proves the checker, caps and fallback chain work end to end. Nobody has run it. |
+| 1 | Merge the **`learning-engine`** branch. It also carries `97ad70c` (this ledger, the archive) and `a5ac4dd` (maths rendering), which were pushed to `tutor-hints-verification` after PR #133 merged and so never reached `main`. | READY | you | GitHub PR from `learning-engine` | Vercel deploys the webapp on merge. Until then `main` has no WAITINGONLEDGER.md and no maths rendering in Practice. |
+| 3 | Smoke test AI after the deploy | READY | you | Signed in, generate one quiz in a seeded subject (e.g. GCSE Biology), then `select mode, provider, model, latency_ms, status, input_tokens, output_tokens from ai_request_log order by created_at desc limit 10;` Expect rows with `mode='verify'` and token counts. Then check `question_review_log` and the "unverified" label in an unseeded subject. | Proves the checker, caps and fallback chain work end to end. Needs a signed-in student; an agent may not create a production account. |
 | 4 | Remove the dead Cerebras key | READY | you | `supabase secrets unset CEREBRAS_API_KEY` | It answered 402 to every request (checked 2026-09-24); the provider chain skips it but the secret should go. |
 
 ## 2. Migrations
 
-Production has 58 migrations recorded (read 2026-10-06, after applying the
-diagram one) and the repo has 58 files in `supabase/migrations/`. They match
+Production has 59 migrations recorded (2026-10-09, after `ai_request_log_usage`)
+and the repo has 59 files in `supabase/migrations/`. They match
 one to one by name; many carry different timestamps because they were applied
 through the dashboard/API (the known history drift). **Nothing is pending.**
 
 | Migration | Status | Notes |
 |-----------|--------|-------|
+| `20261009000000_ai_request_log_usage.sql` | **Applied 2026-10-09** | Token counts, status, and `refunded` (failed requests are kept and flagged instead of deleted). learnora-ai v68 and the usage meter filter `refunded = false`. |
 | `20261006000000_question_verification_and_reports.sql` | Applied 2026-10-06 | Ahead of the PR #133 merge. Webapp tolerates it either way. |
 | `20260901000000_add_diagram_artifact_type.sql` | **Applied 2026-10-06** | Found missing during cleanup: production still had the old check constraint, so saving a Notebook Studio diagram would fail with a 23514. Fixed. |
 | `20260718000000_baseline_dashboard_tables.sql` | Not applied, by design | Reconstructed (not dumped) baseline for building a fresh database. Moved to `archive/migrations-unapplied/`. If you ever need a local/CI database from scratch, dump the real schema from production instead (see 6.3). |
@@ -55,11 +55,11 @@ Record-keeping: production records migrations by the time they were applied,
 not the filename. If you want `supabase migration list` to match, run
 `supabase migration repair` per file. Optional, cosmetic.
 
-## 3. Edge functions (deployed versions read 2026-10-06)
+## 3. Edge functions (deployed versions read 2026-10-06; learnora-ai 2026-10-09)
 
 | Function | Prod version | Waiting on |
 |----------|--------------|------------|
-| `learnora-ai` | v66 | Deploy of the verification build (1.2). |
+| `learnora-ai` | v68 (2026-10-09) | Nothing. v67 = the verification build from `main`; v68 = the same plus token and outage logging (`learning-engine` branch). Smoke test is row 3. Rollback: Edge Functions > learnora-ai > versions. |
 | `stripe-billing` | v19 | Nothing known. Needs Stripe secrets (4.1). |
 | `stripe-webhook` | v17 | Nothing known. Needs `STRIPE_WEBHOOK_SECRET` (4.1). |
 | `delete-account` | v13 | Nothing. |
@@ -166,6 +166,7 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 
 | Date | What |
 |------|------|
+| 2026-10-09 | PR #133 confirmed merged; deployed `learnora-ai` v67 (verification build), then v68 (token/outage logging); applied `ai_request_log_usage` |
 | 2026-10-06 | Applied `add_diagram_artifact_type` (constraint was missing in production) |
 | 2026-10-06 | Applied `question_verification_and_reports` |
 | 2026-10-06 | Applied `drop_duplicate_ai_request_log_index`, `mistake_loop`, `study_profile_any_board` |
