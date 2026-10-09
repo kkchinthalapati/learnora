@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { LEARNORA_SEED } from "./seed";
 import { SYLLABUS_SPECS, bankKey } from "../syllabus";
+import { getKnownMisconception } from "../misconceptionCatalogue";
 
 /* Guards the hand-written seed: every question must point at a real spec
    section, be askable at its tier, and have exactly one defensible answer as
@@ -54,4 +55,31 @@ describe("Learnora seed questions", () => {
       }
     });
   }
+});
+
+describe("mapped distractors", () => {
+  it("name catalogue misconceptions, one per choice, and never the key", () => {
+    let mapped = 0;
+    for (const entries of Object.values(LEARNORA_SEED)) {
+      for (const e of entries) {
+        if (!e.mis) continue;
+        expect(e.mis).toHaveLength(e.c.length);
+        expect(e.mis[e.a]).toBeNull();
+        for (const id of e.mis) {
+          if (id === null) continue;
+          mapped += 1;
+          expect(getKnownMisconception(id), `unknown misconception ${id}`).not.toBeNull();
+        }
+      }
+    }
+    expect(mapped).toBeGreaterThan(0);
+  });
+
+  it("CBSE questions state their kind, and some ask to apply", () => {
+    for (const key of ["cbse-10-science-086", "cbse-10-maths-041"]) {
+      const entries = LEARNORA_SEED[key];
+      expect(entries.every((e) => e.kind === "recall" || e.kind === "apply")).toBe(true);
+      expect(entries.filter((e) => e.kind === "apply").length).toBeGreaterThan(entries.length / 4);
+    }
+  });
 });

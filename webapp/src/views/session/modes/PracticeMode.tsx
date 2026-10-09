@@ -6,7 +6,7 @@ import { Button } from "../../../components/Button";
 import { ConfidencePicker } from "../../../components/learning/ConfidencePicker";
 import type { Confidence } from "../../../components/learning/options";
 import { generateQuizQuestions } from "../../../api/aiQuiz";
-import { bankPracticeFor } from "../../../api/questionBank";
+import { bankFirst, bankPracticeFor } from "../../../api/questionBank";
 import { askInSession, buildSessionContext } from "../../../api/aiSession";
 import { TutorTurn } from "../../../components/learning/TutorTurn";
 import { useMisconceptions, useRecordMisconceptions } from "../../../hooks/useMisconceptions";
@@ -83,8 +83,13 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
       .map((m) => m.concept)
       .filter((c) => c.toLowerCase() !== session.objective.toLowerCase())
       .slice(0, 2);
+    const label = [session.subject, session.objective].filter(Boolean).join(" ");
     task.run(
-      () =>
+      async () =>
+        /* The bank first, when the objective clearly names a banked spec
+           topic: instant, free, and every key checked by a person. The AI
+           writes problems only for what the bank can't cover. */
+        (await bankFirst(label, PRACTICE_PROBLEMS)) ??
         /* When the AI can't write problems (an outage, or today's allowance
            is used up), practice still runs: the question bank has exam-style
            questions on the spec topic this objective maps to. */

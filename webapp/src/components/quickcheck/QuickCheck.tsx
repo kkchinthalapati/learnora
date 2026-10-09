@@ -25,6 +25,7 @@ import { WrongAnswerNote } from "../learning/WrongAnswerNote";
 import { ReportProblem } from "../learning/ReportProblem";
 import { questionRef } from "../../lib/questionVetting";
 import { storedAnswer } from "../../lib/attempts";
+import { bankFirst } from "../../api/questionBank";
 import styles from "./QuickCheck.module.css";
 
 export interface QuickCheckResult {
@@ -87,12 +88,19 @@ export function QuickCheck({
     });
     setResolvedDeckId(deckId ?? source.deckId);
     setGrounded(source.grounded);
-    generateQuizQuestions({
-      sourceText: fenceUntrusted(source.sourceText),
-      topic: fenceUntrusted(topic),
-      settings,
-      options: { questionCount: QUICK_CHECK_QUESTIONS, difficulty: "Medium" },
-    })
+    /* Checked against the student's own cards and notes when they have
+       some; otherwise from the practice bank when the topic is a banked spec
+       section (instant, keys checked by people), and only then the AI. */
+    (source.grounded ? Promise.resolve(null) : bankFirst(topic, QUICK_CHECK_QUESTIONS))
+      .then((banked) =>
+        banked ??
+        generateQuizQuestions({
+          sourceText: fenceUntrusted(source.sourceText),
+          topic: fenceUntrusted(topic),
+          settings,
+          options: { questionCount: QUICK_CHECK_QUESTIONS, difficulty: "Medium" },
+        }),
+      )
       .then((qs) => {
         if (cancelled) return;
         if (!qs.length) throw new Error("No usable questions returned.");

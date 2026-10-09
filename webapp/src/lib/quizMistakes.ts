@@ -26,6 +26,9 @@ export interface AnsweredQuestion {
   /** The worked solution was shown (lib/tutorPolicy.ts): a miss the loop
    *  retests, with the worked solution as its repair. */
   workedSolution: boolean;
+  /** The catalogue misconception the chosen distractor is mapped to: a
+   *  diagnosis by construction, no reading of the wording needed. */
+  misconceptionId?: string | null;
 }
 
 export function answeredQuestions(
@@ -45,6 +48,11 @@ export function answeredQuestions(
         isCorrect: a.correct && (a.hintRung ?? 0) < 3,
         guessed: a.confidence === "guess" || (a.hintRung ?? 0) > 0,
         workedSolution: (a.hintRung ?? 0) >= 3,
+        misconceptionId:
+          a.misconception ??
+          (a.chosenIndex >= 0 && a.chosenIndex !== q.correctIndex
+            ? (q.distractorMisconceptions?.[a.chosenIndex] ?? null)
+            : null),
       },
     ];
   });

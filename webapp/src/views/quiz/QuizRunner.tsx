@@ -40,7 +40,7 @@ import { answerFacts, chosenMisconception } from "../../lib/attempts";
 import { useQuery } from "@tanstack/react-query";
 import { getRung } from "../../lib/hintState";
 import { questionKey } from "../../lib/questionKey";
-import { detectFromWrongAnswer } from "../../lib/misconceptionCatalogue";
+import { detectFromWrongAnswer, getKnownMisconception } from "../../lib/misconceptionCatalogue";
 
 /* The quiz runner — ports js/router.js's `startQuiz` (:827-945).
  *
@@ -495,15 +495,20 @@ function QuizSession({
     hostTone = answered.correct ? "correct" : "incorrect";
   }
 
-  const repair =
+  const mappedRepair =
     answered && !answered.correct
+      ? getKnownMisconception(chosenMisconception(question, answered.chosenIndex) ?? "")
+      : null;
+  const repair =
+    mappedRepair ??
+    (answered && !answered.correct
       ? detectFromWrongAnswer({
           question: question.question,
           topic: question.topic,
           chosen: question.choices[answered.chosenIndex] ?? "",
           correct: question.choices[question.correctIndex] ?? "",
         })
-      : null;
+      : null);
 
   return (
     <div className={styles.view}>

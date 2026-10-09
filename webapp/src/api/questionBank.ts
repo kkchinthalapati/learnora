@@ -30,7 +30,7 @@ import { examsKeys } from "../hooks/useExams";
 import { quizzesApi } from "./quizzes";
 
 const COLUMNS =
-  "id, source, source_ref, licence, attribution, spec_key, topic_ref, tier, question, choices, correct_index, explanation";
+  "id, source, source_ref, licence, attribution, spec_key, topic_ref, tier, question, choices, correct_index, explanation, kind, distractor_misconceptions";
 
 /** Bank rows for a spec's topics, at a tier (rows for every tier included). */
 export async function fetchBankQuestions(
@@ -64,7 +64,10 @@ export function bankToQuiz(spec: SyllabusSpec, rows: BankQuestion[]): QuizQuesti
   const quiz = toQuizQuestions(rows, (ref) => titles.get(ref) ?? ref);
   return quiz.map((q, i) => {
     const [line] = attributionLines([rows[i]]);
-    return line ? { ...q, attribution: line } : q;
+    /* The skill travels with every answer, so evidence lands on the spec
+       section rather than on a free-text label (lib/attempts.ts). */
+    const withSkill = { ...q, skill: `${bankKey(spec)}:${rows[i].topic_ref}` };
+    return line ? { ...withSkill, attribution: line } : withSkill;
   });
 }
 
@@ -96,6 +99,7 @@ export function hasBank(spec: SyllabusSpec): boolean {
  *  spec when one matches, otherwise the best match among banked specs. */
 async function resolveTopic(
   label: string,
+  minScore = 1,
 ): Promise<{ spec: SyllabusSpec; tier: SyllabusTier | null; topic: SyllabusTopic } | null> {
   try {
     const exams = await queryClient.fetchQuery({
@@ -116,7 +120,7 @@ async function resolveTopic(
     const score = topicMatchScore(label, topic);
     if (!best || score > best.score) best = { spec, topic, score };
   }
-  return best ? { spec: best.spec, tier: null, topic: best.topic } : null;
+  return best && best.score >= minScore ? { spec: best.spec, tier: null, topic: best.topic } : null;
 }
 
 /**
@@ -124,8 +128,12 @@ async function resolveTopic(
  * AI cannot write any. The topic's own questions first, topped up from the
  * other topics in its unit. Null when the topic is in no banked spec.
  */
-export async function bankPracticeFor(label: string, count: number): Promise<QuizQuestion[] | null> {
-  const resolved = await resolveTopic(label);
+export async function bankPracticeFor(
+  label: string,
+  count: number,
+  { minScore = 1 }: { minScore?: number } = {},
+): Promise<QuizQuestion[] | null> {
+  const resolved = await resolveTopic(label, minScore);
   if (!resolved) return null;
   const { spec, tier, topic } = resolved;
   const siblings = spec.topics
@@ -138,4 +146,21 @@ export async function bankPracticeFor(label: string, count: number): Promise<Qui
   const rest = pickPractice(rows.filter((r) => r.topic_ref !== topic.ref), siblings, count - own.length);
   const picked = [...own, ...rest];
   return picked.length ? bankToQuiz(spec, picked) : null;
+}
+
+/** How strongly a label must match a spec topic before the bank is used
+ *  *instead of* the AI (not merely as its fallback): the topic's title or a
+ *  multi-word keyword, the same bar as `seededMatch`. A single shared word
+ *  ("energy") must not swap a student's own topic for a different one. */
+export const BANK_FIRST_MIN_SCORE = 4;
+
+/**
+ * Bank questions to use *first*, before asking the AI: instant, free, with
+ * keys written and checked by people (research/efficiency-audit.md, E2).
+ * Null unless the label clearly names a banked spec topic and the bank can
+ * fill the request; the caller then generates as before.
+ */
+export async function bankFirst(label: string, count: number): Promise<QuizQuestion[] | null> {
+  const questions = await bankPracticeFor(label, count, { minScore: BANK_FIRST_MIN_SCORE }).catch(() => null);
+  return questions && questions.length >= count ? questions : null;
 }

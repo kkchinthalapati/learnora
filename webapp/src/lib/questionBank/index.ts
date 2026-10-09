@@ -27,6 +27,10 @@ export interface BankQuestion {
   choices: string[];
   correct_index: number;
   explanation: string | null;
+  /** What the question asks for (migration 20261009020000). */
+  kind?: "recall" | "apply" | "explain" | null;
+  /** Per choice: a misconception catalogue id, or null. */
+  distractor_misconceptions?: (string | null)[] | null;
 }
 
 /** A seed entry as written in the JSON files. */
@@ -37,6 +41,10 @@ export interface SeedEntry {
   a: number;
   why: string;
   tier?: string;
+  /** recall | apply | explain. */
+  kind?: "recall" | "apply" | "explain";
+  /** Per choice: the misconception that option is, or null. */
+  mis?: (string | null)[];
 }
 
 /** Question-bank keys that have questions today (the Learnora seed covers
@@ -46,6 +54,8 @@ export const BANKED_SPEC_KEYS: ReadonlySet<string> = new Set([
   "aqa-gcse-chemistry-8462",
   "aqa-gcse-physics-8463",
   "gcse-maths",
+  "cbse-10-science-086",
+  "cbse-10-maths-041",
 ]);
 
 export const OAK_ATTRIBUTION =
@@ -77,6 +87,10 @@ export function toQuizQuestions(
        or pulled by its bank ref. */
     verified: true,
     ref: `bank:${row.id}`,
+    ...(row.kind ? { kind: row.kind } : {}),
+    ...(Array.isArray(row.distractor_misconceptions) && row.distractor_misconceptions.length === row.choices.length
+      ? { distractorMisconceptions: row.distractor_misconceptions }
+      : {}),
   }));
 }
 

@@ -26,6 +26,7 @@
 import { computeFsrsCardState } from "../views/review/srs";
 import {
   detectFromWrongAnswer,
+  getKnownMisconception,
   type CatalogueCheck,
   type KnownMisconception,
 } from "./misconceptionCatalogue";
@@ -154,6 +155,9 @@ export interface WrongAnswerFacts {
   correct: string;
   topic?: string | null;
   timedOut?: boolean;
+  /** Set when the chosen option is a distractor mapped to a catalogue
+   *  misconception (question_bank.distractor_misconceptions). */
+  misconceptionId?: string | null;
 }
 
 /** What an AI labeller said about a wrong answer it couldn't find in the
@@ -188,6 +192,10 @@ export function matchWrongAnswer(
   a: WrongAnswerFacts,
   provisional?: ProvisionalLabel | null,
 ): MistakeMatch {
+  /* A mapped distractor is the diagnosis itself: the question was written
+     so that picking it means holding that belief (Eedi's design). */
+  const mapped = a.misconceptionId ? getKnownMisconception(a.misconceptionId) : null;
+  if (mapped) return { kind: "catalogue", entry: mapped };
   const entry = detectFromWrongAnswer({
     question: a.question,
     topic: a.topic ?? null,

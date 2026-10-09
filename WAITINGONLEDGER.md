@@ -39,13 +39,14 @@ row is UNVERIFIED until you run `supabase secrets list`).
 
 ## 2. Migrations
 
-Production has 60 migrations recorded (2026-10-09, after `cbse_tiers`)
-and the repo has 60 files in `supabase/migrations/`. They match
+Production has 61 migrations recorded (2026-10-09, after `question_bank_kind_and_distractors`)
+and the repo has 61 files in `supabase/migrations/`. They match
 one to one by name; many carry different timestamps because they were applied
 through the dashboard/API (the known history drift). **Nothing is pending.**
 
 | Migration | Status | Notes |
 |-----------|--------|-------|
+| `20261009020000_question_bank_kind_and_distractors.sql` | **Applied 2026-10-09** | `kind` and `distractor_misconceptions` on the bank; then 132 CBSE Class 10 questions inserted (Learnora-written, `scripts/question-bank/cbse-source.mjs`). |
 | `20261009010000_cbse_tiers.sql` | **Applied 2026-10-09** | Allows tiers `Standard` / `Basic` on `exams.syllabus_tier` and `question_bank.tier`, for the CBSE specs in `webapp/src/lib/syllabus/cbse.ts`. Widening only. |
 | `20261009000000_ai_request_log_usage.sql` | **Applied 2026-10-09** | Token counts, status, and `refunded` (failed requests are kept and flagged instead of deleted). learnora-ai v68 and the usage meter filter `refunded = false`. |
 | `20261006000000_question_verification_and_reports.sql` | Applied 2026-10-06 | Ahead of the PR #133 merge. Webapp tolerates it either way. |
@@ -149,7 +150,7 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 | 6.1 | **Privacy copy lists only Anthropic + Google**, but prompts can reach about 8 providers (see 4.4). Either trim the provider chain or update the policy. | DECISION, open since 2026-09-24 |
 | 6.2 | Legal sign-off: provider text, retention, GDPR/COPPA (under-13/16 users, school use) | BLOCKED, not engineering |
 | 6.3 | Dump the real production schema (`supabase db dump --schema public`) and replace the reconstructed baseline, so a fresh database can be built for local dev or CI. Only needed if you want that. | DECISION |
-| 6.4 | Human review of the question bank and the 45-item misconception catalogue by a teacher. Question reports land in `question_review_log` / `question_reports`; hand-run queries are in `docs/question_review.sql`. Nobody is reviewing them yet. | BLOCKED, needs a person |
+| 6.4 | Human review of the question bank (now incl. 132 CBSE Class 10 questions) and the 59-item misconception catalogue (14 added for CBSE, 2026-10-09) by a teacher, ideally one who teaches CBSE for those. Question reports land in `question_review_log` / `question_reports`; hand-run queries are in `docs/question_review.sql`. Nobody is reviewing them yet. | BLOCKED, needs a person |
 | 6.5 | Peer benchmarking (plan item 2.6) needs a privacy review before any build | DECISION |
 | 6.6 | Exam boards beyond the current set (AP/SAT, other GCSE science boards); past papers can only be linked, not hosted (AQA refuses apps) | DECISION |
 
@@ -168,6 +169,7 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 | Date | What |
 |------|------|
 | 2026-10-09 | PR #133 confirmed merged; deployed `learnora-ai` v67 (verification build), then v68 (token/outage logging); applied `ai_request_log_usage` |
+| 2026-10-09 | Applied `question_bank_kind_and_distractors`; inserted 132 CBSE Class 10 bank questions (bank now 360) |
 | 2026-10-09 | Applied `cbse_tiers` (CBSE Class 9/10 Science and Maths added to the syllabus catalogue) |
 | 2026-10-06 | Applied `add_diagram_artifact_type` (constraint was missing in production) |
 | 2026-10-06 | Applied `question_verification_and_reports` |
