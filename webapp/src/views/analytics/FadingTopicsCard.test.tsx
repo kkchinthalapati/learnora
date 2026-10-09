@@ -27,8 +27,8 @@ function renderCard(topics: unknown[]) {
 
 describe("FadingTopicsCard", () => {
   it("lists what is fading on the mastery ladder, each with a check", () => {
-    renderCard([topic("a", "Glycolysis", 0.7, 3), topic("b", "Krebs cycle", 0.9, 400)]);
-    expect(screen.getByRole("img", { name: "Glycolysis: Applied · fading" })).toBeInTheDocument();
+    renderCard([topic("a", "Glycolysis", 0.4, 1.5), topic("b", "Krebs cycle", 0.9, 400)]);
+    expect(screen.getByRole("img", { name: "Glycolysis: Recalled · fading" })).toBeInTheDocument();
     expect(screen.queryByText("Krebs cycle")).toBeNull();
     expect(
       screen.getByRole("link", { name: "Check Glycolysis, about 4 minutes" }),
@@ -36,9 +36,9 @@ describe("FadingTopicsCard", () => {
   });
 
   it("says nothing is fading, names what is next, and offers a stretch", () => {
-    renderCard([topic("b", "Krebs cycle", 0.9, 400), topic("c", "Enzymes", 0.5, 40)]);
+    renderCard([topic("b", "Krebs cycle", 0.9, 400), topic("c", "Enzymes", 0.5, 3)]);
     expect(screen.getByText("Nothing is fading right now.")).toBeInTheDocument();
-    expect(screen.getByText(/Enzymes is next: it starts to slip in about 15 days/)).toBeInTheDocument();
+    expect(screen.getByText(/Enzymes is next: it starts to slip in about 14 days/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Challenge me anyway" })).toHaveAttribute(
       "href",
       "/study/new?mode=practice&topic=Krebs+cycle",

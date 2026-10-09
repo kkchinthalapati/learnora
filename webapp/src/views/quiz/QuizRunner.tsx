@@ -36,6 +36,7 @@ import { ExplainMistake } from "./ExplainMistake";
 import { ReportProblem } from "../../components/learning/ReportProblem";
 import { questionReportsApi } from "../../api/questionReports";
 import { isUnverified, questionRef, withoutFlagged } from "../../lib/questionVetting";
+import { answerFacts, chosenMisconception } from "../../lib/attempts";
 import { useQuery } from "@tanstack/react-query";
 import { getRung } from "../../lib/hintState";
 import { questionKey } from "../../lib/questionKey";
@@ -375,11 +376,14 @@ function QuizSession({
     /* Hints used before answering travel with the answer: a hinted right
        answer earns no ledger correction (lib/tutorPolicy.ts hintOutcome). */
     const hintRung = getRung(attemptKey, questionKey(question.question));
+    const misconception = chosenMisconception(question, chosenIndex);
     const entry = {
       questionId: question.id ?? index,
       chosenIndex,
       correct,
       topic: question.topic,
+      ...answerFacts(question, quizId),
+      ...(misconception ? { misconception } : {}),
       ...(hintRung > 0 ? { hintRung } : {}),
       secondsSpent: Math.max(
         0,
@@ -418,6 +422,7 @@ function QuizSession({
       chosenIndex: -1,
       correct: false,
       topic: question.topic,
+      ...answerFacts(question, quizId),
       hintRung: 3,
       secondsSpent: Math.max(0, Math.round((Date.now() - questionShownAt.current) / 1000)),
       confidence: null,

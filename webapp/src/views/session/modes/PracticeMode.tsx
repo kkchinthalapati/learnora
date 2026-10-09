@@ -22,6 +22,7 @@ import text from "../../../styles/text.module.css";
 import { WrongAnswerNote } from "../../../components/learning/WrongAnswerNote";
 import { ReportProblem } from "../../../components/learning/ReportProblem";
 import { questionRef } from "../../../lib/questionVetting";
+import { storedAnswer } from "../../../lib/attempts";
 import styles from "../session.module.css";
 
 export const PRACTICE_PROBLEMS = 6;
@@ -165,7 +166,18 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
         topicKey: normaliseTopicKey(question.topic || session.objective),
         score: correct ? (confidence === "guess" ? 0.5 : 1) : 0,
         clientId: `practice:${session.id}:${index}`,
-        payload: { mode: "practice", confidence },
+        payload: {
+          mode: "practice",
+          kind: "practice",
+          confidence,
+          items: [
+            {
+              ...storedAnswer(question, chosen, { topic: session.objective, confidence }),
+              /* Struck-out options (the Hint) raise the odds of a guess. */
+              options: Math.max(2, question.choices.length - (data.struck[index]?.length ?? 0)),
+            },
+          ],
+        },
       })
       .catch(() => {
         /* Best-effort, like every other evidence write. */

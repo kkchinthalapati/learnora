@@ -15,7 +15,7 @@ import { useCreateModal } from "../../context/createModal";
 import { decksKeys } from "../../hooks/useDecks";
 import { flashcardsKeys } from "../../hooks/useFlashcards";
 import { useLifeContext } from "../../hooks/useLifeContext";
-import { SYLLABUS_SPECS, defaultTier, getSpec, specLabel, suggestSpecs } from "../../lib/syllabus";
+import { SYLLABUS_SPECS, defaultTier, getSpec, specLabel, suggestSpecs, type Qualification } from "../../lib/syllabus";
 import { useSaveExam } from "../../hooks/useExams";
 import { useUpdateProfile } from "../../hooks/useAuthActions";
 import type { QuizQuestion } from "../../lib/aiJson";
@@ -45,10 +45,20 @@ const EXAMPLES = ["Quadratic equations", "Causes of WW1", "Supply & demand"];
    every new account reached the AI with no level: an en-US browser meant a
    GCSE student was marked against "AP / College Board". One optional row of
    chips, kept in the same onboarding answers lib/studentLevel reads. */
-const LEVELS: ReadonlyArray<{ id: string; label: string; examType?: ExamTypeId; university?: true }> = [
-  { id: "gcse", label: "GCSE", examType: "gcse" },
+const LEVELS: ReadonlyArray<{
+  id: string;
+  label: string;
+  examType?: ExamTypeId;
+  university?: true;
+  /** The syllabus catalogue's qualification, when it seeds specs. */
+  qualification?: Qualification;
+  /** How the level is named to the AI, when the exam type alone can't. */
+  board?: string;
+}> = [
+  { id: "gcse", label: "GCSE", examType: "gcse", qualification: "GCSE" },
   { id: "a_level", label: "A-Level", examType: "a_level" },
-  { id: "ib", label: "IB", examType: "ib" },
+  { id: "ib", label: "IB", examType: "ib", qualification: "IB" },
+  { id: "cbse", label: "CBSE", examType: "other", qualification: "CBSE", board: "CBSE (India)" },
   { id: "ap", label: "AP", examType: "ap" },
   { id: "university", label: "University", university: true },
 ];
@@ -132,8 +142,7 @@ export function FirstRunView() {
      student's pick, or the best match for their topic until they pick. The
      tier starts at the superset (Higher / HL) and can be changed on the
      exam later. */
-  const specQualification =
-    chosenLevel?.examType === "gcse" ? "GCSE" : chosenLevel?.examType === "ib" ? "IB" : null;
+  const specQualification = chosenLevel?.qualification ?? null;
   const specOptions = specQualification
     ? SYLLABUS_SPECS.filter((s) => s.qualification === specQualification)
     : [];
@@ -145,7 +154,9 @@ export function FirstRunView() {
         ? getSpec(specChoice)
         : (suggestSpecs(topic, specQualification)[0] ?? null);
   const levelLabel = async () =>
-    chosenLevel?.examType
+    chosenLevel?.board
+      ? chosenLevel.board
+      : chosenLevel?.examType
       ? examBoardLabel(chosenLevel.examType)
       : chosenLevel?.university
         ? "university"

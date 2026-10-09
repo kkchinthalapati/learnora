@@ -94,7 +94,7 @@ describe("adaptiveLearning Engine", () => {
       expect(retention).toBeCloseTo(1.0, 4);
     });
 
-    it("decays over elapsed time according to exponential formula", () => {
+    it("decays on the FSRS curve: 90% recall when elapsed days equal stability", () => {
       const card: Flashcard = {
         id: "c2",
         user_id: "u1",
@@ -108,7 +108,7 @@ describe("adaptiveLearning Engine", () => {
       };
 
       const retention = computeRetentionProbability(card, baseDate);
-      expect(retention).toBeCloseTo(Math.exp(-1), 3);
+      expect(retention).toBeCloseTo(0.9, 3);
     });
 
     it("higher ease factor yields higher stability and slower decay", () => {
@@ -158,7 +158,7 @@ describe("adaptiveLearning Engine", () => {
         1.0,
         4,
       );
-      expect(computeRetentionProbability(oldCard, baseDate)).toBeLessThan(0.1);
+      expect(computeRetentionProbability(oldCard, baseDate)).toBeLessThan(0.6);
     });
   });
 
@@ -184,8 +184,8 @@ describe("adaptiveLearning Engine", () => {
         back: "Moderate",
         srs_interval: 5,
         ease_factor: 2.5,
-        next_review_date: new Date("2026-08-22T12:00:00Z").toISOString(),
-        created_at: new Date("2026-08-01T12:00:00Z").toISOString(),
+        next_review_date: new Date("2026-08-05T12:00:00Z").toISOString(),
+        created_at: new Date("2026-07-01T12:00:00Z").toISOString(),
       };
 
       const severeRiskCard: Flashcard = {
@@ -196,7 +196,7 @@ describe("adaptiveLearning Engine", () => {
         back: "Severe",
         srs_interval: 2,
         ease_factor: 2.0,
-        next_review_date: new Date("2026-08-18T12:00:00Z").toISOString(),
+        next_review_date: new Date("2026-08-10T12:00:00Z").toISOString(),
         created_at: new Date("2026-08-01T12:00:00Z").toISOString(),
       };
 
@@ -240,7 +240,7 @@ describe("adaptiveLearning Engine", () => {
       };
 
       const overall = computeOverallRetention([card1, card2], baseDate);
-      expect(overall).toBe(Math.round(((1.0 + Math.exp(-1)) / 2) * 100));
+      expect(overall).toBe(Math.round(((1.0 + 0.9) / 2) * 100));
     });
   });
 

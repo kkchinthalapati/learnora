@@ -57,7 +57,7 @@ const forecast = {
   ],
   topics: [
     { id: "d1", label: "Enzymes", mastery: 0.3, evidence: 0.6, stabilityDays: 60, weight: 1, cardCount: 10 },
-    { id: "d2", label: "Glycolysis", mastery: 0.7, evidence: 0.6, stabilityDays: 3, weight: 1, cardCount: 10 },
+    { id: "d2", label: "Glycolysis", mastery: 0.4, evidence: 0.6, stabilityDays: 1.5, weight: 1, cardCount: 10 },
   ],
 } as unknown as TrajectoryForecast;
 

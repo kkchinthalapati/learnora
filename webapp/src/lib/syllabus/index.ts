@@ -9,6 +9,7 @@
 import { normaliseTopicKey } from "../topicKey";
 import { SYLLABUS_SPECS } from "./catalogue";
 import type {
+  Qualification,
   SyllabusSpec,
   SyllabusTier,
   SyllabusTopic,
@@ -32,13 +33,14 @@ export function bankKey(spec: SyllabusSpec): string {
 /** "AQA GCSE Biology (8461)", "IB Chemistry". */
 export function specLabel(spec: SyllabusSpec): string {
   const qual = spec.board === spec.qualification ? spec.qualification : `${spec.board} ${spec.qualification}`;
-  return `${qual} ${spec.subject}${spec.code ? ` (${spec.code})` : ""}`;
+  return `${qual} ${spec.level ? `${spec.level} ` : ""}${spec.subject}${spec.code ? ` (${spec.code})` : ""}`;
 }
 
 /** "AQA GCSE Biology (8461), Higher tier" / "IB Chemistry HL". */
 export function specWithTierLabel(spec: SyllabusSpec, tier: SyllabusTier | null): string {
-  if (!tier) return specLabel(spec);
-  return spec.qualification === "IB"
+  /* One tier for everyone (CBSE Science): naming it would only confuse. */
+  if (!tier || spec.tiers.length <= 1) return specLabel(spec);
+  return spec.qualification === "IB" || spec.qualification === "CBSE"
     ? `${specLabel(spec)} ${tier}`
     : `${specLabel(spec)}, ${tier} tier`;
 }
@@ -159,7 +161,7 @@ export function matchSpecTopic(
 
 /** Specs a free-text subject name could be ("Biology", "GCSE Maths"), best
  *  first. Used to suggest a spec from an exam's name. */
-export function suggestSpecs(name: string, qualification?: "GCSE" | "IB" | null): SyllabusSpec[] {
+export function suggestSpecs(name: string, qualification?: Qualification | null): SyllabusSpec[] {
   const words = new Set(tokens(name));
   const subjectWords = (s: SyllabusSpec) =>
     s.subject === "Mathematics" ? ["mathematic", "math", "maths"] : [stem(s.subject.toLowerCase())];

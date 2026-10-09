@@ -10,6 +10,7 @@ import type {
   WeakTopic,
 } from "../api/types";
 import { daysUntil } from "../views/dashboard/analytics";
+import { calculateRetrievability } from "../views/review/srs";
 import { calendarDayOf, localDateStr } from "./date";
 
 export type HealthGrade = "optimal" | "good" | "needs-attention" | "at-risk";
@@ -628,10 +629,16 @@ export interface SubjectMastery {
 }
 
 /**
- * Formula: R(t) = exp(-t / S)
- * where S = max(1, interval * (ease / 2.5) * stabilityFactor)
- * t is elapsed days since last review (or creation if never reviewed).
- * Returns estimated retention probability from 0.0 to 1.0.
+ * The card's recall probability now, on the FSRS curve the review scheduler
+ * itself uses (views/review/srs.ts): R(t, S) = (1 + 19/81 · t/S)^-0.5.
+ *
+ * S is the card's persisted FSRS stability when it has one, else the old
+ * interval × ease/2.5 estimate. t is days since the last review
+ * (`last_reviewed_at`, else derived from the schedule, else since creation).
+ *
+ * This used to be exp(-t/S), a different curve from the scheduler's: at t = S
+ * it says 37% where FSRS says 90%, so "fading" here and "not due" in Review
+ * could describe the same card. One curve everywhere now.
  */
 export function computeRetentionProbability(
   card: Flashcard,
@@ -641,12 +648,20 @@ export function computeRetentionProbability(
   const interval = Math.max(0, card.srs_interval ?? 0);
   const ease =
     card.ease_factor && card.ease_factor > 0 ? card.ease_factor : 2.5;
-  const stability = Math.max(1, interval * (ease / 2.5) * stabilityFactor);
+  const stability =
+    (card.stability && card.stability > 0
+      ? card.stability
+      : Math.max(1, interval * (ease / 2.5))) * stabilityFactor;
 
   let t = 0;
   const nowMs = now.getTime();
+  const lastReviewedMs = card.last_reviewed_at
+    ? new Date(card.last_reviewed_at).getTime()
+    : NaN;
 
-  if (card.next_review_date) {
+  if (Number.isFinite(lastReviewedMs)) {
+    t = Math.max(0, (nowMs - lastReviewedMs) / (24 * 60 * 60 * 1000));
+  } else if (card.next_review_date) {
     const nextReviewMs = new Date(card.next_review_date).getTime();
     if (interval > 0) {
       // Last review occurred approximately `interval` days before scheduled next_review_date
@@ -664,7 +679,7 @@ export function computeRetentionProbability(
     t = 1.0;
   }
 
-  const retention = Math.exp(-t / stability);
+  const retention = calculateRetrievability(t, stability);
   return Math.min(1, Math.max(0, Number.isFinite(retention) ? retention : 0));
 }
 

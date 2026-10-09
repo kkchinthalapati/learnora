@@ -30,7 +30,25 @@ export interface StoredAnswer {
    *  hint was used, 3 the worked solution was shown and the answer counts
    *  as wrong (chosenIndex is then -1). Absent when no help was used. */
   hintRung?: number;
+  /** Which question this was (`questionRef`: "bank:<uuid>", "quiz:…",
+   *  "gen:…"), so the knowledge model can tell a new question from the same
+   *  one answered again. Absent on attempts recorded before 2026-10-09. */
+  ref?: string;
+  /** True when the key is trusted (practice bank, or the server's checker
+   *  agreed); false when unverified. Unverified answers do not move mastery. */
+  verified?: boolean;
+  /** How many options the question had, for the chance of guessing it. */
+  options?: number;
+  /** What the question asked for: recall a fact, apply it, or explain it.
+   *  Rungs of the mastery ladder need the matching kind of evidence. */
+  kind?: ItemKind;
+  /** The syllabus skill ("<bank key>:<topic ref>") when the question names one. */
+  skill?: string;
+  /** Catalogue id of the misconception the chosen distractor is mapped to. */
+  misconception?: string;
 }
+
+export type ItemKind = "recall" | "apply" | "explain";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -141,6 +159,18 @@ function toAnswer(value: unknown): StoredAnswer | null {
         : undefined,
     ...(value.hintRung === 1 || value.hintRung === 2 || value.hintRung === 3
       ? { hintRung: value.hintRung }
+      : {}),
+    ...(typeof value.ref === "string" && value.ref ? { ref: value.ref } : {}),
+    ...(typeof value.verified === "boolean" ? { verified: value.verified } : {}),
+    ...(Number.isInteger(value.options) && Number(value.options) >= 2
+      ? { options: Number(value.options) }
+      : {}),
+    ...(value.kind === "recall" || value.kind === "apply" || value.kind === "explain"
+      ? { kind: value.kind }
+      : {}),
+    ...(typeof value.skill === "string" && value.skill ? { skill: value.skill } : {}),
+    ...(typeof value.misconception === "string" && value.misconception
+      ? { misconception: value.misconception }
       : {}),
   };
 }

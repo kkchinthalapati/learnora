@@ -264,7 +264,7 @@ export function ExamModal({
             onChange={(e) => chooseSpec(e.target.value)}
           >
             <option value="">Not listed / not sure</option>
-            {(["GCSE", "IB"] as const).map((qual) => (
+            {(["GCSE", "IB", "CBSE"] as const).map((qual) => (
               <optgroup key={qual} label={qual}>
                 {SYLLABUS_SPECS.filter((s) => s.qualification === qual).map(
                   (s) => (

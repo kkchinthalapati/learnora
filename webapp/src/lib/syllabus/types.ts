@@ -5,10 +5,12 @@
  * what depth differs between them. Everything here exists so the rest of the
  * app can say which of those it is working towards. */
 
-export type Qualification = "GCSE" | "IB";
+export type Qualification = "GCSE" | "IB" | "CBSE";
 
-/** The tiers a specification is sat at. GCSE: Foundation/Higher. IB: SL/HL. */
-export type SyllabusTier = "Foundation" | "Higher" | "SL" | "HL";
+/** The tiers a specification is sat at. GCSE: Foundation/Higher. IB: SL/HL.
+ *  CBSE Class 10 Mathematics: Standard (041) / Basic (241); a CBSE subject
+ *  with one paper for everyone has the single tier Standard, never shown. */
+export type SyllabusTier = "Foundation" | "Higher" | "SL" | "HL" | "Standard" | "Basic";
 
 /** Where a topic's weight comes from. `official` is a published weighting
  *  (the DfE's GCSE Maths content weightings); `estimated` shares a paper's
@@ -58,9 +60,11 @@ export interface SyllabusSpec {
   board: string;
   qualification: Qualification;
   subject: string;
+  /** The school year it is sat in, where the board names one ("Class 10"). */
+  level?: string;
   /** The board's code for the specification ("8461"), or "" for IB. */
   code: string;
-  country: "UK" | "International";
+  country: "UK" | "International" | "India";
   /** Which version of the specification this describes. */
   version: string;
   tiers: SyllabusTier[];

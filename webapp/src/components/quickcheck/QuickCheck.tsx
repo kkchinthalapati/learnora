@@ -24,6 +24,7 @@ import type { QuizQuestion } from "../../lib/aiJson";
 import { WrongAnswerNote } from "../learning/WrongAnswerNote";
 import { ReportProblem } from "../learning/ReportProblem";
 import { questionRef } from "../../lib/questionVetting";
+import { storedAnswer } from "../../lib/attempts";
 import styles from "./QuickCheck.module.css";
 
 export interface QuickCheckResult {
@@ -166,7 +167,11 @@ export function QuickCheck({
         folderId,
         clientId: eventId.current,
         occurredAt: event.occurred_at,
-        payload: { questions, answers },
+        payload: {
+          questions,
+          answers,
+          items: questions.map((question, i) => storedAnswer(question, answers[i] ?? null, { topic })),
+        },
       }, candidates);
       result.saved = !recorded?.queued;
       void qc.invalidateQueries({ queryKey: learningEventsKeys.all });

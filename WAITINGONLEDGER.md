@@ -39,13 +39,14 @@ row is UNVERIFIED until you run `supabase secrets list`).
 
 ## 2. Migrations
 
-Production has 59 migrations recorded (2026-10-09, after `ai_request_log_usage`)
-and the repo has 59 files in `supabase/migrations/`. They match
+Production has 60 migrations recorded (2026-10-09, after `cbse_tiers`)
+and the repo has 60 files in `supabase/migrations/`. They match
 one to one by name; many carry different timestamps because they were applied
 through the dashboard/API (the known history drift). **Nothing is pending.**
 
 | Migration | Status | Notes |
 |-----------|--------|-------|
+| `20261009010000_cbse_tiers.sql` | **Applied 2026-10-09** | Allows tiers `Standard` / `Basic` on `exams.syllabus_tier` and `question_bank.tier`, for the CBSE specs in `webapp/src/lib/syllabus/cbse.ts`. Widening only. |
 | `20261009000000_ai_request_log_usage.sql` | **Applied 2026-10-09** | Token counts, status, and `refunded` (failed requests are kept and flagged instead of deleted). learnora-ai v68 and the usage meter filter `refunded = false`. |
 | `20261006000000_question_verification_and_reports.sql` | Applied 2026-10-06 | Ahead of the PR #133 merge. Webapp tolerates it either way. |
 | `20260901000000_add_diagram_artifact_type.sql` | **Applied 2026-10-06** | Found missing during cleanup: production still had the old check constraint, so saving a Notebook Studio diagram would fail with a 23514. Fixed. |
@@ -167,6 +168,7 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 | Date | What |
 |------|------|
 | 2026-10-09 | PR #133 confirmed merged; deployed `learnora-ai` v67 (verification build), then v68 (token/outage logging); applied `ai_request_log_usage` |
+| 2026-10-09 | Applied `cbse_tiers` (CBSE Class 9/10 Science and Maths added to the syllabus catalogue) |
 | 2026-10-06 | Applied `add_diagram_artifact_type` (constraint was missing in production) |
 | 2026-10-06 | Applied `question_verification_and_reports` |
 | 2026-10-06 | Applied `drop_duplicate_ai_request_log_index`, `mistake_loop`, `study_profile_any_board` |

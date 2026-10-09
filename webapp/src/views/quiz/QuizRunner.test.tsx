@@ -311,6 +311,12 @@ describe("QuizRunner", () => {
           chosenIndex: 1,
           correct: true,
           topic: "Cell biology",
+          /* What the knowledge model needs: which question, whether its key
+             is trusted, how many options (the chance of a guess), its kind. */
+          ref: expect.stringMatching(/^quiz:quiz-1:/),
+          verified: true,
+          options: expect.any(Number),
+          kind: "recall",
           secondsSpent: expect.any(Number),
           confidence: null,
         },
@@ -319,6 +325,12 @@ describe("QuizRunner", () => {
           chosenIndex: 1,
           correct: false,
           topic: "Genetics",
+          /* What the knowledge model needs: which question, whether its key
+             is trusted, how many options (the chance of a guess), its kind. */
+          ref: expect.stringMatching(/^quiz:quiz-1:/),
+          verified: true,
+          options: expect.any(Number),
+          kind: "recall",
           secondsSpent: expect.any(Number),
           confidence: null,
         },
