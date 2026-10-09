@@ -4,6 +4,8 @@ import { Skeleton } from "../../components/Skeleton";
 import type { Exam } from "../../api/types";
 import type { LastStudySession } from "../../lib/continuity";
 import { chooseNextStep, type StudyMethod } from "../../lib/nextStep";
+import { prerequisiteFor } from "../../lib/quizMistakes";
+import { bestTopicMatch } from "../../lib/topicKey";
 import {
   INTERVENTION_BLOCK_MINS,
   type TrajectoryForecast,
@@ -348,12 +350,23 @@ export function TodayHero({
   const topicState = forecast.topics?.find((t) => t.id === top.topicId);
   const evidence =
     topicState?.measuredEvidence ?? topicState?.evidence ?? forecast.confidence.evidence;
+  /* The topic's syllabus prerequisite and what the student's answers say
+     about it: a shaky foundation is fixed before what builds on it. */
+  const prerequisiteLabel = prerequisiteFor(top.label);
+  const topics = forecast.topics ?? [];
+  const prerequisiteState = prerequisiteLabel
+    ? topics[bestTopicMatch(prerequisiteLabel, topics.map((t) => t.label))]
+    : undefined;
   const step = chooseNextStep({
     label: top.label,
     topicId: top.topicId,
     mastery: top.mastery,
     evidence,
     dueCards,
+    knowledge: topicState?.knowledge ?? null,
+    prerequisite: prerequisiteLabel
+      ? { label: prerequisiteLabel, knowledge: prerequisiteState?.knowledge ?? null }
+      : null,
   });
   const rough_ = forecast.confidence.evidence < 0.5;
   const runnerUp = forecast.interventions[1];

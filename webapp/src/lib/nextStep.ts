@@ -16,6 +16,7 @@
  * or the timer, and the whole thing is testable without a router. */
 
 import { newSessionHref } from "./sessionModes";
+import { KM, type TopicKnowledge } from "./knowledgeModel";
 
 /** Below this, `mastery` is a guess rather than a measurement — the honest
  *  next step is the one that produces evidence, not one that acts on it. */
@@ -43,6 +44,82 @@ export interface NextStepInput {
   evidence: number;
   /** Cards in this topic's deck that SRS says are due now. */
   dueCards: number;
+  /** What answered questions say (lib/knowledgeModel.ts). When present it
+   *  decides the method; the card-and-score figures are the fallback. */
+  knowledge?: TopicKnowledge | null;
+  /** The topic's first syllabus prerequisite, with what is known of it. */
+  prerequisite?: { label: string; knowledge?: TopicKnowledge | null } | null;
+}
+
+/** Below this belief in a prerequisite, practising what builds on it is
+ *  practising on sand (research/learning-engine-architecture.md §E). */
+export const SHAKY_PREREQUISITE = 0.5;
+
+/** The method when answered questions are the evidence: by the knowledge
+ *  model's status, with a shaky prerequisite taking precedence. Null when
+ *  there is nothing answered to go on. */
+function fromKnowledge(
+  label: string,
+  knowledge: TopicKnowledge | null | undefined,
+  prerequisite: NextStepInput["prerequisite"],
+): NextStep | null {
+  const pre = prerequisite?.knowledge;
+  if (prerequisite && pre && pre.counted > 0 && pre.p < SHAKY_PREREQUISITE && !(knowledge && knowledge.p >= SOLID_MASTERY)) {
+    return {
+      method: "solve",
+      action: `Shore up ${prerequisite.label} first`,
+      why: `${label} builds on ${prerequisite.label}, and your answers there show it isn't secure yet. Fixing the foundation first makes ${label} quicker to learn.`,
+      to: newSessionHref("explain", { topic: prerequisite.label }),
+    };
+  }
+  if (!knowledge || knowledge.counted === 0) return null;
+
+  if (knowledge.status === "learning" && knowledge.p < 0.4) {
+    return {
+      method: "solve",
+      action: `Learn ${label} step by step`,
+      why: `Your answers on ${label} so far show it isn't there yet. A worked explanation, then guided problems, does more now than more questions on their own.`,
+      to: newSessionHref("explain", { topic: label }),
+    };
+  }
+  if (knowledge.status === "learning") {
+    const n = knowledge.rightItems;
+    return {
+      method: "block",
+      action: `Practise ${label}`,
+      why: `${label} is half-built: ${n} different question${n === 1 ? "" : "s"} right so far. More checked problems, each a new one, are what move it.`,
+      to: newSessionHref("practice", { topic: label }),
+    };
+  }
+  if (knowledge.status === "fragile") {
+    return knowledge.rightApply === 0
+      ? {
+          method: "block",
+          action: `Apply ${label} to new problems`,
+          why: `You can recall ${label}, but nothing has checked you can use it on a problem you haven't seen. That is what the exam asks.`,
+          to: newSessionHref("practice", { topic: label }),
+        }
+      : {
+          method: "review",
+          action: `Check ${label} again on another day`,
+          why: `It went well, but all on one day. A right answer after a gap is what shows it has stuck.`,
+          to: newSessionHref("recall", { topic: label }),
+        };
+  }
+  if (knowledge.fading || knowledge.p < KM.secureP) {
+    return {
+      method: "review",
+      action: `Quick check on ${label}`,
+      why: `You had ${label} secure, and it is starting to slip. A short check now holds it far longer than relearning it later.`,
+      to: newSessionHref("recall", { topic: label }),
+    };
+  }
+  return {
+    method: "teach",
+    action: `Explain ${label} in your own words`,
+    why: `${label} is secure: right on different questions, on different days, including applying it. Explaining it is what exposes anything left.`,
+    to: newSessionHref("teach", { topic: label }),
+  };
 }
 
 export interface NextStep {
@@ -63,7 +140,12 @@ export function chooseNextStep({
   mastery,
   evidence,
   dueCards,
+  knowledge,
+  prerequisite,
 }: NextStepInput): NextStep {
+  const fromAnswers = fromKnowledge(label, knowledge, prerequisite);
+  if (fromAnswers) return fromAnswers;
+
   if (evidence < LOW_EVIDENCE) {
     /* Two cases the old line merged: nothing at all, and a little. It said
        "Nothing has measured Enzymes yet" beside a Progress ladder showing
