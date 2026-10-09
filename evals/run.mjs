@@ -2,15 +2,17 @@
 // Learnora tutor evals: hint ladders, explanations, the question checker and
 // the misconception labeller, against evals/fixtures.json (100 prompts).
 //
-// Not part of any test suite and never run in CI. You run it, with your own
-// key, read from the environment only:
+// Not part of the test suite. It runs weekly in CI (.github/workflows/tutor-evals.yml)
+// with a repository secret, or you run it with your own key, read from the
+// environment only:
 //
 //   GEMINI_API_KEY=...    node evals/run.mjs --provider gemini
 //   OPENAI_API_KEY=...    node evals/run.mjs --provider openai
 //   ANTHROPIC_API_KEY=... node evals/run.mjs --provider anthropic
+//   GROQ_API_KEY=...      node evals/run.mjs --provider groq
 //
 // Options:
-//   --provider gemini|openai|anthropic   (default: gemini)
+//   --provider gemini|openai|anthropic|groq   (default: gemini)
 //   --model <name>                       (or EVAL_MODEL; defaults below match the app's)
 //   --only hint_step|explanation|quiz_question|misconception_match
 //   --limit <n>                          first n fixtures after filtering
@@ -38,7 +40,8 @@ function arg(name, fallback) {
 const PROVIDERS = {
   gemini: { keyEnv: "GEMINI_API_KEY", model: "gemini-3.6-flash" },
   openai: { keyEnv: "OPENAI_API_KEY", model: "gpt-4o-mini" },
-  anthropic: { keyEnv: "ANTHROPIC_API_KEY", model: "claude-3-5-haiku-20241022" },
+  anthropic: { keyEnv: "ANTHROPIC_API_KEY", model: "claude-haiku-5-5" },
+  groq: { keyEnv: "GROQ_API_KEY", model: "openai/gpt-oss-120b" },
 };
 
 async function call(provider, model, key, { system, user }) {
@@ -61,8 +64,12 @@ async function call(provider, model, key, { system, user }) {
     const data = await res.json();
     return data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "";
   }
-  if (provider === "openai") {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  if (provider === "openai" || provider === "groq") {
+    const url =
+      provider === "groq"
+        ? "https://api.groq.com/openai/v1/chat/completions"
+        : "https://api.openai.com/v1/chat/completions";
+    const res = await fetch(url, {
       method: "POST",
       signal,
       headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
@@ -73,7 +80,7 @@ async function call(provider, model, key, { system, user }) {
         messages: [...(system ? [{ role: "system", content: system }] : []), { role: "user", content: user }],
       }),
     });
-    if (!res.ok) throw new Error(`openai ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    if (!res.ok) throw new Error(`${provider} ${res.status}: ${(await res.text()).slice(0, 200)}`);
     return (await res.json())?.choices?.[0]?.message?.content ?? "";
   }
   if (provider === "anthropic") {

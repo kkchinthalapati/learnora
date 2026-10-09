@@ -1,0 +1,31 @@
+# Unit tests on every pull request and push to main: the webapp's Vitest suite
+# and the repo-level Node tests (edge-function helpers, provider policy, evals
+# harness). No secrets, no network beyond npm.
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+      - run: npm --prefix webapp ci
+      - name: Typecheck
+        run: npx --prefix webapp tsc -p webapp/tsconfig.app.json --noEmit
+      - name: Webapp tests
+        run: npm --prefix webapp test
+      - name: Repo tests
+        run: node --test tests/

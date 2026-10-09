@@ -134,7 +134,7 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 | Item | Status |
 |------|--------|
 | **Apply the Oak import** (1,050 GCSE Maths questions). Key obtained 2026-10-07 and a review-mode run done (see below); only the write to production is left. Needs your `SUPABASE_SERVICE_ROLE_KEY`, which no agent has. | **READY** (after PR #133 merges, so Practice, QuickCheck and retests render the LaTeX) |
-| A provider key in your shell to run the eval harness: `GEMINI_API_KEY=... node evals/run.mjs --provider gemini` | BLOCKED on you. 100 fixtures built and graders tested; **never run against a real model**, so the pass rate is unknown. Use `--dry-run` to see prompts for free. |
+| **Add `GROQ_API_KEY` as a GitHub repository secret** (Settings > Secrets and variables > Actions) so the weekly tutor evals run (`.github/workflows/tutor-evals.yml`, added 2026-10-09). Optional: `GEMINI_API_KEY` to run with `--provider gemini`. Locally: `GROQ_API_KEY=... node evals/run.mjs --provider groq`. | BLOCKED on you. The workflow skips cleanly until a key exists; the evals have **never run against a real model**, so the pass rate is unknown. |
 
 ## 5. Domain, hosting, accounts
 
