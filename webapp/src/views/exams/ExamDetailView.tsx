@@ -186,6 +186,11 @@ export function ExamDetailView() {
                 Practise top topics
               </Button>
             )}
+            {spec && canPractise && (
+              <Link className={styles.secondaryLink} to={`/exams/${exam.id}/placement`}>
+                Find my level
+              </Link>
+            )}
             {derived && derived.priorities[0] && (
               <Link
                 className={styles.primaryLink}

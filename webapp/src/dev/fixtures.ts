@@ -4,6 +4,8 @@
  * dashboard's day-boundary logic (streaks, sparkline, "due today") has
  * something realistic to chew on however long after writing this it runs. */
 
+import cbseMaths from "../lib/questionBank/seed/cbse-10-maths.json";
+
 export const USER_ID = "00000000-0000-4000-8000-000000000001";
 export const USER_EMAIL = "harness@learnora.dev";
 
@@ -91,6 +93,16 @@ export const exams = [
     exam_date: daysAhead(19),
     difficulty: "medium",
     status: "upcoming",
+  },
+  {
+    id: 3,
+    user_id: USER_ID,
+    exam_name: "CBSE Board Maths",
+    exam_date: daysAhead(120),
+    difficulty: "medium",
+    status: "upcoming",
+    syllabus_id: "cbse-10-maths-041",
+    syllabus_tier: "Standard",
   },
 ];
 
@@ -522,3 +534,21 @@ export const misconceptions = [
     excluded_question_keys: [],
   },
 ];
+
+/* The CBSE Class 10 Maths seed as bank rows, for the placement check. */
+export const questionBank = (cbseMaths as Array<{ ref: string; q: string; c: string[]; a: number; why: string; kind?: string; mis?: (string | null)[] }>).map((e, i) => ({
+  id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+  source: "learnora",
+  source_ref: null,
+  licence: "learnora",
+  attribution: null,
+  spec_key: "cbse-10-maths-041",
+  topic_ref: e.ref,
+  tier: null,
+  question: e.q,
+  choices: e.c,
+  correct_index: e.a,
+  explanation: e.why,
+  kind: e.kind ?? null,
+  distractor_misconceptions: e.mis ?? null,
+}));
