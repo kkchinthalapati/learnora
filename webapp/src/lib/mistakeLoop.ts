@@ -131,9 +131,15 @@ export function applyObservation(state: LoopState, obs: LoopObservation): LoopSt
  * gives its interval, floored at RESOLVE_AFTER_DAYS because a retest sooner
  * than that can't resolve anything.
  */
-export function retestDueAt(repairedAt: Date, timesObserved: number): string {
+/** `minDays` can push the first retest later than the resolution rule's
+ *  floor (the retest-delay experiment, lib/experiments.ts); never earlier. */
+export function retestDueAt(
+  repairedAt: Date,
+  timesObserved: number,
+  minDays: number = RESOLVE_AFTER_DAYS,
+): string {
   const fsrs = computeFsrsCardState({ quality: timesObserved > 1 ? 1 : 2, now: repairedAt });
-  const floor = repairedAt.getTime() + RESOLVE_AFTER_DAYS * DAY_MS;
+  const floor = repairedAt.getTime() + Math.max(RESOLVE_AFTER_DAYS, minDays) * DAY_MS;
   return new Date(Math.max(new Date(fsrs.nextReviewDate).getTime(), floor)).toISOString();
 }
 

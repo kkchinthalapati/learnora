@@ -9,6 +9,7 @@ import {
 } from "../lib/misconceptions";
 import { recordLoopObservation } from "../lib/offlineSync";
 import { retestDueAt } from "../lib/mistakeLoop";
+import { armFor, experimentTag, RETEST_DELAY, RETEST_DELAY_DAYS } from "../lib/experiments";
 import { observationKey } from "../lib/questionKey";
 import {
   answeredQuestions,
@@ -192,8 +193,8 @@ function recordQuizMisconceptions(
               attemptKey ?? "quiz",
               c.questionKey!,
             ),
-            dueAt: retestDueAt(now, row.timesObserved + 1),
-            detail: "Walked through the worked solution.",
+            dueAt: retestDueAt(now, row.timesObserved + 1, RETEST_DELAY_DAYS[armFor(RETEST_DELAY, row.id)]),
+            detail: `Walked through the worked solution. ${experimentTag(RETEST_DELAY, armFor(RETEST_DELAY, row.id))}`,
           }).catch((err) =>
             console.warn(
               "[mistakeLoop] worked-solution repair not recorded:",

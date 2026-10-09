@@ -9,7 +9,7 @@
 --
 -- Widening a check constraint: no existing row can violate the new one.
 --
--- Revert (only once no row uses the new values):
+-- Revert: (only once no row uses the new values)
 --   alter table public.exams drop constraint if exists exams_syllabus_tier_check;
 --   alter table public.exams add constraint exams_syllabus_tier_check
 --     check (syllabus_tier is null or syllabus_tier in ('Foundation', 'Higher', 'SL', 'HL'));

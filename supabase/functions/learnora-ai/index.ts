@@ -295,7 +295,7 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
     id: "anthropic",
     keyEnv: "CLAUDE_API_KEY",
     modelEnv: "CLAUDE_MODEL",
-    defaultModel: "claude-3-5-haiku-20241022",
+    defaultModel: "claude-haiku-5-5",
     url: "https://api.anthropic.com/v1/messages",
     dialect: "anthropic",
     // /v1/messages has no response_format; JSON is asked for in the prompt.
