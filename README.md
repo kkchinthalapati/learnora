@@ -18,6 +18,8 @@ project notes that are intentionally separated from active product work.
 - `docs/` — research, audits, and supporting product documentation
 - `plans/` — active planning notes and product strategy docs
 - `archive/` — historical migration/design/audit work that is no longer active
+- `evals/` — tutor eval harness (100 fixtures, graders, key-from-env runner)
+- `WAITINGONLEDGER.md` — everything waiting on a person: migrations, deploys, secrets, domain, decisions
 - `tests/` — repo-level validation scripts and broader checks
 - root HTML/CSS files — static marketing and policy pages only
 

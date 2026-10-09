@@ -156,7 +156,7 @@ Tracked on branch work; each phase ends green on
 | 4 | Dashboard IA + responsive — priority grid, 3 real breakpoints, one primary CTA, single stat treatment | ⬜ |
 | 5 | Effects & motion budget — cap stacked-blur depth, consolidate blob layers | ⬜ |
 
-### 2026-09 redesign (`design_handoff_learnora_redesign/README.md`)
+### 2026-09 redesign (`archive/design_handoff_learnora_redesign/README.md`)
 
 | Phase | What | Status |
 |---|---|---|

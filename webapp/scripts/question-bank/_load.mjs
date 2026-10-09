@@ -2,11 +2,12 @@
    Vite (which resolves TypeScript, extensionless imports and JSON), so the
    import rules live in one tested place: src/lib/questionBank/. */
 import { createServer } from "vite";
+import { fileURLToPath } from "node:url";
 
 export async function withModules(paths, fn) {
   const server = await createServer({
     configFile: false,
-    root: new URL("../..", import.meta.url).pathname,
+    root: fileURLToPath(new URL("../..", import.meta.url)),
     logLevel: "error",
     server: { middlewareMode: true, hmr: false },
     appType: "custom",
