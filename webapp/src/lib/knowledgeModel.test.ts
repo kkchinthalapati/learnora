@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Attempt } from "./attempts";
-import { answerWeight, bktPosterior, buildKnowledge, foldTopic, KM } from "./knowledgeModel";
+import { answerWeight, bktPosterior, buildKnowledge, foldTopic, formatKnowledgeForPrompt, KM } from "./knowledgeModel";
 
 const now = new Date("2026-10-09T12:00:00Z");
 const DAY = 86_400_000;
@@ -121,5 +121,29 @@ describe("buildKnowledge", () => {
       now,
     );
     expect([...map.keys()].sort()).toEqual(["aqa-gcse-biology-8461:4.1.3", "enzymes"]);
+  });
+});
+
+describe("formatKnowledgeForPrompt", () => {
+  const fence = (s: string) => `"${s}"`;
+
+  it("says there is nothing to go on when nothing was answered", () => {
+    const text = formatKnowledgeForPrompt(new Map(), fence);
+    expect(text).toMatch(/No answered questions yet/);
+  });
+
+  it("lists status in words with its evidence, newest first, never as a percentage", () => {
+    const map = buildKnowledge(
+      [
+        ans({ topicKey: "electricity", daysAgo: 1, kind: "apply" }),
+        ans({ topicKey: "electricity", daysAgo: 1 }),
+        ans({ topicKey: "light", daysAgo: 3 }),
+      ],
+      now,
+    );
+    const text = formatKnowledgeForPrompt(map, fence);
+    expect(text.indexOf('"electricity"')).toBeLessThan(text.indexOf('"light"'));
+    expect(text).toMatch(/"light": still learning \(1 question right over 1 day; not yet checked on applying it\)/);
+    expect(text).not.toMatch(/\d+%/);
   });
 });

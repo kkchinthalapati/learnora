@@ -249,3 +249,44 @@ export function evidenceLine(k: TopicKnowledge): string {
   const d = `${k.rightDays} day${k.rightDays === 1 ? "" : "s"}`;
   return `${q} over ${d}`;
 }
+
+/** The most topics a prompt lists; the summary stays a few hundred tokens. */
+export const MAX_PROMPT_TOPICS = 8;
+
+const STATUS_WORDS: Record<KnowledgeStatus, string> = {
+  unmeasured: "not checked yet",
+  learning: "still learning",
+  fragile: "right so far, but not yet shown on new questions over different days",
+  secure: "secure",
+};
+
+/**
+ * The knowledge model, as a block an AI prompt can carry: per topic, the
+ * status in words and the evidence it rests on. Deterministic and short —
+ * the tutor gets the same picture every screen does, instead of re-reading
+ * history or guessing. Topics are fenced by the caller's `fence` because
+ * their names come from the student.
+ */
+export function formatKnowledgeForPrompt(
+  knowledge: ReadonlyMap<string, TopicKnowledge>,
+  fence: (s: string) => string,
+): string {
+  const rows = [...knowledge.values()]
+    .filter((k) => k.counted > 0)
+    .sort((a, b) => (b.lastAt ?? "").localeCompare(a.lastAt ?? ""))
+    .slice(0, MAX_PROMPT_TOPICS);
+  const lines = ["TOPIC STATUS (from answered questions; never quote these as percentages or grades):"];
+  if (rows.length === 0) {
+    lines.push("- No answered questions yet. Do not claim to know what the student knows.");
+    return lines.join("\n");
+  }
+  for (const k of rows) {
+    const fading = k.fading ? "; starting to slip" : "";
+    const apply = k.rightApply > 0 ? "" : "; not yet checked on applying it";
+    lines.push(`- ${fence(k.key)}: ${STATUS_WORDS[k.status]} (${evidenceLine(k)}${apply}${fading}).`);
+  }
+  lines.push(
+    "- Pitch help to the status: worked steps for 'still learning', new problems for 'right so far', a quick check for 'starting to slip'. Never call a topic mastered unless it is listed as secure.",
+  );
+  return lines.join("\n");
+}

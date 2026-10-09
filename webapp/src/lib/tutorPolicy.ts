@@ -31,6 +31,9 @@ export interface LadderQuestion {
   choices: string[];
   correctIndex: number;
   topic?: string | null;
+  /** "bank:<uuid>" for a practice-bank question: its ladder is shared
+   *  across students through the server's item cache. */
+  ref?: string | null;
 }
 
 export interface HintLadder {

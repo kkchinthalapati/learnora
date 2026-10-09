@@ -16,6 +16,7 @@ import {
   permittedProviderIds,
 } from "../_shared/providerPolicy.js";
 import { addBodyUsage, addGeminiUsage, newUsage } from "../_shared/tokenUsage.js";
+import { cacheableRef, requestHash } from "../_shared/itemCache.js";
 
 /** Tokens one request spent across all its model calls (_shared/tokenUsage.js). */
 type TokenUsage = { input: number; output: number; reported: boolean };
@@ -1019,6 +1020,70 @@ async function adminClient() {
   return createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+/* ── Item cache (_shared/itemCache.js; table ai_item_cache) ─────────────
+   Best-effort throughout: a cache that can't be read is a miss, and one
+   that can't be written costs nothing but the next student's call. */
+
+async function readItemCache(hash: string): Promise<string | null> {
+  try {
+    const admin = await adminClient();
+    if (!admin) return null;
+    const { data, error } = await admin
+      .from("ai_item_cache")
+      .select("content, hits")
+      .eq("request_hash", hash)
+      .maybeSingle();
+    if (error || !data?.content) return null;
+    // deno-lint-ignore no-explicit-any
+    const work = admin.from("ai_item_cache").update({ hits: ((data as any).hits ?? 0) + 1 }).eq("request_hash", hash);
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+    return String(data.content);
+  } catch (err) {
+    console.warn("[item-cache] read failed", err);
+    return null;
+  }
+}
+
+function storeItemCache(hash: string, ref: string, tool: unknown, content: string, model: string): void {
+  if (!content.trim() || content.length > 20000) return;
+  const work = (async () => {
+    try {
+      const admin = await adminClient();
+      await admin?.from("ai_item_cache").upsert(
+        { request_hash: hash, question_ref: ref, tool: typeof tool === "string" ? tool : null, content, model },
+        { onConflict: "request_hash", ignoreDuplicates: true },
+      );
+    } catch (err) {
+      console.warn("[item-cache] write failed", err);
+    }
+  })();
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+}
+
+function logCacheHit(userId: string, mode: unknown, tool: unknown, hash: string): void {
+  const work = (async () => {
+    try {
+      const admin = await adminClient();
+      await admin?.from("ai_request_log").insert({
+        user_id: userId,
+        mode: typeof mode === "string" ? mode : null,
+        tool: typeof tool === "string" ? tool : null,
+        provider: "cache",
+        model: hash.slice(0, 12),
+        latency_ms: 0,
+        status: "cached",
+        refunded: true,
+      });
+    } catch (err) {
+      console.warn("[item-cache] hit not logged", err);
+    }
+  })();
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+}
+
 function envInt(name: string, fallback: number): number {
   const n = Number(Deno.env.get(name));
   return Number.isFinite(n) && n >= 0 ? n : fallback;
@@ -1336,7 +1401,7 @@ Deno.serve(async (req) => {
     const usage: TokenUsage = newUsage();
 
     try {
-        const { history, file, settings, mode, tool, context, sessionKey, quizMeta } = await req.json();
+        const { history, file, settings, mode, tool, context, sessionKey, quizMeta, itemCache } = await req.json();
         const s = settings || {};
 
         /* Instructions and workspace data written by the app, kept out of the
@@ -1348,6 +1413,23 @@ Deno.serve(async (req) => {
         const currentMsg = history && history.length > 0 ? history[history.length - 1].content : "";
 
         const jsonHeaders = { "Content-Type": "application/json", ...corsHeaders };
+
+        /* AI text for a practice-bank question that another student already
+           asked for in exactly this form (_shared/itemCache.js): answered
+           from the cache, before the rate limit, so it costs no allowance.
+           Logged as refunded 'cached' so the hit rate is visible. */
+        const cacheRef = !file ? cacheableRef(itemCache) : null;
+        const cacheKey = cacheRef ? await requestHash({ mode, tool, context, history }) : null;
+        if (cacheRef && cacheKey) {
+            const hit = await readItemCache(cacheKey);
+            if (hit) {
+                logCacheHit(user.id, mode, tool, cacheKey);
+                return new Response(JSON.stringify({ text: hit, modelUsed: "cache" }), { headers: jsonHeaders });
+            }
+        }
+        const remember = (text: string, model: string) => {
+            if (cacheRef && cacheKey) storeItemCache(cacheKey, cacheRef, tool, text, model);
+        };
 
         // Rate limit before spending a token, same as the safety screen
         // below — this is the cheap check that protects the expensive
@@ -1630,6 +1712,7 @@ Deno.serve(async (req) => {
                         failed: Object.keys(debugErrors),
                         usage,
                     });
+                    remember(text, modelName);
                     return new Response(JSON.stringify({
                         text: text,
                         modelUsed: modelName
@@ -1743,6 +1826,7 @@ Deno.serve(async (req) => {
                     failed: Object.keys(debugErrors).filter((id) => !/not set|Skipped/.test(debugErrors[id])),
                     usage,
                 });
+                remember(text, `${provider.id}/${Deno.env.get(provider.modelEnv) || provider.defaultModel}`);
                 return new Response(JSON.stringify({
                     text,
                     modelUsed: `${provider.id}/${Deno.env.get(provider.modelEnv) || provider.defaultModel}`

@@ -13,6 +13,10 @@
  */
 
 import { quizzesApi } from "./quizzes";
+import { learningEventsApi } from "./learningEvents";
+import { collectAttempts } from "../lib/attempts";
+import { buildKnowledge, formatKnowledgeForPrompt } from "../lib/knowledgeModel";
+import { fenceUntrusted } from "../lib/actionTags";
 import {
   EMPTY_EVIDENCE,
   buildStudentEvidence,
@@ -29,5 +33,21 @@ export async function loadStudentEvidence(): Promise<StudentEvidence> {
   } catch (err) {
     console.warn("[evidence] Failed to load quiz performance:", err);
     return EMPTY_EVIDENCE;
+  }
+}
+
+/** The knowledge model's per-topic summary for an AI prompt, from the
+ *  student's quiz attempts and recent learning events. Best-effort: on a
+ *  read failure it says there is nothing to go on, never a guess. */
+export async function loadKnowledgeSummary(): Promise<string> {
+  try {
+    const [attempts, events] = await Promise.all([
+      quizzesApi.fetchAllAttempts(),
+      learningEventsApi.fetchSince().catch(() => []),
+    ]);
+    return formatKnowledgeForPrompt(buildKnowledge(collectAttempts(attempts, events)), fenceUntrusted);
+  } catch (err) {
+    console.warn("[evidence] Failed to load the knowledge summary:", err);
+    return formatKnowledgeForPrompt(new Map(), fenceUntrusted);
   }
 }

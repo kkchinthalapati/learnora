@@ -40,7 +40,7 @@ import { stripActionTagBlocks, fenceUntrusted } from "../lib/actionTags";
 import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
 import { isImageFile, prepareStudyImage, StudyImageError } from "../lib/studyImage";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
-import { loadStudentEvidence } from "../api/studentEvidence";
+import { loadKnowledgeSummary, loadStudentEvidence } from "../api/studentEvidence";
 import { formatEvidenceForPrompt } from "../lib/studentEvidence";
 import { misconceptionsApi } from "../api/misconceptions";
 import { formatMisconceptionsForPrompt } from "../lib/misconceptions";
@@ -594,6 +594,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            the two overlap rather than queueing. `loadStudentEvidence` resolves
            rather than throwing, so it needs no catch of its own. */
         const evidencePromise = loadStudentEvidence();
+        /* Per-topic status from the knowledge model, so the tutor pitches
+           help to what the student has shown, not to a guess. Resolves
+           rather than throwing, like the evidence read. */
+        const knowledgePromise = loadKnowledgeSummary();
         /* Started alongside the evidence read for the same reason, and read
            the same way: a failure resolves to an empty ledger, which renders
            as an explicit "no diagnoses on record — do not invent any" rather
@@ -635,9 +639,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         /* Always rendered, including when there is nothing to report: the
            empty summary is what carries the instruction *not* to guess a
            grade, which is precisely the case where the model would. */
-        const performanceEvidence = formatEvidenceForPrompt(
+        const performanceEvidence = `${formatEvidenceForPrompt(
           await evidencePromise,
-        );
+        )}\n${await knowledgePromise}`;
         /* Always rendered too, and for the same reason as the line above: the
            empty ledger is what carries the instruction not to invent a
            diagnosis, which is exactly when a model would. */

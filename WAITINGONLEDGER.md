@@ -39,13 +39,14 @@ row is UNVERIFIED until you run `supabase secrets list`).
 
 ## 2. Migrations
 
-Production has 61 migrations recorded (2026-10-09, after `question_bank_kind_and_distractors`)
-and the repo has 61 files in `supabase/migrations/`. They match
+Production has 62 migrations recorded (2026-10-09, after `ai_item_cache`)
+and the repo has 62 files in `supabase/migrations/`. They match
 one to one by name; many carry different timestamps because they were applied
 through the dashboard/API (the known history drift). **Nothing is pending.**
 
 | Migration | Status | Notes |
 |-----------|--------|-------|
+| `20261009030000_ai_item_cache.sql` | **Applied 2026-10-09** | Service-role-only cache of AI text for bank questions (keyed by a hash of the whole request); `ai_request_log.status` gains `cached`. Used by learnora-ai v69. |
 | `20261009020000_question_bank_kind_and_distractors.sql` | **Applied 2026-10-09** | `kind` and `distractor_misconceptions` on the bank; then 132 CBSE Class 10 questions inserted (Learnora-written, `scripts/question-bank/cbse-source.mjs`). |
 | `20261009010000_cbse_tiers.sql` | **Applied 2026-10-09** | Allows tiers `Standard` / `Basic` on `exams.syllabus_tier` and `question_bank.tier`, for the CBSE specs in `webapp/src/lib/syllabus/cbse.ts`. Widening only. |
 | `20261009000000_ai_request_log_usage.sql` | **Applied 2026-10-09** | Token counts, status, and `refunded` (failed requests are kept and flagged instead of deleted). learnora-ai v68 and the usage meter filter `refunded = false`. |
@@ -61,7 +62,7 @@ not the filename. If you want `supabase migration list` to match, run
 
 | Function | Prod version | Waiting on |
 |----------|--------------|------------|
-| `learnora-ai` | v68 (2026-10-09) | Nothing. v67 = the verification build from `main`; v68 = the same plus token and outage logging (`learning-engine` branch). Smoke test is row 3. Rollback: Edge Functions > learnora-ai > versions. |
+| `learnora-ai` | v69 (2026-10-09) | Nothing. v67 = the verification build from `main`; v68 = plus token and outage logging; v69 = plus the bank-question item cache (`learning-engine` branch). Smoke test is row 3. Rollback: Edge Functions > learnora-ai > versions. |
 | `stripe-billing` | v19 | Nothing known. Needs Stripe secrets (4.1). |
 | `stripe-webhook` | v17 | Nothing known. Needs `STRIPE_WEBHOOK_SECRET` (4.1). |
 | `delete-account` | v13 | Nothing. |
@@ -169,6 +170,7 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 | Date | What |
 |------|------|
 | 2026-10-09 | PR #133 confirmed merged; deployed `learnora-ai` v67 (verification build), then v68 (token/outage logging); applied `ai_request_log_usage` |
+| 2026-10-09 | Applied `ai_item_cache`; deployed `learnora-ai` v69 |
 | 2026-10-09 | Applied `question_bank_kind_and_distractors`; inserted 132 CBSE Class 10 bank questions (bank now 360) |
 | 2026-10-09 | Applied `cbse_tiers` (CBSE Class 9/10 Science and Maths added to the syllabus catalogue) |
 | 2026-10-06 | Applied `add_diagram_artifact_type` (constraint was missing in production) |

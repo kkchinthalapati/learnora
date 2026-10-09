@@ -77,6 +77,11 @@ export interface EdgePayload {
   /** For quiz generation: whether the topic is in a seeded syllabus, so the
    *  server logs questions its checker rejects for human review. */
   quizMeta?: { seeded: boolean; subject?: string; specId?: string };
+  /** A request about one practice-bank question whose reply is the same
+   *  for every student (a hint ladder, a wrong-answer explanation): the
+   *  server answers repeats of the exact request from its cache, free.
+   *  Only "bank:<uuid>" refs are accepted (_shared/itemCache.js). */
+  itemCache?: { ref: string };
 }
 
 /* The open Study session, if any. Module state rather than a parameter on
