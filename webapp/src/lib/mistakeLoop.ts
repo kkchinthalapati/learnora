@@ -26,6 +26,7 @@
 import { computeFsrsCardState } from "../views/review/srs";
 import {
   detectFromWrongAnswer,
+  getKnownMisconception,
   type CatalogueCheck,
   type KnownMisconception,
 } from "./misconceptionCatalogue";
@@ -130,9 +131,15 @@ export function applyObservation(state: LoopState, obs: LoopObservation): LoopSt
  * gives its interval, floored at RESOLVE_AFTER_DAYS because a retest sooner
  * than that can't resolve anything.
  */
-export function retestDueAt(repairedAt: Date, timesObserved: number): string {
+/** `minDays` can push the first retest later than the resolution rule's
+ *  floor (the retest-delay experiment, lib/experiments.ts); never earlier. */
+export function retestDueAt(
+  repairedAt: Date,
+  timesObserved: number,
+  minDays: number = RESOLVE_AFTER_DAYS,
+): string {
   const fsrs = computeFsrsCardState({ quality: timesObserved > 1 ? 1 : 2, now: repairedAt });
-  const floor = repairedAt.getTime() + RESOLVE_AFTER_DAYS * DAY_MS;
+  const floor = repairedAt.getTime() + Math.max(RESOLVE_AFTER_DAYS, minDays) * DAY_MS;
   return new Date(Math.max(new Date(fsrs.nextReviewDate).getTime(), floor)).toISOString();
 }
 
@@ -154,6 +161,9 @@ export interface WrongAnswerFacts {
   correct: string;
   topic?: string | null;
   timedOut?: boolean;
+  /** Set when the chosen option is a distractor mapped to a catalogue
+   *  misconception (question_bank.distractor_misconceptions). */
+  misconceptionId?: string | null;
 }
 
 /** What an AI labeller said about a wrong answer it couldn't find in the
@@ -188,6 +198,10 @@ export function matchWrongAnswer(
   a: WrongAnswerFacts,
   provisional?: ProvisionalLabel | null,
 ): MistakeMatch {
+  /* A mapped distractor is the diagnosis itself: the question was written
+     so that picking it means holding that belief (Eedi's design). */
+  const mapped = a.misconceptionId ? getKnownMisconception(a.misconceptionId) : null;
+  if (mapped) return { kind: "catalogue", entry: mapped };
   const entry = detectFromWrongAnswer({
     question: a.question,
     topic: a.topic ?? null,

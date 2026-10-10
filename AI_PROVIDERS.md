@@ -97,7 +97,7 @@ value in the table below as the fallback:
 | `OPENROUTER_MODEL` | `openai/gpt-oss-20b:free` |
 | `NVIDIA_MODEL` | `meta/llama-3.3-70b-instruct` |
 | `OPENAI_MODEL` | `gpt-4o-mini` |
-| `CLAUDE_MODEL` | `claude-3-5-haiku-20241022` |
+| `CLAUDE_MODEL` | `claude-haiku-5-5` (default updated 2026-10-09 from the retired `claude-3-5-haiku-20241022`) |
 
 If a provider starts returning "model not found", set the matching secret to a
 current model ID rather than editing the code. Two defaults in this file have

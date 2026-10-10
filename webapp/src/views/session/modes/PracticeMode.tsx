@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { renderMathText } from "../../../lib/markdownToReact";
 import { learningEventsApi } from "../../../api/learningEvents";
 import { normaliseTopicKey } from "../../../lib/topicKey";
 import { Button } from "../../../components/Button";
 import { ConfidencePicker } from "../../../components/learning/ConfidencePicker";
 import type { Confidence } from "../../../components/learning/options";
 import { generateQuizQuestions } from "../../../api/aiQuiz";
-import { bankPracticeFor } from "../../../api/questionBank";
+import { bankFirst, bankPracticeFor } from "../../../api/questionBank";
 import { askInSession, buildSessionContext } from "../../../api/aiSession";
 import { TutorTurn } from "../../../components/learning/TutorTurn";
 import { useMisconceptions, useRecordMisconceptions } from "../../../hooks/useMisconceptions";
@@ -21,6 +22,9 @@ import text from "../../../styles/text.module.css";
 import { WrongAnswerNote } from "../../../components/learning/WrongAnswerNote";
 import { ReportProblem } from "../../../components/learning/ReportProblem";
 import { questionRef } from "../../../lib/questionVetting";
+import { storedAnswer } from "../../../lib/attempts";
+import { numericFeedback } from "../../../lib/numericAnswer";
+import { NumericAnswerInput } from "../../../components/learning/NumericAnswerInput";
 import styles from "../session.module.css";
 
 export const PRACTICE_PROBLEMS = 6;
@@ -36,7 +40,14 @@ export interface PracticeAnswer {
   chosen: number;
   correct: boolean;
   confidence: Confidence | null;
+  /** What was typed, for a numeric problem. */
+  response?: string;
+  /** For a wrong numeric answer: what was off. */
+  feedback?: string;
 }
+
+/** The chosen index recorded for a wrong typed-in numeric answer. */
+const NUMERIC_WRONG = -2;
 
 export interface PracticeData {
   questions?: QuizQuestion[];
@@ -81,8 +92,13 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
       .map((m) => m.concept)
       .filter((c) => c.toLowerCase() !== session.objective.toLowerCase())
       .slice(0, 2);
+    const label = [session.subject, session.objective].filter(Boolean).join(" ");
     task.run(
-      () =>
+      async () =>
+        /* The bank first, when the objective clearly names a banked spec
+           topic: instant, free, and every key checked by a person. The AI
+           writes problems only for what the bank can't cover. */
+        (await bankFirst(label, PRACTICE_PROBLEMS)) ??
         /* When the AI can't write problems (an outage, or today's allowance
            is used up), practice still runs: the question bank has exam-style
            questions on the spec topic this objective maps to. */
@@ -150,10 +166,20 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
     if (secondsLeft === 0 && session.status !== "done") ctl.finish();
   }, [secondsLeft, session.status, ctl]);
 
-  const check = () => {
-    if (!question || chosen === null) return;
+  const check = (pick: number | null = chosen, response?: string, feedback?: string) => {
+    if (!question || pick === null) return;
+    const chosen = pick;
     const correct = chosen === question.correctIndex;
-    const answers = { ...data.answers, [index]: { chosen, correct, confidence } };
+    const answers = {
+      ...data.answers,
+      [index]: {
+        chosen,
+        correct,
+        confidence,
+        ...(response !== undefined ? { response } : {}),
+        ...(feedback ? { feedback } : {}),
+      },
+    };
     ctl.setModeData<PracticeData>("practice", { ...data, answers });
     /* Every checked problem is a scored event, so Today and Progress learn
        from Practice the way they learn from flashcards. A guess that landed
@@ -164,7 +190,20 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
         topicKey: normaliseTopicKey(question.topic || session.objective),
         score: correct ? (confidence === "guess" ? 0.5 : 1) : 0,
         clientId: `practice:${session.id}:${index}`,
-        payload: { mode: "practice", confidence },
+        payload: {
+          mode: "practice",
+          kind: "practice",
+          confidence,
+          items: [
+            {
+              ...storedAnswer(question, chosen, { topic: session.objective, confidence, response }),
+              /* Struck-out options (the Hint) raise the odds of a guess. */
+              ...(question.answerType === "numeric"
+                ? {}
+                : { options: Math.max(2, question.choices.length - (data.struck[index]?.length ?? 0)) }),
+            },
+          ],
+        },
       })
       .catch(() => {
         /* Best-effort, like every other evidence write. */
@@ -179,7 +218,7 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
               topic: question.topic || session.objective,
               correct,
               question: question.question,
-              chosen: question.choices[chosen],
+              chosen: response ?? question.choices[chosen],
             },
           ],
           { subject: session.subject, attemptId: session.id },
@@ -251,10 +290,25 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                     : "No timer"}
                 </span>
               </div>
-              <p className={styles.problem}>{question.question}</p>
+              <p className={styles.problem}>{renderMathText(question.question)}</p>
               {question.attribution ? (
                 <p className={styles.caption}>{question.attribution}</p>
               ) : null}
+              {question.answerType === "numeric" && question.numeric ? (
+                answer ? null : (
+                  <NumericAnswerInput
+                    numeric={question.numeric}
+                    submitLabel="Check my answer"
+                    onAnswer={(response, verdict) =>
+                      check(
+                        verdict.correct ? 0 : NUMERIC_WRONG,
+                        response,
+                        verdict.correct ? undefined : numericFeedback(verdict, question.numeric!),
+                      )
+                    }
+                  />
+                )
+              ) : (
               <ul className={styles.options} aria-label="Choices">
                 {question.choices.map((choice, i) => {
                   const struck = data.struck[index]?.includes(i);
@@ -277,13 +331,14 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                         <span className={styles.key} aria-hidden="true">
                           {KEYS[i]}
                         </span>
-                        {struck ? <s>{choice}</s> : choice}
+                        {struck ? <s>{renderMathText(choice)}</s> : renderMathText(choice)}
                         {struck ? <span className={styles.srOnly}> (ruled out by a hint)</span> : null}
                       </button>
                     </li>
                   );
                 })}
               </ul>
+              )}
               {answer ? (
                 <>
                   <p className={styles.verdict} data-result={answer.correct ? "right" : "wrong"}>
@@ -291,10 +346,12 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                       ? answer.confidence === "guess"
                         ? "✓ Right, but you guessed. It will come back sooner so it sticks. "
                         : "✓ Right. "
-                      : "✕ Not this one."}
+                      : question.answerType === "numeric"
+                        ? `✕ ${answer.feedback ?? "Not quite."} The answer is ${question.choices[0]}. `
+                        : "✕ Not this one."}
                     {answer.correct ? (question.feedback ?? "") : ""}
                   </p>
-                  {!answer.correct ? (
+                  {!answer.correct && answer.chosen >= 0 ? (
                     <WrongAnswerNote
                       question={question}
                       chosenIndex={answer.chosen}
@@ -312,12 +369,16 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                 <>
                   <ConfidencePicker value={confidence} onChange={setConfidence} />
                   <div className={styles.actions}>
-                    <Button variant="primary" onClick={check} disabled={chosen === null}>
-                      Check my answer
-                    </Button>
-                    <Button variant="ghost" onClick={strike}>
-                      Hint (costs nothing)
-                    </Button>
+                    {question.answerType === "numeric" ? null : (
+                      <>
+                        <Button variant="primary" onClick={() => check()} disabled={chosen === null}>
+                          Check my answer
+                        </Button>
+                        <Button variant="ghost" onClick={strike}>
+                          Hint (costs nothing)
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </>
               )}

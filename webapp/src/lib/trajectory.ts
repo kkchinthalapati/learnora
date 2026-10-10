@@ -41,8 +41,11 @@ import type {
 import { computeRetentionProbability } from "./adaptiveLearning";
 import { dateInDays, localDateStr, parseLocalDate } from "./date";
 import { fenceUntrusted } from "./actionTags";
-import { normaliseTopicKey, topicMatches } from "./topicKey";
+import { bestTopicMatch, normaliseTopicKey } from "./topicKey";
 import { parseStoredAnswers } from "../views/quiz/quizMeta";
+import { calculateRetrievability } from "../views/review/srs";
+import { collectAttempts, type Attempt } from "./attempts";
+import { foldTopic, type TopicKnowledge } from "./knowledgeModel";
 
 /** The same title api/missedQuestions files cards under (not imported, so
  *  the model stays free of the API layer). */
@@ -127,7 +130,7 @@ export interface TopicState {
   mastery: number;
   /** 0-1. How much we trust that number — evidence volume, not performance. */
   evidence: number;
-  /** Memory stability in days: the `S` in `exp(-t/S)`. */
+  /** Memory stability in days: the `S` of the FSRS curve (`retentionAfter`). */
   stabilityDays: number;
   /** Share of the exam this topic carries. Normalised across the set. */
   weight: number;
@@ -140,6 +143,9 @@ export interface TopicState {
    *  spent". Optional so hand-built states in tests and callers still work. */
   measuredMastery?: number;
   measuredEvidence?: number;
+  /** What answered questions say about this topic (lib/knowledgeModel.ts);
+   *  null when none were answered. The mastery ladder reads this. */
+  knowledge?: TopicKnowledge | null;
 }
 
 export interface TrajectoryPoint {
@@ -203,6 +209,9 @@ function cardEvidence(card: Flashcard): number {
  *  `adaptiveLearning.ts` uses, kept in one shape so the two never disagree
  *  about how fast this student forgets. */
 function cardStability(card: Flashcard): number {
+  if (card.stability && card.stability > 0) {
+    return Math.max(MIN_STABILITY_DAYS, card.stability);
+  }
   const interval = Math.max(0, card.srs_interval ?? 0);
   const ease =
     card.ease_factor && card.ease_factor > 0 ? card.ease_factor : 2.5;
@@ -256,17 +265,34 @@ export function quizAnswerEvents(attempts: QuizAttempt[]): LearningEvent[] {
   return out;
 }
 
-/** Events that belong to a deck: by id when the recorder knew it, else by the
- *  same loose title match quiz weak-topics use. Newest first. */
-function eventsForDeck(
-  deck: FlashcardDeck,
+/** Each event's deck: by id when the recorder knew it, else the single
+ *  best-matching deck title (`bestTopicMatch`), else none. One event lands
+ *  on at most one deck, so evidence is never counted toward several topics.
+ *  Newest first within each deck. */
+function eventsByDeck(
+  decks: FlashcardDeck[],
   events: LearningEvent[],
-): LearningEvent[] {
-  return events
-    .filter((e) =>
-      e.deck_id ? e.deck_id === deck.id : topicMatches(e.topic_key, deck.title),
-    )
-    .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+): Map<string, LearningEvent[]> {
+  const titles = decks.map((d) => d.title);
+  const ids = new Set(decks.map((d) => d.id));
+  const out = new Map<string, LearningEvent[]>();
+  for (const e of events) {
+    let deckId: string | null = null;
+    if (e.deck_id) {
+      deckId = ids.has(e.deck_id) ? e.deck_id : null;
+    } else {
+      const i = bestTopicMatch(e.topic_key, titles);
+      deckId = i === -1 ? null : decks[i].id;
+    }
+    if (!deckId) continue;
+    const list = out.get(deckId) ?? [];
+    list.push(e);
+    out.set(deckId, list);
+  }
+  for (const list of out.values()) {
+    list.sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+  }
+  return out;
 }
 
 /** Fold a deck's events into the card-derived state. Time events apply
@@ -303,8 +329,7 @@ function applyEvents(
       0,
       Math.floor((now.getTime() - new Date(e.occurred_at).getTime()) / 86_400_000),
     );
-    let gain = learningGain(mastery, e.minutes);
-    for (let d = 0; d < daysAgo; d++) gain = decayOneDay(gain, stabilityDays);
+    const gain = decayDays(learningGain(mastery, e.minutes), stabilityDays, daysAgo);
     mastery = Math.min(1, mastery + gain);
     stabilityDays += STABILITY_DAYS_PER_HOUR * (e.minutes / 60);
     evidence = Math.min(1, evidence + TIME_EVENT_EVIDENCE * (e.minutes / 60));
@@ -363,20 +388,23 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
       if (key) weakCounts.set(key, (weakCounts.get(key) ?? 0) + 1);
     }
   }
-  const weaknessFor = (title: string): number => {
-    let hits = 0;
-    for (const [topic, count] of weakCounts) {
-      if (topicMatches(title, topic)) hits += count;
-    }
-    return hits;
-  };
+  /* Each weak topic counts against the one deck it best matches. */
+  const weakByDeck = new Map<string, number>();
+  const titles = decks.map((d) => d.title);
+  for (const [topic, count] of weakCounts) {
+    const i = bestTopicMatch(topic, titles);
+    if (i === -1) continue;
+    weakByDeck.set(decks[i].id, (weakByDeck.get(decks[i].id) ?? 0) + count);
+  }
+  const weaknessFor = (deckId: string): number => weakByDeck.get(deckId) ?? 0;
 
   const quizEvents = quizAnswerEvents(src.attempts);
   const events = [...(src.events ?? []), ...quizEvents];
+  const byDeck = eventsByDeck(decks, events);
   const raw: TopicState[] = decks.map((deck): TopicState => {
     const cards = src.cards.filter((c) => c.deck_id === deck.id);
     const cardCount = cards.length;
-    const deckEvents = eventsForDeck(deck, events);
+    const deckEvents = byDeck.get(deck.id) ?? [];
 
     if (cardCount === 0) {
       const blended = applyEvents(
@@ -395,7 +423,7 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
     const stabilityDays =
       cards.reduce((sum, c) => sum + cardStability(c), 0) / cardCount;
 
-    const penalty = Math.min(0.3, weaknessFor(deck.title) * 0.06);
+    const penalty = Math.min(0.3, weaknessFor(deck.id) * 0.06);
 
     /* A card created this minute and never reviewed has a retention of 1
        (nothing has had time to fade), which says nothing about knowing it.
@@ -443,8 +471,11 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
      folder. */
   const folderOfQuiz = new Map((src.quizzes ?? []).map((q) => [q.id, q.folder_id ?? null]));
   const quizOnly = new Map<string, { label: string; events: LearningEvent[] }>();
+  const allTitles = src.decks.map((d) => d.title);
   for (const e of quizEvents) {
-    if (src.decks.some((d) => topicMatches(e.topic_key, d.title))) continue;
+    /* Only evidence a deck took is left out; an ambiguous label (it ties
+       between decks) stays its own topic rather than vanishing. */
+    if (bestTopicMatch(e.topic_key, allTitles) !== -1) continue;
     if (src.folderId) {
       const quizId = String(e.payload.quizId ?? "");
       if (folderOfQuiz.get(quizId) !== src.folderId) continue;
@@ -466,8 +497,27 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
     raw.push({ id: `${QUIZ_TOPIC_PREFIX}${key}`, label, ...blended, weight: 1, cardCount: 0 });
   }
 
+  /* What the answered questions say, per topic (lib/knowledgeModel.ts): the
+     mastery ladder reads this, not the score fold above. Each answer goes to
+     the one topic it best matches, like the events. */
+  const answered = collectAttempts(src.attempts, src.events ?? []);
+  const labels = raw.map((t) => t.label);
+  const byTopic = new Map<number, Attempt[]>();
+  for (const a of answered) {
+    const exact = raw.findIndex((t) => t.id === `${QUIZ_TOPIC_PREFIX}${a.topicKey}`);
+    const i = exact !== -1 ? exact : bestTopicMatch(a.topicKey, labels);
+    if (i === -1) continue;
+    const list = byTopic.get(i) ?? [];
+    list.push(a);
+    byTopic.set(i, list);
+  }
+
   const total = raw.reduce((sum, t) => sum + t.weight, 0) || 1;
-  return raw.map((t) => ({ ...t, weight: t.weight / total }));
+  return raw.map((t, i) => ({
+    ...t,
+    weight: t.weight / total,
+    knowledge: byTopic.has(i) ? foldTopic(t.label, byTopic.get(i)!, now) : null,
+  }));
 }
 
 /** Topic ids that are not decks start with this. Anything that treats a
@@ -480,9 +530,33 @@ export function isDeckTopicId(id: string | null | undefined): id is string {
 
 /* --- The model ---------------------------------------------------------- */
 
-/** One day of forgetting. */
-export function decayOneDay(mastery: number, stabilityDays: number): number {
-  return mastery * Math.exp(-1 / Math.max(MIN_STABILITY_DAYS, stabilityDays));
+/** Recall after `days` untouched, on the FSRS curve the review scheduler uses
+ *  (views/review/srs.ts). One curve everywhere: this model used to decay by
+ *  exp(-t/S), which at t = S says 37% where the scheduler says 90%, so the
+ *  forecast called topics "fading" that Review did not think were due. */
+export function retentionAfter(days: number, stabilityDays: number): number {
+  return calculateRetrievability(days, Math.max(MIN_STABILITY_DAYS, stabilityDays));
+}
+
+/** `mastery` carried forward `days` more days, for a topic last practised
+ *  `fromAge` days ago. The FSRS curve is not memoryless — the first days
+ *  after practice lose the most — so the age matters. */
+export function decayDays(
+  mastery: number,
+  stabilityDays: number,
+  days: number,
+  fromAge = 0,
+): number {
+  if (days <= 0) return mastery;
+  return (
+    mastery *
+    (retentionAfter(fromAge + days, stabilityDays) / retentionAfter(fromAge, stabilityDays))
+  );
+}
+
+/** One day of forgetting, for a topic last practised `ageDays` days ago. */
+export function decayOneDay(mastery: number, stabilityDays: number, ageDays = 0): number {
+  return decayDays(mastery, stabilityDays, 1, ageDays);
 }
 
 /** What `minutes` of study on a topic at `mastery` buys.
@@ -577,14 +651,19 @@ function simulate(
     ),
   );
   let states = topics.map((t) => ({ ...t }));
+  /* Days since each topic was last studied in the simulation. Today's
+     mastery already includes past forgetting, so every topic starts fresh
+     at 0; studying a topic resets it. */
+  const ages = states.map(() => 0);
   const curve = [{ date: today, score: scoreOf(states) }];
 
   for (let i = 1; i <= days; i += 1) {
     const date = dateInDays(i, today);
-    states = states.map((t) => ({
+    states = states.map((t, k) => ({
       ...t,
-      mastery: decayOneDay(t.mastery, t.stabilityDays),
+      mastery: decayOneDay(t.mastery, t.stabilityDays, ages[k]),
     }));
+    for (let k = 0; k < ages.length; k += 1) ages[k] += 1;
 
     let budget = options ? (options.plannedMinutes[date] ?? 0) : 0;
     /* The ceiling each topic can reach today, fixed before any studying so a
@@ -608,6 +687,7 @@ function simulate(
         ...studied,
         mastery: Math.min(studied.mastery, ceiling[index]),
       };
+      ages[index] = 0;
       /* Hitting the ceiling retires the topic for the day; the remaining
          budget flows to the next-best one, and once every topic is retired the
          rest of the day is genuinely wasted. That is the model refusing to

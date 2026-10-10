@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normaliseTopicKey, topicMatches } from "./topicKey";
+import { bestTopicMatch, normaliseTopicKey, topicMatches } from "./topicKey";
 
 describe("normaliseTopicKey", () => {
   it("lowercases, trims, collapses whitespace and strips punctuation", () => {
@@ -32,5 +32,28 @@ describe("topicMatches — whole words", () => {
   it("still matches plurals and longer titles that contain the topic", () => {
     expect(topicMatches("Cells", "cell structure")).toBe(true);
     expect(topicMatches("Enzymes", "Enzymes and rates of reaction")).toBe(true);
+  });
+});
+
+describe("bestTopicMatch", () => {
+  const decks = ["Cell division", "Cell transport", "Specialised cells", "Enzymes and rates"];
+
+  it("never lets one label feed several topics: a tie attributes nothing", () => {
+    expect(bestTopicMatch("Cells", decks)).toBe(-1);
+  });
+
+  it("keeps the loose match when only one topic fits", () => {
+    expect(bestTopicMatch("Enzymes", decks)).toBe(3);
+  });
+
+  it("prefers an exact title, then the closest overlap", () => {
+    expect(bestTopicMatch("cell division!", decks)).toBe(0);
+    expect(bestTopicMatch("Cell division", ["Cell division and mitosis", "Cell division"])).toBe(1);
+    expect(bestTopicMatch("Specialised cell", decks)).toBe(2);
+  });
+
+  it("returns -1 for nothing or no match", () => {
+    expect(bestTopicMatch("", decks)).toBe(-1);
+    expect(bestTopicMatch("Photosynthesis", decks)).toBe(-1);
   });
 });

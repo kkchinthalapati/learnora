@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { answeredQuestions, quizLoopCandidates, unmatchedWrong } from "./quizMistakes";
+import { answeredQuestions, quizLoopCandidates, unmatchedWrong, type AnsweredQuestion } from "./quizMistakes";
 import { questionKey } from "./questionKey";
 import type { QuizQuestion } from "./aiJson";
 import type { StoredAnswer } from "../views/quiz/quizMeta";
@@ -111,5 +111,42 @@ describe("hints and the worked solution", () => {
   it("even a stored 'correct' with the full ladder counts as wrong", () => {
     const answered = answeredQuestions(Q, [{ questionId: "h1", chosenIndex: 0, correct: true, topic: "Geography", hintRung: 3 }]);
     expect(answered[0].isCorrect).toBe(false);
+  });
+});
+
+describe("quizLoopCandidates reads the answer's signals (lib/diagnosis.ts)", () => {
+  const wrong = (over: Partial<AnsweredQuestion> = {}): AnsweredQuestion => ({
+    questionId: "q1",
+    question: "What does a fuse do?",
+    topic: "Magnetic Effects of Electric Current",
+    chosen: "Stores charge",
+    correct: "Melts and breaks the circuit",
+    isCorrect: false,
+    guessed: false,
+    workedSolution: false,
+    confidence: null,
+    secondsSpent: 10,
+    ...over,
+  });
+  const ctx = { subject: "Science", attemptKey: "att1", labels: new Map() };
+
+  it("writes nothing for a quick miss on a topic already secure", () => {
+    const secureTopics = new Set(["magnetic effects of electric current"]);
+    expect(quizLoopCandidates([wrong()], { ...ctx, secureTopics })).toEqual([]);
+    expect(quizLoopCandidates([wrong()], ctx)).toHaveLength(1);
+  });
+
+  it("makes a confidently held catalogue belief critical", () => {
+    const mapped = wrong({
+      question: "Which lens corrects myopia?",
+      topic: "The Human Eye and the Colourful World",
+      chosen: "A convex lens",
+      correct: "A concave lens",
+      confidence: "certain",
+      misconceptionId: "phys-myopia-convex",
+    });
+    const [c] = quizLoopCandidates([mapped], ctx);
+    expect(c.catalogueId).toBe("phys-myopia-convex");
+    expect(c.severity).toBe("critical");
   });
 });

@@ -1,4 +1,5 @@
 import { fenceUntrusted } from "../../lib/actionTags";
+import { renderMathText } from "../../lib/markdownToReact";
 import { buildTopicStates, scoreOf } from "../../lib/trajectory";
 import { getGradeScale, normaliseScore, renderGrade } from "../../lib/gradeScale";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
@@ -23,6 +24,13 @@ import type { QuizQuestion } from "../../lib/aiJson";
 import { WrongAnswerNote } from "../learning/WrongAnswerNote";
 import { ReportProblem } from "../learning/ReportProblem";
 import { questionRef } from "../../lib/questionVetting";
+import { storedAnswer } from "../../lib/attempts";
+import { bankFirst } from "../../api/questionBank";
+import { numericFeedback } from "../../lib/numericAnswer";
+import { NumericAnswerInput } from "../learning/NumericAnswerInput";
+
+/** The answer recorded for a wrong typed-in numeric answer. */
+const NUMERIC_WRONG = -2;
 import styles from "./QuickCheck.module.css";
 
 export interface QuickCheckResult {
@@ -67,6 +75,8 @@ export function QuickCheck({
   const [error, setError] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Array<number | null>>([]);
+  /* For typed-in numeric questions: what was typed, and what was off. */
+  const [typed, setTyped] = useState<Record<number, { response: string; feedback?: string }>>({});
   const [attempt, setAttempt] = useState(0);
   const [resolvedDeckId, setResolvedDeckId] = useState<string | null>(deckId);
 
@@ -85,17 +95,25 @@ export function QuickCheck({
     });
     setResolvedDeckId(deckId ?? source.deckId);
     setGrounded(source.grounded);
-    generateQuizQuestions({
-      sourceText: fenceUntrusted(source.sourceText),
-      topic: fenceUntrusted(topic),
-      settings,
-      options: { questionCount: QUICK_CHECK_QUESTIONS, difficulty: "Medium" },
-    })
+    /* Checked against the student's own cards and notes when they have
+       some; otherwise from the practice bank when the topic is a banked spec
+       section (instant, keys checked by people), and only then the AI. */
+    (source.grounded ? Promise.resolve(null) : bankFirst(topic, QUICK_CHECK_QUESTIONS))
+      .then((banked) =>
+        banked ??
+        generateQuizQuestions({
+          sourceText: fenceUntrusted(source.sourceText),
+          topic: fenceUntrusted(topic),
+          settings,
+          options: { questionCount: QUICK_CHECK_QUESTIONS, difficulty: "Medium" },
+        }),
+      )
       .then((qs) => {
         if (cancelled) return;
         if (!qs.length) throw new Error("No usable questions returned.");
         setQuestions(qs.slice(0, QUICK_CHECK_QUESTIONS));
         setAnswers(new Array(Math.min(qs.length, QUICK_CHECK_QUESTIONS)).fill(null));
+        setTyped({});
         setIndex(0);
       })
       .catch((err: unknown) => {
@@ -152,7 +170,7 @@ export function QuickCheck({
       topic: question.topic || topic,
       correct: answers[i] === question.correctIndex,
       question: question.question,
-      chosen: answers[i] != null ? question.choices[answers[i]!] : undefined,
+      chosen: typed[i]?.response ?? (answers[i] != null ? question.choices[answers[i]!] : undefined),
     }));
     const candidates = candidatesFromQuizAnswers(answerRecords, { subject, attemptId: eventId.current });
 
@@ -165,7 +183,11 @@ export function QuickCheck({
         folderId,
         clientId: eventId.current,
         occurredAt: event.occurred_at,
-        payload: { questions, answers },
+        payload: {
+          questions,
+          answers,
+          items: questions.map((question, i) => storedAnswer(question, answers[i] ?? null, { topic, response: typed[i]?.response })),
+        },
       }, candidates);
       result.saved = !recorded?.queued;
       void qc.invalidateQueries({ queryKey: learningEventsKeys.all });
@@ -181,7 +203,25 @@ export function QuickCheck({
     <div className={styles.check}>
       {!grounded ? <p>No matching source text is available. These questions use general topic knowledge.</p> : null}
       <p className={styles.progress}>Question {index + 1} of {questions.length}</p>
-      <h3 className={styles.question}>{q.question}</h3>
+      <h3 className={styles.question}>{renderMathText(q.question)}</h3>
+      {q.answerType === "numeric" && q.numeric ? (
+        chosen == null ? (
+          <NumericAnswerInput
+            numeric={q.numeric}
+            onAnswer={(response, verdict) => {
+              setTyped((t) => ({
+                ...t,
+                [index]: { response, feedback: verdict.correct ? undefined : numericFeedback(verdict, q.numeric!) },
+              }));
+              setAnswers((a) => a.map((v, j) => (j === index ? (verdict.correct ? 0 : NUMERIC_WRONG) : v)));
+            }}
+          />
+        ) : chosen !== q.correctIndex ? (
+          <p role="status">
+            {typed[index]?.feedback ?? "Not quite."} The answer is {renderMathText(q.choices[0])}.
+          </p>
+        ) : null
+      ) : (
       <div className={styles.choices} role="group" aria-label="Answers">
         {q.choices.map((choice, i) => {
           const state =
@@ -194,14 +234,15 @@ export function QuickCheck({
               disabled={chosen != null}
               onClick={() => setAnswers((a) => a.map((v, j) => (j === index ? i : v)))}
             >
-              {choice}
+              {renderMathText(choice)}
             </button>
           );
         })}
       </div>
+      )}
       {chosen != null && chosen === q.correctIndex ? <p role="status">Correct</p> : null}
       {chosen != null && chosen === q.correctIndex && q.feedback ? <p className={styles.feedback}>{q.feedback}</p> : null}
-      {chosen != null && chosen !== q.correctIndex ? (
+      {chosen != null && chosen >= 0 && chosen !== q.correctIndex ? (
         <WrongAnswerNote question={q} chosenIndex={chosen} explanation={q.feedback} />
       ) : null}
       <ReportProblem questionRef={questionRef(q)} questionText={q.question} />

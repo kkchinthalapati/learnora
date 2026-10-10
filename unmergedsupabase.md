@@ -1,5 +1,7 @@
 # Unapplied Supabase migrations — status and runbook
 
+> **Open work of every kind (deploys, secrets, domain, decisions) lives in [`WAITINGONLEDGER.md`](WAITINGONLEDGER.md).** This file is the migration-by-migration history and SQL.
+
 Checked against production project `mlvgqwqiynpwpwzqufdf` on **2026-10-01**.
 
 > **Update 2026-10-02: every row below is live.** All six migrations are applied (production now records 50) and `learnora-ai` v65 is deployed. See **Done** at the bottom. Still open: Section D (Cerebras secret, legal sign-off) and a live smoke test (one Explain session, then check `ai_request_log.provider`/`model`/`latency_ms` are filled).
@@ -35,6 +37,7 @@ This is the single source of truth for what is merged and what is live. **Before
 | D2 | `20261005010000_mistake_loop.sql` | ✅ PR #132 | ✅ applied 2026-10-06 |
 | D3 | `20261005020000_study_profile_any_board.sql` | ✅ PR #132 | ✅ applied 2026-10-06 |
 | E1 | `20261006000000_question_verification_and_reports.sql` | ❌ branch `tutor-hints-verification` | ✅ applied 2026-10-06, ahead of the merge (additive; the webapp tolerates it either way) |
+| D4 | `20260901000000_add_diagram_artifact_type.sql` | ✅ on `main` long ago | ✅ applied 2026-10-06 (was missing: production's constraint rejected `diagram`) |
 | E2 | `learnora-ai` with quiz verification (caps, regeneration, review log) | ❌ branch `tutor-hints-verification` | ❌ needs `supabase functions deploy learnora-ai` after merge |
 
 ### What deploys what

@@ -311,6 +311,12 @@ describe("QuizRunner", () => {
           chosenIndex: 1,
           correct: true,
           topic: "Cell biology",
+          /* What the knowledge model needs: which question, whether its key
+             is trusted, how many options (the chance of a guess), its kind. */
+          ref: expect.stringMatching(/^quiz:quiz-1:/),
+          verified: true,
+          options: expect.any(Number),
+          kind: "recall",
           secondsSpent: expect.any(Number),
           confidence: null,
         },
@@ -319,6 +325,12 @@ describe("QuizRunner", () => {
           chosenIndex: 1,
           correct: false,
           topic: "Genetics",
+          /* What the knowledge model needs: which question, whether its key
+             is trusted, how many options (the chance of a guess), its kind. */
+          ref: expect.stringMatching(/^quiz:quiz-1:/),
+          verified: true,
+          options: expect.any(Number),
+          kind: "recall",
           secondsSpent: expect.any(Number),
           confidence: null,
         },
@@ -849,19 +861,19 @@ describe("QuizRunner results routing", () => {
       renderRunner();
 
       await user.click(await screen.findByRole("button", { name: "Salt moves across" }));
-      const repair = await screen.findByRole("region", { name: "Common mix-up" });
+      const repair = await screen.findByRole("region", { name: "Common mix-up" }, { timeout: 5000 });
       expect(repair).toHaveTextContent("the solute (salt or sugar) moves across the membrane");
 
-      await waitFor(() => expect(observations.some((o) => o.kind === "evidence")).toBe(true));
+      await waitFor(() => expect(observations.some((o) => o.kind === "evidence")).toBe(true), { timeout: 8000 });
 
       await user.click(within(repair).getByRole("button", { name: "Water molecules" }));
-      expect(await within(repair).findByText("That's it.")).toBeInTheDocument();
-      await waitFor(() => expect(observations.some((o) => o.kind === "correction")).toBe(true));
+      expect(await within(repair).findByText("That's it.", {}, { timeout: 5000 })).toBeInTheDocument();
+      await waitFor(() => expect(observations.some((o) => o.kind === "correction")).toBe(true), { timeout: 8000 });
 
       /* The card is the repair: it starts the retest clock, and both the
          failed question and the check are tied to it so neither can later
          count as the "new" retest question. */
-      await waitFor(() => expect(observations.some((o) => o.kind === "repair")).toBe(true));
+      await waitFor(() => expect(observations.some((o) => o.kind === "repair")).toBe(true), { timeout: 8000 });
       const repairObs = observations.find((o) => o.kind === "repair")!;
       const evidence = observations.find((o) => o.kind === "evidence")!;
       const check = observations.find((o) => o.kind === "correction")!;

@@ -38,6 +38,11 @@ export interface BankRowInsert {
   correct_index: number;
   explanation: string | null;
   content_hash: string;
+  /** Optional on Oak rows; the seed states it. */
+  kind?: "recall" | "apply" | "explain" | null;
+  distractor_misconceptions?: (string | null)[] | null;
+  answer_type?: "mcq" | "numeric";
+  numeric_answer?: SeedEntry["num"] | null;
 }
 
 export function normaliseText(text: string): string {
@@ -72,6 +77,10 @@ export async function seedRows(seed: Readonly<Record<string, SeedEntry[]>>): Pro
         correct_index: e.a,
         explanation: e.why,
         content_hash: await contentHash(e.q, e.c),
+        kind: e.kind ?? null,
+        distractor_misconceptions: e.mis && e.mis.length === e.c.length ? e.mis : null,
+        answer_type: e.num ? "numeric" : "mcq",
+        numeric_answer: e.num ?? null,
       });
     }
   }
@@ -255,11 +264,15 @@ export function toSqlInsert(rows: BankRowInsert[]): string {
           String(r.correct_index),
           sqlString(r.explanation),
           sqlString(r.content_hash),
+          sqlString(r.kind ?? null),
+          r.distractor_misconceptions ? `${sqlString(JSON.stringify(r.distractor_misconceptions))}::jsonb` : "null",
+          sqlString(r.answer_type ?? "mcq"),
+          r.numeric_answer ? `${sqlString(JSON.stringify(r.numeric_answer))}::jsonb` : "null",
         ].join(", ")})`,
     )
     .join(",\n");
   return `insert into public.question_bank
-  (source, source_ref, licence, attribution, spec_key, topic_ref, tier, question, choices, correct_index, explanation, content_hash)
+  (source, source_ref, licence, attribution, spec_key, topic_ref, tier, question, choices, correct_index, explanation, content_hash, kind, distractor_misconceptions, answer_type, numeric_answer)
 values
 ${values}
 on conflict (source, content_hash) do nothing;`;

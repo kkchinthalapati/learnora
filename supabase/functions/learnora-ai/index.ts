@@ -15,6 +15,11 @@ import {
   isDeadKeyError,
   permittedProviderIds,
 } from "../_shared/providerPolicy.js";
+import { addBodyUsage, addGeminiUsage, newUsage } from "../_shared/tokenUsage.js";
+import { cacheableRef, requestHash } from "../_shared/itemCache.js";
+
+/** Tokens one request spent across all its model calls (_shared/tokenUsage.js). */
+type TokenUsage = { input: number; output: number; reported: boolean };
 
 /* Origins allowed to call this function from a browser.
 
@@ -290,7 +295,7 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
     id: "anthropic",
     keyEnv: "CLAUDE_API_KEY",
     modelEnv: "CLAUDE_MODEL",
-    defaultModel: "claude-3-5-haiku-20241022",
+    defaultModel: "claude-haiku-5-5",
     url: "https://api.anthropic.com/v1/messages",
     dialect: "anthropic",
     // /v1/messages has no response_format; JSON is asked for in the prompt.
@@ -498,6 +503,8 @@ async function callProvider(
     userContent: string;
     mode?: string;
     signal?: AbortSignal;
+    /** Accumulates this request's token counts, when the provider reports them. */
+    usage?: TokenUsage;
   },
 ): Promise<string> {
   const key = Deno.env.get(provider.keyEnv);
@@ -540,6 +547,7 @@ async function callProvider(
     }
     // Some gateways report failures in the body with a 200 status.
     if (data?.error) throw new Error(`${provider.id} error: ${JSON.stringify(data.error)}`);
+    addBodyUsage(opts.usage, data);
 
     const content = extractContent(data, dialect);
     if (content === null) throw new Error(`${provider.id} returned an empty completion.`);
@@ -963,7 +971,7 @@ function geminiPermitted(): boolean {
    answer. Service role, because students have no UPDATE on the table. */
 function recordOutcome(
   logId: string | undefined,
-  outcome: { provider: string; model: string; startedAt: number; failed: string[] },
+  outcome: { provider: string; model: string; startedAt: number; failed: string[]; usage?: TokenUsage },
 ): void {
   if (!logId) return;
   const url = Deno.env.get("SUPABASE_URL");
@@ -982,6 +990,9 @@ function recordOutcome(
           model: outcome.model,
           latency_ms: Date.now() - outcome.startedAt,
           failed_providers: outcome.failed,
+          status: "ok",
+          input_tokens: outcome.usage?.reported ? outcome.usage.input : null,
+          output_tokens: outcome.usage?.reported ? outcome.usage.output : null,
         })
         .eq("id", logId);
     } catch (err) {
@@ -1007,6 +1018,70 @@ async function adminClient() {
   if (!url || !serviceKey) return null;
   const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
   return createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+/* ── Item cache (_shared/itemCache.js; table ai_item_cache) ─────────────
+   Best-effort throughout: a cache that can't be read is a miss, and one
+   that can't be written costs nothing but the next student's call. */
+
+async function readItemCache(hash: string): Promise<string | null> {
+  try {
+    const admin = await adminClient();
+    if (!admin) return null;
+    const { data, error } = await admin
+      .from("ai_item_cache")
+      .select("content, hits")
+      .eq("request_hash", hash)
+      .maybeSingle();
+    if (error || !data?.content) return null;
+    // deno-lint-ignore no-explicit-any
+    const work = admin.from("ai_item_cache").update({ hits: ((data as any).hits ?? 0) + 1 }).eq("request_hash", hash);
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+    return String(data.content);
+  } catch (err) {
+    console.warn("[item-cache] read failed", err);
+    return null;
+  }
+}
+
+function storeItemCache(hash: string, ref: string, tool: unknown, content: string, model: string): void {
+  if (!content.trim() || content.length > 20000) return;
+  const work = (async () => {
+    try {
+      const admin = await adminClient();
+      await admin?.from("ai_item_cache").upsert(
+        { request_hash: hash, question_ref: ref, tool: typeof tool === "string" ? tool : null, content, model },
+        { onConflict: "request_hash", ignoreDuplicates: true },
+      );
+    } catch (err) {
+      console.warn("[item-cache] write failed", err);
+    }
+  })();
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+}
+
+function logCacheHit(userId: string, mode: unknown, tool: unknown, hash: string): void {
+  const work = (async () => {
+    try {
+      const admin = await adminClient();
+      await admin?.from("ai_request_log").insert({
+        user_id: userId,
+        mode: typeof mode === "string" ? mode : null,
+        tool: typeof tool === "string" ? tool : null,
+        provider: "cache",
+        model: hash.slice(0, 12),
+        latency_ms: 0,
+        status: "cached",
+        refunded: true,
+      });
+    } catch (err) {
+      console.warn("[item-cache] hit not logged", err);
+    }
+  })();
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil?.(work);
 }
 
 function envInt(name: string, fallback: number): number {
@@ -1074,11 +1149,19 @@ function logRejectedQuestion(
 }
 
 /* A request that reached no provider at all (every channel failed) has not
-   used the student's allowance, so its log row is taken back. A student on
-   the free plan has three quiz generations a day; an outage should not spend
-   them. Done with the service role because students have no DELETE on
-   ai_request_log — deliberately, or deleting rows would reset their quota. */
-async function refundRequest(logId: string | undefined): Promise<void> {
+   used the student's allowance, so its log row is marked refunded and stops
+   counting against every limit. A student on the free plan has three quiz
+   generations a day; an outage should not spend them. The row is kept, not
+   deleted as it used to be, so outages show up in the log: deleting made
+   total failures invisible. Service role, because students have no UPDATE on
+   ai_request_log — deliberately, or marking rows refunded would reset their
+   quota. */
+async function refundRequest(
+  logId: string | undefined,
+  status: "failed_all" | "vision_unavailable" = "failed_all",
+  startedAt?: number,
+  failed: string[] = [],
+): Promise<void> {
   if (!logId) return;
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -1088,7 +1171,15 @@ async function refundRequest(logId: string | undefined): Promise<void> {
     const admin = createClient(url, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    await admin.from("ai_request_log").delete().eq("id", logId);
+    await admin
+      .from("ai_request_log")
+      .update({
+        refunded: true,
+        status,
+        failed_providers: failed,
+        latency_ms: startedAt ? Date.now() - startedAt : null,
+      })
+      .eq("id", logId);
   } catch (err) {
     console.error("[rate-limit] refund failed", err);
   }
@@ -1199,6 +1290,7 @@ async function checkAndLogRateLimit(
       .from("ai_request_log")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
+      .eq("refunded", false)
       .gte("created_at", since);
 
     if (countError) {
@@ -1222,6 +1314,7 @@ async function checkAndLogRateLimit(
       .select("session_key")
       .eq("user_id", userId)
       .eq("tool", billedTool)
+      .eq("refunded", false)
       .gte("created_at", midnight.toISOString())
       .limit(1000);
     const rows: { session_key: string | null }[] = dailyError ? [] : (todayRows ?? []);
@@ -1305,9 +1398,10 @@ Deno.serve(async (req) => {
     const debugErrors: Record<string, string> = {};
     const startedAt = Date.now();
     let logId: string | undefined;
+    const usage: TokenUsage = newUsage();
 
     try {
-        const { history, file, settings, mode, tool, context, sessionKey, quizMeta } = await req.json();
+        const { history, file, settings, mode, tool, context, sessionKey, quizMeta, itemCache } = await req.json();
         const s = settings || {};
 
         /* Instructions and workspace data written by the app, kept out of the
@@ -1319,6 +1413,23 @@ Deno.serve(async (req) => {
         const currentMsg = history && history.length > 0 ? history[history.length - 1].content : "";
 
         const jsonHeaders = { "Content-Type": "application/json", ...corsHeaders };
+
+        /* AI text for a practice-bank question that another student already
+           asked for in exactly this form (_shared/itemCache.js): answered
+           from the cache, before the rate limit, so it costs no allowance.
+           Logged as refunded 'cached' so the hit rate is visible. */
+        const cacheRef = !file ? cacheableRef(itemCache) : null;
+        const cacheKey = cacheRef ? await requestHash({ mode, tool, context, history }) : null;
+        if (cacheRef && cacheKey) {
+            const hit = await readItemCache(cacheKey);
+            if (hit) {
+                logCacheHit(user.id, mode, tool, cacheKey);
+                return new Response(JSON.stringify({ text: hit, modelUsed: "cache" }), { headers: jsonHeaders });
+            }
+        }
+        const remember = (text: string, model: string) => {
+            if (cacheRef && cacheKey) storeItemCache(cacheKey, cacheRef, tool, text, model);
+        };
 
         // Rate limit before spending a token, same as the safety screen
         // below — this is the cheap check that protects the expensive
@@ -1429,6 +1540,7 @@ Deno.serve(async (req) => {
                             setTimeout(() => reject(new Error(`${label} timed out`)), 20_000)
                         ),
                     ]);
+                    addGeminiUsage(usage, result);
                     const checked = salvageJson(cleanJsonResponse(result.response.text()));
                     if (checked) {
                         checkedBy = `gemini/${modelName}`;
@@ -1448,6 +1560,7 @@ Deno.serve(async (req) => {
                         userContent: prompt,
                         mode: "quiz",
                         signal: deadline,
+                        usage,
                     })));
                     if (checked) {
                         checkedBy = provider.id;
@@ -1554,6 +1667,8 @@ Deno.serve(async (req) => {
                         ),
                     ]);
 
+                    addGeminiUsage(usage, result);
+
                     // A safety block is a verdict, not an outage. Returning it
                     // here stops the fallback chain: previously this threw,
                     // was swallowed as a generic error, and the same prompt was
@@ -1595,7 +1710,9 @@ Deno.serve(async (req) => {
                         model: modelName,
                         startedAt,
                         failed: Object.keys(debugErrors),
+                        usage,
                     });
+                    remember(text, modelName);
                     return new Response(JSON.stringify({
                         text: text,
                         modelUsed: modelName
@@ -1623,7 +1740,7 @@ Deno.serve(async (req) => {
         // The allowance is handed back: no provider read the photo.
         if (isImageAttachment(file)) {
             console.warn("[vision] no image-capable provider answered", { mode, debugErrors });
-            await refundRequest(logId);
+            await refundRequest(logId, "vision_unavailable", startedAt, Object.keys(debugErrors));
             return visionUnavailableResponse(jsonHeaders);
         }
 
@@ -1679,6 +1796,7 @@ Deno.serve(async (req) => {
                     userContent: fallbackMsg,
                     mode,
                     signal: deadline,
+                    usage,
                 });
 
                 if (isJsonMode(mode)) {
@@ -1706,7 +1824,9 @@ Deno.serve(async (req) => {
                     model: Deno.env.get(provider.modelEnv) || provider.defaultModel,
                     startedAt,
                     failed: Object.keys(debugErrors).filter((id) => !/not set|Skipped/.test(debugErrors[id])),
+                    usage,
                 });
+                remember(text, `${provider.id}/${Deno.env.get(provider.modelEnv) || provider.defaultModel}`);
                 return new Response(JSON.stringify({
                     text,
                     modelUsed: `${provider.id}/${Deno.env.get(provider.modelEnv) || provider.defaultModel}`
@@ -1728,7 +1848,12 @@ Deno.serve(async (req) => {
             error: err.message || String(err),
         });
         // No provider answered, so the allowance this request took is returned.
-        await refundRequest(logId);
+        await refundRequest(
+            logId,
+            "failed_all",
+            startedAt,
+            Object.keys(debugErrors).filter((id) => !/not set|Skipped/.test(debugErrors[id])),
+        );
 
         return new Response(JSON.stringify({
             error: "AI is temporarily unavailable. Please try again in a moment."

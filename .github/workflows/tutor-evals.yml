@@ -1,0 +1,60 @@
+# The tutor evals (evals/README.md): 100 fixtures against a live model, weekly
+# and on demand, so a prompt or model change that starts leaking answers or
+# accepting wrong keys shows up as a failed run rather than in a student's
+# quiz. Uses a free-tier key from repository secrets (Settings > Secrets and
+# variables > Actions): GROQ_API_KEY, or GEMINI_API_KEY for --provider gemini.
+# Skips cleanly when the secret is missing.
+name: tutor-evals
+
+on:
+  schedule:
+    - cron: "30 3 * * 1" # Mondays 03:30 UTC
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "groq | gemini | openai | anthropic"
+        default: groq
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PROVIDER: ${{ inputs.provider || 'groq' }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check a key is configured
+        id: key
+        run: |
+          case "$PROVIDER" in
+            groq) KEY="$GROQ_API_KEY" ;;
+            gemini) KEY="$GEMINI_API_KEY" ;;
+            openai) KEY="$OPENAI_API_KEY" ;;
+            anthropic) KEY="$ANTHROPIC_API_KEY" ;;
+          esac
+          if [ -z "$KEY" ]; then
+            echo "No key for $PROVIDER in repository secrets; skipping." >> "$GITHUB_STEP_SUMMARY"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run evals
+        if: steps.key.outputs.present == 'true'
+        run: node evals/run.mjs --provider "$PROVIDER" --concurrency 2
+      - name: Keep the results
+        if: always() && steps.key.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tutor-evals-${{ github.run_id }}
+          path: evals/results/
+          if-no-files-found: ignore

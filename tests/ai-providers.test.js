@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { createDeadKeyRegistry, permittedProviderIds } from '../supabase/functions/_shared/providerPolicy.js';
 import { isJsonMode } from '../supabase/functions/_shared/systemPrompt.js';
+import { addBodyUsage } from '../supabase/functions/_shared/tokenUsage.js';
 
 /* Same approach as safety.test.js: the provider chain lives in a Deno edge
    function that can't be imported here, so the real source is sliced out of
@@ -78,6 +79,7 @@ function load(env = {}, { permitAll = false } = {}) {
     permittedProviderIds: permitAll ? () => ({ has: () => true }) : permittedProviderIds,
     deadKeys: createDeadKeyRegistry(),
     isJsonMode,
+    addBodyUsage,
     console: { error() {}, warn() {}, log() {} },
     Number,
     JSON,
@@ -395,7 +397,7 @@ test('an image request Gemini did not answer stops before the text-only chain, a
   assert.ok(gemini !== -1 && guard !== -1 && fallback !== -1);
   assert.ok(gemini < guard && guard < fallback, 'the guard must run after Gemini and before the fallback loop');
   const body = SOURCE.slice(guard, SOURCE.indexOf('\n        }\n', guard));
-  assert.match(body, /await refundRequest\(logId\)/);
+  assert.match(body, /await refundRequest\(logId, "vision_unavailable"/);
   assert.match(body, /return visionUnavailableResponse\(/);
   const { VISION_UNAVAILABLE_MESSAGE } = loadVisionGuard();
   assert.match(VISION_UNAVAILABLE_MESSAGE, /photo/i);

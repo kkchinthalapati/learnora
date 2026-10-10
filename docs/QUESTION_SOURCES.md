@@ -16,7 +16,8 @@ widening how it's used.
 | **OpenStax** Biology 2e, Chemistry 2e, College Physics 2e | ❌ Now CC BY-NC-SA 4.0 (checked in each book's collection metadata on GitHub). Learnora sells Plus/Pro, so NonCommercial rules them out. | Not used. |
 | **OpenStax** Physics (high school) | ✅ CC BY 4.0. | Not imported yet. A candidate for IB/GCSE physics with attribution. |
 | **Oak National Academy** (Open Curriculum API) | ✅ Open Government Licence v3.0, built for edtech reuse. KS4 lessons carry exam board (AQA/Edexcel/OCR), tier and science child subject. Every lesson has a starter and an exit quiz with answers marked. The API withholds lessons that aren't OGL-compatible. | Imported by `webapp/scripts/question-bank/import-oak.mjs`, with an attribution on every question. |
-| **Learnora-written** questions | ✅ Ours. | 228 questions seeded across every section of AQA GCSE Biology, Chemistry and Physics and every GCSE Maths strand. |
+| **Learnora-written** questions | ✅ Ours. | 228 questions seeded across every section of AQA GCSE Biology, Chemistry and Physics and every GCSE Maths strand; 132 more (added 2026-10-09) across every chapter of CBSE Class 10 Science (76) and Mathematics (56), each stating its kind (recall / apply) and, for 30 of them, which misconception each wrong option is. |
+| **CBSE / NCERT** | Not copied. CBSE sample papers and previous years' papers are linked from the exam page (cbseacademic.nic.in, cbse.gov.in). The CBSE questions are original, written against the NCERT chapter list. NCERT's licence terms for derived questions have **not** been checked; do that before importing or adapting any NCERT or CBSE text. | Linked. |
 
 Sources:
 - [AQA copyright policy](https://www.aqa.org.uk/about-us/who-we-are/our-standards/copyright-and-intellectual-property-policy)
@@ -44,7 +45,7 @@ Sources:
 
 ## To do (needs a person)
 
-1. **Get an Oak API key.** It's free: request one at https://open-api.thenational.academy.
+1. **Oak API key: obtained 2026-10-07.** Only the `--apply` write is left. Note: Oak's API has no GCSE science (its science programmes end at Year 9), so the import is GCSE Maths only (1,050 questions at the last run). (Keys are free: https://open-api.thenational.academy.)
    Then run:
    ```bash
    cd webapp

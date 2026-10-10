@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { recordLoopObservation } from "../lib/offlineSync";
 import { retestDueAt } from "../lib/mistakeLoop";
+import { armFor, experimentTag, RETEST_DELAY, RETEST_DELAY_DAYS } from "../lib/experiments";
 import { observationKey, questionKey } from "../lib/questionKey";
 import type { Misconception, MisconceptionTool } from "../lib/misconceptions";
 import { misconceptionsKeys } from "./useMisconceptions";
@@ -19,6 +20,7 @@ export function useRecordRepair() {
   return useCallback(
     (row: Row, opts: { sourceId: string; checkQuestion?: string; tool?: MisconceptionTool }) => {
       const now = new Date();
+      const arm = armFor(RETEST_DELAY, row.id);
       void recordLoopObservation({
         misconceptionId: row.id,
         kind: "repair",
@@ -28,8 +30,8 @@ export function useRecordRepair() {
         /* One repair per sighting: re-opening the card doesn't restart the
            clock, but a fresh mistake (a new times_observed) needs a new one. */
         idempotencyKey: observationKey("repair", row.id, String(row.timesObserved), opts.sourceId),
-        dueAt: retestDueAt(now, row.timesObserved),
-        detail: "Re-teach and contrast shown.",
+        dueAt: retestDueAt(now, row.timesObserved, RETEST_DELAY_DAYS[arm]),
+        detail: `Re-teach and contrast shown. ${experimentTag(RETEST_DELAY, arm)}`,
       })
         .then(() => qc.invalidateQueries({ queryKey: misconceptionsKeys.all }))
         .catch((err) => console.warn("[mistakeLoop] repair not recorded:", err));

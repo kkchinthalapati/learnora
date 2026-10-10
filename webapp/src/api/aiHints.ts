@@ -53,6 +53,7 @@ export function getHintLadder(q: LadderQuestion, level?: string | null): Promise
           history: [{ role: "user", content: buildHintPrompt(safe, level) }],
           mode: "quiz",
           tool: "chat",
+          ...(q.ref?.startsWith("bank:") ? { itemCache: { ref: q.ref } } : {}),
         });
         const { ladder } = parseHintLadder(result.text, q);
         if (ladder) {

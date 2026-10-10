@@ -103,6 +103,7 @@ export function ExplainMistake({
         /* Pitched at what the student said they study (onboarding, exams). */
         level: await studentLevel().catch(() => null),
         verified: question.verified,
+        ref: question.ref ?? null,
       }),
     onSuccess: (result) => {
       if (!result.explanation) return;

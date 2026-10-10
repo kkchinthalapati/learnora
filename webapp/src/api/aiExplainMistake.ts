@@ -54,6 +54,8 @@ export interface ExplainMistakeInput {
   /** False for a question the quiz checker couldn't verify: its
    *  explanation isn't cached, since the question may be replaced. */
   verified?: boolean;
+  /** "bank:<uuid>" for a practice-bank question (shared server cache). */
+  ref?: string | null;
 }
 
 export type ExplainMistakeResult =
@@ -287,6 +289,7 @@ export async function explainMistake(
       ],
       mode: "solver",
       tool: "debugger",
+      ...(input.ref?.startsWith("bank:") ? { itemCache: { ref: input.ref } } : {}),
     });
     if (result.refused) {
       return { degraded: { reason: "refused", message: result.text } };

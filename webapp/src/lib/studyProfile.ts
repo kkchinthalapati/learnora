@@ -24,7 +24,7 @@ import {
   type Weekday,
 } from "./lifeContext";
 import { REGIONS, type RegionId } from "./region";
-import { SYLLABUS_SPECS, type SyllabusSpec } from "./syllabus";
+import { SYLLABUS_SPECS, type Qualification, type SyllabusSpec } from "./syllabus";
 import { buildDemands } from "./studyDemands";
 import { dateInDays } from "./date";
 import { normaliseTopicKey } from "./topicKey";
@@ -139,7 +139,7 @@ export interface ExamSystem {
   /** Regions it is offered first in. Empty = everywhere. */
   regions: readonly RegionId[];
   /** The syllabus catalogue's qualification, when it seeds any specs. */
-  qualification: "GCSE" | "IB" | null;
+  qualification: Qualification | null;
   /** The profiles.exam_type value written before 20261005020000 relaxed the
    *  check, so saving works against either schema. */
   legacyExamType: "gcse" | "a_level" | "ib" | "ap" | "sat" | "other";
@@ -154,7 +154,7 @@ export const EXAM_SYSTEMS: readonly ExamSystem[] = [
   { id: "ib", label: "IB Diploma", regions: [], qualification: "IB", legacyExamType: "ib" },
   { id: "ap", label: "AP", regions: ["US", "CA"], qualification: null, legacyExamType: "ap" },
   { id: "sat", label: "SAT / ACT", regions: ["US"], qualification: null, legacyExamType: "sat" },
-  { id: "cbse", label: "CBSE", regions: ["IN"], qualification: null, legacyExamType: "other" },
+  { id: "cbse", label: "CBSE", regions: ["IN"], qualification: "CBSE", legacyExamType: "other" },
   { id: "icse", label: "ICSE", regions: ["IN"], qualification: null, legacyExamType: "other" },
   { id: "atar", label: "Year 12 (HSC / VCE)", regions: ["AU"], qualification: null, legacyExamType: "other" },
 ];
@@ -198,26 +198,42 @@ const subjectKey = (s: string) => {
   return SUBJECT_ALIASES[k] ?? k;
 };
 
-/** The seeded specification for a system, board and subject, or null. */
+/** The year number in a student's own words: "Class 10", "Grade 10",
+ *  "10th" → 10. */
+function levelNumber(level: string | null | undefined): number | null {
+  const m = /(\d{1,2})/.exec(level ?? "");
+  return m ? Number(m[1]) : null;
+}
+
+/** The seeded specification for a system, board and subject, or null. Where
+ *  a board has one per year (CBSE Class 9 and 10 Science), the student's
+ *  level picks; without one, the exam year (the later class) is assumed. */
 export function specFor(
   systemId: string | null,
   board: string | null,
   subject: string,
+  level?: string | null,
 ): SyllabusSpec | null {
   const qual = getSystem(systemId)?.qualification;
   if (!qual || !board) return null;
-  return (
-    SYLLABUS_SPECS.find(
-      (s) =>
-        s.qualification === qual &&
-        s.board.toLowerCase() === board.trim().toLowerCase() &&
-        subjectKey(s.subject) === subjectKey(subject),
-    ) ?? null
+  const matches = SYLLABUS_SPECS.filter(
+    (s) =>
+      s.qualification === qual &&
+      s.board.toLowerCase() === board.trim().toLowerCase() &&
+      subjectKey(s.subject) === subjectKey(subject),
   );
+  if (matches.length <= 1) return matches[0] ?? null;
+  const wanted = levelNumber(level);
+  const byLevel = wanted === null ? undefined : matches.find((s) => levelNumber(s.level) === wanted);
+  if (byLevel) return byLevel;
+  return [...matches].sort((a, b) => (levelNumber(b.level) ?? 0) - (levelNumber(a.level) ?? 0))[0];
 }
 
-export function isSupportedSubject(p: Pick<StudyProfile, "system" | "board">, subject: string): boolean {
-  return specFor(p.system, p.board, subject) !== null;
+export function isSupportedSubject(
+  p: Pick<StudyProfile, "system" | "board"> & Partial<Pick<StudyProfile, "level">>,
+  subject: string,
+): boolean {
+  return specFor(p.system, p.board, subject, p.level) !== null;
 }
 
 /* ── The five required answers ─────────────────────────────────────────── */

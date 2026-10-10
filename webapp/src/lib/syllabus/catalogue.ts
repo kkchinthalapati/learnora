@@ -24,6 +24,7 @@ import type {
   SyllabusTier,
   SyllabusTopic,
 } from "./types";
+import { CBSE_SPECS } from "./cbse";
 
 function t(
   ref: string,
@@ -475,4 +476,5 @@ export const SYLLABUS_SPECS: readonly SyllabusSpec[] = [
   IB_BIOLOGY,
   IB_CHEMISTRY,
   IB_PHYSICS,
+  ...CBSE_SPECS,
 ];

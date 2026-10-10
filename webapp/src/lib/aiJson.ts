@@ -32,6 +32,19 @@ export interface QuizQuestion {
   generic?: boolean;
   /** Who agreed with the key, and when (server checker). */
   verification?: { by: string; at: string };
+  /** What the question asks for (lib/itemKind.ts). Bank questions state it;
+   *  otherwise it is read from the wording. */
+  kind?: "recall" | "apply" | "explain";
+  /** Misconception catalogue ids, one per choice (null for the key or an
+   *  unmapped distractor). Picking a mapped distractor *is* the diagnosis:
+   *  no AI call, no guessing from the wording (lib/diagnosis.ts). */
+  distractorMisconceptions?: (string | null)[];
+  /** The syllabus skill this question practises ("<bank key>:<topic ref>"). */
+  skill?: string;
+  /** A typed-in number instead of options (lib/numericAnswer.ts). Then
+   *  `choices` holds just the key as shown, and `correctIndex` is 0. */
+  answerType?: "numeric";
+  numeric?: import("./numericAnswer").NumericKey;
 }
 
 export interface FlashcardDraft {

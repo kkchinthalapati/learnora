@@ -32,6 +32,23 @@
   background: var(--accent-hover);
 }
 
+/* A second action beside the primary one: the same shape, quieter. */
+.secondaryLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.secondaryLink:hover {
+  background: var(--surface-2, var(--surface));
+}
+
 .sectionTitle {
   font-size: var(--fs-lg, 1.125rem);
   margin: 0 0 var(--s-2);
@@ -306,4 +323,10 @@
   .paperForm {
     grid-template-columns: 1fr;
   }
+}
+
+/* A heading inside a card section (the placement result's groups). */
+.subTitle {
+  font-size: var(--fs-md, 1rem);
+  margin: var(--s-4) 0 var(--s-1);
 }

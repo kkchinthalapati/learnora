@@ -9,6 +9,7 @@ import {
 } from "../lib/misconceptions";
 import { recordLoopObservation } from "../lib/offlineSync";
 import { retestDueAt } from "../lib/mistakeLoop";
+import { armFor, experimentTag, RETEST_DELAY, RETEST_DELAY_DAYS } from "../lib/experiments";
 import { observationKey } from "../lib/questionKey";
 import {
   answeredQuestions,
@@ -22,7 +23,10 @@ import {
 } from "../views/quiz/quizMeta";
 import { misconceptionsKeys } from "./useMisconceptions";
 import { foldersKeys } from "./useFolders";
-import type { Folder, Quiz } from "../api/types";
+import type { Folder, LearningEvent, Quiz, QuizAttempt } from "../api/types";
+import { collectAttempts } from "../lib/attempts";
+import { buildKnowledge } from "../lib/knowledgeModel";
+import { learningEventsKeys } from "./useLearningEvents";
 import { addMissedQuestionCards } from "../api/missedQuestions";
 import { decksKeys } from "./useDecks";
 import { flashcardsKeys } from "./useFlashcards";
@@ -189,8 +193,8 @@ function recordQuizMisconceptions(
               attemptKey ?? "quiz",
               c.questionKey!,
             ),
-            dueAt: retestDueAt(now, row.timesObserved + 1),
-            detail: "Walked through the worked solution.",
+            dueAt: retestDueAt(now, row.timesObserved + 1, RETEST_DELAY_DAYS[armFor(RETEST_DELAY, row.id)]),
+            detail: `Walked through the worked solution. ${experimentTag(RETEST_DELAY, armFor(RETEST_DELAY, row.id))}`,
           }).catch((err) =>
             console.warn(
               "[mistakeLoop] worked-solution repair not recorded:",
@@ -236,8 +240,22 @@ function recordQuizMisconceptions(
         unmatchedWrong(answered),
         known,
       );
+      /* What the student had shown they know before this sitting: a quick
+         miss on a secure topic is read as a slip, not a belief. */
+      const priorAttempts = (qc.getQueryData<QuizAttempt[]>(quizzesKeys.attempts) ?? []).filter(
+        (a) => a.id !== attemptKey,
+      );
+      const priorEvents = qc.getQueryData<LearningEvent[]>(learningEventsKeys.all) ?? [];
+      const secureTopics = new Set(
+        /* Keyed by topic label (not skill), as the answers being read are. */
+        [...buildKnowledge(
+          collectAttempts(priorAttempts, priorEvents).map((a) => ({ ...a, skill: null })),
+        ).values()]
+          .filter((k) => k.status === "secure")
+          .map((k) => k.key),
+      );
       await write(
-        quizLoopCandidates(answered, { subject, attemptKey, labels }),
+        quizLoopCandidates(answered, { subject, attemptKey, labels, secureTopics }),
       );
       return;
     }

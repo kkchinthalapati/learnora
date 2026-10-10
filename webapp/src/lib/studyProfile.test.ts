@@ -69,7 +69,14 @@ describe("seeded boards are supported; everything else is generic", () => {
     expect(specFor("gcse", "OCR", "maths")?.id).toBe("ocr-gcse-maths-j560");
     expect(specFor("gcse", "OCR", "Biology")).toBeNull();
     expect(specFor("other", "WAEC", "Biology")).toBeNull();
-    expect(supportedBoards("cbse")).toEqual([]);
+    expect(supportedBoards("cbse")).toEqual([{ board: "CBSE", subjects: ["Mathematics", "Science"] }]);
+    expect(supportedBoards("icse")).toEqual([]);
+  });
+
+  it("picks the CBSE spec for the student's class, defaulting to the board year", () => {
+    expect(specFor("cbse", "CBSE", "Science", "Class 9")?.id).toBe("cbse-9-science-086");
+    expect(specFor("cbse", "CBSE", "Science", "Grade 10")?.id).toBe("cbse-10-science-086");
+    expect(specFor("cbse", "CBSE", "Maths")?.id).toBe("cbse-10-maths-041");
   });
 });
 

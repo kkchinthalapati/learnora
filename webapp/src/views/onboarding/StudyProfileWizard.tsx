@@ -220,7 +220,7 @@ export function StudyProfileWizard() {
   const addSubject = (name: string) => {
     const clean = name.trim().slice(0, 80);
     if (!clean || p.subjects.some((s) => s.name.toLowerCase() === clean.toLowerCase())) return;
-    const spec = specFor(p.system, p.board, clean);
+    const spec = specFor(p.system, p.board, clean, p.level);
     patch({ subjects: [...p.subjects, { name: clean, specId: spec?.id ?? null, examDate: null, confidence: null }] });
     setNewSubject("");
   };

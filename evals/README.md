@@ -17,11 +17,15 @@ what the app sends.
 
 ## Running
 
-Not part of any test suite. Needs Node 22.6+ (loads the TypeScript prompt
-module by type stripping) and your own key, from the environment only:
+Not part of the test suite. It runs weekly in GitHub Actions
+(`.github/workflows/tutor-evals.yml`, provider Groq by default) once a key is
+added as a repository secret, and on demand from the Actions tab. Locally it
+needs Node 22.6+ (loads the TypeScript prompt module by type stripping) and
+your own key, from the environment only:
 
 ```bash
 GEMINI_API_KEY=... node evals/run.mjs --provider gemini
+GROQ_API_KEY=... node evals/run.mjs --provider groq
 OPENAI_API_KEY=... node evals/run.mjs --provider openai --only hint_step
 ANTHROPIC_API_KEY=... node evals/run.mjs --provider anthropic --limit 20
 node evals/run.mjs --dry-run --only explanation   # prints prompts, calls nothing

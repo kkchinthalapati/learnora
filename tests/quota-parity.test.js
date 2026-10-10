@@ -143,7 +143,7 @@ test('a paid plan is never worse than the one below it', () => {
 /* The daily count is per tool name, and the name comes from the request
    body. If an unrecognised name were billed under itself, "x1", "x2", … would
    each get a fresh allowance and no limit would ever be reached (SEC-03 in
-   QA_BEAST_MODE_2026-09-28.md). The server must bill only names it has a
+   archive/qa/QA_BEAST_MODE_2026-09-28.md). The server must bill only names it has a
    quota for, and everything else as chat. */
 test('an unknown tool name is billed as chat, not given its own allowance', () => {
   const source = read('../supabase/functions/learnora-ai/index.ts');

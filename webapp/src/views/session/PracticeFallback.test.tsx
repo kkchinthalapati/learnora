@@ -9,13 +9,14 @@ import { SessionView } from "./SessionView";
 const mocks = vi.hoisted(() => ({
   generate: vi.fn(),
   bank: vi.fn(),
+  first: vi.fn(),
 }));
 
 vi.mock("../../api/aiQuiz", async (orig) => ({
   ...(await orig<typeof import("../../api/aiQuiz")>()),
   generateQuizQuestions: mocks.generate,
 }));
-vi.mock("../../api/questionBank", () => ({ bankPracticeFor: mocks.bank }));
+vi.mock("../../api/questionBank", () => ({ bankPracticeFor: mocks.bank, bankFirst: mocks.first }));
 vi.mock("../../api/learningEvents", () => ({ learningEventsApi: { record: vi.fn(async () => true) } }));
 vi.mock("../../hooks/useMisconceptions", () => ({
   useMisconceptions: () => ({ all: [], ranked: [], forSubject: () => [] }),
@@ -47,6 +48,8 @@ describe("Practice when the AI can't write problems", () => {
     clearStudySnapshot();
     mocks.generate.mockReset();
     mocks.bank.mockReset();
+    mocks.first.mockReset();
+    mocks.first.mockResolvedValue(null);
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -65,5 +68,24 @@ describe("Practice when the AI can't write problems", () => {
     renderPractice();
     expect(await screen.findByText(/temporarily unavailable/i)).toBeInTheDocument();
     expect(screen.queryByText("Bank question 0?")).toBeNull();
+  });
+});
+
+describe("Practice on a banked spec topic", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+    localStorage.clear();
+    clearStudySnapshot();
+    mocks.generate.mockReset();
+    mocks.first.mockReset();
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("serves the bank first and never asks the AI", async () => {
+    mocks.first.mockResolvedValue(BANK);
+    renderPractice();
+    expect(await screen.findByText("Bank question 0?")).toBeInTheDocument();
+    expect(mocks.first).toHaveBeenCalledWith(expect.stringContaining("Osmosis"), expect.any(Number));
+    expect(mocks.generate).not.toHaveBeenCalled();
   });
 });

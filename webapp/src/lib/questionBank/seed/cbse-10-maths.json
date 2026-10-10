@@ -1,0 +1,1000 @@
+[
+ {
+  "ref": "1",
+  "q": "The HCF of 96 and 404 is",
+  "c": [
+   "4",
+   "2",
+   "12",
+   "8"
+  ],
+  "a": 0,
+  "why": "96 = 2⁵ × 3 and 404 = 2² × 101, so HCF = 2² = 4.",
+  "kind": "apply"
+ },
+ {
+  "ref": "1",
+  "q": "HCF(6, 20) = 2. What is LCM(6, 20)?",
+  "c": [
+   "12",
+   "60",
+   "120",
+   "30"
+  ],
+  "a": 1,
+  "why": "HCF × LCM = product of the numbers: LCM = (6 × 20) ÷ 2 = 60.",
+  "kind": "apply"
+ },
+ {
+  "ref": "1",
+  "q": "√2 is",
+  "c": [
+   "An integer",
+   "A natural number",
+   "Irrational",
+   "Rational"
+  ],
+  "a": 2,
+  "why": "√2 cannot be written as p/q with integers p and q (q ≠ 0).",
+  "kind": "recall"
+ },
+ {
+  "ref": "1",
+  "q": "The prime factorisation of 156 is",
+  "c": [
+   "2 × 3 × 26",
+   "2³ × 13",
+   "4 × 39",
+   "2² × 3 × 13"
+  ],
+  "a": 3,
+  "why": "156 = 2 × 78 = 2 × 2 × 39 = 2² × 3 × 13; 26, 4 and 39 are not prime.",
+  "kind": "apply"
+ },
+ {
+  "ref": "2",
+  "q": "The zeroes of x² − 5x + 6 are",
+  "c": [
+   "2 and 3",
+   "−2 and −3",
+   "1 and 6",
+   "−1 and 6"
+  ],
+  "a": 0,
+  "why": "x² − 5x + 6 = (x − 2)(x − 3).",
+  "kind": "apply"
+ },
+ {
+  "ref": "2",
+  "q": "α and β are the zeroes of x² − 7x + 10. What is α + β?",
+  "c": [
+   "−10",
+   "7",
+   "−7",
+   "10"
+  ],
+  "a": 1,
+  "why": "For ax² + bx + c, the sum of zeroes is −b/a = 7.",
+  "kind": "apply"
+ },
+ {
+  "ref": "2",
+  "q": "A quadratic polynomial whose zeroes have sum 4 and product 3 is",
+  "c": [
+   "x² − 3x + 4",
+   "x² + 3x − 4",
+   "x² − 4x + 3",
+   "x² + 4x + 3"
+  ],
+  "a": 2,
+  "why": "x² − (sum)x + (product) = x² − 4x + 3.",
+  "kind": "apply"
+ },
+ {
+  "ref": "2",
+  "q": "The graph of a quadratic polynomial is a",
+  "c": [
+   "Straight line",
+   "Circle",
+   "Pair of straight lines",
+   "Parabola"
+  ],
+  "a": 3,
+  "why": "y = ax² + bx + c draws a parabola.",
+  "kind": "recall"
+ },
+ {
+  "ref": "3",
+  "q": "Solve x + y = 10 and x − y = 4.",
+  "c": [
+   "x = 7, y = 3",
+   "x = 3, y = 7",
+   "x = 6, y = 4",
+   "x = 4, y = 6"
+  ],
+  "a": 0,
+  "why": "Adding gives 2x = 14, so x = 7 and y = 3.",
+  "kind": "apply"
+ },
+ {
+  "ref": "3",
+  "q": "The lines 2x + 3y = 5 and 4x + 6y = 10 are",
+  "c": [
+   "Perpendicular",
+   "Coincident, with infinitely many solutions",
+   "Parallel, with no solution",
+   "Intersecting at one point"
+  ],
+  "a": 1,
+  "why": "2/4 = 3/6 = 5/10: the second equation is the first doubled.",
+  "kind": "apply"
+ },
+ {
+  "ref": "3",
+  "q": "How many solutions does the pair x + 2y = 3 and 2x + 4y = 7 have?",
+  "c": [
+   "Infinitely many",
+   "Two",
+   "None",
+   "Exactly one"
+  ],
+  "a": 2,
+  "why": "1/2 = 2/4 but 3/7 is different, so the lines are parallel.",
+  "kind": "apply"
+ },
+ {
+  "ref": "3",
+  "q": "Two numbers add up to 20 and differ by 6. The larger number is",
+  "c": [
+   "7",
+   "14",
+   "10",
+   "13"
+  ],
+  "a": 3,
+  "why": "x + y = 20 and x − y = 6 give 2x = 26, so x = 13.",
+  "kind": "apply"
+ },
+ {
+  "ref": "4",
+  "q": "The roots of x² − 3x − 10 = 0 are",
+  "c": [
+   "5 and −2",
+   "−5 and 2",
+   "5 and 2",
+   "−5 and −2"
+  ],
+  "a": 0,
+  "why": "x² − 3x − 10 = (x − 5)(x + 2).",
+  "kind": "apply"
+ },
+ {
+  "ref": "4",
+  "q": "How many real roots does x² + x + 1 = 0 have?",
+  "c": [
+   "Exactly one",
+   "No real roots",
+   "Two distinct real roots",
+   "Two equal real roots"
+  ],
+  "a": 1,
+  "why": "b² − 4ac = 1 − 4 = −3 < 0, so there are no real roots.",
+  "kind": "apply",
+  "mis": [
+   null,
+   null,
+   "maths-quadratic-always-two-real-roots",
+   null
+  ]
+ },
+ {
+  "ref": "4",
+  "q": "For which value of k does x² − 6x + k = 0 have two equal roots?",
+  "c": [
+   "36",
+   "3",
+   "9",
+   "6"
+  ],
+  "a": 2,
+  "why": "Equal roots need b² − 4ac = 0: 36 − 4k = 0, so k = 9.",
+  "kind": "apply"
+ },
+ {
+  "ref": "4",
+  "q": "The discriminant of ax² + bx + c = 0 is",
+  "c": [
+   "b² + 4ac",
+   "4ac − b²",
+   "√(b² − 4ac) ÷ 2a",
+   "b² − 4ac"
+  ],
+  "a": 3,
+  "why": "D = b² − 4ac decides the nature of the roots.",
+  "kind": "recall"
+ },
+ {
+  "ref": "5",
+  "q": "The 10th term of the AP 2, 7, 12, … is",
+  "c": [
+   "47",
+   "52",
+   "50",
+   "45"
+  ],
+  "a": 0,
+  "why": "a₁₀ = 2 + (10 − 1) × 5 = 47.",
+  "kind": "apply",
+  "mis": [
+   null,
+   "maths-ap-nth-term-n-not-n-minus-1",
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "5",
+  "q": "The sum of the first 15 terms of the AP 3, 6, 9, … is",
+  "c": [
+   "720",
+   "360",
+   "405",
+   "345"
+  ],
+  "a": 1,
+  "why": "S = n/2 × [2a + (n − 1)d] = 15/2 × (6 + 42) = 360.",
+  "kind": "apply"
+ },
+ {
+  "ref": "5",
+  "q": "The common difference of the AP 10, 7, 4, 1, … is",
+  "c": [
+   "10",
+   "−7",
+   "−3",
+   "3"
+  ],
+  "a": 2,
+  "why": "d = 7 − 10 = −3.",
+  "kind": "recall"
+ },
+ {
+  "ref": "5",
+  "q": "Which term of the AP 3, 8, 13, … is 78?",
+  "c": [
+   "15th",
+   "17th",
+   "26th",
+   "16th"
+  ],
+  "a": 3,
+  "why": "3 + (n − 1) × 5 = 78 gives n − 1 = 15, so n = 16.",
+  "kind": "apply",
+  "mis": [
+   "maths-ap-nth-term-n-not-n-minus-1",
+   null,
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "6",
+  "q": "In triangle ABC, DE is parallel to BC with D on AB and E on AC. AD = 2 cm, DB = 3 cm and AE = 4 cm. What is EC?",
+  "c": [
+   "6 cm",
+   "4 cm",
+   "3 cm",
+   "8/3 cm"
+  ],
+  "a": 0,
+  "why": "Basic Proportionality Theorem: AD/DB = AE/EC, so 2/3 = 4/EC and EC = 6 cm.",
+  "kind": "apply"
+ },
+ {
+  "ref": "6",
+  "q": "Two triangles whose corresponding angles are equal are similar. This is the",
+  "c": [
+   "ASA congruence rule",
+   "AAA similarity criterion",
+   "SSS congruence rule",
+   "RHS congruence rule"
+  ],
+  "a": 1,
+  "why": "Equal corresponding angles are enough for similarity (not congruence).",
+  "kind": "recall"
+ },
+ {
+  "ref": "6",
+  "q": "Two similar triangles have corresponding sides in the ratio 1 : 3. The ratio of their perimeters is",
+  "c": [
+   "3 : 1",
+   "1 : 6",
+   "1 : 3",
+   "1 : 9"
+  ],
+  "a": 2,
+  "why": "Every length scales by the same factor, perimeters included.",
+  "kind": "apply"
+ },
+ {
+  "ref": "6",
+  "q": "The Basic Proportionality Theorem is also known as",
+  "c": [
+   "Pythagoras' theorem",
+   "Euclid's lemma",
+   "The Fundamental Theorem of Arithmetic",
+   "Thales' theorem"
+  ],
+  "a": 3,
+  "why": "It is attributed to Thales.",
+  "kind": "recall"
+ },
+ {
+  "ref": "7",
+  "q": "The distance between (0, 0) and (3, 4) is",
+  "c": [
+   "5",
+   "7",
+   "25",
+   "1"
+  ],
+  "a": 0,
+  "why": "√(3² + 4²) = √25 = 5.",
+  "kind": "apply"
+ },
+ {
+  "ref": "7",
+  "q": "The midpoint of the segment joining (2, 3) and (6, 7) is",
+  "c": [
+   "(3, 4)",
+   "(4, 5)",
+   "(8, 10)",
+   "(2, 2)"
+  ],
+  "a": 1,
+  "why": "((2 + 6)/2, (3 + 7)/2) = (4, 5).",
+  "kind": "apply"
+ },
+ {
+  "ref": "7",
+  "q": "The point dividing the segment from (1, 2) to (7, 8) in the ratio 1 : 2 is",
+  "c": [
+   "(4, 5)",
+   "(2, 3)",
+   "(3, 4)",
+   "(5, 6)"
+  ],
+  "a": 2,
+  "why": "((1 × 7 + 2 × 1)/3, (1 × 8 + 2 × 2)/3) = (3, 4); (5, 6) is the 2 : 1 point.",
+  "kind": "apply"
+ },
+ {
+  "ref": "7",
+  "q": "The point (0, −3) lies on",
+  "c": [
+   "The x-axis",
+   "The origin",
+   "The first quadrant",
+   "The y-axis"
+  ],
+  "a": 3,
+  "why": "Its x-coordinate is 0.",
+  "kind": "recall"
+ },
+ {
+  "ref": "8",
+  "q": "If sin A = 3/5 and A is acute, then cos A is",
+  "c": [
+   "4/5",
+   "3/4",
+   "5/3",
+   "5/4"
+  ],
+  "a": 0,
+  "why": "Opposite 3, hypotenuse 5, so adjacent = 4 and cos A = 4/5.",
+  "kind": "apply"
+ },
+ {
+  "ref": "8",
+  "q": "sin 30° equals",
+  "c": [
+   "1/√2",
+   "1/2",
+   "√3/2",
+   "1"
+  ],
+  "a": 1,
+  "why": "A standard value: sin 30° = 1/2.",
+  "kind": "recall"
+ },
+ {
+  "ref": "8",
+  "q": "sin²A + cos²A equals",
+  "c": [
+   "tan²A",
+   "2",
+   "1",
+   "0"
+  ],
+  "a": 2,
+  "why": "This identity comes from Pythagoras' theorem.",
+  "kind": "recall"
+ },
+ {
+  "ref": "8",
+  "q": "tan 45° + cos 60° equals",
+  "c": [
+   "1",
+   "√3",
+   "2",
+   "3/2"
+  ],
+  "a": 3,
+  "why": "1 + 1/2 = 3/2.",
+  "kind": "apply"
+ },
+ {
+  "ref": "8",
+  "q": "In a right triangle, sin θ = 0.6. Every side of the triangle is doubled. What is sin θ now?",
+  "c": [
+   "0.6",
+   "1.2",
+   "0.3",
+   "2.4"
+  ],
+  "a": 0,
+  "why": "Both sides of the ratio double, so the ratio and the angle are unchanged.",
+  "kind": "apply",
+  "mis": [
+   null,
+   "maths-trig-ratio-depends-on-size",
+   "maths-trig-ratio-depends-on-size",
+   "maths-trig-ratio-depends-on-size"
+  ]
+ },
+ {
+  "ref": "9",
+  "q": "A tower's shadow is exactly as long as the tower is tall. The angle of elevation of the sun is",
+  "c": [
+   "90°",
+   "45°",
+   "30°",
+   "60°"
+  ],
+  "a": 1,
+  "why": "tan θ = height/shadow = 1, so θ = 45°.",
+  "kind": "apply"
+ },
+ {
+  "ref": "9",
+  "q": "From a point 30 m from the foot of a tower, the angle of elevation of its top is 60°. The tower's height is",
+  "c": [
+   "30 m",
+   "60 m",
+   "30√3 m",
+   "10√3 m"
+  ],
+  "a": 2,
+  "why": "h = 30 × tan 60° = 30√3 m.",
+  "kind": "apply"
+ },
+ {
+  "ref": "9",
+  "q": "The angle of depression of a boat from the top of a cliff is equal to",
+  "c": [
+   "90° minus the angle of elevation",
+   "Always 45°",
+   "Twice the angle of elevation",
+   "The angle of elevation of the clifftop from the boat"
+  ],
+  "a": 3,
+  "why": "They are alternate angles between parallel horizontal lines.",
+  "kind": "recall"
+ },
+ {
+  "ref": "10",
+  "q": "A tangent to a circle at a point is ___ the radius through that point.",
+  "c": [
+   "Perpendicular to",
+   "Parallel to",
+   "Equal in length to",
+   "At 45° to"
+  ],
+  "a": 0,
+  "why": "The tangent at any point is perpendicular to the radius there.",
+  "kind": "recall"
+ },
+ {
+  "ref": "10",
+  "q": "A point is 13 cm from the centre of a circle of radius 5 cm. The length of a tangent from the point is",
+  "c": [
+   "√194 cm",
+   "12 cm",
+   "8 cm",
+   "18 cm"
+  ],
+  "a": 1,
+  "why": "The tangent meets the radius at 90°: √(13² − 5²) = √144 = 12 cm.",
+  "kind": "apply"
+ },
+ {
+  "ref": "10",
+  "q": "How many tangents can be drawn to a circle from a point outside it?",
+  "c": [
+   "0",
+   "Infinitely many",
+   "2",
+   "1"
+  ],
+  "a": 2,
+  "why": "Exactly two, and they are equal in length.",
+  "kind": "recall"
+ },
+ {
+  "ref": "10",
+  "q": "PA and PB are tangents from an external point P. If PA = 7 cm, then PB is",
+  "c": [
+   "14 cm",
+   "3.5 cm",
+   "It cannot be found",
+   "7 cm"
+  ],
+  "a": 3,
+  "why": "Tangents from an external point are equal.",
+  "kind": "apply"
+ },
+ {
+  "ref": "11",
+  "q": "The area of a sector of angle 90° in a circle of radius 14 cm (π = 22/7) is",
+  "c": [
+   "154 cm²",
+   "616 cm²",
+   "44 cm²",
+   "22 cm²"
+  ],
+  "a": 0,
+  "why": "(90/360) × (22/7) × 14² = ¼ × 616 = 154 cm².",
+  "kind": "apply"
+ },
+ {
+  "ref": "11",
+  "q": "The arc length of a sector of angle 60° in a circle of radius 21 cm (π = 22/7) is",
+  "c": [
+   "231 cm",
+   "22 cm",
+   "44 cm",
+   "66 cm"
+  ],
+  "a": 1,
+  "why": "(60/360) × 2 × (22/7) × 21 = (1/6) × 132 = 22 cm.",
+  "kind": "apply"
+ },
+ {
+  "ref": "11",
+  "q": "The area of a sector of angle θ (in degrees) in a circle of radius r is",
+  "c": [
+   "θ × r²",
+   "πr² ÷ θ",
+   "(θ/360) × πr²",
+   "(θ/360) × 2πr"
+  ],
+  "a": 2,
+  "why": "The sector is θ/360 of the whole circle's area.",
+  "kind": "recall"
+ },
+ {
+  "ref": "12",
+  "q": "The volume of a cylinder of radius 7 cm and height 10 cm (π = 22/7) is",
+  "c": [
+   "440 cm³",
+   "154 cm³",
+   "3080 cm³",
+   "1540 cm³"
+  ],
+  "a": 3,
+  "why": "πr²h = (22/7) × 49 × 10 = 1540 cm³.",
+  "kind": "apply"
+ },
+ {
+  "ref": "12",
+  "q": "A cone and a cylinder have the same radius and height. The cone's volume is",
+  "c": [
+   "One-third of the cylinder's",
+   "Half the cylinder's",
+   "Equal to the cylinder's",
+   "Three times the cylinder's"
+  ],
+  "a": 0,
+  "why": "V(cone) = ⅓πr²h, V(cylinder) = πr²h.",
+  "kind": "recall"
+ },
+ {
+  "ref": "12",
+  "q": "The total surface area of a solid hemisphere of radius r is",
+  "c": [
+   "πr²",
+   "3πr²",
+   "2πr²",
+   "4πr²"
+  ],
+  "a": 1,
+  "why": "Curved surface 2πr² plus the flat circle πr².",
+  "kind": "recall"
+ },
+ {
+  "ref": "12",
+  "q": "The radius of a sphere is doubled. Its volume becomes",
+  "c": [
+   "4 times as large",
+   "6 times as large",
+   "8 times as large",
+   "2 times as large"
+  ],
+  "a": 2,
+  "why": "V = (4/3)πr³, so doubling r multiplies V by 2³ = 8.",
+  "kind": "apply",
+  "mis": [
+   null,
+   null,
+   null,
+   "maths-area-scale-factor"
+  ]
+ },
+ {
+  "ref": "13",
+  "q": "The mean of 2, 4, 6, 8 and 10 is",
+  "c": [
+   "5",
+   "30",
+   "8",
+   "6"
+  ],
+  "a": 3,
+  "why": "(2 + 4 + 6 + 8 + 10) ÷ 5 = 30 ÷ 5 = 6.",
+  "kind": "apply"
+ },
+ {
+  "ref": "13",
+  "q": "The class mark of the class 10–20 is",
+  "c": [
+   "15",
+   "10",
+   "20",
+   "30"
+  ],
+  "a": 0,
+  "why": "Class mark = (lower + upper) ÷ 2 = 15.",
+  "kind": "recall"
+ },
+ {
+  "ref": "13",
+  "q": "The empirical relationship between the three measures of central tendency is",
+  "c": [
+   "3 Mean = Mode + 2 Median",
+   "3 Median = Mode + 2 Mean",
+   "2 Median = Mode + 3 Mean",
+   "Mode = Mean + Median"
+  ],
+  "a": 1,
+  "why": "Mode ≈ 3 Median − 2 Mean.",
+  "kind": "recall"
+ },
+ {
+  "ref": "13",
+  "q": "The median class of a grouped frequency distribution is found using the",
+  "c": [
+   "Smallest class",
+   "Mean of the class marks",
+   "Cumulative frequencies",
+   "Class with the highest frequency"
+  ],
+  "a": 2,
+  "why": "The median class is the first whose cumulative frequency reaches n/2; the highest frequency gives the modal class.",
+  "kind": "recall"
+ },
+ {
+  "ref": "14",
+  "q": "A die is thrown once. The probability of getting a number greater than 4 is",
+  "c": [
+   "1/2",
+   "2/3",
+   "1/6",
+   "1/3"
+  ],
+  "a": 3,
+  "why": "Two outcomes (5 and 6) out of 6: 2/6 = 1/3.",
+  "kind": "apply"
+ },
+ {
+  "ref": "14",
+  "q": "Which of these could be the probability of an event?",
+  "c": [
+   "0.35",
+   "1.35",
+   "−0.2",
+   "135%"
+  ],
+  "a": 0,
+  "why": "Every probability lies between 0 and 1.",
+  "kind": "recall",
+  "mis": [
+   null,
+   "maths-probability-above-one",
+   "maths-probability-above-one",
+   "maths-probability-above-one"
+  ]
+ },
+ {
+  "ref": "14",
+  "q": "If P(E) = 0.05, then P(not E) is",
+  "c": [
+   "0.5",
+   "0.95",
+   "0.05",
+   "1.05"
+  ],
+  "a": 1,
+  "why": "P(not E) = 1 − P(E) = 0.95.",
+  "kind": "apply"
+ },
+ {
+  "ref": "14",
+  "q": "A fair coin lands heads three times in a row. The probability of heads on the fourth toss is",
+  "c": [
+   "Less than 1/2, because tails is due",
+   "1",
+   "1/2",
+   "1/16"
+  ],
+  "a": 2,
+  "why": "Each toss is independent: still 1/2.",
+  "kind": "apply",
+  "mis": [
+   "maths-gamblers-fallacy",
+   null,
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "14",
+  "q": "One card is drawn from a well-shuffled pack of 52. The probability that it is a king is",
+  "c": [
+   "1/52",
+   "4/13",
+   "1/4",
+   "1/13"
+  ],
+  "a": 3,
+  "why": "4 kings out of 52 cards: 4/52 = 1/13.",
+  "kind": "apply"
+ },
+ {
+  "ref": "1",
+  "q": "What is the LCM of 12 and 18?",
+  "c": [
+   "36"
+  ],
+  "a": 0,
+  "why": "12 = 2² × 3 and 18 = 2 × 3², so LCM = 2² × 3² = 36.",
+  "kind": "apply",
+  "num": {
+   "value": 36
+  }
+ },
+ {
+  "ref": "1",
+  "q": "What is the HCF of 26 and 91?",
+  "c": [
+   "13"
+  ],
+  "a": 0,
+  "why": "26 = 2 × 13 and 91 = 7 × 13, so HCF = 13.",
+  "kind": "apply",
+  "num": {
+   "value": 13
+  }
+ },
+ {
+  "ref": "2",
+  "q": "What is the product of the zeroes of 2x² − 8x + 6?",
+  "c": [
+   "3"
+  ],
+  "a": 0,
+  "why": "Product of zeroes = c/a = 6/2 = 3.",
+  "kind": "apply",
+  "num": {
+   "value": 3
+  }
+ },
+ {
+  "ref": "3",
+  "q": "Solve 2x + 3y = 12 and x − y = 1. What is x?",
+  "c": [
+   "3"
+  ],
+  "a": 0,
+  "why": "x = 1 + y, so 2 + 2y + 3y = 12, y = 2 and x = 3.",
+  "kind": "apply",
+  "num": {
+   "value": 3
+  }
+ },
+ {
+  "ref": "4",
+  "q": "What is the positive root of x² − x − 12 = 0?",
+  "c": [
+   "4"
+  ],
+  "a": 0,
+  "why": "x² − x − 12 = (x − 4)(x + 3).",
+  "kind": "apply",
+  "num": {
+   "value": 4
+  }
+ },
+ {
+  "ref": "5",
+  "q": "What is the 20th term of the AP 7, 10, 13, …?",
+  "c": [
+   "64"
+  ],
+  "a": 0,
+  "why": "a₂₀ = 7 + (20 − 1) × 3 = 64.",
+  "kind": "apply",
+  "num": {
+   "value": 64
+  }
+ },
+ {
+  "ref": "5",
+  "q": "What is the sum of the first 25 odd numbers?",
+  "c": [
+   "625"
+  ],
+  "a": 0,
+  "why": "The sum of the first n odd numbers is n² = 625.",
+  "kind": "apply",
+  "num": {
+   "value": 625
+  }
+ },
+ {
+  "ref": "6",
+  "q": "In triangle ABC, DE is parallel to BC with D on AB and E on AC. AD = 3 cm, DB = 6 cm and AE = 2 cm. What is EC, in cm?",
+  "c": [
+   "4 cm"
+  ],
+  "a": 0,
+  "why": "AD/DB = AE/EC: 3/6 = 2/EC, so EC = 4 cm.",
+  "kind": "apply",
+  "num": {
+   "value": 4,
+   "unit": "cm"
+  }
+ },
+ {
+  "ref": "7",
+  "q": "What is the distance between the points (0, 0) and (5, 12)?",
+  "c": [
+   "13"
+  ],
+  "a": 0,
+  "why": "√(5² + 12²) = √169 = 13.",
+  "kind": "apply",
+  "num": {
+   "value": 13
+  }
+ },
+ {
+  "ref": "8",
+  "q": "A is an acute angle with tan A = 1. What is A, in degrees?",
+  "c": [
+   "45°"
+  ],
+  "a": 0,
+  "why": "tan 45° = 1.",
+  "kind": "apply",
+  "num": {
+   "value": 45,
+   "unit": "°",
+   "acceptUnits": [
+    "degrees",
+    "degree",
+    "deg"
+   ]
+  }
+ },
+ {
+  "ref": "9",
+  "q": "From a point 30 m from the foot of a tower, the angle of elevation of its top is 30°. How tall is the tower, in metres, to one decimal place?",
+  "c": [
+   "17.3 m"
+  ],
+  "a": 0,
+  "why": "h = 30 × tan 30° = 30/√3 = 10√3 ≈ 17.3 m.",
+  "kind": "apply",
+  "num": {
+   "value": 17.32,
+   "tolerance": 0.06,
+   "unit": "m"
+  }
+ },
+ {
+  "ref": "10",
+  "q": "A point is 10 cm from the centre of a circle of radius 6 cm. How long is a tangent from the point to the circle, in cm?",
+  "c": [
+   "8 cm"
+  ],
+  "a": 0,
+  "why": "√(10² − 6²) = √64 = 8 cm.",
+  "kind": "apply",
+  "num": {
+   "value": 8,
+   "unit": "cm"
+  }
+ },
+ {
+  "ref": "11",
+  "q": "What is the area of a circle of radius 7 cm, in cm² (take π = 22/7)?",
+  "c": [
+   "154 cm²"
+  ],
+  "a": 0,
+  "why": "πr² = (22/7) × 49 = 154 cm².",
+  "kind": "apply",
+  "num": {
+   "value": 154,
+   "unit": "cm²",
+   "acceptUnits": [
+    "cm2",
+    "sq cm"
+   ]
+  }
+ },
+ {
+  "ref": "12",
+  "q": "What is the volume of a cone of radius 3 cm and height 7 cm, in cm³ (take π = 22/7)?",
+  "c": [
+   "66 cm³"
+  ],
+  "a": 0,
+  "why": "⅓πr²h = ⅓ × (22/7) × 9 × 7 = 66 cm³.",
+  "kind": "apply",
+  "num": {
+   "value": 66,
+   "unit": "cm³",
+   "acceptUnits": [
+    "cm3",
+    "cubic cm"
+   ]
+  }
+ },
+ {
+  "ref": "13",
+  "q": "What is the mean of 4, 8, 12, 16 and 20?",
+  "c": [
+   "12"
+  ],
+  "a": 0,
+  "why": "(4 + 8 + 12 + 16 + 20) ÷ 5 = 60 ÷ 5 = 12.",
+  "kind": "apply",
+  "num": {
+   "value": 12
+  }
+ },
+ {
+  "ref": "14",
+  "q": "A bag holds 3 red balls and 5 blue balls. One is drawn at random. What is the probability it is red? (A fraction or a decimal.)",
+  "c": [
+   "3/8"
+  ],
+  "a": 0,
+  "why": "3 red out of 8 balls: 3/8 = 0.375.",
+  "kind": "apply",
+  "num": {
+   "value": 0.375
+  }
+ }
+]

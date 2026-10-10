@@ -1,6 +1,6 @@
 import type { Flashcard, FlashcardDeck, Material } from "../api/types";
 import type { QuizQuestion } from "./aiJson";
-import { normaliseTopicKey, topicMatches } from "./topicKey";
+import { bestTopicMatch, topicMatches } from "./topicKey";
 
 export const QUICK_CHECK_QUESTIONS = 4;
 
@@ -10,7 +10,7 @@ export function buildQuickCheckSource({ topic, cards, decks, materials, deckId, 
 }) {
   const candidates = decks.filter(d => !folderId || d.folder_id === folderId);
   const deck = deckId ? decks.find(d => d.id === deckId) :
-    candidates.find(d => normaliseTopicKey(d.title) === normaliseTopicKey(topic)) ?? candidates.find(d => topicMatches(d.title, topic));
+    candidates[bestTopicMatch(topic, candidates.map(d => d.title))];
   const parts: string[] = [];
   if (deck) {
     const selected = cards.filter(c => c.deck_id === deck.id).slice(0, 30);

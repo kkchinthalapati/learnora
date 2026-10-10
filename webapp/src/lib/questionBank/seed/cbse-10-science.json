@@ -1,0 +1,1290 @@
+[
+ {
+  "ref": "1",
+  "q": "What type of reaction is CaO + H₂O → Ca(OH)₂?",
+  "c": [
+   "Combination",
+   "Decomposition",
+   "Displacement",
+   "Double displacement"
+  ],
+  "a": 0,
+  "why": "Two substances combine to form a single product.",
+  "kind": "recall"
+ },
+ {
+  "ref": "1",
+  "q": "Iron nails are left in blue copper sulphate solution and the colour slowly fades. Why?",
+  "c": [
+   "Iron dissolves without any reaction",
+   "Iron displaces copper from copper sulphate",
+   "Copper displaces iron from iron sulphate",
+   "The water evaporates and takes the colour with it"
+  ],
+  "a": 1,
+  "why": "Iron is more reactive than copper, so it takes copper's place: Fe + CuSO₄ → FeSO₄ + Cu.",
+  "kind": "apply"
+ },
+ {
+  "ref": "1",
+  "q": "In the reaction 2Mg + O₂ → 2MgO, magnesium is",
+  "c": [
+   "Neither oxidised nor reduced",
+   "Decomposed",
+   "Oxidised",
+   "Reduced"
+  ],
+  "a": 2,
+  "why": "Magnesium gains oxygen (and loses electrons), so it is oxidised.",
+  "kind": "recall",
+  "mis": [
+   null,
+   null,
+   null,
+   "chem-oxidation-reduction-electrons"
+  ]
+ },
+ {
+  "ref": "1",
+  "q": "Green ferrous sulphate crystals are heated. They turn white, then brown, and a smell of burning sulphur is given off. What type of reaction is this?",
+  "c": [
+   "Combination",
+   "Displacement",
+   "Neutralisation",
+   "Decomposition"
+  ],
+  "a": 3,
+  "why": "One substance breaks down into several: 2FeSO₄ → Fe₂O₃ + SO₂ + SO₃.",
+  "kind": "apply"
+ },
+ {
+  "ref": "1",
+  "q": "Respiration releases energy. What kind of reaction is it?",
+  "c": [
+   "Exothermic",
+   "Endothermic",
+   "Photochemical decomposition",
+   "Double displacement"
+  ],
+  "a": 0,
+  "why": "A reaction that gives out energy is exothermic.",
+  "kind": "recall",
+  "mis": [
+   null,
+   "chem-exo-endo-swapped",
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "1",
+  "q": "Sodium sulphate solution is mixed with barium chloride solution and a white solid appears. The white solid is",
+  "c": [
+   "Sodium sulphate",
+   "Barium sulphate",
+   "Sodium chloride",
+   "Barium chloride"
+  ],
+  "a": 1,
+  "why": "A double displacement: BaSO₄ is insoluble and precipitates; NaCl stays dissolved.",
+  "kind": "apply"
+ },
+ {
+  "ref": "2",
+  "q": "Which of these solutions is the most acidic?",
+  "c": [
+   "pH 8",
+   "pH 13",
+   "pH 1",
+   "pH 6"
+  ],
+  "a": 2,
+  "why": "The lower the pH below 7, the more acidic the solution.",
+  "kind": "recall",
+  "mis": [
+   null,
+   "chem-higher-ph-more-acidic",
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "2",
+  "q": "A solution turns red litmus blue. Its pH is most likely",
+  "c": [
+   "1",
+   "4",
+   "7",
+   "10"
+  ],
+  "a": 3,
+  "why": "Turning red litmus blue shows a base, and bases have pH above 7.",
+  "kind": "apply"
+ },
+ {
+  "ref": "2",
+  "q": "Which gas is given off when zinc granules react with dilute sulphuric acid?",
+  "c": [
+   "Hydrogen",
+   "Oxygen",
+   "Carbon dioxide",
+   "Sulphur dioxide"
+  ],
+  "a": 0,
+  "why": "Zn + H₂SO₄ → ZnSO₄ + H₂; the gas burns with a pop.",
+  "kind": "recall"
+ },
+ {
+  "ref": "2",
+  "q": "The chemical formula of Plaster of Paris is",
+  "c": [
+   "Ca(OH)₂",
+   "CaSO₄·½H₂O",
+   "CaSO₄·2H₂O",
+   "CaCO₃"
+  ],
+  "a": 1,
+  "why": "Plaster of Paris is calcium sulphate hemihydrate; with water it sets back into gypsum, CaSO₄·2H₂O.",
+  "kind": "recall"
+ },
+ {
+  "ref": "2",
+  "q": "Tooth decay starts when the pH in the mouth falls below about",
+  "c": [
+   "8.5",
+   "10",
+   "5.5",
+   "7.5"
+  ],
+  "a": 2,
+  "why": "Below about pH 5.5, acids from bacteria start to dissolve tooth enamel.",
+  "kind": "recall"
+ },
+ {
+  "ref": "2",
+  "q": "Baking soda in a cake mix makes the cake rise when it is baked. What does that?",
+  "c": [
+   "Oxygen released from the sodium",
+   "Hydrogen released from the hydrogen carbonate",
+   "Nothing; it only adds taste",
+   "Carbon dioxide released when it is heated or reacts with an acid"
+  ],
+  "a": 3,
+  "why": "2NaHCO₃ → Na₂CO₃ + H₂O + CO₂; the gas puffs up the cake.",
+  "kind": "apply"
+ },
+ {
+  "ref": "2",
+  "q": "Washing soda is",
+  "c": [
+   "Na₂CO₃·10H₂O",
+   "NaHCO₃",
+   "NaOH",
+   "CaOCl₂"
+  ],
+  "a": 0,
+  "why": "Washing soda is sodium carbonate decahydrate; NaHCO₃ is baking soda and CaOCl₂ is bleaching powder.",
+  "kind": "recall"
+ },
+ {
+  "ref": "3",
+  "q": "Which of these metals will give hydrogen gas with dilute hydrochloric acid?",
+  "c": [
+   "Gold",
+   "Zinc",
+   "Copper",
+   "Silver"
+  ],
+  "a": 1,
+  "why": "Only metals above hydrogen in the reactivity series displace it; zinc is, the others are not.",
+  "kind": "apply",
+  "mis": [
+   "chem-all-metals-give-hydrogen",
+   null,
+   "chem-all-metals-give-hydrogen",
+   "chem-all-metals-give-hydrogen"
+  ]
+ },
+ {
+  "ref": "3",
+  "q": "An ionic compound such as sodium chloride conducts electricity",
+  "c": [
+   "Never",
+   "Only as a gas",
+   "When molten or dissolved in water",
+   "As a solid"
+  ],
+  "a": 2,
+  "why": "Its ions can only move, and carry charge, once it is melted or dissolved.",
+  "kind": "recall",
+  "mis": [
+   null,
+   null,
+   null,
+   "chem-solid-ionic-conducts"
+  ]
+ },
+ {
+  "ref": "3",
+  "q": "When sodium chloride forms, each sodium atom",
+  "c": [
+   "Gains one electron",
+   "Shares one electron with chlorine",
+   "Loses one proton",
+   "Loses one electron"
+  ],
+  "a": 3,
+  "why": "Na → Na⁺ + e⁻; chlorine gains that electron. Ionic bonds come from transfer, not sharing.",
+  "kind": "recall",
+  "mis": [
+   null,
+   "chem-ionic-sharing",
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "3",
+  "q": "Galvanising protects iron by coating it with",
+  "c": [
+   "Zinc",
+   "Copper",
+   "Silver",
+   "Lead"
+  ],
+  "a": 0,
+  "why": "A layer of zinc keeps air and water off the iron, and corrodes first if scratched.",
+  "kind": "recall"
+ },
+ {
+  "ref": "3",
+  "q": "Metal X is found as the free metal in nature and does not react with oxygen even when heated. X is most likely",
+  "c": [
+   "Zinc",
+   "Gold",
+   "Sodium",
+   "Magnesium"
+  ],
+  "a": 1,
+  "why": "Only the least reactive metals, at the bottom of the reactivity series, are found uncombined.",
+  "kind": "apply"
+ },
+ {
+  "ref": "3",
+  "q": "Which conditions are needed for iron to rust?",
+  "c": [
+   "Air only",
+   "Heat only",
+   "Both air (oxygen) and water",
+   "Water only"
+  ],
+  "a": 2,
+  "why": "Rusting needs oxygen and water together.",
+  "kind": "recall",
+  "mis": [
+   "chem-rust-needs-one",
+   null,
+   null,
+   "chem-rust-needs-one"
+  ]
+ },
+ {
+  "ref": "4",
+  "q": "The bond between the two carbon atoms in ethane (C₂H₆) is",
+  "c": [
+   "A double covalent bond",
+   "An ionic bond",
+   "A triple covalent bond",
+   "A single covalent bond"
+  ],
+  "a": 3,
+  "why": "Ethane is saturated: every carbon–carbon bond is single.",
+  "kind": "recall",
+  "mis": [
+   null,
+   "chem-ionic-sharing",
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "4",
+  "q": "Which of these is an unsaturated hydrocarbon?",
+  "c": [
+   "C₂H₄ (ethene)",
+   "C₂H₆ (ethane)",
+   "CH₄ (methane)",
+   "C₃H₈ (propane)"
+  ],
+  "a": 0,
+  "why": "Ethene has a carbon–carbon double bond; the others are alkanes with single bonds only.",
+  "kind": "recall"
+ },
+ {
+  "ref": "4",
+  "q": "CH₄ and C₂H₆ are the first two members of a homologous series. The next member is",
+  "c": [
+   "C₄H₁₀",
+   "C₃H₈",
+   "C₃H₆",
+   "C₂H₄"
+  ],
+  "a": 1,
+  "why": "Each member adds CH₂: CₙH₂ₙ₊₂ with n = 3 gives C₃H₈.",
+  "kind": "apply"
+ },
+ {
+  "ref": "4",
+  "q": "Why do most carbon compounds not conduct electricity?",
+  "c": [
+   "Carbon is a metal",
+   "They contain too many ions",
+   "Their bonds are covalent, so they have no ions or free electrons",
+   "They are always gases"
+  ],
+  "a": 2,
+  "why": "Covalent compounds don't form ions, so nothing carries the charge.",
+  "kind": "recall"
+ },
+ {
+  "ref": "4",
+  "q": "Ethanol reacts with sodium metal to give",
+  "c": [
+   "Oxygen gas",
+   "Carbon dioxide",
+   "Chlorine gas",
+   "Hydrogen gas"
+  ],
+  "a": 3,
+  "why": "2Na + 2CH₃CH₂OH → 2CH₃CH₂ONa + H₂.",
+  "kind": "recall"
+ },
+ {
+  "ref": "4",
+  "q": "Soap forms a scum instead of lather in hard water because",
+  "c": [
+   "It reacts with calcium and magnesium salts to form an insoluble substance",
+   "Hard water is acidic",
+   "Soap is a detergent",
+   "Hard water contains no ions"
+  ],
+  "a": 0,
+  "why": "Calcium and magnesium ions precipitate the soap; detergents avoid this.",
+  "kind": "apply"
+ },
+ {
+  "ref": "5",
+  "q": "During photosynthesis a plant takes in",
+  "c": [
+   "Carbon dioxide and glucose",
+   "Carbon dioxide and water",
+   "Oxygen and glucose",
+   "Oxygen and water"
+  ],
+  "a": 1,
+  "why": "6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ with light and chlorophyll.",
+  "kind": "recall",
+  "mis": [
+   null,
+   null,
+   "bio-photosynthesis-gases-swapped",
+   "bio-photosynthesis-gases-swapped"
+  ]
+ },
+ {
+  "ref": "5",
+  "q": "Anaerobic respiration in yeast produces",
+  "c": [
+   "Only water and carbon dioxide",
+   "Oxygen",
+   "Ethanol and carbon dioxide",
+   "Lactic acid"
+  ],
+  "a": 2,
+  "why": "Yeast ferments glucose to ethanol and CO₂; lactic acid is made in muscles.",
+  "kind": "recall",
+  "mis": [
+   null,
+   null,
+   null,
+   "bio-yeast-lactic-acid"
+  ]
+ },
+ {
+  "ref": "5",
+  "q": "The basic filtering unit of the kidney is the",
+  "c": [
+   "Neuron",
+   "Alveolus",
+   "Villus",
+   "Nephron"
+  ],
+  "a": 3,
+  "why": "Each kidney has about a million nephrons that filter the blood.",
+  "kind": "recall"
+ },
+ {
+  "ref": "5",
+  "q": "Which blood vessel carries deoxygenated blood from the heart to the lungs?",
+  "c": [
+   "Pulmonary artery",
+   "Pulmonary vein",
+   "Aorta",
+   "Vena cava"
+  ],
+  "a": 0,
+  "why": "Arteries carry blood away from the heart; the pulmonary artery is the one artery carrying deoxygenated blood.",
+  "kind": "apply",
+  "mis": [
+   null,
+   "bio-arteries-oxygenated",
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "5",
+  "q": "Water rises up the xylem of a tall tree mainly because of",
+  "c": [
+   "Respiration in the roots alone",
+   "Transpiration pull as water evaporates from the leaves",
+   "Phloem pushing it up",
+   "Gravity"
+  ],
+  "a": 1,
+  "why": "Evaporation from the leaves draws a continuous column of water up the xylem.",
+  "kind": "apply"
+ },
+ {
+  "ref": "5",
+  "q": "Bile helps digestion by",
+  "c": [
+   "Killing every bacterium in the gut",
+   "Absorbing glucose",
+   "Breaking fats into small droplets (emulsifying them)",
+   "Digesting proteins"
+  ],
+  "a": 2,
+  "why": "Bile has no enzymes; it emulsifies fats so lipase can work on them.",
+  "kind": "recall"
+ },
+ {
+  "ref": "6",
+  "q": "You pull your hand away from a hot plate before you feel pain. The response is coordinated by",
+  "c": [
+   "The cerebrum, after thinking",
+   "The cerebellum",
+   "The heart",
+   "The spinal cord"
+  ],
+  "a": 3,
+  "why": "This is a reflex arc through the spinal cord; the brain is told afterwards.",
+  "kind": "apply",
+  "mis": [
+   "bio-reflex-through-brain",
+   null,
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "6",
+  "q": "Which plant hormone makes a shoot bend towards light by making cells grow longer on the shaded side?",
+  "c": [
+   "Auxin",
+   "Abscisic acid",
+   "Ethylene",
+   "Insulin"
+  ],
+  "a": 0,
+  "why": "Auxin collects on the shaded side and speeds up cell elongation there.",
+  "kind": "recall"
+ },
+ {
+  "ref": "6",
+  "q": "Iodised salt is recommended because iodine is needed to make",
+  "c": [
+   "Growth hormone",
+   "Thyroxin",
+   "Insulin",
+   "Adrenaline"
+  ],
+  "a": 1,
+  "why": "The thyroid gland uses iodine to make thyroxin; too little causes goitre.",
+  "kind": "recall"
+ },
+ {
+  "ref": "6",
+  "q": "Insulin is secreted by the",
+  "c": [
+   "Adrenal gland",
+   "Pituitary gland",
+   "Pancreas",
+   "Thyroid gland"
+  ],
+  "a": 2,
+  "why": "Insulin from the pancreas lowers blood sugar.",
+  "kind": "recall"
+ },
+ {
+  "ref": "6",
+  "q": "The gap between two neurons is called a",
+  "c": [
+   "Dendrite",
+   "Axon",
+   "Cell body",
+   "Synapse"
+  ],
+  "a": 3,
+  "why": "Chemicals carry the signal across the synapse to the next neuron.",
+  "kind": "recall"
+ },
+ {
+  "ref": "6",
+  "q": "A shoot growing towards light and a root growing towards water are examples of",
+  "c": [
+   "Phototropism and hydrotropism",
+   "Geotropism and chemotropism",
+   "Hydrotropism and phototropism",
+   "Chemotropism and geotropism"
+  ],
+  "a": 0,
+  "why": "Growth towards light is phototropism; towards water is hydrotropism.",
+  "kind": "apply"
+ },
+ {
+  "ref": "7",
+  "q": "Amoeba reproduces by",
+  "c": [
+   "Fragmentation",
+   "Binary fission",
+   "Budding",
+   "Spore formation"
+  ],
+  "a": 1,
+  "why": "Amoeba splits into two daughter cells.",
+  "kind": "recall"
+ },
+ {
+  "ref": "7",
+  "q": "Yeast and Hydra reproduce asexually by",
+  "c": [
+   "Pollination",
+   "Fertilisation",
+   "Budding",
+   "Binary fission"
+  ],
+  "a": 2,
+  "why": "A small outgrowth (bud) develops and separates.",
+  "kind": "recall"
+ },
+ {
+  "ref": "7",
+  "q": "Gametes have half the number of chromosomes of body cells because they are made by",
+  "c": [
+   "Mitosis",
+   "Budding",
+   "Binary fission",
+   "Meiosis"
+  ],
+  "a": 3,
+  "why": "Meiosis halves the chromosome number, so fertilisation restores it.",
+  "kind": "recall",
+  "mis": [
+   "bio-gametes-by-mitosis",
+   null,
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "7",
+  "q": "The transfer of pollen from an anther to a stigma is called",
+  "c": [
+   "Pollination",
+   "Fertilisation",
+   "Germination",
+   "Vegetative propagation"
+  ],
+  "a": 0,
+  "why": "Fertilisation comes later, when a male gamete fuses with the egg in the ovule.",
+  "kind": "recall"
+ },
+ {
+  "ref": "7",
+  "q": "Sugarcane and roses are grown from pieces of stem. This is",
+  "c": [
+   "Pollination",
+   "Vegetative propagation",
+   "Binary fission",
+   "Spore formation"
+  ],
+  "a": 1,
+  "why": "New plants grow from vegetative parts (stem, root or leaf), without seeds.",
+  "kind": "apply"
+ },
+ {
+  "ref": "8",
+  "q": "The sex of a human child is decided by",
+  "c": [
+   "Both parents equally",
+   "The temperature during pregnancy",
+   "The chromosome in the father's sperm",
+   "The mother's egg"
+  ],
+  "a": 2,
+  "why": "Eggs always carry X; sperm carry X or Y.",
+  "kind": "recall",
+  "mis": [
+   null,
+   null,
+   null,
+   "bio-mother-decides-sex"
+  ]
+ },
+ {
+  "ref": "8",
+  "q": "Mendel crossed pure tall (TT) and pure dwarf (tt) pea plants, then self-pollinated the F1. What fraction of the F2 plants were dwarf?",
+  "c": [
+   "1/2",
+   "3/4",
+   "None",
+   "1/4"
+  ],
+  "a": 3,
+  "why": "F1 are all Tt; Tt × Tt gives TT : Tt : tt = 1 : 2 : 1, so 1/4 are dwarf (tt).",
+  "kind": "apply"
+ },
+ {
+  "ref": "8",
+  "q": "All of Mendel's F1 plants from the tall × dwarf cross were tall because",
+  "c": [
+   "Tall is dominant over dwarf",
+   "The dwarf trait was destroyed",
+   "Tall plants are more common in nature",
+   "The soil made them tall"
+  ],
+  "a": 0,
+  "why": "The dwarf allele is still there in the F1 (it reappears in F2); it is recessive.",
+  "kind": "recall",
+  "mis": [
+   null,
+   null,
+   "bio-dominant-means-common",
+   null
+  ]
+ },
+ {
+  "ref": "8",
+  "q": "A pea plant with genotype Tt is crossed with one that is tt. The expected ratio of tall to dwarf offspring is",
+  "c": [
+   "All tall",
+   "1 : 1",
+   "3 : 1",
+   "1 : 2 : 1"
+  ],
+  "a": 1,
+  "why": "Tt × tt gives Tt and tt in equal numbers.",
+  "kind": "apply"
+ },
+ {
+  "ref": "8",
+  "q": "A variation can be passed to the next generation only if it is in",
+  "c": [
+   "The muscles",
+   "The skin",
+   "The DNA of the germ cells",
+   "Changes the parent's body made during its life"
+  ],
+  "a": 2,
+  "why": "Changes acquired during a lifetime are not in the germ-cell DNA, so they are not inherited.",
+  "kind": "recall",
+  "mis": [
+   null,
+   null,
+   null,
+   "bio-evolution-by-need"
+  ]
+ },
+ {
+  "ref": "9",
+  "q": "An object is placed 30 cm in front of a concave mirror of focal length 15 cm. Where is the image formed?",
+  "c": [
+   "15 cm in front of the mirror",
+   "30 cm behind the mirror",
+   "At infinity",
+   "30 cm in front of the mirror"
+  ],
+  "a": 3,
+  "why": "1/v + 1/u = 1/f with u = −30 and f = −15 gives v = −30 cm: at the centre of curvature.",
+  "kind": "apply"
+ },
+ {
+  "ref": "9",
+  "q": "The refractive index of water is 1.33 and the speed of light in air is 3 × 10⁸ m/s. The speed of light in water is about",
+  "c": [
+   "2.25 × 10⁸ m/s",
+   "4 × 10⁸ m/s",
+   "3 × 10⁸ m/s",
+   "1.33 × 10⁸ m/s"
+  ],
+  "a": 0,
+  "why": "v = c/n = (3 × 10⁸)/1.33 ≈ 2.25 × 10⁸ m/s; light is slower in water.",
+  "kind": "apply",
+  "mis": [
+   null,
+   "phys-light-faster-in-glass",
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "9",
+  "q": "The power of a convex lens of focal length 50 cm is",
+  "c": [
+   "+50 D",
+   "+2 D",
+   "−2 D",
+   "+0.5 D"
+  ],
+  "a": 1,
+  "why": "P = 1/f in metres = 1/0.5 = +2 D; a convex lens has positive power.",
+  "kind": "apply"
+ },
+ {
+  "ref": "9",
+  "q": "Which mirror is used as a rear-view mirror in vehicles?",
+  "c": [
+   "Plane mirror",
+   "Concave lens",
+   "Convex mirror",
+   "Concave mirror"
+  ],
+  "a": 2,
+  "why": "A convex mirror gives an upright image and a wider field of view.",
+  "kind": "recall"
+ },
+ {
+  "ref": "9",
+  "q": "A ray of light passing from air into glass at an angle bends",
+  "c": [
+   "Away from the normal",
+   "Not at all",
+   "Back into the air",
+   "Towards the normal"
+  ],
+  "a": 3,
+  "why": "It slows down in glass, so it bends towards the normal.",
+  "kind": "recall"
+ },
+ {
+  "ref": "9",
+  "q": "A convex lens forms a real, inverted image the same size as the object. Where is the object?",
+  "c": [
+   "At 2F, twice the focal length from the lens",
+   "At F",
+   "Between F and the lens",
+   "At infinity"
+  ],
+  "a": 0,
+  "why": "Only an object at 2F gives a same-size real image, also at 2F.",
+  "kind": "apply"
+ },
+ {
+  "ref": "10",
+  "q": "Myopia (short-sightedness) is corrected with",
+  "c": [
+   "It cannot be corrected",
+   "A concave lens",
+   "A convex lens",
+   "A cylindrical lens"
+  ],
+  "a": 1,
+  "why": "A concave lens diverges the rays so the image moves back onto the retina.",
+  "kind": "recall",
+  "mis": [
+   null,
+   null,
+   "phys-myopia-convex",
+   null
+  ]
+ },
+ {
+  "ref": "10",
+  "q": "The clear sky looks blue because",
+  "c": [
+   "Blue light travels fastest",
+   "The sun gives out only blue light",
+   "Air molecules scatter blue light more than red light",
+   "The sky reflects the sea"
+  ],
+  "a": 2,
+  "why": "Shorter wavelengths are scattered more by the tiny particles of air.",
+  "kind": "recall"
+ },
+ {
+  "ref": "10",
+  "q": "The splitting of white light into its colours by a prism is called",
+  "c": [
+   "Reflection",
+   "Scattering",
+   "Total internal reflection",
+   "Dispersion"
+  ],
+  "a": 3,
+  "why": "Each colour refracts by a slightly different amount, spreading into a spectrum.",
+  "kind": "recall"
+ },
+ {
+  "ref": "10",
+  "q": "The eye's ability to change the focal length of its lens is called",
+  "c": [
+   "Accommodation",
+   "Presbyopia",
+   "Persistence of vision",
+   "Dispersion"
+  ],
+  "a": 0,
+  "why": "Ciliary muscles change the lens's shape to focus near or far.",
+  "kind": "recall"
+ },
+ {
+  "ref": "10",
+  "q": "Stars twinkle because",
+  "c": [
+   "They are moving very fast",
+   "Their light is refracted by layers of the atmosphere that keep changing",
+   "They switch on and off",
+   "The eye disperses their light"
+  ],
+  "a": 1,
+  "why": "Atmospheric refraction makes the apparent brightness and position flicker.",
+  "kind": "recall"
+ },
+ {
+  "ref": "10",
+  "q": "A person can read a distant sign clearly but needs to hold a book far away to read it. This person has",
+  "c": [
+   "Colour blindness",
+   "Cataract",
+   "Hypermetropia (long-sightedness)",
+   "Myopia (short-sightedness)"
+  ],
+  "a": 2,
+  "why": "Near objects focus behind the retina: hypermetropia, corrected with a convex lens.",
+  "kind": "apply"
+ },
+ {
+  "ref": "11",
+  "q": "A current of 0.5 A flows through a 10 Ω resistor. The potential difference across it is",
+  "c": [
+   "20 V",
+   "0.05 V",
+   "10.5 V",
+   "5 V"
+  ],
+  "a": 3,
+  "why": "V = IR = 0.5 × 10 = 5 V.",
+  "kind": "apply"
+ },
+ {
+  "ref": "11",
+  "q": "Two 6 Ω resistors are connected in parallel. Their combined resistance is",
+  "c": [
+   "3 Ω",
+   "12 Ω",
+   "6 Ω",
+   "36 Ω"
+  ],
+  "a": 0,
+  "why": "1/R = 1/6 + 1/6 = 1/3, so R = 3 Ω: adding a parallel path lowers resistance.",
+  "kind": "apply",
+  "mis": [
+   null,
+   "phys-parallel-increases-resistance",
+   null,
+   null
+  ]
+ },
+ {
+  "ref": "11",
+  "q": "In a series circuit, the current",
+  "c": [
+   "Is zero after the last resistor",
+   "Is the same at every point",
+   "Is largest just after the positive terminal",
+   "Is used up a little by each resistor"
+  ],
+  "a": 1,
+  "why": "Charge is not used up; the same current flows all the way round.",
+  "kind": "recall",
+  "mis": [
+   "phys-current-used-up",
+   null,
+   null,
+   "phys-current-used-up"
+  ]
+ },
+ {
+  "ref": "11",
+  "q": "A wire is replaced by one of the same material and thickness but twice as long. Its resistance",
+  "c": [
+   "Stays the same",
+   "Becomes four times as large",
+   "Doubles",
+   "Halves"
+  ],
+  "a": 2,
+  "why": "R = ρl/A, so doubling the length doubles R.",
+  "kind": "apply"
+ },
+ {
+  "ref": "11",
+  "q": "An electric heater draws 5 A from a 220 V supply. Its power is",
+  "c": [
+   "44 W",
+   "225 W",
+   "4400 W",
+   "1100 W"
+  ],
+  "a": 3,
+  "why": "P = VI = 220 × 5 = 1100 W.",
+  "kind": "apply"
+ },
+ {
+  "ref": "11",
+  "q": "The resistivity of a wire depends on",
+  "c": [
+   "Its material and temperature",
+   "Its length",
+   "Its area of cross-section",
+   "The current through it"
+  ],
+  "a": 0,
+  "why": "Resistivity is a property of the material; length and area change resistance, not resistivity.",
+  "kind": "recall",
+  "mis": [
+   null,
+   "phys-resistivity-depends-on-size",
+   "phys-resistivity-depends-on-size",
+   null
+  ]
+ },
+ {
+  "ref": "11",
+  "q": "Conventional current is shown flowing from + to −. In the wire, electrons actually flow",
+  "c": [
+   "Both ways at once",
+   "From the negative terminal to the positive terminal",
+   "From the positive terminal to the negative terminal",
+   "Not at all"
+  ],
+  "a": 1,
+  "why": "Electrons are negative, so they move opposite to conventional current.",
+  "kind": "recall",
+  "mis": [
+   null,
+   null,
+   "phys-current-from-positive-electrons",
+   null
+  ]
+ },
+ {
+  "ref": "12",
+  "q": "The direction of the force on a current-carrying conductor in a magnetic field is given by",
+  "c": [
+   "Ohm's law",
+   "Snell's law",
+   "Fleming's left-hand rule",
+   "Fleming's right-hand rule"
+  ],
+  "a": 2,
+  "why": "Thumb: force, first finger: field, second finger: current.",
+  "kind": "recall"
+ },
+ {
+  "ref": "12",
+  "q": "Inside a long current-carrying solenoid, the magnetic field lines are",
+  "c": [
+   "Circles",
+   "Absent",
+   "Spreading outwards in all directions",
+   "Parallel straight lines (a uniform field)"
+  ],
+  "a": 3,
+  "why": "The field inside a long solenoid is nearly uniform.",
+  "kind": "recall"
+ },
+ {
+  "ref": "12",
+  "q": "A fuse protects a circuit by",
+  "c": [
+   "Melting and breaking the circuit when the current is too large",
+   "Raising the voltage",
+   "Storing charge",
+   "Changing AC to DC"
+  ],
+  "a": 0,
+  "why": "The fuse wire has a low melting point and heats up when the current is too big.",
+  "kind": "recall"
+ },
+ {
+  "ref": "12",
+  "q": "Domestic electricity supply in India is AC with a frequency of",
+  "c": [
+   "0 Hz",
+   "50 Hz",
+   "60 Hz",
+   "220 Hz"
+  ],
+  "a": 1,
+  "why": "India's mains supply is 220 V at 50 Hz.",
+  "kind": "recall"
+ },
+ {
+  "ref": "12",
+  "q": "The earth wire of an electric iron with a metal body",
+  "c": [
+   "Raises the supply voltage",
+   "Is not needed for metal appliances",
+   "Carries current safely to the ground if the body becomes live",
+   "Carries the normal working current"
+  ],
+  "a": 2,
+  "why": "It gives a low-resistance path to earth, so touching a faulty iron doesn't shock you.",
+  "kind": "apply"
+ },
+ {
+  "ref": "13",
+  "q": "About how much of the energy at one trophic level passes to the next?",
+  "c": [
+   "50%",
+   "90%",
+   "100%",
+   "10%"
+  ],
+  "a": 3,
+  "why": "Most energy is used in life processes or lost as heat; only about 10% passes on.",
+  "kind": "recall",
+  "mis": [
+   null,
+   null,
+   "bio-energy-recycled",
+   null
+  ]
+ },
+ {
+  "ref": "13",
+  "q": "Which of these is biodegradable?",
+  "c": [
+   "Vegetable peels",
+   "Plastic bags",
+   "Aluminium foil",
+   "Glass bottles"
+  ],
+  "a": 0,
+  "why": "Microorganisms can break down plant waste; the others persist.",
+  "kind": "recall"
+ },
+ {
+  "ref": "13",
+  "q": "The ozone layer in the upper atmosphere protects us from",
+  "c": [
+   "Visible light",
+   "Ultraviolet radiation",
+   "Infrared radiation",
+   "Radio waves"
+  ],
+  "a": 1,
+  "why": "Ozone absorbs most of the sun's harmful UV radiation.",
+  "kind": "recall"
+ },
+ {
+  "ref": "13",
+  "q": "The ozone layer has been thinned mainly by",
+  "c": [
+   "Nitrogen",
+   "Water vapour",
+   "CFCs (chlorofluorocarbons)",
+   "Oxygen"
+  ],
+  "a": 2,
+  "why": "CFCs from refrigerants and aerosols break down ozone.",
+  "kind": "recall"
+ },
+ {
+  "ref": "13",
+  "q": "A pesticide sprayed on crops gets into a food chain. Its concentration will be highest in",
+  "c": [
+   "The crop plants",
+   "The herbivores",
+   "The soil",
+   "The top carnivores"
+  ],
+  "a": 3,
+  "why": "Non-biodegradable chemicals build up at each trophic level: biological magnification.",
+  "kind": "apply"
+ },
+ {
+  "ref": "11",
+  "q": "A 12 V battery drives a current through a 4 Ω resistor. What current flows, in amperes?",
+  "c": [
+   "3 A"
+  ],
+  "a": 0,
+  "why": "I = V/R = 12 ÷ 4 = 3 A.",
+  "kind": "apply",
+  "num": {
+   "value": 3,
+   "unit": "A",
+   "acceptUnits": [
+    "amp",
+    "amps",
+    "ampere",
+    "amperes"
+   ]
+  }
+ },
+ {
+  "ref": "11",
+  "q": "Resistors of 2 Ω, 3 Ω and 5 Ω are connected in series. What is the total resistance, in ohms?",
+  "c": [
+   "10 Ω"
+  ],
+  "a": 0,
+  "why": "In series, resistances add: 2 + 3 + 5 = 10 Ω.",
+  "kind": "apply",
+  "num": {
+   "value": 10,
+   "unit": "Ω",
+   "acceptUnits": [
+    "ohm",
+    "ohms"
+   ]
+  }
+ },
+ {
+  "ref": "11",
+  "q": "Two 10 Ω resistors are connected in parallel. What is their combined resistance, in ohms?",
+  "c": [
+   "5 Ω"
+  ],
+  "a": 0,
+  "why": "1/R = 1/10 + 1/10 = 1/5, so R = 5 Ω.",
+  "kind": "apply",
+  "num": {
+   "value": 5,
+   "unit": "Ω",
+   "acceptUnits": [
+    "ohm",
+    "ohms"
+   ]
+  }
+ },
+ {
+  "ref": "11",
+  "q": "A 100 W bulb is switched on for 5 hours. How much energy does it use, in kWh?",
+  "c": [
+   "0.5 kWh"
+  ],
+  "a": 0,
+  "why": "E = P × t = 0.1 kW × 5 h = 0.5 kWh.",
+  "kind": "apply",
+  "num": {
+   "value": 0.5,
+   "unit": "kWh",
+   "acceptUnits": [
+    "kw h",
+    "units",
+    "unit"
+   ]
+  }
+ },
+ {
+  "ref": "11",
+  "q": "An electric iron of resistance 44 Ω is connected to a 220 V supply. What current does it draw, in amperes?",
+  "c": [
+   "5 A"
+  ],
+  "a": 0,
+  "why": "I = V/R = 220 ÷ 44 = 5 A.",
+  "kind": "apply",
+  "num": {
+   "value": 5,
+   "unit": "A",
+   "acceptUnits": [
+    "amp",
+    "amps",
+    "ampere",
+    "amperes"
+   ]
+  }
+ },
+ {
+  "ref": "9",
+  "q": "A convex lens has a focal length of 25 cm. What is its power, in dioptres?",
+  "c": [
+   "+4 D"
+  ],
+  "a": 0,
+  "why": "P = 1/f in metres = 1/0.25 = +4 D.",
+  "kind": "apply",
+  "num": {
+   "value": 4,
+   "unit": "D",
+   "acceptUnits": [
+    "dioptre",
+    "dioptres",
+    "diopter",
+    "diopters"
+   ]
+  }
+ },
+ {
+  "ref": "9",
+  "q": "An object is placed 20 cm in front of a concave mirror of focal length 10 cm. How far in front of the mirror does the image form, in cm?",
+  "c": [
+   "20 cm"
+  ],
+  "a": 0,
+  "why": "1/v = 1/f − 1/u with u = −20 and f = −10 gives v = −20 cm: 20 cm in front.",
+  "kind": "apply",
+  "num": {
+   "value": 20,
+   "unit": "cm"
+  }
+ },
+ {
+  "ref": "9",
+  "q": "The refractive index of glass is 1.5 and light travels at 3 × 10⁸ m/s in air. What is its speed in glass, in m/s?",
+  "c": [
+   "2 × 10⁸ m/s"
+  ],
+  "a": 0,
+  "why": "v = c/n = (3 × 10⁸) ÷ 1.5 = 2 × 10⁸ m/s.",
+  "kind": "apply",
+  "num": {
+   "value": 200000000,
+   "unit": "m/s",
+   "relTolerance": 0.01
+  }
+ },
+ {
+  "ref": "13",
+  "q": "The producers in a food chain capture 10,000 J of energy. By the 10% law, how much reaches the secondary consumers, in joules?",
+  "c": [
+   "100 J"
+  ],
+  "a": 0,
+  "why": "10% passes at each step: 10,000 → 1,000 (primary) → 100 J (secondary).",
+  "kind": "apply",
+  "num": {
+   "value": 100,
+   "unit": "J",
+   "acceptUnits": [
+    "joule",
+    "joules"
+   ]
+  }
+ }
+]
