@@ -28,6 +28,29 @@ Research and planning only. No application code, configuration or database was c
 6. **CBSE is promised but not served.** Onboarding offers CBSE Class 9 and 10 [R9], but the syllabus catalogue and question bank cover only AQA GCSE, GCSE Maths and IB [R8]. Learnora is MCQ-only, while CBSE Class 10 papers are about 80% non-MCQ (50% competency-based, 30% constructed response) [C41].
 7. **Breadth outran validation.** There are 34 view directories and five overlapping diagnosis tools. The highest-leverage engineering move is *consolidation*: one skill identity, one evidence stream, one "what next" function. A rewrite is not needed.
 
+## Implementation status (2026-10-10, branch `learning-engine`, PR #134)
+
+| Roadmap item | Status | Where |
+|---|---|---|
+| 1.1 Quiz verification live | Done (learnora-ai v67+) | `supabase/functions/_shared/quizQuality.js` |
+| 1.2 AI log: tokens, status, kept failures | Done (v68) | `_shared/tokenUsage.js`, migration `20261009000000` |
+| 1.4 One forgetting curve (FSRS) | Done | `lib/trajectory.ts`, `lib/adaptiveLearning.ts` |
+| 1.5 Evidence lands on one topic | Done (best match; ties attribute nothing) | `lib/topicKey.ts` `bestTopicMatch` |
+| 2.1 Bank-first practice | Done | `api/questionBank.ts` `bankFirst` |
+| 2.2 One attempt stream (ref, verified, kind, confidence, time, hints) | Done, in answer payloads (no new table) | `lib/attempts.ts` |
+| 2.3 Evidence-gated knowledge model + ladder | Done | `lib/knowledgeModel.ts`, `lib/mastery.ts` |
+| 2.4 One "what next" | Partly: `chooseNextStep` reads knowledge and prerequisites; other deciders remain | `lib/nextStep.ts` |
+| 2.5 Deterministic numeric grading | Done, all four answer surfaces; 25 numeric CBSE questions | `lib/numericAnswer.ts` |
+| 3.1 Distractor-mapped items | Done for 30 CBSE questions; 14 new catalogue beliefs | `scripts/question-bank/cbse-source.mjs` |
+| 3.2 Per-answer diagnosis | Done | `lib/diagnosis.ts` |
+| 3.3 Placement check | Done | `lib/placement.ts`, `/exams/:id/placement` |
+| 3.5 Student-state summary in the tutor | Done | `formatKnowledgeForPrompt` |
+| E4 Item cache for bank-question AI text | Done (v69) | `_shared/itemCache.js` |
+| CBSE Class 9/10 syllabi | Done (official 2025-26 unit marks) | `lib/syllabus/cbse.ts` |
+| 4.2 Retest-delay experiment | Running | `lib/experiments.ts`, `docs/experiments.md` |
+| Weekly tutor evals in CI | Built; waits on a `GROQ_API_KEY` repo secret | `.github/workflows/tutor-evals.yml` |
+| Oak maths import | Blocked on the Oak API key | `WAITINGONLEDGER.md` 4.5 |
+
 ## Proposed position
 
 > Learnora finds what a student believes that is wrong, fixes it, and proves days later on a new question that it stayed fixed, for their exact board, in the minutes they have.
