@@ -28,4 +28,4 @@ jobs:
       - name: Webapp tests
         run: npm --prefix webapp test
       - name: Repo tests
-        run: node --test tests/
+        run: node --test tests/*.test.js
