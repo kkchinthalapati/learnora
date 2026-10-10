@@ -33,7 +33,6 @@ row is UNVERIFIED until you run `supabase secrets list`).
 
 | # | What | Status | Who | Command / where | Why it matters |
 |---|------|--------|-----|-----------------|----------------|
-| 1 | Merge the **`learning-engine`** branch. It also carries `97ad70c` (this ledger, the archive) and `a5ac4dd` (maths rendering), which were pushed to `tutor-hints-verification` after PR #133 merged and so never reached `main`. | READY | you | GitHub PR from `learning-engine` | Vercel deploys the webapp on merge. Until then `main` has no WAITINGONLEDGER.md and no maths rendering in Practice. |
 | 3 | Smoke test AI after the deploy | READY | you | Signed in, generate one quiz in a seeded subject (e.g. GCSE Biology), then `select mode, provider, model, latency_ms, status, input_tokens, output_tokens from ai_request_log order by created_at desc limit 10;` Expect rows with `mode='verify'` and token counts. Then check `question_review_log` and the "unverified" label in an unseeded subject. | Proves the checker, caps and fallback chain work end to end. Needs a signed-in student; an agent may not create a production account. |
 | 4 | Remove the dead Cerebras key | READY | you | `supabase secrets unset CEREBRAS_API_KEY` | It answered 402 to every request (checked 2026-09-24); the provider chain skips it but the secret should go. |
 
@@ -63,7 +62,7 @@ not the filename. If you want `supabase migration list` to match, run
 
 | Function | Prod version | Waiting on |
 |----------|--------------|------------|
-| `learnora-ai` | v69 (2026-10-09) | Nothing. v67 = the verification build from `main`; v68 = plus token and outage logging; v69 = plus the bank-question item cache (`learning-engine` branch). Smoke test is row 3. Rollback: Edge Functions > learnora-ai > versions. |
+| `learnora-ai` | v70 (2026-10-10) | Nothing. Deployed from `main` after PR #134 merged (verification, token/outage logging, bank-question item cache, Claude default `claude-haiku-5-5`). Smoke test is row 3. Rollback: Edge Functions > learnora-ai > versions. |
 | `stripe-billing` | v19 | Nothing known. Needs Stripe secrets (4.1). |
 | `stripe-webhook` | v17 | Nothing known. Needs `STRIPE_WEBHOOK_SECRET` (4.1). |
 | `delete-account` | v13 | Nothing. |
@@ -170,6 +169,7 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 
 | Date | What |
 |------|------|
+| 2026-10-10 | PR #134 (`learning-engine`) merged; Vercel production deploy succeeded; `learnora-ai` v70 deployed from `main`. CI (`tests` workflow) green. |
 | 2026-10-10 | Applied `question_bank_numeric`; inserted 25 numeric CBSE questions (bank 385) |
 | 2026-10-09 | PR #133 confirmed merged; deployed `learnora-ai` v67 (verification build), then v68 (token/outage logging); applied `ai_request_log_usage` |
 | 2026-10-09 | Applied `ai_item_cache`; deployed `learnora-ai` v69 |
