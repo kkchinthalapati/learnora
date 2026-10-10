@@ -190,7 +190,9 @@ describe("the worked solution hands the question to the mistake loop", () => {
     await user.click(await screen.findByRole("button", { name: "4" }));
     await user.click(screen.getByRole("button", { name: /See results/ }));
 
-    await waitFor(() => expect(observations.some((o) => o.kind === "repair")).toBe(true));
+    /* The repair is written after the (failing, retried) AI labelling call,
+       which is slower on CI runners than the 1 s waitFor default. */
+    await waitFor(() => expect(observations.some((o) => o.kind === "repair")).toBe(true), { timeout: 8000 });
     const evidence = observations.find((o) => o.kind === "evidence")!;
     const repair = observations.find((o) => o.kind === "repair")!;
     expect(evidence.detail).toMatch(/worked solution/);
