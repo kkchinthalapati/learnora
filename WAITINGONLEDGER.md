@@ -133,7 +133,6 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 
 | Item | Status |
 |------|--------|
-| **Apply the Oak import** (1,050 GCSE Maths questions). Blocked on the **Oak API key**, which is not on this machine or in the repo. The service-role key is *not* needed: `OAK_API_KEY=… node scripts/question-bank/import-oak.mjs --sql oak.sql`, then `npx supabase db query --linked -f oak.sql` (the CLI is already authenticated). | **READY** (after PR #133 merges, so Practice, QuickCheck and retests render the LaTeX) |
 | **Add `GROQ_API_KEY` as a GitHub repository secret** (Settings > Secrets and variables > Actions) so the weekly tutor evals run (`.github/workflows/tutor-evals.yml`, added 2026-10-09). Optional: `GEMINI_API_KEY` to run with `--provider gemini`. Locally: `GROQ_API_KEY=... node evals/run.mjs --provider groq`. | BLOCKED on you. The workflow skips cleanly until a key exists; the evals have **never run against a real model**, so the pass rate is unknown. |
 
 ## 5. Domain, hosting, accounts
@@ -169,6 +168,7 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 
 | Date | What |
 |------|------|
+| 2026-10-10 | Oak import applied: 1,050 GCSE Maths questions (OGL v3.0), bank now 1,435; OGL credit added to Terms §6 |
 | 2026-10-10 | PR #134 (`learning-engine`) merged; Vercel production deploy succeeded; `learnora-ai` v70 deployed from `main`. CI (`tests` workflow) green. |
 | 2026-10-10 | Applied `question_bank_numeric`; inserted 25 numeric CBSE questions (bank 385) |
 | 2026-10-09 | PR #133 confirmed merged; deployed `learnora-ai` v67 (verification build), then v68 (token/outage logging); applied `ai_request_log_usage` |

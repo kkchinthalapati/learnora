@@ -198,6 +198,20 @@ export function TermsView() {
               worldwide license to process and display your content solely for
               the purpose of operating and providing the Service to you.
             </p>
+            <p>
+              <strong>Third-party practice questions:</strong> Some GCSE
+              Mathematics practice questions are adapted from Oak National
+              Academy lesson quizzes and are credited beside each question.
+              Contains public sector information licensed under the{" "}
+              <a
+                href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open Government Licence v3.0
+              </a>
+              .
+            </p>
           </section>
 
           <section id="section-7" className={styles.section}>
