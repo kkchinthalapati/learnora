@@ -56,7 +56,9 @@ export function answerFacts(
        trusted only when the server's checker agreed. Questions from before
        the checker (no field) are trusted as they always were. */
     verified: q.ref?.startsWith("bank:") ? true : q.verified !== false,
-    options: Array.isArray(q.choices) && q.choices.length >= 2 ? q.choices.length : 4,
+    /* A typed-in number has no options to guess between (lib/knowledgeModel
+       then uses its small open-answer guess chance). */
+    options: q.answerType === "numeric" ? 1 : Array.isArray(q.choices) && q.choices.length >= 2 ? q.choices.length : 4,
     kind: itemKindOf(q),
     ...(q.skill ? { skill: q.skill } : {}),
   };
@@ -66,7 +68,15 @@ export function answerFacts(
 export function storedAnswer(
   q: QuizQuestion,
   chosenIndex: number | null,
-  extras: { quizId?: string | null; topic?: string; confidence?: Confidence | null; secondsSpent?: number; hintRung?: number } = {},
+  extras: {
+    quizId?: string | null;
+    topic?: string;
+    confidence?: Confidence | null;
+    secondsSpent?: number;
+    hintRung?: number;
+    /** What was typed, for a numeric question. */
+    response?: string;
+  } = {},
 ): StoredAnswer {
   const picked = chosenIndex ?? -1;
   const misconception = chosenMisconception(q, picked);
@@ -80,6 +90,7 @@ export function storedAnswer(
     ...(extras.confidence ? { confidence: extras.confidence } : {}),
     ...(typeof extras.secondsSpent === "number" ? { secondsSpent: extras.secondsSpent } : {}),
     ...(extras.hintRung ? { hintRung: extras.hintRung } : {}),
+    ...(extras.response !== undefined ? { response: extras.response.slice(0, 80) } : {}),
   };
 }
 

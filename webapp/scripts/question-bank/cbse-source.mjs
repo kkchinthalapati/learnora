@@ -202,3 +202,38 @@ export const CBSE_10_MATHS = [
   q("14", "apply", "A fair coin lands heads three times in a row. The probability of heads on the fourth toss is", ["1/2", "1/16", "Less than 1/2, because tails is due", "1"], "Each toss is independent: still 1/2.", [null, null, "maths-gamblers-fallacy", null]),
   q("14", "apply", "One card is drawn from a well-shuffled pack of 52. The probability that it is a king is", ["1/13", "1/52", "4/13", "1/4"], "4 kings out of 52 cards: 4/52 = 1/13."),
 ];
+
+/* Typed-in numeric questions (lib/numericAnswer.ts): the student types the
+   number, code marks it within the tolerance. n(ref, question, key, shown, why) */
+const n = (ref, question, num, shown, why) => ({ ref, kind: "apply", question, num, shown, why });
+
+export const CBSE_10_SCIENCE_NUMERIC = [
+  n("11", "A 12 V battery drives a current through a 4 Ω resistor. What current flows, in amperes?", { value: 3, unit: "A", acceptUnits: ["amp", "amps", "ampere", "amperes"] }, "3 A", "I = V/R = 12 ÷ 4 = 3 A."),
+  n("11", "Resistors of 2 Ω, 3 Ω and 5 Ω are connected in series. What is the total resistance, in ohms?", { value: 10, unit: "Ω", acceptUnits: ["ohm", "ohms"] }, "10 Ω", "In series, resistances add: 2 + 3 + 5 = 10 Ω."),
+  n("11", "Two 10 Ω resistors are connected in parallel. What is their combined resistance, in ohms?", { value: 5, unit: "Ω", acceptUnits: ["ohm", "ohms"] }, "5 Ω", "1/R = 1/10 + 1/10 = 1/5, so R = 5 Ω."),
+  n("11", "A 100 W bulb is switched on for 5 hours. How much energy does it use, in kWh?", { value: 0.5, unit: "kWh", acceptUnits: ["kw h", "units", "unit"] }, "0.5 kWh", "E = P × t = 0.1 kW × 5 h = 0.5 kWh."),
+  n("11", "An electric iron of resistance 44 Ω is connected to a 220 V supply. What current does it draw, in amperes?", { value: 5, unit: "A", acceptUnits: ["amp", "amps", "ampere", "amperes"] }, "5 A", "I = V/R = 220 ÷ 44 = 5 A."),
+  n("9", "A convex lens has a focal length of 25 cm. What is its power, in dioptres?", { value: 4, unit: "D", acceptUnits: ["dioptre", "dioptres", "diopter", "diopters"] }, "+4 D", "P = 1/f in metres = 1/0.25 = +4 D."),
+  n("9", "An object is placed 20 cm in front of a concave mirror of focal length 10 cm. How far in front of the mirror does the image form, in cm?", { value: 20, unit: "cm" }, "20 cm", "1/v = 1/f − 1/u with u = −20 and f = −10 gives v = −20 cm: 20 cm in front."),
+  n("9", "The refractive index of glass is 1.5 and light travels at 3 × 10⁸ m/s in air. What is its speed in glass, in m/s?", { value: 2e8, unit: "m/s", relTolerance: 0.01 }, "2 × 10⁸ m/s", "v = c/n = (3 × 10⁸) ÷ 1.5 = 2 × 10⁸ m/s."),
+  n("13", "The producers in a food chain capture 10,000 J of energy. By the 10% law, how much reaches the secondary consumers, in joules?", { value: 100, unit: "J", acceptUnits: ["joule", "joules"] }, "100 J", "10% passes at each step: 10,000 → 1,000 (primary) → 100 J (secondary)."),
+];
+
+export const CBSE_10_MATHS_NUMERIC = [
+  n("1", "What is the LCM of 12 and 18?", { value: 36 }, "36", "12 = 2² × 3 and 18 = 2 × 3², so LCM = 2² × 3² = 36."),
+  n("1", "What is the HCF of 26 and 91?", { value: 13 }, "13", "26 = 2 × 13 and 91 = 7 × 13, so HCF = 13."),
+  n("2", "What is the product of the zeroes of 2x² − 8x + 6?", { value: 3 }, "3", "Product of zeroes = c/a = 6/2 = 3."),
+  n("3", "Solve 2x + 3y = 12 and x − y = 1. What is x?", { value: 3 }, "3", "x = 1 + y, so 2 + 2y + 3y = 12, y = 2 and x = 3."),
+  n("4", "What is the positive root of x² − x − 12 = 0?", { value: 4 }, "4", "x² − x − 12 = (x − 4)(x + 3)."),
+  n("5", "What is the 20th term of the AP 7, 10, 13, …?", { value: 64 }, "64", "a₂₀ = 7 + (20 − 1) × 3 = 64."),
+  n("5", "What is the sum of the first 25 odd numbers?", { value: 625 }, "625", "The sum of the first n odd numbers is n² = 625."),
+  n("6", "In triangle ABC, DE is parallel to BC with D on AB and E on AC. AD = 3 cm, DB = 6 cm and AE = 2 cm. What is EC, in cm?", { value: 4, unit: "cm" }, "4 cm", "AD/DB = AE/EC: 3/6 = 2/EC, so EC = 4 cm."),
+  n("7", "What is the distance between the points (0, 0) and (5, 12)?", { value: 13 }, "13", "√(5² + 12²) = √169 = 13."),
+  n("8", "A is an acute angle with tan A = 1. What is A, in degrees?", { value: 45, unit: "°", acceptUnits: ["degrees", "degree", "deg"] }, "45°", "tan 45° = 1."),
+  n("9", "From a point 30 m from the foot of a tower, the angle of elevation of its top is 30°. How tall is the tower, in metres, to one decimal place?", { value: 17.32, tolerance: 0.06, unit: "m" }, "17.3 m", "h = 30 × tan 30° = 30/√3 = 10√3 ≈ 17.3 m."),
+  n("10", "A point is 10 cm from the centre of a circle of radius 6 cm. How long is a tangent from the point to the circle, in cm?", { value: 8, unit: "cm" }, "8 cm", "√(10² − 6²) = √64 = 8 cm."),
+  n("11", "What is the area of a circle of radius 7 cm, in cm² (take π = 22/7)?", { value: 154, unit: "cm²", acceptUnits: ["cm2", "sq cm"] }, "154 cm²", "πr² = (22/7) × 49 = 154 cm²."),
+  n("12", "What is the volume of a cone of radius 3 cm and height 7 cm, in cm³ (take π = 22/7)?", { value: 66, unit: "cm³", acceptUnits: ["cm3", "cubic cm"] }, "66 cm³", "⅓πr²h = ⅓ × (22/7) × 9 × 7 = 66 cm³."),
+  n("13", "What is the mean of 4, 8, 12, 16 and 20?", { value: 12 }, "12", "(4 + 8 + 12 + 16 + 20) ÷ 5 = 60 ÷ 5 = 12."),
+  n("14", "A bag holds 3 red balls and 5 blue balls. One is drawn at random. What is the probability it is red? (A fraction or a decimal.)", { value: 0.375 }, "3/8", "3 red out of 8 balls: 3/8 = 0.375."),
+];

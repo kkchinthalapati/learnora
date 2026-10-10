@@ -9,7 +9,12 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { CBSE_10_MATHS, CBSE_10_SCIENCE } from "./cbse-source.mjs";
+import {
+  CBSE_10_MATHS,
+  CBSE_10_MATHS_NUMERIC,
+  CBSE_10_SCIENCE,
+  CBSE_10_SCIENCE_NUMERIC,
+} from "./cbse-source.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const seedDir = join(here, "../../src/lib/questionBank/seed");
@@ -33,11 +38,15 @@ function toSeed(list) {
   });
 }
 
-for (const [name, list] of [
-  ["cbse-10-science.json", CBSE_10_SCIENCE],
-  ["cbse-10-maths.json", CBSE_10_MATHS],
+/* Numeric questions have no options to rotate: one shown key, index 0. */
+const toNumericSeed = (list) =>
+  list.map((item) => ({ ref: item.ref, q: item.question, c: [item.shown], a: 0, why: item.why, kind: item.kind, num: item.num }));
+
+for (const [name, list, numeric] of [
+  ["cbse-10-science.json", CBSE_10_SCIENCE, CBSE_10_SCIENCE_NUMERIC],
+  ["cbse-10-maths.json", CBSE_10_MATHS, CBSE_10_MATHS_NUMERIC],
 ]) {
-  const seed = toSeed(list);
+  const seed = [...toSeed(list), ...toNumericSeed(numeric)];
   writeFileSync(join(seedDir, name), JSON.stringify(seed, null, 1) + "\n");
   process.stderr.write(`${name}: ${seed.length} questions\n`);
 }

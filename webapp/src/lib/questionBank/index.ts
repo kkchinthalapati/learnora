@@ -10,6 +10,7 @@
  * Exam-board past papers are never stored: see docs/QUESTION_SOURCES.md. */
 
 import type { QuizQuestion } from "../aiJson";
+import type { NumericKey } from "../numericAnswer";
 
 export type BankSource = "learnora" | "oak";
 
@@ -31,6 +32,10 @@ export interface BankQuestion {
   kind?: "recall" | "apply" | "explain" | null;
   /** Per choice: a misconception catalogue id, or null. */
   distractor_misconceptions?: (string | null)[] | null;
+  /** "numeric": a typed-in number marked against `numeric_answer`
+   *  (migration 20261010000000). `choices` then holds the key as shown. */
+  answer_type?: "mcq" | "numeric" | null;
+  numeric_answer?: NumericKey | null;
 }
 
 /** A seed entry as written in the JSON files. */
@@ -45,6 +50,8 @@ export interface SeedEntry {
   kind?: "recall" | "apply" | "explain";
   /** Per choice: the misconception that option is, or null. */
   mis?: (string | null)[];
+  /** A typed-in numeric answer: `c` is then just the key as shown and `a` 0. */
+  num?: NumericKey;
 }
 
 /** Question-bank keys that have questions today (the Learnora seed covers
@@ -88,6 +95,9 @@ export function toQuizQuestions(
     verified: true,
     ref: `bank:${row.id}`,
     ...(row.kind ? { kind: row.kind } : {}),
+    ...(row.answer_type === "numeric" && row.numeric_answer
+      ? { answerType: "numeric" as const, numeric: row.numeric_answer }
+      : {}),
     ...(Array.isArray(row.distractor_misconceptions) && row.distractor_misconceptions.length === row.choices.length
       ? { distractorMisconceptions: row.distractor_misconceptions }
       : {}),

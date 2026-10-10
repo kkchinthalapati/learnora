@@ -41,6 +41,10 @@ export interface QuizQuestion {
   distractorMisconceptions?: (string | null)[];
   /** The syllabus skill this question practises ("<bank key>:<topic ref>"). */
   skill?: string;
+  /** A typed-in number instead of options (lib/numericAnswer.ts). Then
+   *  `choices` holds just the key as shown, and `correctIndex` is 0. */
+  answerType?: "numeric";
+  numeric?: import("./numericAnswer").NumericKey;
 }
 
 export interface FlashcardDraft {

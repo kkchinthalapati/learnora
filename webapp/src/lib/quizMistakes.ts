@@ -50,7 +50,7 @@ export function answeredQuestions(
         questionId: q.id ?? i,
         question: q.question,
         topic: (a.topic ?? q.topic ?? "").trim(),
-        chosen: q.choices[a.chosenIndex] ?? "",
+        chosen: a.response ?? q.choices[a.chosenIndex] ?? "",
         correct: q.choices[q.correctIndex] ?? "",
         isCorrect: a.correct && (a.hintRung ?? 0) < 3,
         guessed: a.confidence === "guess" || (a.hintRung ?? 0) > 0,

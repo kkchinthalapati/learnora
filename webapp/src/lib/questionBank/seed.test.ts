@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { LEARNORA_SEED } from "./seed";
 import { SYLLABUS_SPECS, bankKey } from "../syllabus";
 import { getKnownMisconception } from "../misconceptionCatalogue";
+import { gradeNumeric } from "../numericAnswer";
 
 /* Guards the hand-written seed: every question must point at a real spec
    section, be askable at its tier, and have exactly one defensible answer as
@@ -40,6 +41,14 @@ describe("Learnora seed questions", () => {
         it(`#${i} ${e.ref}: ${e.q.slice(0, 50)}`, () => {
           const topic = byRef.get(e.ref);
           expect(topic, `unknown ref ${e.ref}`).toBeDefined();
+          if (e.num) {
+            /* A typed-in answer: one shown key, and that key must itself mark
+               as correct, so what students see and what is marked agree. */
+            expect(e.c).toHaveLength(1);
+            expect(e.a).toBe(0);
+            expect(gradeNumeric(e.c[0], e.num).correct, `shown key "${e.c[0]}" vs ${e.num.value}`).toBe(true);
+            return;
+          }
           expect(e.c.length).toBeGreaterThanOrEqual(3);
           expect(e.c.length).toBeLessThanOrEqual(5);
           expect(Number.isInteger(e.a) && e.a >= 0 && e.a < e.c.length).toBe(true);

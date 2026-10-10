@@ -12,6 +12,7 @@
 
 import type { QuizQuestion } from "../../lib/aiJson";
 import type { Confidence } from "../../components/learning/options";
+import { formatNumericKey, type NumericKey } from "../../lib/numericAnswer";
 
 export interface StoredAnswer {
   questionId: string | number;
@@ -46,6 +47,8 @@ export interface StoredAnswer {
   skill?: string;
   /** Catalogue id of the misconception the chosen distractor is mapped to. */
   misconception?: string;
+  /** What the student typed, for a numeric question. */
+  response?: string;
 }
 
 export type ItemKind = "recall" | "apply" | "explain";
@@ -54,9 +57,64 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+/** Fields that travel with a question beyond its text and options: what it
+ *  asks for, which skill it practises, what each wrong option means. They
+ *  used to be dropped here, so a bank quiz reopened from the library lost
+ *  them (lib/attempts.ts reads them from every answer). */
+function extras(value: Record<string, unknown>, choices: number): Partial<QuizQuestion> {
+  const out: Partial<QuizQuestion> = {};
+  if (value.kind === "recall" || value.kind === "apply" || value.kind === "explain") out.kind = value.kind;
+  if (typeof value.skill === "string" && /^[a-z0-9-]{3,60}:[A-Za-z0-9.-]{1,20}$/.test(value.skill)) out.skill = value.skill;
+  const mis = value.distractorMisconceptions;
+  if (
+    Array.isArray(mis) &&
+    mis.length === choices &&
+    mis.every((m) => m === null || (typeof m === "string" && /^[a-z0-9-]{3,80}$/.test(m)))
+  ) {
+    out.distractorMisconceptions = mis as (string | null)[];
+  }
+  return out;
+}
+
+function numericKey(raw: unknown): NumericKey | null {
+  if (!isRecord(raw)) return null;
+  const value = Number(raw.value);
+  if (!Number.isFinite(value)) return null;
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined);
+  const key: NumericKey = { value };
+  if (num(raw.tolerance) !== undefined) key.tolerance = num(raw.tolerance);
+  if (num(raw.relTolerance) !== undefined) key.relTolerance = num(raw.relTolerance);
+  if (typeof raw.unit === "string" && raw.unit.length <= 20) key.unit = raw.unit;
+  if (Array.isArray(raw.acceptUnits)) {
+    key.acceptUnits = raw.acceptUnits.filter((u): u is string => typeof u === "string" && u.length <= 20).slice(0, 8);
+  }
+  return key;
+}
+
 function toQuestion(value: unknown): QuizQuestion | null {
   if (!isRecord(value)) return null;
   if (typeof value.question !== "string") return null;
+
+  /* A typed-in numeric answer (lib/numericAnswer.ts): one "choice", the key
+     as shown, so every index-based path keeps working. */
+  if (value.answerType === "numeric") {
+    const key = numericKey(value.numeric);
+    if (!key) return null;
+    return {
+      id: typeof value.id === "string" || typeof value.id === "number" ? value.id : undefined,
+      question: value.question,
+      choices: [formatNumericKey(key)],
+      correctIndex: 0,
+      answerType: "numeric",
+      numeric: key,
+      topic: typeof value.topic === "string" ? value.topic : undefined,
+      feedback: typeof value.feedback === "string" ? value.feedback : undefined,
+      ...(typeof value.verified === "boolean" ? { verified: value.verified } : {}),
+      ...(typeof value.ref === "string" && /^bank:[A-Za-z0-9-]{1,80}$/.test(value.ref) ? { ref: value.ref } : {}),
+      ...extras(value, 1),
+    };
+  }
+
   if (!Array.isArray(value.choices)) return null;
 
   const choices = value.choices.filter(
@@ -122,6 +180,9 @@ function toQuestion(value: unknown): QuizQuestion | null {
     ...(typeof value.verified === "boolean" ? { verified: value.verified } : {}),
     ...(value.generic === true ? { generic: true } : {}),
     ...(typeof value.ref === "string" && /^bank:[A-Za-z0-9-]{1,80}$/.test(value.ref) ? { ref: value.ref } : {}),
+    /* Mappings are per option, so they only survive when no duplicate
+       option was dropped above. */
+    ...extras(value, uniqueChoices.length === choices.length ? uniqueChoices.length : -1),
   };
 }
 
@@ -162,13 +223,14 @@ function toAnswer(value: unknown): StoredAnswer | null {
       : {}),
     ...(typeof value.ref === "string" && value.ref ? { ref: value.ref } : {}),
     ...(typeof value.verified === "boolean" ? { verified: value.verified } : {}),
-    ...(Number.isInteger(value.options) && Number(value.options) >= 2
+    ...(Number.isInteger(value.options) && Number(value.options) >= 1
       ? { options: Number(value.options) }
       : {}),
     ...(value.kind === "recall" || value.kind === "apply" || value.kind === "explain"
       ? { kind: value.kind }
       : {}),
     ...(typeof value.skill === "string" && value.skill ? { skill: value.skill } : {}),
+    ...(typeof value.response === "string" ? { response: value.response.slice(0, 80) } : {}),
     ...(typeof value.misconception === "string" && value.misconception
       ? { misconception: value.misconception }
       : {}),

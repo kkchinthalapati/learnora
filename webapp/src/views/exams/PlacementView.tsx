@@ -32,6 +32,7 @@ import {
   type PlacementState,
 } from "../../lib/placement";
 import { normaliseTopicKey } from "../../lib/topicKey";
+import { NumericAnswerInput } from "../../components/learning/NumericAnswerInput";
 import styles from "../../components/quickcheck/QuickCheck.module.css";
 import examStyles from "./examDetail.module.css";
 
@@ -46,6 +47,8 @@ type Asked = {
   chosen: number | null;
   outcome: PlacementOutcome;
   secondsSpent: number;
+  /** What was typed, for a numeric question. */
+  response?: string;
 };
 
 export function PlacementView() {
@@ -122,7 +125,11 @@ function Placement({
   /* Recorded once, at the end, as one learning event with every answer. */
   useEffect(() => {
     if (!done || saved !== null || asked.length === 0) return;
-    const items = asked.map((a) => storedAnswer(a.question, a.chosen, { topic: a.question.topic, secondsSpent: a.secondsSpent }));
+    const items = asked.map((a) => storedAnswer(a.question, a.chosen, {
+      topic: a.question.topic,
+      secondsSpent: a.secondsSpent,
+      response: a.response,
+    }));
     const right = asked.filter((a) => a.outcome === "right").length;
     learningEventsApi
       .record({
@@ -139,12 +146,12 @@ function Placement({
       .catch(() => setSaved(false));
   }, [done, saved, asked, examName, spec.id, qc]);
 
-  const answer = (chosen: number | null) => {
+  const answer = (chosen: number | null, response?: string) => {
     if (!current || !nextRef) return;
     const outcome: PlacementOutcome =
       chosen === null ? "not-learned" : chosen === current.correctIndex ? "right" : "wrong";
     const secondsSpent = Math.round((Date.now() - shownAt.current) / 1000);
-    setAsked((a) => [...a, { question: current, topicRef: nextRef, chosen, outcome, secondsSpent }]);
+    setAsked((a) => [...a, { question: current, topicRef: nextRef, chosen, outcome, secondsSpent, response }]);
     setState((s) => recordPlacement(spec, s, nextRef, outcome));
     shownAt.current = Date.now();
   };
@@ -236,6 +243,16 @@ function Placement({
             Question {asked.length + 1} · {current!.topic}
           </p>
           <h3 className={styles.question}>{renderMathText(current!.question)}</h3>
+          {current!.answerType === "numeric" && current!.numeric ? (
+            /* Keyed by question so the box clears between questions; no
+               marks are shown during the check. */
+            <NumericAnswerInput
+              key={current!.ref}
+              numeric={current!.numeric}
+              submitLabel="Next"
+              onAnswer={(response, verdict) => answer(verdict.correct ? 0 : -2, response)}
+            />
+          ) : (
           <div className={styles.choices} role="group" aria-label="Answers">
             {current!.choices.map((choice, i) => (
               <button key={i} type="button" className={styles.choice} onClick={() => answer(i)}>
@@ -243,6 +260,7 @@ function Placement({
               </button>
             ))}
           </div>
+          )}
           <div className={styles.actions}>
             <Button variant="secondary" onClick={() => answer(null)}>
               I haven&rsquo;t learned this yet

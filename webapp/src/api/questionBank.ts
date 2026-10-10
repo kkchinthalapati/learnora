@@ -30,7 +30,7 @@ import { examsKeys } from "../hooks/useExams";
 import { quizzesApi } from "./quizzes";
 
 const COLUMNS =
-  "id, source, source_ref, licence, attribution, spec_key, topic_ref, tier, question, choices, correct_index, explanation, kind, distractor_misconceptions";
+  "id, source, source_ref, licence, attribution, spec_key, topic_ref, tier, question, choices, correct_index, explanation, kind, distractor_misconceptions, answer_type, numeric_answer";
 
 /** Bank rows for a spec's topics, at a tier (rows for every tier included). */
 export async function fetchBankQuestions(

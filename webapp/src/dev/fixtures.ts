@@ -246,6 +246,15 @@ export const quizzes = [
         correctIndex: 1,
         topic: "Rates",
       },
+      /* A typed-in numeric question (lib/numericAnswer.ts). */
+      {
+        question: "An enzyme-catalysed reaction makes 120 mg of product in 4 minutes. What is the mean rate, in mg per minute?",
+        choices: ["30 mg/min"],
+        correctIndex: 0,
+        answerType: "numeric",
+        numeric: { value: 30, unit: "mg/min" },
+        topic: "Rates",
+      },
     ],
     created_at: daysAgo(7),
   },
@@ -536,7 +545,7 @@ export const misconceptions = [
 ];
 
 /* The CBSE Class 10 Maths seed as bank rows, for the placement check. */
-export const questionBank = (cbseMaths as Array<{ ref: string; q: string; c: string[]; a: number; why: string; kind?: string; mis?: (string | null)[] }>).map((e, i) => ({
+export const questionBank = (cbseMaths as Array<{ ref: string; q: string; c: string[]; a: number; why: string; kind?: string; mis?: (string | null)[]; num?: { value: number } }>).map((e, i) => ({
   id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
   source: "learnora",
   source_ref: null,
@@ -551,4 +560,6 @@ export const questionBank = (cbseMaths as Array<{ ref: string; q: string; c: str
   explanation: e.why,
   kind: e.kind ?? null,
   distractor_misconceptions: e.mis ?? null,
+  answer_type: e.num ? "numeric" : "mcq",
+  numeric_answer: e.num ?? null,
 }));

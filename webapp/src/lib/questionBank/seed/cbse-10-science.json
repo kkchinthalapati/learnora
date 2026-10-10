@@ -1124,5 +1124,167 @@
   "a": 3,
   "why": "Non-biodegradable chemicals build up at each trophic level: biological magnification.",
   "kind": "apply"
+ },
+ {
+  "ref": "11",
+  "q": "A 12 V battery drives a current through a 4 Ω resistor. What current flows, in amperes?",
+  "c": [
+   "3 A"
+  ],
+  "a": 0,
+  "why": "I = V/R = 12 ÷ 4 = 3 A.",
+  "kind": "apply",
+  "num": {
+   "value": 3,
+   "unit": "A",
+   "acceptUnits": [
+    "amp",
+    "amps",
+    "ampere",
+    "amperes"
+   ]
+  }
+ },
+ {
+  "ref": "11",
+  "q": "Resistors of 2 Ω, 3 Ω and 5 Ω are connected in series. What is the total resistance, in ohms?",
+  "c": [
+   "10 Ω"
+  ],
+  "a": 0,
+  "why": "In series, resistances add: 2 + 3 + 5 = 10 Ω.",
+  "kind": "apply",
+  "num": {
+   "value": 10,
+   "unit": "Ω",
+   "acceptUnits": [
+    "ohm",
+    "ohms"
+   ]
+  }
+ },
+ {
+  "ref": "11",
+  "q": "Two 10 Ω resistors are connected in parallel. What is their combined resistance, in ohms?",
+  "c": [
+   "5 Ω"
+  ],
+  "a": 0,
+  "why": "1/R = 1/10 + 1/10 = 1/5, so R = 5 Ω.",
+  "kind": "apply",
+  "num": {
+   "value": 5,
+   "unit": "Ω",
+   "acceptUnits": [
+    "ohm",
+    "ohms"
+   ]
+  }
+ },
+ {
+  "ref": "11",
+  "q": "A 100 W bulb is switched on for 5 hours. How much energy does it use, in kWh?",
+  "c": [
+   "0.5 kWh"
+  ],
+  "a": 0,
+  "why": "E = P × t = 0.1 kW × 5 h = 0.5 kWh.",
+  "kind": "apply",
+  "num": {
+   "value": 0.5,
+   "unit": "kWh",
+   "acceptUnits": [
+    "kw h",
+    "units",
+    "unit"
+   ]
+  }
+ },
+ {
+  "ref": "11",
+  "q": "An electric iron of resistance 44 Ω is connected to a 220 V supply. What current does it draw, in amperes?",
+  "c": [
+   "5 A"
+  ],
+  "a": 0,
+  "why": "I = V/R = 220 ÷ 44 = 5 A.",
+  "kind": "apply",
+  "num": {
+   "value": 5,
+   "unit": "A",
+   "acceptUnits": [
+    "amp",
+    "amps",
+    "ampere",
+    "amperes"
+   ]
+  }
+ },
+ {
+  "ref": "9",
+  "q": "A convex lens has a focal length of 25 cm. What is its power, in dioptres?",
+  "c": [
+   "+4 D"
+  ],
+  "a": 0,
+  "why": "P = 1/f in metres = 1/0.25 = +4 D.",
+  "kind": "apply",
+  "num": {
+   "value": 4,
+   "unit": "D",
+   "acceptUnits": [
+    "dioptre",
+    "dioptres",
+    "diopter",
+    "diopters"
+   ]
+  }
+ },
+ {
+  "ref": "9",
+  "q": "An object is placed 20 cm in front of a concave mirror of focal length 10 cm. How far in front of the mirror does the image form, in cm?",
+  "c": [
+   "20 cm"
+  ],
+  "a": 0,
+  "why": "1/v = 1/f − 1/u with u = −20 and f = −10 gives v = −20 cm: 20 cm in front.",
+  "kind": "apply",
+  "num": {
+   "value": 20,
+   "unit": "cm"
+  }
+ },
+ {
+  "ref": "9",
+  "q": "The refractive index of glass is 1.5 and light travels at 3 × 10⁸ m/s in air. What is its speed in glass, in m/s?",
+  "c": [
+   "2 × 10⁸ m/s"
+  ],
+  "a": 0,
+  "why": "v = c/n = (3 × 10⁸) ÷ 1.5 = 2 × 10⁸ m/s.",
+  "kind": "apply",
+  "num": {
+   "value": 200000000,
+   "unit": "m/s",
+   "relTolerance": 0.01
+  }
+ },
+ {
+  "ref": "13",
+  "q": "The producers in a food chain capture 10,000 J of energy. By the 10% law, how much reaches the secondary consumers, in joules?",
+  "c": [
+   "100 J"
+  ],
+  "a": 0,
+  "why": "10% passes at each step: 10,000 → 1,000 (primary) → 100 J (secondary).",
+  "kind": "apply",
+  "num": {
+   "value": 100,
+   "unit": "J",
+   "acceptUnits": [
+    "joule",
+    "joules"
+   ]
+  }
  }
 ]

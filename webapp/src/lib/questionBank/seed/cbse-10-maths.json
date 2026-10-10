@@ -768,5 +768,233 @@
   "a": 3,
   "why": "4 kings out of 52 cards: 4/52 = 1/13.",
   "kind": "apply"
+ },
+ {
+  "ref": "1",
+  "q": "What is the LCM of 12 and 18?",
+  "c": [
+   "36"
+  ],
+  "a": 0,
+  "why": "12 = 2² × 3 and 18 = 2 × 3², so LCM = 2² × 3² = 36.",
+  "kind": "apply",
+  "num": {
+   "value": 36
+  }
+ },
+ {
+  "ref": "1",
+  "q": "What is the HCF of 26 and 91?",
+  "c": [
+   "13"
+  ],
+  "a": 0,
+  "why": "26 = 2 × 13 and 91 = 7 × 13, so HCF = 13.",
+  "kind": "apply",
+  "num": {
+   "value": 13
+  }
+ },
+ {
+  "ref": "2",
+  "q": "What is the product of the zeroes of 2x² − 8x + 6?",
+  "c": [
+   "3"
+  ],
+  "a": 0,
+  "why": "Product of zeroes = c/a = 6/2 = 3.",
+  "kind": "apply",
+  "num": {
+   "value": 3
+  }
+ },
+ {
+  "ref": "3",
+  "q": "Solve 2x + 3y = 12 and x − y = 1. What is x?",
+  "c": [
+   "3"
+  ],
+  "a": 0,
+  "why": "x = 1 + y, so 2 + 2y + 3y = 12, y = 2 and x = 3.",
+  "kind": "apply",
+  "num": {
+   "value": 3
+  }
+ },
+ {
+  "ref": "4",
+  "q": "What is the positive root of x² − x − 12 = 0?",
+  "c": [
+   "4"
+  ],
+  "a": 0,
+  "why": "x² − x − 12 = (x − 4)(x + 3).",
+  "kind": "apply",
+  "num": {
+   "value": 4
+  }
+ },
+ {
+  "ref": "5",
+  "q": "What is the 20th term of the AP 7, 10, 13, …?",
+  "c": [
+   "64"
+  ],
+  "a": 0,
+  "why": "a₂₀ = 7 + (20 − 1) × 3 = 64.",
+  "kind": "apply",
+  "num": {
+   "value": 64
+  }
+ },
+ {
+  "ref": "5",
+  "q": "What is the sum of the first 25 odd numbers?",
+  "c": [
+   "625"
+  ],
+  "a": 0,
+  "why": "The sum of the first n odd numbers is n² = 625.",
+  "kind": "apply",
+  "num": {
+   "value": 625
+  }
+ },
+ {
+  "ref": "6",
+  "q": "In triangle ABC, DE is parallel to BC with D on AB and E on AC. AD = 3 cm, DB = 6 cm and AE = 2 cm. What is EC, in cm?",
+  "c": [
+   "4 cm"
+  ],
+  "a": 0,
+  "why": "AD/DB = AE/EC: 3/6 = 2/EC, so EC = 4 cm.",
+  "kind": "apply",
+  "num": {
+   "value": 4,
+   "unit": "cm"
+  }
+ },
+ {
+  "ref": "7",
+  "q": "What is the distance between the points (0, 0) and (5, 12)?",
+  "c": [
+   "13"
+  ],
+  "a": 0,
+  "why": "√(5² + 12²) = √169 = 13.",
+  "kind": "apply",
+  "num": {
+   "value": 13
+  }
+ },
+ {
+  "ref": "8",
+  "q": "A is an acute angle with tan A = 1. What is A, in degrees?",
+  "c": [
+   "45°"
+  ],
+  "a": 0,
+  "why": "tan 45° = 1.",
+  "kind": "apply",
+  "num": {
+   "value": 45,
+   "unit": "°",
+   "acceptUnits": [
+    "degrees",
+    "degree",
+    "deg"
+   ]
+  }
+ },
+ {
+  "ref": "9",
+  "q": "From a point 30 m from the foot of a tower, the angle of elevation of its top is 30°. How tall is the tower, in metres, to one decimal place?",
+  "c": [
+   "17.3 m"
+  ],
+  "a": 0,
+  "why": "h = 30 × tan 30° = 30/√3 = 10√3 ≈ 17.3 m.",
+  "kind": "apply",
+  "num": {
+   "value": 17.32,
+   "tolerance": 0.06,
+   "unit": "m"
+  }
+ },
+ {
+  "ref": "10",
+  "q": "A point is 10 cm from the centre of a circle of radius 6 cm. How long is a tangent from the point to the circle, in cm?",
+  "c": [
+   "8 cm"
+  ],
+  "a": 0,
+  "why": "√(10² − 6²) = √64 = 8 cm.",
+  "kind": "apply",
+  "num": {
+   "value": 8,
+   "unit": "cm"
+  }
+ },
+ {
+  "ref": "11",
+  "q": "What is the area of a circle of radius 7 cm, in cm² (take π = 22/7)?",
+  "c": [
+   "154 cm²"
+  ],
+  "a": 0,
+  "why": "πr² = (22/7) × 49 = 154 cm².",
+  "kind": "apply",
+  "num": {
+   "value": 154,
+   "unit": "cm²",
+   "acceptUnits": [
+    "cm2",
+    "sq cm"
+   ]
+  }
+ },
+ {
+  "ref": "12",
+  "q": "What is the volume of a cone of radius 3 cm and height 7 cm, in cm³ (take π = 22/7)?",
+  "c": [
+   "66 cm³"
+  ],
+  "a": 0,
+  "why": "⅓πr²h = ⅓ × (22/7) × 9 × 7 = 66 cm³.",
+  "kind": "apply",
+  "num": {
+   "value": 66,
+   "unit": "cm³",
+   "acceptUnits": [
+    "cm3",
+    "cubic cm"
+   ]
+  }
+ },
+ {
+  "ref": "13",
+  "q": "What is the mean of 4, 8, 12, 16 and 20?",
+  "c": [
+   "12"
+  ],
+  "a": 0,
+  "why": "(4 + 8 + 12 + 16 + 20) ÷ 5 = 60 ÷ 5 = 12.",
+  "kind": "apply",
+  "num": {
+   "value": 12
+  }
+ },
+ {
+  "ref": "14",
+  "q": "A bag holds 3 red balls and 5 blue balls. One is drawn at random. What is the probability it is red? (A fraction or a decimal.)",
+  "c": [
+   "3/8"
+  ],
+  "a": 0,
+  "why": "3 red out of 8 balls: 3/8 = 0.375.",
+  "kind": "apply",
+  "num": {
+   "value": 0.375
+  }
  }
 ]

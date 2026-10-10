@@ -37,6 +37,8 @@ import { ReportProblem } from "../../components/learning/ReportProblem";
 import { questionReportsApi } from "../../api/questionReports";
 import { isUnverified, questionRef, withoutFlagged } from "../../lib/questionVetting";
 import { answerFacts, chosenMisconception } from "../../lib/attempts";
+import { numericFeedback } from "../../lib/numericAnswer";
+import { NumericAnswerInput } from "../../components/learning/NumericAnswerInput";
 import { useQuery } from "@tanstack/react-query";
 import { getRung } from "../../lib/hintState";
 import { questionKey } from "../../lib/questionKey";
@@ -166,7 +168,15 @@ export function QuizRunner() {
 interface Answered {
   chosenIndex: number;
   correct: boolean;
+  /** For a wrong numeric answer: what was off ("check your rounding"). */
+  feedback?: string;
+  /** What was typed, for a numeric question. */
+  response?: string;
 }
+
+/** The chosen index recorded for a wrong typed-in numeric answer (-1 is
+ *  the worked solution). */
+const NUMERIC_WRONG = -2;
 
 interface QuizDraftState {
   index: number;
@@ -367,11 +377,14 @@ function QuizSession({
      fine, since `choose` below is only ever invoked from the keyboard-shortcut
      handlers or the choice buttons, both gated off once finished. */
   const question = questions[index];
+  const numeric = question?.answerType === "numeric";
 
-  const choose = (chosenIndex: number) => {
+  /* A numeric question passes 0 (right) or NUMERIC_WRONG and what was
+     typed; grading by index then works for both kinds. */
+  const choose = (chosenIndex: number, response?: string, feedback?: string) => {
     if (answered) return;
     const correct = chosenIndex === question.correctIndex;
-    setAnswered({ chosenIndex, correct });
+    setAnswered({ chosenIndex, correct, feedback, response });
 
     /* Hints used before answering travel with the answer: a hinted right
        answer earns no ledger correction (lib/tutorPolicy.ts hintOutcome). */
@@ -384,6 +397,7 @@ function QuizSession({
       topic: question.topic,
       ...answerFacts(question, quizId),
       ...(misconception ? { misconception } : {}),
+      ...(response !== undefined ? { response } : {}),
       ...(hintRung > 0 ? { hintRung } : {}),
       secondsSpent: Math.max(
         0,
@@ -452,14 +466,14 @@ function QuizSession({
    * turns the shortcuts off once the quiz ends, not the early return. */
   useKeyboardShortcuts(
     {
-      "1": () => !answered && choose(0),
-      "2": () => !answered && choose(1),
-      "3": () => !answered && choose(2),
-      "4": () => !answered && choose(3),
-      "a": () => !answered && choose(0),
-      "b": () => !answered && choose(1),
-      "c": () => !answered && choose(2),
-      "d": () => !answered && choose(3),
+      "1": () => !answered && !numeric && choose(0),
+      "2": () => !answered && !numeric && choose(1),
+      "3": () => !answered && !numeric && choose(2),
+      "4": () => !answered && !numeric && choose(3),
+      "a": () => !answered && !numeric && choose(0),
+      "b": () => !answered && !numeric && choose(1),
+      "c": () => !answered && !numeric && choose(2),
+      "d": () => !answered && !numeric && choose(3),
       "Enter": () => answered && next(),
       " ": () => answered && next(),
     },
@@ -491,7 +505,8 @@ function QuizSession({
       answered.chosenIndex === -1
         ? "Worked through together — this one comes back as a fresh question soon."
         : verdict;
-    hostMessage = answered.chosenIndex === -1 ? "" : detail;
+    hostMessage =
+      answered.chosenIndex === -1 ? "" : [answered.feedback, detail].filter(Boolean).join(" ");
     hostTone = answered.correct ? "correct" : "incorrect";
   }
 
@@ -543,6 +558,25 @@ function QuizSession({
           <ConfidencePicker value={confidence} onChange={setConfidence} />
         )}
 
+        {numeric && question.numeric ? (
+          answered ? (
+            <p className={answered.correct ? styles.correctChoice : styles.wrongChoice}>
+              {answered.correct ? "Correct: " : "The answer: "}
+              {renderMathText(question.choices[0])}
+            </p>
+          ) : (
+            <NumericAnswerInput
+              numeric={question.numeric}
+              onAnswer={(response, verdict) =>
+                choose(
+                  verdict.correct ? 0 : NUMERIC_WRONG,
+                  response,
+                  verdict.correct ? undefined : numericFeedback(verdict, question.numeric!),
+                )
+              }
+            />
+          )
+        ) : (
         <div className={styles.choices}>
           {question.choices.map((choice, i) => {
             const isCorrect = i === question.correctIndex;
@@ -568,6 +602,7 @@ function QuizSession({
             );
           })}
         </div>
+        )}
 
         <HintLadderPanel
           question={question}
@@ -579,7 +614,7 @@ function QuizSession({
 
         {/* No stored explanation and no named mix-up: the tutor's, on request,
             so a wrong answer is never left with only a verdict. */}
-        {answered && !answered.correct && answered.chosenIndex !== -1 && !hostMessage && !repair ? (
+        {answered && !answered.correct && answered.chosenIndex >= 0 && !hostMessage && !repair ? (
           <ExplainMistake
             question={question}
             chosenIndex={answered.chosenIndex}
@@ -590,7 +625,7 @@ function QuizSession({
           />
         ) : null}
 
-        {answered && !answered.correct && answered.chosenIndex !== -1 && chat ? (
+        {answered && !answered.correct && (answered.chosenIndex >= 0 || answered.response !== undefined) && chat ? (
           /* The runner states the right answer; this is for "but why?".
              Sent with the question, the pick and the answer so the student
              does not have to retype any of it. */
@@ -599,7 +634,7 @@ function QuizSession({
               variant="secondary"
               size="sm"
               onClick={() => {
-                const picked = question.choices[answered.chosenIndex];
+                const picked = answered.response ?? question.choices[answered.chosenIndex];
                 const right = question.choices[question.correctIndex];
                 chat.open();
                 void chat.send(
