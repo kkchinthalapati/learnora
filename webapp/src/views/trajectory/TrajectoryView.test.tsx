@@ -26,14 +26,16 @@ const PRO_ROW = {
   plan_cancel_at_period_end: false,
 };
 
-function card(id: string, deckId: string, interval: number) {
+/** `dueInDays` defaults to the interval (reviewed today); a negative one
+ *  makes the card overdue. */
+function card(id: string, deckId: string, interval: number, dueInDays = interval) {
   return {
     id,
     user_id: "user-1",
     deck_id: deckId,
     front: "q",
     back: "a",
-    next_review_date: dateInDays(interval, TODAY),
+    next_review_date: dateInDays(dueInDays, TODAY),
     srs_interval: interval,
     ease_factor: 2.5,
     created_at: "2026-08-01T00:00:00Z",
@@ -81,7 +83,10 @@ function serve({
     /* A well-drilled deck and a barely-touched one, so the forecast has a
        real spread to rank rather than two identical topics. */
     ...[1, 2, 3, 4, 5].map((i) => card(`s${i}`, "d-strong", 40)),
-    ...[1, 2, 3, 4, 5].map((i) => card(`w${i}`, "d-weak", 1)),
+    /* Overdue by ten days, not reviewed today: on the FSRS curve a card
+       reviewed this morning is still ~99% recalled, so "reviewed today with
+       a one-day interval" only looked weak late in the day. */
+    ...[1, 2, 3, 4, 5].map((i) => card(`w${i}`, "d-weak", 1, -10)),
   ] as unknown[],
   attempts = [] as unknown[],
   quizzes = [] as unknown[],
