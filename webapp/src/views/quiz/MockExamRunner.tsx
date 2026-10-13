@@ -26,6 +26,10 @@ import { OfflineTestBar } from "../../components/OfflineBanner";
 import { ConfidencePicker } from "../../components/learning/ConfidencePicker";
 import type { Confidence } from "../../components/learning/options";
 import { TestResults } from "./TestResults";
+import { NumericAnswerInput } from "../../components/learning/NumericAnswerInput";
+
+/* A wrong typed-in answer, as QuizRunner records it. */
+const NUMERIC_WRONG = -2;
 import text from "../../styles/text.module.css";
 import runner from "./testRunner.module.css";
 
@@ -345,8 +349,15 @@ function MockExamSession({
     .map((_, i) => i)
     .filter((i) => !answerFor(i));
 
-  const choose = (chosenIndex: number) => {
+  const numeric = question?.answerType === "numeric" && !!question.numeric;
+
+  /* A typed-in question keeps its key as its only "choice" (quizMeta), so an
+     option index must never answer it: that would be the key, marked
+     correct. It is answered by what was typed: 0 when right, NUMERIC_WRONG
+     when not, with the response kept for the review. */
+  const choose = (chosenIndex: number, response?: string) => {
     if (finished || !question) return;
+    if (numeric && response === undefined) return;
     studyClock.mark();
     const key = question.id ?? index;
     setAnswers((prev) => {
@@ -356,6 +367,7 @@ function MockExamSession({
         correct: chosenIndex === question.correctIndex,
         topic: question.topic,
         confidence: prev.find((a) => a.questionId === key)?.confidence ?? null,
+        ...(response !== undefined ? { response } : {}),
       };
       const at = prev.findIndex((a) => a.questionId === key);
       if (at === -1) return [...prev, entry];
@@ -523,6 +535,17 @@ function MockExamSession({
             </button>
           </div>
           <h2 className={runner.stem}>{renderMathText(question.question)}</h2>
+          {numeric ? (
+            <NumericAnswerInput
+              key={index}
+              numeric={question.numeric!}
+              submitLabel={current ? "Change answer" : "Save answer"}
+              initialValue={current?.response ?? ""}
+              onAnswer={(response, verdict) =>
+                choose(verdict.correct ? question.correctIndex : NUMERIC_WRONG, response)
+              }
+            />
+          ) : (
           <ul className={runner.options} aria-label="Choices">
             {question.choices.map((choice, i) => (
               <li key={i}>
@@ -540,6 +563,12 @@ function MockExamSession({
               </li>
             ))}
           </ul>
+          )}
+          {numeric && current?.response ? (
+            <p className={text.meta} role="status">
+              Saved: {current.response}
+            </p>
+          ) : null}
           {current ? (
             <ConfidencePicker value={current.confidence ?? null} onChange={rate} />
           ) : null}

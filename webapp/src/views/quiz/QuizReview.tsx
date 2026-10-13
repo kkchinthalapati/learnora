@@ -192,6 +192,18 @@ export function QuizReview() {
                       </li>
                     );
                   })}
+                  {/* A typed-in answer is not one of the choices (a numeric
+                      question's only choice is its key), so show what was
+                      typed, or the review never says what the student wrote. */}
+                  {given?.response !== undefined &&
+                  chosenIndex !== question.correctIndex ? (
+                    <li
+                      className={`${styles.reviewChoice} ${styles.wrongChoice}`}
+                    >
+                      <span>{given.response}</span>
+                      <span className={styles.reviewTag}>Your answer</span>
+                    </li>
+                  ) : null}
                 </ul>
                 {/* Praise stored in the feedback is dropped against a question
                     the student got wrong — it was written before anyone

@@ -13,16 +13,19 @@ export function NumericAnswerInput({
   numeric,
   disabled = false,
   submitLabel = "Check",
+  initialValue = "",
   onAnswer,
 }: {
   numeric: NumericKey;
   disabled?: boolean;
   submitLabel?: string;
+  /** What the student typed before, when they come back to the question. */
+  initialValue?: string;
   /** Called once with what was typed and how it was marked. */
   onAnswer: (response: string, verdict: NumericVerdict) => void;
 }) {
   const id = useId();
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialValue);
   const [hint, setHint] = useState<string | null>(null);
 
   const submit = (e: FormEvent) => {

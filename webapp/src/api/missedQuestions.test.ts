@@ -32,6 +32,24 @@ describe("missedCardsFrom", () => {
     expect(card.back).toBe("Speed up a reaction\n\nEnzymes are catalysts: they come out unchanged.");
   });
 
+  it("never puts a typed-in question's key on the front", () => {
+    const numericQuiz = {
+      questions_json: [
+        {
+          question: "What is the sum of the first 25 odd numbers?",
+          choices: ["625"],
+          correctIndex: 0,
+          answerType: "numeric",
+          numeric: { value: 625 },
+          topic: "AP",
+        },
+      ],
+    };
+    const [card] = missedCardsFrom(numericQuiz, [{ questionId: 0, chosenIndex: -2, correct: false, response: "624" }]);
+    expect(card.front).toBe("What is the sum of the first 25 odd numbers?");
+    expect(card.back).toBe("625");
+  });
+
   it("ignores answers it cannot place", () => {
     expect(missedCardsFrom(quiz, [{ questionId: 9, chosenIndex: 0, correct: false }])).toEqual([]);
     expect(missedCardsFrom(quiz, "not answers")).toEqual([]);

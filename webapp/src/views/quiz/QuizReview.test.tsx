@@ -140,6 +140,33 @@ describe("QuizReview", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows what the student typed for a numeric question", async () => {
+    serve({
+      questions: [
+        {
+          id: "n1",
+          question: "What is the sum of the first 25 odd numbers?",
+          choices: ["625"],
+          correctIndex: 0,
+          answerType: "numeric",
+          numeric: { value: 625 },
+          topic: "AP",
+        },
+      ],
+      attempt: {
+        ...ATTEMPT,
+        score: 0,
+        total: 1,
+        answers_json: [{ questionId: "n1", chosenIndex: -2, correct: false, topic: "AP", response: "624" }],
+      },
+    });
+    renderReview();
+    await screen.findByText("Question 1 of 1");
+
+    expect(within(choiceRow("625")).getByText("Correct answer")).toBeInTheDocument();
+    expect(within(choiceRow("624")).getByText("Your answer")).toBeInTheDocument();
+  });
+
   it("leaves untouched options untagged", async () => {
     serve();
     renderReview();

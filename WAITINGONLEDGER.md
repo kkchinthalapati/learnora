@@ -38,13 +38,14 @@ row is UNVERIFIED until you run `supabase secrets list`).
 
 ## 2. Migrations
 
-Production has 63 migrations recorded (2026-10-10, after `question_bank_numeric`)
-and the repo has 63 files in `supabase/migrations/`. They match
+Production has 64 migrations recorded (2026-10-13, after `drop_legacy_leaderboard_overload`)
+and the repo has 64 files in `supabase/migrations/`. They match
 one to one by name; many carry different timestamps because they were applied
 through the dashboard/API (the known history drift). **Nothing is pending.**
 
 | Migration | Status | Notes |
 |-----------|--------|-------|
+| `20261013000000_drop_legacy_leaderboard_overload.sql` | **Applied 2026-10-13** | Privacy: dropped the old `get_friends_leaderboard(tz)` overload, which ignored `leaderboard_opt_out` and returned opted-out friends' minutes and streaks when called with only `tz`. Verified that day: one overload left, `(tz, period)`, executable by `authenticated` only; the app's call and a `tz`-only call both answer 200 from it. |
 | `20261010000000_question_bank_numeric.sql` | **Applied 2026-10-10** | `answer_type` / `numeric_answer` on the bank; 25 typed-in numeric CBSE Class 10 questions inserted (bank now 385). |
 | `20261009030000_ai_item_cache.sql` | **Applied 2026-10-09** | Service-role-only cache of AI text for bank questions (keyed by a hash of the whole request); `ai_request_log.status` gains `cached`. Used by learnora-ai v69. |
 | `20261009020000_question_bank_kind_and_distractors.sql` | **Applied 2026-10-09** | `kind` and `distractor_misconceptions` on the bank; then 132 CBSE Class 10 questions inserted (Learnora-written, `scripts/question-bank/cbse-source.mjs`). |

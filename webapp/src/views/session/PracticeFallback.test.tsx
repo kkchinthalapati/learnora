@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { mockAuthSession } from "../../test/mockSession";
@@ -10,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   generate: vi.fn(),
   bank: vi.fn(),
   first: vi.fn(),
+  ranked: [] as { concept: string; subject: string }[],
 }));
 
 vi.mock("../../api/aiQuiz", async (orig) => ({
@@ -19,7 +21,7 @@ vi.mock("../../api/aiQuiz", async (orig) => ({
 vi.mock("../../api/questionBank", () => ({ bankPracticeFor: mocks.bank, bankFirst: mocks.first }));
 vi.mock("../../api/learningEvents", () => ({ learningEventsApi: { record: vi.fn(async () => true) } }));
 vi.mock("../../hooks/useMisconceptions", () => ({
-  useMisconceptions: () => ({ all: [], ranked: [], forSubject: () => [] }),
+  useMisconceptions: () => ({ all: mocks.ranked, ranked: mocks.ranked, forSubject: () => [] }),
   useRecordMisconceptions: () => vi.fn(),
 }));
 
@@ -78,6 +80,7 @@ describe("Practice on a banked spec topic", () => {
     clearStudySnapshot();
     mocks.generate.mockReset();
     mocks.first.mockReset();
+    mocks.ranked = [];
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -87,5 +90,67 @@ describe("Practice on a banked spec topic", () => {
     expect(await screen.findByText("Bank question 0?")).toBeInTheDocument();
     expect(mocks.first).toHaveBeenCalledWith(expect.stringContaining("Osmosis"), expect.any(Number));
     expect(mocks.generate).not.toHaveBeenCalled();
+  });
+
+  it("doesn't claim to mix in other topics when the bank served the problems", async () => {
+    mocks.ranked = [{ concept: "Photosynthesis energy source", subject: "Biology" }];
+    mocks.first.mockResolvedValue(BANK);
+    renderPractice();
+    expect(await screen.findByText("Bank question 0?")).toBeInTheDocument();
+    expect(screen.queryByText(/mixed with/i)).toBeNull();
+  });
+});
+
+describe("Practice hints", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+    localStorage.clear();
+    clearStudySnapshot();
+    mocks.ranked = [];
+    mocks.first.mockReset();
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("narrow the options but never strike every wrong one", async () => {
+    /* Three hints on a four-option problem used to leave only the answer. */
+    mocks.first.mockResolvedValue([
+      {
+        question: "Which term of the AP 3, 8, 13, … is 78?",
+        choices: ["15th", "17th", "26th", "16th"],
+        correctIndex: 3,
+        topic: "Arithmetic Progressions",
+      },
+    ]);
+    renderPractice();
+    await screen.findByText("Which term of the AP 3, 8, 13, … is 78?");
+    for (let i = 0; i < 3; i++) {
+      const hint = screen.getByRole("button", { name: /Hint \(costs nothing\)|No more hints/ });
+      if (!hint.hasAttribute("disabled")) await userEvent.click(hint);
+    }
+    expect(screen.getAllByText(/ruled out by a hint/)).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /No more hints/ })).toBeDisabled();
+  });
+});
+
+describe("Practice interleaving", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+    localStorage.clear();
+    clearStudySnapshot();
+    mocks.generate.mockReset();
+    mocks.first.mockReset();
+    mocks.first.mockResolvedValue(null);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("never asks the AI to mix another subject's mistakes into this one", async () => {
+    /* An Arithmetic Progressions session was told to interleave photosynthesis. */
+    mocks.ranked = [{ concept: "Photosynthesis energy source", subject: "Biology" }];
+    mocks.generate.mockResolvedValue(BANK);
+    renderPractice();
+    expect(await screen.findByText("Bank question 0?")).toBeInTheDocument();
+    const [args] = mocks.generate.mock.calls[0] as [{ sourceText: string }];
+    expect(args.sourceText).not.toMatch(/Interleave|Photosynthesis/);
+    expect(screen.queryByText(/mixed with/i)).toBeNull();
   });
 });
