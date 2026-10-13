@@ -193,4 +193,22 @@ describe("route integrity", () => {
       expect([...offered]).toContain(destination);
     }
   });
+
+  it("every ?tab= link into Settings names a real tab", () => {
+    /* Notebook Studio's "View plan" sent five limit toasts to
+       /settings?tab=subscription; the Plan tab is "billing", so students
+       who hit a limit landed on Account instead. */
+    const settings = readFileSync(join(SRC, "views", "settings", "SettingsView.tsx"), "utf8");
+    const tabsBlock = settings.slice(settings.indexOf("export const SETTINGS_TABS"));
+    const tabs = new Set([...tabsBlock.matchAll(/\bid:\s*"([a-z-]+)"/g)].map((m) => m[1]));
+    expect(tabs.has("billing")).toBe(true);
+
+    const bad: string[] = [];
+    for (const file of sourceFiles(SRC)) {
+      for (const m of readFileSync(file, "utf8").matchAll(/\/settings\?tab=([a-z-]+)/g)) {
+        if (!tabs.has(m[1])) bad.push(`${file.slice(SRC.length + 1)}: ?tab=${m[1]}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
 });
