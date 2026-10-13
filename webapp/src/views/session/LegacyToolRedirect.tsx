@@ -8,7 +8,6 @@ import { newSessionHref, sessionHref, type SessionMode } from "../../lib/session
  *   /feynman                    → Teach
  *   /feynman/studio/:id         → that session, in Teach
  *   /viva, /sparring (+ /:id)   → Socratic with the mic on
- *   /exam-detective             → Practice, exam-traps preset
  * Sparring sessions only ever lived in memory, so a /viva/:id link has no
  * session to reopen and starts a fresh one on the same terms. */
 export function LegacyToolRedirect({

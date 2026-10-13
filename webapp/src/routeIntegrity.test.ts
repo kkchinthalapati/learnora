@@ -126,7 +126,6 @@ describe("route integrity", () => {
       "/solver",
       "/feynman",
       "/viva",
-      "/exam-detective",
     ];
     const offenders: string[] = [];
 

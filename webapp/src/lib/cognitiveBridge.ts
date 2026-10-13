@@ -159,6 +159,7 @@ export const CognitiveBridge = {
       case "feynman":
         return newSessionHref("teach");
       case "exam_detective":
+        return "/exam-detective";
       case "premortem":
         return newSessionHref("practice", { preset: "traps" });
       case "sparring":

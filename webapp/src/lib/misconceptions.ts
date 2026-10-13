@@ -19,6 +19,7 @@
 
 import { fenceUntrusted } from "./actionTags";
 import { observationKey, questionKey } from "./questionKey";
+import { getKnownMisconception } from "./misconceptionCatalogue";
 
 export type MisconceptionStatus = "open" | "improving" | "resolved";
 export type MisconceptionSeverity = "critical" | "moderate" | "minor";
@@ -984,9 +985,15 @@ export function candidatesFromTrapSprint(
     topic?: string;
     correctAnswerIndex: number;
     baitOptionIndex: number;
+    /** "ai": written by a model and unchecked (see below). */
+    source?: string;
+    /** The catalogue misconception the bait is mapped to (bank questions). */
+    misconceptionId?: string;
   }>,
   answers: Array<number | null>,
   context: { subject?: string; sprintId?: string },
+  /** Per answer, whether the student said it was a guess. */
+  guessed: boolean[] = [],
 ): MisconceptionCandidate[] {
   const subject = context.subject ?? "";
 
@@ -996,10 +1003,34 @@ export function candidatesFromTrapSprint(
        halfway would otherwise file every remaining trap against them. */
     if (chosen == null) return [];
 
-    const concept = q.trapName ?? q.topic ?? "";
+    const known = q.misconceptionId ? getKnownMisconception(q.misconceptionId) : null;
+    const concept = known?.concept ?? q.trapName ?? q.topic ?? "";
     if (!concept) return [];
 
     if (chosen === q.baitOptionIndex) {
+      /* A bank bait is a catalogue misconception: filed exactly as a quiz
+         files the same mapped distractor, so the two merge into one row. */
+      if (known) {
+        return [
+          {
+            subject,
+            concept: known.concept,
+            summary: known.belief,
+            severity: "critical",
+            tool: "exam-detective",
+            sourceId: context.sprintId,
+            kind: "evidence",
+            detail: `Chose the option written to match this belief.`,
+            catalogueId: known.id,
+            repairText: known.remediation,
+            contrastText: `Not: "${known.belief}" ${known.whyWrong}`,
+            provisional: false,
+          },
+        ];
+      }
+      /* An AI-written question was never checked: its "bait" may even be
+         right. One pick is a hypothesis, not a critical finding. */
+      const ai = q.source === "ai";
       return [
         {
           subject,
@@ -1008,14 +1039,18 @@ export function candidatesFromTrapSprint(
             q.baitExplanation ||
             q.trapExplanation ||
             `Fell for the ${concept} trap`,
-          severity: "critical",
+          severity: ai ? "moderate" : "critical",
           tool: "exam-detective",
           sourceId: context.sprintId,
           kind: "evidence",
           detail: `Chose the bait answer on a question written to detect this trap.`,
+          ...(ai ? { provisional: true } : {}),
         },
       ];
     }
+
+    /* A right answer the student called a guess is not immunity. */
+    if (chosen === q.correctAnswerIndex && guessed[i]) return [];
 
     if (chosen === q.correctAnswerIndex) {
       return [

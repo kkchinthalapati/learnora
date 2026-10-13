@@ -637,6 +637,30 @@ describe("candidatesFromTrapSprint", () => {
   it("ignores unanswered questions rather than blaming an abandoned sprint", () => {
     expect(candidatesFromTrapSprint([q, q], [null, null], {})).toEqual([]);
   });
+
+  /* A bank question's bait is a catalogue misconception: filed as a quiz
+     files the same mapped distractor, so the two merge into one row. */
+  it("files a bank bait under the catalogue concept, with its id and re-teach", () => {
+    const bank = { ...q, trapName: "pH", source: "bank", misconceptionId: "chem-higher-ph-more-acidic" };
+    const [out] = candidatesFromTrapSprint([bank], [1], { subject: "Chemistry" });
+
+    expect(out.catalogueId).toBe("chem-higher-ph-more-acidic");
+    expect(out.severity).toBe("critical");
+    expect(out.provisional).toBe(false);
+    expect(out.repairText).toBeTruthy();
+  });
+
+  /* An AI-written question was never checked, so its "bait" may be right. */
+  it("files an AI bait as a provisional, moderate hypothesis", () => {
+    const [out] = candidatesFromTrapSprint([{ ...q, source: "ai" }], [1], { subject: "Maths" });
+
+    expect(out.severity).toBe("moderate");
+    expect(out.provisional).toBe(true);
+  });
+
+  it("files nothing for a right answer the student called a guess", () => {
+    expect(candidatesFromTrapSprint([q], [0], { subject: "Maths" }, [true])).toEqual([]);
+  });
 });
 
 /* A prompt line is not worth a blank screen. A malformed row once took the
