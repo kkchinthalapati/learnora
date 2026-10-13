@@ -33,6 +33,13 @@ export interface RetestQuestion {
 
 type Row = Pick<Misconception, "concept" | "summary" | "excludedQuestionKeys">;
 
+/* The retest is answered by picking an option. A typed-in numeric question
+   keeps its key as its only "choice", so offered here it would show the
+   answer as the one button, and a tap would mark the mistake fixed. */
+function isMultipleChoice(q: { choices: readonly string[] }): boolean {
+  return q.choices.length >= 2;
+}
+
 export async function bankRetestQuestion(
   m: Row,
   exams: Exam[],
@@ -43,7 +50,7 @@ export async function bankRetestQuestion(
   const topic = match.topic ?? matchSpecTopic(match.spec, m.concept, match.tier);
   if (!topic) return null;
   const rows = await fetchBankQuestions(match.spec, [topic.ref], match.tier);
-  const picked = pickRetestQuestion(rows, m.excludedQuestionKeys ?? []);
+  const picked = pickRetestQuestion(rows.filter(isMultipleChoice), m.excludedQuestionKeys ?? []);
   if (!picked) return null;
   return {
     question: picked.question,
@@ -63,7 +70,7 @@ export async function aiRetestQuestion(m: Row, settings: Settings): Promise<Rete
     settings,
     options: { questionCount: 3 },
   });
-  const picked = pickRetestQuestion(questions, m.excludedQuestionKeys ?? []);
+  const picked = pickRetestQuestion(questions.filter(isMultipleChoice), m.excludedQuestionKeys ?? []);
   return picked
     ? {
         question: picked.question,

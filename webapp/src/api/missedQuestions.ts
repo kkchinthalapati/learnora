@@ -37,10 +37,12 @@ export function missedCardsFrom(
     const index = typeof answer.questionId === "number" ? answer.questionId : position;
     const q = questions[index];
     if (!q) return;
-    const options = q.choices.map((c, i) => `${KEYS[i] ?? i + 1}) ${c}`).join("\n");
+    /* A typed-in numeric question's only "choice" is its key: listing it
+       would put the answer on the front of the card. */
+    const options = q.choices.length >= 2 ? q.choices.map((c, i) => `${KEYS[i] ?? i + 1}) ${c}`).join("\n") : "";
     const right = q.choices[q.correctIndex];
     cards.push({
-      front: `${q.question}\n\n${options}`,
+      front: options ? `${q.question}\n\n${options}` : q.question,
       back: q.feedback?.trim() ? `${right}\n\n${q.feedback.trim()}` : right,
     });
   });

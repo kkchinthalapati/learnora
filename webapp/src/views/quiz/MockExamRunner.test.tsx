@@ -367,6 +367,55 @@ describe("MockExamRunner", () => {
     expect(await screen.findByText("Review page")).toBeInTheDocument();
     await waitFor(() => expect(attemptRecorded).toBe(true));
   });
+
+  it("asks for a typed answer on a numeric question instead of offering its key as an option", async () => {
+    /* A numeric question stores its key as its only "choice". Rendered as an
+       option, the mock exam showed the answer as button A and marked it
+       correct for anyone who clicked it (or pressed A). */
+    serveQuiz({
+      ...SAMPLE_QUIZ,
+      questions_json: [
+        {
+          question: "What is the sum of the first 25 odd numbers?",
+          choices: ["625"],
+          correctIndex: 0,
+          answerType: "numeric",
+          numeric: { value: 625 },
+          topic: "AP",
+        },
+      ],
+    });
+    let recorded: { score?: number; answers_json?: { chosenIndex: number; response?: string }[] } | null = null;
+    server.use(
+      http.post(rest("quiz_attempts"), async ({ request }) => {
+        [recorded] = (await request.clone().json()) as (typeof recorded)[];
+        return HttpResponse.json([{}]);
+      }),
+    );
+
+    renderRunner();
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => document.body,
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
+
+    await screen.findByText("What is the sum of the first 25 odd numbers?");
+    expect(screen.queryByRole("button", { name: /625/ })).not.toBeInTheDocument();
+
+    // The option shortcut cannot answer it.
+    await userEvent.keyboard("a");
+    expect(screen.getByText(/0 answered/)).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole("textbox"), "624");
+    await userEvent.click(screen.getByRole("button", { name: "Save answer" }));
+    expect(await screen.findByText("Saved: 624")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Submit test" }));
+
+    await waitFor(() => expect(recorded).not.toBeNull());
+    expect(recorded!.score).toBe(0);
+    expect(recorded!.answers_json?.[0]).toMatchObject({ chosenIndex: -2, response: "624" });
+  });
 });
 
 describe("MockExamRunner draft autosave", () => {

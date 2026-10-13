@@ -88,10 +88,20 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
   const traps = session.preset === "traps";
 
   const generate = () => {
-    const mixedWith = ranked
-      .map((m) => m.concept)
-      .filter((c) => c.toLowerCase() !== session.objective.toLowerCase())
-      .slice(0, 2);
+    /* Interleave only mistakes from this subject. The ledger spans every
+       subject, so without the filter an Arithmetic Progressions session was
+       asked to mix in photosynthesis. No subject named, nothing mixed. */
+    const subject = session.subject?.trim().toLowerCase() ?? "";
+    const mixedWith = subject
+      ? ranked
+          .filter((m) => m.subject.trim().toLowerCase() === subject)
+          .map((m) => m.concept)
+          .filter((c) => c.toLowerCase() !== session.objective.toLowerCase())
+          .slice(0, 2)
+      : [];
+    /* Set only when the AI was asked to mix them in: bank problems are on the
+       objective alone, and the meta line must not claim otherwise. */
+    let mixed: string[] = [];
     const label = [session.subject, session.objective].filter(Boolean).join(" ");
     task.run(
       async () =>
@@ -113,7 +123,12 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
           topic: fenceUntrusted(session.objective),
           settings,
           options: { questionCount: PRACTICE_PROBLEMS },
-        }).catch(async (err) => {
+        })
+          .then((questions) => {
+            mixed = mixedWith;
+            return questions;
+          })
+          .catch(async (err) => {
           const fromBank = await bankPracticeFor(
             [session.subject, session.objective].filter(Boolean).join(" "),
             PRACTICE_PROBLEMS,
@@ -133,7 +148,7 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
             ...s.data,
             practice: {
               questions,
-              mixedWith,
+              mixedWith: mixed,
               answers: {},
               struck: {},
               endsAt: traps ? Date.now() + (s.minutes ?? TRAPS_MINUTES) * 60_000 : undefined,
@@ -255,9 +270,14 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
     else ctl.setStep(index + 1);
   };
 
+  /* A hint narrows the options but never down to the answer alone: at least
+     one wrong option stays. Striking them all gave the answer away, and the
+     "correct" pick that followed counted as full evidence of knowing it. */
+  const struckHere = data.struck[index] ?? [];
+  const canStrike = !!question && question.choices.length - struckHere.length > 2;
   const strike = () => {
-    if (!question) return;
-    const already = data.struck[index] ?? [];
+    if (!question || !canStrike) return;
+    const already = struckHere;
     const wrong = question.choices
       .map((_, i) => i)
       .filter((i) => i !== question.correctIndex && !already.includes(i) && i !== chosen);
@@ -374,8 +394,8 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                         <Button variant="primary" onClick={() => check()} disabled={chosen === null}>
                           Check my answer
                         </Button>
-                        <Button variant="ghost" onClick={strike}>
-                          Hint (costs nothing)
+                        <Button variant="ghost" onClick={strike} disabled={!canStrike}>
+                          {canStrike ? "Hint (costs nothing)" : "No more hints: it's one of these two"}
                         </Button>
                       </>
                     )}
