@@ -82,6 +82,37 @@
   box-shadow: var(--shadow-1);
 }
 
+/* Check-back variant: the one place Today's card raises its voice. */
+.card[data-tone="checkback"] {
+  padding: 27px;
+  border: 2px solid var(--accent);
+  box-shadow: var(--shadow-2);
+}
+
+.chipQuiet {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* The old belief, word for word. */
+.quote {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: var(--space-3) 14px;
+  border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+  font-size: var(--fs-base);
+  line-height: var(--leading-small);
+}
+
+.quoteLabel {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .cardHead {
   display: flex;
   justify-content: space-between;
@@ -648,6 +679,10 @@
   .card {
     gap: var(--space-3);
     padding: var(--space-5);
+  }
+
+  .card[data-tone="checkback"] {
+    padding: 19px;
   }
 
   .eyebrow {

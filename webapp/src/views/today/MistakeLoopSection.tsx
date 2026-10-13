@@ -204,16 +204,21 @@ function RetestRow({ m }: { m: Misconception }) {
 export function MistakeLoopSection({
   misconceptions,
   now,
+  leadId,
 }: {
   misconceptions: Misconception[];
   now: Date;
+  /** The check-back Today's card already leads with; not repeated here. */
+  leadId?: string;
 }) {
   /* Until the loop migration is applied nothing can be repaired or
      retested, so the section stays away rather than offering buttons that
      write nothing. Rows from before the loop have no repair to show; they
      stay on the dashboard ledger card. */
   if (!isLoopSupported()) return null;
-  const due = retestsDue(misconceptions, now).slice(0, MAX_ROWS);
+  const due = retestsDue(misconceptions, now)
+    .filter((m) => m.id !== leadId)
+    .slice(0, MAX_ROWS);
   const toRepair = misconceptions
     .filter((m) => needsRepair(m) && (m.repairText || m.catalogueId))
     .slice(0, MAX_ROWS);

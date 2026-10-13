@@ -140,6 +140,9 @@ const LazyStudyAnalyticsView = lazy(async () => ({
 const LazySessionView = lazy(async () => ({
   default: (await import("./views/session/SessionView")).SessionView,
 }));
+const LazyCheckBackView = lazy(async () => ({
+  default: (await import("./views/checkback/CheckBackView")).CheckBackView,
+}));
 const LazyStudyLabView = lazy(async () => ({
   default: (await import("./views/study-lab/StudyLabView")).StudyLabView,
 }));
@@ -255,6 +258,16 @@ export function AppRoutes() {
             element={
               <DeferredView>
                 <LazySessionView />
+              </DeferredView>
+            }
+          />
+          {/* The mistake loop's check-back: focus mode too, "Not now" is
+              its only exit. */}
+          <Route
+            path="/check-back/:misconceptionId"
+            element={
+              <DeferredView>
+                <LazyCheckBackView />
               </DeferredView>
             }
           />

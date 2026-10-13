@@ -15,6 +15,7 @@ import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import type { Misconception } from "../../lib/misconceptions";
 import styles from "./MisconceptionLedgerCard.module.css";
 import { newSessionHref } from "../../lib/sessionModes";
+import { checkBackHref, mixUpState, shortDate } from "../../lib/checkBack";
 
 /* The ledger, made visible.
  *
@@ -30,11 +31,14 @@ import { newSessionHref } from "../../lib/sessionModes";
  * is stated on the row rather than hidden behind a detail view.
  */
 
-const SEVERITY_LABEL: Record<Misconception["severity"], string> = {
-  critical: "Blocking",
-  moderate: "Shaky",
-  minor: "Worth a look",
-};
+/* 2026-10 revamp: rows are labelled by where they are in the loop, not by
+   severity. "Blocking" in red read as a telling-off; a state with a date
+   reads as a plan. */
+function stateBadge(m: Misconception, now: Date): { label: string; tone: "ready" | "fixing" } {
+  if (mixUpState(m, now) === "check_back_ready") return { label: "Check-back ready", tone: "ready" };
+  if (m.retestDueAt) return { label: `Check ${shortDate(m.retestDueAt)}`, tone: "fixing" };
+  return { label: "Fixing", tone: "fixing" };
+}
 
 /* The five Study modes are the names students see now (2026-09 redesign);
    "debugger", "feynman" and "sparring" are the storage keys they kept. */
@@ -57,7 +61,12 @@ const VISIBLE_ROWS = 4;
 
 export function MisconceptionLedgerCard() {
   const navigate = useNavigate();
-  const { ranked, isPending, isError } = useMisconceptions();
+  const { ranked, all, isPending, isError } = useMisconceptions();
+  /* Fixed first: a collection of corrected beliefs, not a list of failures. */
+  const fixed = all
+    .filter((m) => m.status === "resolved")
+    .sort((a, b) => (b.resolvedAt ?? "").localeCompare(a.resolvedAt ?? ""));
+  const now = new Date();
   const dismiss = useDismissMisconception();
   const [expanded, setExpanded] = useState(false);
   /* The row whose quick fix is open, if any. */
@@ -86,42 +95,39 @@ export function MisconceptionLedgerCard() {
   return (
     <Card
       as="section"
-      aria-label="Mistakes to Review"
+      aria-label="Mix-ups"
       variant="elevated"
       className={styles.widget}
       aria-busy={isPending || undefined}
     >
       <div className={styles.header}>
         <div className={styles.headerTitleGroup}>
-          <div className={styles.headerIcon} aria-hidden="true">
-            <Icon name="alert-triangle" size={20} />
-          </div>
           <div>
-            <span className={styles.eyebrow}>Review & Practice</span>
-            <h2 className={styles.title}>Mistakes to Review</h2>
+            <span className={styles.eyebrow}>Fixed and fixing</span>
+            <h2 className={styles.title}>Mix-ups</h2>
           </div>
         </div>
       </div>
 
       {isPending ? (
         <div className={styles.loadingStack}>
-          <Skeleton label="Loading mistakes to review" height={56} />
+          <Skeleton label="Loading your mix-ups" height={56} />
           <Skeleton height={56} />
         </div>
       ) : isError ? (
         <p role="alert" className={styles.empty}>
-          We couldn’t load your mistakes to review just now.
+          We couldn’t load your mix-ups just now. That’s on our side.
         </p>
-      ) : ranked.length === 0 ? (
+      ) : ranked.length === 0 && fixed.length === 0 ? (
         /* Deliberately not framed as an achievement. An empty ledger on a new
            account means the tools have not run yet, not that the student
            understands everything, and congratulating them for it would be the
            app's first lie. */
         <div className={styles.empty}>
-          <p className={styles.emptyLead}>Nothing on record yet.</p>
+          <p className={styles.emptyLead}>Nothing to fix yet.</p>
           <p className={styles.emptyBody}>
-            When a study session, a practice problem or a quiz finds a mistake,
-            it is written down here so you can come back and fix it.
+            If you mix something up in a session, a practice problem or a quiz,
+            it’ll show here and we’ll help you sort it.
           </p>
           <Button variant="secondary" onClick={() => navigate(newSessionHref("explain"))}>
             Diagnose a mistake
@@ -129,17 +135,46 @@ export function MisconceptionLedgerCard() {
         </div>
       ) : (
         <>
+          {fixed.length > 0 ? (
+            <section aria-labelledby="mixups-fixed">
+              <h3 id="mixups-fixed" className={styles.groupTitle}>
+                Fixed · {fixed.length}
+              </h3>
+              <ul className={styles.list}>
+                {fixed.map((m) => (
+                  <li key={m.id} className={`${styles.row} ${styles.fixedRow}`}>
+                    <div className={styles.rowMain}>
+                      <h4 className={styles.concept}>{mistakeTitle(m)}</h4>
+                      <p className={styles.provenance}>
+                        Proved on a new question
+                        {m.resolvedAt ? ` · ${shortDate(m.resolvedAt)}` : ""}
+                      </p>
+                    </div>
+                    <span className={`${styles.badge} ${styles.badgeFixed}`}>Fixed</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          {ranked.length > 0 ? (
+            <h3 className={styles.groupTitle}>Fixing · {ranked.length}</h3>
+          ) : null}
           <ul className={styles.list}>
             {shown.map((m) => (
               <li key={m.id} className={styles.row}>
                 <div className={styles.rowMain}>
                   <div className={styles.rowHead}>
-                    <span
-                      className={`${styles.severity} ${styles[m.severity]}`}
-                    >
-                      {SEVERITY_LABEL[m.severity]}
-                    </span>
-                    <h3 className={styles.concept}>{mistakeTitle(m)}</h3>
+                    {(() => {
+                      const badge = stateBadge(m, now);
+                      return (
+                        <span
+                          className={`${styles.badge} ${badge.tone === "ready" ? styles.badgeReady : styles.badgeFixing}`}
+                        >
+                          {badge.label}
+                        </span>
+                      );
+                    })()}
+                    <h4 className={styles.concept}>{mistakeTitle(m)}</h4>
                     {m.subject && (
                       <span className={styles.subject}>{m.subject}</span>
                     )}
@@ -166,6 +201,11 @@ export function MisconceptionLedgerCard() {
                 </div>
 
                 <div className={styles.rowActions}>
+                  {mixUpState(m, now) === "check_back_ready" ? (
+                    <Button variant="primary" onClick={() => navigate(checkBackHref(m.id))}>
+                      Try it · 1 min
+                    </Button>
+                  ) : null}
                   {detectFromDiagnosis(m.concept, m.summary) && (
                     <Button
                       variant="ghost"
@@ -207,6 +247,16 @@ export function MisconceptionLedgerCard() {
               </li>
             ))}
           </ul>
+
+          <details className={styles.how}>
+            <summary>How this works</summary>
+            <p>
+              When an answer shows a mix-up, you get a short re-teach. At
+              least two days later we check it with a new question you haven’t
+              seen. Right on that one, and it moves to Fixed. If not, nothing
+              is lost: it stays in Fixing with a fresh re-teach and a new date.
+            </p>
+          </details>
 
           {ranked.length > VISIBLE_ROWS && (
             <button

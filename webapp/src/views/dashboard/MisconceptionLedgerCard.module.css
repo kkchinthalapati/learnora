@@ -252,3 +252,64 @@
 .fix {
   flex-basis: 100%;
 }
+
+/* ---- 2026-10 revamp: Mix-ups (Fixed first, loop-state badges) ---- */
+
+.groupTitle {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.fixedRow {
+  border-radius: var(--radius-control);
+  background: var(--success-soft);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badgeFixed {
+  align-self: center;
+  background: var(--surface);
+  color: var(--success-text);
+}
+
+.badgeReady {
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.badgeFixing {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.how {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  color: var(--text-secondary);
+}
+
+.how > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.how p {
+  max-width: 60ch;
+  margin: 0 0 var(--space-2);
+}
