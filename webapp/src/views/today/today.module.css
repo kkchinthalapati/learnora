@@ -1,18 +1,19 @@
-/* Today (2026-09 redesign): main column + 300px rail, one lead card, rows
- * rather than cards for the secondary items. In-flow surfaces carry a
- * hairline and no shadow. */
+/* Today 1c (2026-10 revamp, design_handoff → Screens "Today · 1c"): a
+ * greeting, one next-step card with a time chip, then one list card. Desktop
+ * is two columns — the card at most 680px, a 360px rail. Every value is a
+ * token; no counts in red, no badges. */
 
 .page {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--rail-width);
-  gap: var(--s-12);
+  grid-template-columns: minmax(0, 680px) 360px;
+  gap: var(--space-10);
   align-items: start;
 }
 
 .main {
   display: flex;
   flex-direction: column;
-  gap: var(--s-8);
+  gap: var(--space-6);
   min-width: 0;
 }
 
@@ -25,102 +26,211 @@
   white-space: nowrap;
 }
 
-/* ---- Lead ---- */
+/* ---- Greeting ---- */
+
+.greetingBlock {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.examPill {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: var(--surface-sunk);
+  color: var(--text);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  line-height: var(--leading-caption);
+}
+
+.greeting {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: 400;
+  line-height: var(--leading-display);
+  color: var(--text);
+}
+
+.greetingSub {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* ---- The next-step card ---- */
 
 .lead {
   display: flex;
   flex-direction: column;
-  gap: var(--s-6);
-}
-
-.headline {
-  margin: 0;
-  max-width: 16ch;
+  gap: var(--space-3);
 }
 
 .card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: var(--s-6);
+  gap: 14px;
   margin: 0;
-  padding: var(--s-6);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow-1);
 }
 
-.cardBody {
+.cardHead {
   display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-  min-width: 0;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
 }
 
-.cardAction {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--s-2);
+.eyebrow {
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: var(--leading-small);
+  color: var(--accent-text);
+}
+
+.cardMeta {
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  color: var(--text-muted);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  font-weight: 400;
+  line-height: 1.12;
+  color: var(--text);
+}
+
+.detail {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--text);
 }
 
 .reason {
   margin: 0;
-  max-width: 60ch;
-  font-size: var(--fs-base);
-  line-height: 1.55;
-  color: var(--text-muted);
+  max-width: 56ch;
+  font-size: var(--fs-read);
+  line-height: var(--leading-body);
+  color: var(--text-secondary);
 }
 
 .caption {
   margin: 0;
-  font-size: var(--fs-sm);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
   color: var(--text-muted);
 }
 
-/* Session progress: five 44×4 segments. */
+/* The time chip: a 36px pill (32px on mobile) with a hairline-strong edge. */
+.chip {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chip:has(.chipSelect) {
+  padding: 0;
+}
+
+/* The select fills the pill so the whole chip is the tap target; the caret
+   is drawn beside it rather than by the browser. */
+.chipSelect {
+  min-height: var(--tap-min);
+  margin: -4px 0;
+  padding: 0 28px 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.chipSelect:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.chipCaret {
+  position: absolute;
+  right: var(--space-3);
+  pointer-events: none;
+  font-size: var(--text-caption);
+}
+
+/* Session progress segments. */
 .progress {
   display: flex;
-  gap: var(--s-1);
-  margin: var(--s-1) 0;
+  gap: var(--space-1);
 }
 
 .progress > span {
   width: 44px;
   height: 4px;
-  border-radius: var(--r-xs);
-  background: var(--hairline);
+  border-radius: 2px;
+  background: var(--line);
 }
 
 .progress > span[data-done] {
   background: var(--accent);
 }
 
-/* Links that act as the screen's primary / secondary buttons. Same recipe
-   as Button, because a route change should be a link, not a click handler. */
+/* Primary + at most one quiet alternative. Side by side on desktop; the
+   primary goes full width on a phone. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: 6px;
+}
+
+/* Links that act as the screen's primary / secondary buttons — the same
+   recipe as Button lg, because a route change should be a link. */
 .primary,
 .secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--s-2);
-  min-height: var(--control-lg);
-  padding: 0 var(--s-6);
+  gap: var(--space-2);
+  min-height: 52px;
+  padding: 0 28px;
   border: 1px solid transparent;
-  border-radius: var(--r-md);
-  font-size: var(--fs-base);
+  border-radius: var(--radius-md);
+  font-size: var(--text-body);
   font-weight: 600;
   text-decoration: none;
-  white-space: nowrap;
   transition:
-    background var(--t-fast) var(--ease),
-    border-color var(--t-fast) var(--ease);
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
 }
 
 .primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--accent-on);
+  color: var(--on-accent);
 }
 
 .primary:hover {
@@ -128,87 +238,108 @@
   border-color: var(--accent-hover);
 }
 
-.primary:focus-visible,
-.secondary:focus-visible,
-.rowAction:focus-visible,
-.textAction:focus-visible,
-.inlineLink:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 .secondary {
   background: var(--surface);
-  border-color: var(--hairline-strong);
+  border-color: var(--line-strong);
   color: var(--text);
 }
 
 .secondary:hover {
-  background: var(--surface-2);
-  border-color: var(--accent-line-strong);
+  background: var(--surface-sunk);
+  border-color: var(--text);
 }
 
-.textAction {
-  min-height: var(--touch-target-min);
-  padding: 0;
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 var(--space-4);
   border: 0;
+  border-radius: var(--radius-md);
   background: none;
-  color: var(--accent-deep);
+  color: var(--accent-text);
   font: inherit;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-base);
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
 }
 
-.textAction:hover,
-.inlineLink:hover {
-  text-decoration: underline;
+.ghost:hover {
+  background: var(--accent-soft);
+}
+
+.ghostButton {
+  min-height: 52px;
+}
+
+/* Button lg already matches .primary; nothing extra but a hook for the
+   mobile full-width rule. */
+.cta {
+  min-width: 0;
+}
+
+.primary:focus-visible,
+.secondary:focus-visible,
+.ghost:focus-visible,
+.rowAction:focus-visible,
+.inlineLink:focus-visible,
+.why > summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .inlineLink {
-  color: var(--accent-deep);
+  color: var(--accent-text);
   font-weight: 600;
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.leadFooter {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: var(--s-6);
-}
-
+/* "Why this?" — one line; the reasoning is behind it. */
 .why {
-  flex-basis: 100%;
   color: var(--text-muted);
-  font-size: var(--fs-sm);
+  font-size: var(--text-caption);
 }
 
 .why > summary {
   display: inline-flex;
   align-items: center;
-  min-height: var(--touch-target-min);
+  min-height: var(--tap-min);
   cursor: pointer;
-  color: var(--accent-deep);
-  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .why ul {
   display: grid;
-  gap: var(--s-2);
-  max-width: 64ch;
-  margin: var(--s-2) 0 var(--s-3);
-  padding-left: var(--s-5);
-  line-height: var(--lh-snug);
+  gap: var(--space-2);
+  max-width: 60ch;
+  margin: var(--space-1) 0 var(--space-3);
+  padding-left: var(--space-5);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  color: var(--text-secondary);
 }
 
-/* ---- After a rough test: numbered fixes in one card ---- */
+/* Skeleton: the card's own boxes, so the loaded card lands in place. */
+.skeletonCta {
+  margin-top: 6px;
+}
+
+.skeletonGhost {
+  height: var(--tap-min);
+}
+
+/* ---- After a rough test: numbered fixes inside the card ---- */
 
 .fixList {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 0 var(--s-6);
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
@@ -216,97 +347,117 @@
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--s-4);
-  padding: var(--s-5) 0;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
 }
 
 .fixRow + .fixRow {
-  border-top: 1px solid var(--hairline);
+  border-top: 1px solid var(--line);
+}
+
+.fixRow > .primary,
+.fixRow > .secondary {
+  min-height: var(--tap-min);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  font-size: var(--fs-base);
+  white-space: nowrap;
 }
 
 .fixNumber {
   font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  color: var(--text-faint);
+  font-size: var(--text-caption);
+  color: var(--text-muted);
 }
 
 .fixText {
   display: flex;
   flex-direction: column;
-  gap: var(--s-1);
+  gap: var(--space-1);
   min-width: 0;
 }
 
 .fixTitle {
-  font-family: var(--font-head);
-  font-size: var(--fs-xl);
-  font-weight: 500;
+  font-size: var(--text-h3);
+  font-weight: 600;
+  line-height: var(--leading-h3);
   color: var(--text);
 }
 
 .fixDiagnosis {
-  font-size: var(--fs-base);
-  color: var(--text-muted);
+  font-size: var(--text-small);
+  color: var(--text-secondary);
 }
 
-/* ---- Also worth doing today: rows, not cards ---- */
+/* ---- Rail: one list card, the empty note, the readiness note ---- */
 
-.sectionTitle {
-  margin: 0 0 var(--s-3);
-  font-family: var(--font-head);
-  font-size: var(--fs-xl);
-  font-weight: 500;
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
 }
 
-.rows {
+.listCard {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--space-4);
+  background: var(--surface);
+}
+
+.listTitle {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.list {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--hairline);
 }
 
-.row {
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+.listRow {
+  display: flex;
   align-items: center;
-  gap: var(--s-4);
-  min-height: 56px;
-  border-bottom: 1px solid var(--hairline);
+  gap: var(--space-3);
+  min-height: 60px;
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--r-pill);
-  background: var(--text-faint);
+.listRow + .listRow {
+  border-top: 1px solid var(--line);
 }
 
-.dot[data-kind="recall"] {
-  background: var(--recall);
-}
-
-.rowLabel {
+.listText {
+  display: grid;
+  flex: 1;
   min-width: 0;
+}
+
+.listLabel {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--fs-base);
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.rowEstimate {
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
+.listSub {
+  font-size: var(--text-caption);
   color: var(--text-muted);
 }
 
 .rowAction {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
-  min-height: var(--touch-target-min);
-  padding: 0 var(--s-2);
-  color: var(--accent-deep);
-  font-size: var(--fs-sm);
+  min-height: var(--tap-min);
+  padding: 0 var(--space-2);
+  color: var(--accent-text);
+  font-size: var(--text-small);
   font-weight: 600;
   text-decoration: none;
 }
@@ -315,39 +466,34 @@
   text-decoration: underline;
 }
 
-/* ---- Rail ---- */
-
-.rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-8);
-  min-width: 0;
+/* Untested / nothing-yet is dashed --line-strong and neutral copy. */
+.emptyNote {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--space-4);
 }
 
-.railSection {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-4);
+.emptyTitle {
+  font-size: var(--fs-base);
+  font-weight: 600;
 }
 
-.railHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s-3);
+.emptyText {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  color: var(--text-secondary);
 }
 
-.railTitle {
+.note {
   margin: 0;
-  font-family: var(--font-head);
-  font-size: var(--fs-lg);
-  font-weight: 500;
-}
-
-.ladders {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-4);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--space-4);
+  background: var(--surface-sunk);
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 
 .week {
@@ -363,8 +509,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--s-1);
-  font-family: var(--font-mono);
+  gap: var(--space-1);
   font-size: var(--fs-xs);
   color: var(--text-muted);
 }
@@ -376,10 +521,9 @@
   align-items: center;
   justify-content: center;
   border: 1.5px solid transparent;
-  border-radius: var(--r-sm);
-  background: var(--track);
-  color: var(--accent-on);
-  font-family: var(--font);
+  border-radius: 6px;
+  background: var(--surface-sunk);
+  color: var(--on-accent);
   font-size: var(--fs-xs);
 }
 
@@ -395,29 +539,88 @@
   background: var(--surface);
 }
 
+/* ---- Kept for MistakeLoopSection (restyled in rollout step 3) ---- */
+
+.sectionTitle {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: 400;
+  line-height: var(--leading-h2);
+}
+
+.rows {
+  margin: 0;
+  padding: 0 var(--space-5);
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--space-4);
+  background: var(--surface);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 60px;
+}
+
+.row + .row {
+  border-top: 1px solid var(--line);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--line-strong);
+}
+
+.dot[data-kind="repair"],
+.dot[data-kind="retest"] {
+  background: var(--accent);
+}
+
+.rowLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+
+.rowDetail {
+  grid-column: 1 / -1;
+  padding-bottom: var(--space-4);
+}
+
 /* ---- Kept for SessionCompletePanel ---- */
 
 .region {
   display: grid;
-  gap: var(--s-4);
-  padding: var(--s-6);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow-1);
 }
 
 .regionTitle {
   margin: 0;
-  font-family: var(--font-head);
-  font-size: var(--fs-xl);
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: 400;
+  line-height: var(--leading-h2);
 }
 
 .heroActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--s-3);
+  gap: var(--space-3);
 }
 
 .stepLink {
@@ -426,19 +629,58 @@
 
 /* ---- Responsive ---- */
 
-@media (max-width: 1279px) {
+@media (max-width: 1199px) {
   .page {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 680px);
+    gap: var(--space-6);
   }
 }
 
 @media (max-width: 640px) {
-  .card {
-    grid-template-columns: minmax(0, 1fr);
+  .main {
+    gap: 18px;
   }
 
-  .cardAction {
+  .greeting {
+    font-size: var(--text-display-sm);
+  }
+
+  .card {
+    gap: var(--space-3);
+    padding: var(--space-5);
+  }
+
+  .eyebrow {
+    font-size: var(--text-caption);
+  }
+
+  .title {
+    font-size: var(--fs-2xl);
+    line-height: 1.15;
+  }
+
+  .reason {
+    font-size: var(--text-body);
+    line-height: 1.5;
+  }
+
+  .chip {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: var(--text-caption);
+  }
+
+  /* Full-width primary is mobile-only; the alternative sits under it. */
+  .actions {
+    flex-direction: column;
     align-items: stretch;
+    gap: 0;
+  }
+
+  .actions > .ghost,
+  .actions > .ghostButton {
+    min-height: var(--tap-min);
+    align-self: center;
   }
 
   .fixRow {
@@ -447,14 +689,11 @@
 
   .fixRow > a {
     grid-column: 2;
+    justify-self: start;
   }
 
   .row {
     grid-template-columns: 10px minmax(0, 1fr) auto;
-  }
-
-  .rowEstimate {
-    display: none;
   }
 }
 
@@ -463,19 +702,4 @@
   .secondary {
     transition: none;
   }
-}
-
-/* ---- Mistakes to fix (MistakeLoopSection) ---- */
-
-.dot[data-kind="repair"] {
-  background: var(--danger);
-}
-
-.dot[data-kind="retest"] {
-  background: var(--recall);
-}
-
-.rowDetail {
-  grid-column: 1 / -1;
-  padding-bottom: var(--s-4);
 }

@@ -35,7 +35,7 @@ test("Start 45 min runs the block, and its end offers the quick check", async ({
 
   const hero = page.getByRole("region", { name: /Study .* next/ });
   await expect(hero).toBeVisible();
-  const topic = (await hero.getByRole("heading", { level: 1 }).innerText())
+  const topic = (await hero.getByRole("heading", { level: 2 }).innerText())
     .replace(/^Study /, "")
     .replace(/ next\.?$/, "");
   /* The block is the lead action, or one click away as the fallback when
@@ -64,17 +64,20 @@ test("Start 45 min runs the block, and its end offers the quick check", async ({
 });
 
 /* Short on time switches Today to its ten-minute scenario: a mixed recall
-   session, not a shorter timer (2026-09 redesign). */
-test("Only have 10 minutes? offers a ten-minute mixed recall session", async ({
+   session, not a shorter timer (2026-09 redesign). Since Today 1c the
+   choice is the card's time chip ("45 min ▾"). */
+test("the 10 min time chip offers a ten-minute mixed recall session", async ({
   page,
   backend,
 }) => {
   seedStudent(backend);
   await loginAs(page);
 
-  await page.getByRole("button", { name: "Only have 10 minutes?" }).click();
+  await page
+    .getByRole("combobox", { name: "How long have you got?" })
+    .selectOption({ label: "10 min" });
   await expect(
-    page.getByRole("heading", { level: 1, name: "Ten minutes is enough to keep things from fading." }),
+    page.getByRole("heading", { level: 2, name: "Ten minutes is enough to keep things from fading." }),
   ).toBeVisible();
   const start = page.getByRole("link", { name: /^Start · \d+ min$/ });
   await expect(start).toHaveAttribute("href", /\/study\/new\?mode=recall&minutes=10$/);

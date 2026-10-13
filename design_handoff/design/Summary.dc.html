@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Learnora revamp · Summary and implementation notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#f7f5f0;color:#1a1815;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0f766e;text-underline-offset:3px}
+a:hover{color:#0b5f58}
+*:focus-visible{outline:2px solid #0f766e;outline-offset:2px}
+</style>
+</helmet>
+<div style="padding-bottom:120px">
+
+<section id="summary" data-screen-label="One-page summary" style="max-width:860px;margin:0 auto;padding:56px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5d564b;display:flex;gap:12px;flex-wrap:wrap"><span style="color:#1a1815">Learnora revamp</span><span>·</span><span>The two-minute version</span></div>
+  <h1 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(38px,6vw,58px);line-height:1.04;letter-spacing:-0.015em;margin:18px 0 18px">Open it, know what to do, do it, leave feeling better.</h1>
+  <p style="font-size:19px;line-height:1.6;color:#3d3830;margin:0 0 28px">Learnora already does something rare. It finds the wrong idea behind a wrong answer, fixes it, and checks days later that the fix stuck. But students couldn’t see that happening. In production, 33 wrong ideas were logged and none was ever marked fixed. Practice was three or four taps away and often meant waiting 25 seconds. This revamp makes the good part obvious and the rest quiet.</p>
+
+  <div style="display:grid;gap:14px">
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px 22px"><strong style="font-weight:600;font-size:17px">1. One next step, everywhere</strong><p style="margin:6px 0 0;font-size:16px;line-height:1.55;color:#3d3830">Today shows one sentence and one button, with a time cost ("Practise osmosis · 8 min"). The same step appears on Practise, Plan and Progress, because one engine decides it. The first question appears straight away from built-in exam-board questions.</p></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px 22px"><strong style="font-weight:600;font-size:17px">2. Mistakes become trophies</strong><p style="margin:6px 0 0;font-size:16px;line-height:1.55;color:#3d3830">A wrong answer gets a short, kind explanation and a date: "We’ll check this on Thursday." On Thursday, that check is the next step. It's one new question, about a minute. Get it right and you see a calm "Fixed" screen, and it joins your list of things you’ve fixed.</p></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px 22px"><strong style="font-weight:600;font-size:17px">3. Honest, never scary</strong><p style="margin:6px 0 0;font-size:16px;line-height:1.55;color:#3d3830">Readiness is a range ("likely a 5 or 6"), it says what it’s based on, and it ends with what to do. "Not tried yet" is never shown as weak. Boards we don’t fully support yet (CBSE, ICSE, A-level) say so when you pick them.</p></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px 22px"><strong style="font-weight:600;font-size:17px">4. No guilt, no ambushes</strong><p style="margin:6px 0 0;font-size:16px;line-height:1.55;color:#3d3830">After a break: "Welcome back. Nothing’s overdue." The plan has already moved, and there's a 5-minute restart. You can see AI limits before you start, a limit never stops you mid-question, and the free plan is complete.</p></div>
+  </div>
+
+  <div style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+    <div style="border-top:3px solid #0f766e;padding-top:10px"><div style="font-family:Newsreader,serif;font-size:32px">3.0 → 1.6</div><div style="font-size:14px;color:#3d3830">average stress across 10 personas, out of 5</div></div>
+    <div style="border-top:3px solid #0f766e;padding-top:10px"><div style="font-family:Newsreader,serif;font-size:32px">1–2 taps</div><div style="font-size:14px;color:#3d3830">from opening the app to a question, down from 3–4 plus a wait</div></div>
+    <div style="border-top:3px solid #0f766e;padding-top:10px"><div style="font-family:Newsreader,serif;font-size:32px">0</div><div style="font-size:14px;color:#3d3830">journeys left where anyone would quit (cells above 2), down from 64 of 91</div></div>
+  </div>
+  <p style="margin:16px 0 0;font-size:14px;line-height:1.55;color:#5d564b">These scores come from role-played walkthroughs, not real students. Next step: five real sessions before building the mistake loop. What stays the same: the five tabs, the paper-and-teal look, every URL (old ones redirect), and all the learning science.</p>
+
+  <div style="margin-top:28px;display:flex;flex-wrap:wrap;gap:10px">
+    <a href="Prototype.dc.html" style="display:inline-flex;align-items:center;min-height:48px;padding:0 20px;border-radius:12px;background:#0f766e;color:#fff;text-decoration:none;font-weight:600">Try the prototype</a>
+    <a href="Screens.dc.html" style="display:inline-flex;align-items:center;min-height:48px;padding:0 18px;border-radius:12px;border:1px solid #8f8778;color:#1a1815;text-decoration:none;font-weight:600">All screens</a>
+    <a href="Research Report.dc.html" style="display:inline-flex;align-items:center;min-height:48px;padding:0 18px;border-radius:12px;border:1px solid #8f8778;color:#1a1815;text-decoration:none;font-weight:600">Research and IA</a>
+    <a href="Design System.dc.html" style="display:inline-flex;align-items:center;min-height:48px;padding:0 18px;border-radius:12px;border:1px solid #8f8778;color:#1a1815;text-decoration:none;font-weight:600">Design system</a>
+    <a href="Test Report.dc.html" style="display:inline-flex;align-items:center;min-height:48px;padding:0 18px;border-radius:12px;border:1px solid #8f8778;color:#1a1815;text-decoration:none;font-weight:600">Test report</a>
+  </div>
+</section>
+
+<section id="eng" data-screen-label="Implementation notes" style="max-width:1240px;margin:0 auto;padding:96px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">For engineers</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(32px,4vw,44px);line-height:1.08;margin:8px 0 12px">Implementation notes</h2>
+  <p style="font-size:16px;line-height:1.55;color:#3d3830;max-width:70ch;margin:0 0 24px">Tokens drop into <code style="font-family:'JetBrains Mono',monospace;font-size:13px">styles/tokens.css</code> from the <a href="Design System.dc.html#tokens">token table</a>. Existing names are kept, and <code style="font-family:'JetBrains Mono',monospace;font-size:13px">--accent</code>/<code style="font-family:'JetBrains Mono',monospace;font-size:13px">--accent-text</code> and the semantic fill/text split are preserved. New tokens are additions only.</p>
+
+  <h3 style="font-family:Newsreader,serif;font-weight:400;font-size:28px;margin:0 0 14px">Restyle or replace</h3>
+  <div style="overflow-x:auto;border:1px solid #e2ddd1;border-radius:16px;background:#fffefb">
+    <table style="width:100%;min-width:900px;border-collapse:collapse;font-size:14px;line-height:1.5">
+      <thead><tr style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b"><th style="padding:12px 14px;border-bottom:1px solid #e2ddd1;font-weight:500;width:170px">Component</th><th style="padding:12px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:100px">Action</th><th style="padding:12px 14px;border-bottom:1px solid #e2ddd1;font-weight:500">What changes</th></tr></thead>
+      <tbody>
+        <sc-for list="{{ comps }}" as="c" hint-placeholder-count="18">
+          <tr style="vertical-align:top"><td style="padding:11px 14px;border-bottom:1px solid #ece7dc;font-family:'JetBrains Mono',monospace;font-size:12.5px">{{ c.name }}</td><td style="padding:11px 10px;border-bottom:1px solid #ece7dc"><span style="font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;border:{{ c.border }};background:{{ c.bg }};color:{{ c.fg }};white-space:nowrap">{{ c.action }}</span></td><td style="padding:11px 14px;border-bottom:1px solid #ece7dc;color:#3d3830">{{ c.what }}</td></tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="font-family:Newsreader,serif;font-weight:400;font-size:28px;margin:48px 0 14px">Rollout order: value early</h3>
+  <ol style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+    <sc-for list="{{ rollout }}" as="r" hint-placeholder-count="6">
+      <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px;display:grid;gap:8px;align-content:start">
+        <span style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:Newsreader,serif;font-size:30px;line-height:1">{{ r.n }}</span><span style="font-size:12px;color:#5d564b">{{ r.size }}</span></span>
+        <strong style="font-weight:600;font-size:16px">{{ r.title }}</strong>
+        <span style="font-size:14px;line-height:1.5;color:#3d3830">{{ r.what }}</span>
+        <span style="font-size:13px;line-height:1.45;color:#0f766e"><b style="font-weight:600">Measure:</b> {{ r.metric }}</span>
+      </li>
+    </sc-for>
+  </ol>
+
+  <h3 style="font-family:Newsreader,serif;font-weight:400;font-size:28px;margin:48px 0 14px">Needs product or backend work, not just UI</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px">
+    <sc-for list="{{ backend }}" as="b" hint-placeholder-count="8">
+      <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px;display:grid;gap:6px;align-content:start">
+        <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong style="font-weight:600;font-size:15px">{{ b.title }}</strong><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid #1a1815">{{ b.kind }}</span></span>
+        <span style="font-size:14px;line-height:1.5;color:#3d3830">{{ b.what }}</span>
+        <span style="font-size:13px;color:#5d564b">Blocks: {{ b.blocks }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <h3 style="font-family:Newsreader,serif;font-weight:400;font-size:28px;margin:48px 0 14px">Accessibility checks to add to CI</h3>
+  <ul style="margin:0;padding-left:20px;display:grid;gap:6px;font-size:15px;line-height:1.5;color:#3d3830;max-width:80ch">
+    <li>Contrast: loop every preset × mode through the same pair list the design system checks live (120 pairs). Fail the build if any pair fails.</li>
+    <li>Answer options use <code style="font-family:'JetBrains Mono',monospace;font-size:13px">aria-disabled</code> after Check, never <code style="font-family:'JetBrains Mono',monospace;font-size:13px">disabled</code>, so they stay focusable. Their result is part of the accessible name.</li>
+    <li>Every <code style="font-family:'JetBrains Mono',monospace;font-size:13px">role="img"</code> chart has an <code style="font-family:'JetBrains Mono',monospace;font-size:13px">aria-label</code> sentence and a "Show as a table" alternative.</li>
+    <li>The tutor drawer is not modal (F6 switches between panes). Sheets trap focus and return it to whatever opened them.</li>
+    <li>Reduced motion: <code style="font-family:'JetBrains Mono',monospace;font-size:13px">--dur-*</code> collapses to 80 ms fades, and the AI-working pulse stops.</li>
+  </ul>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const tone = a => a === 'Replace' ? { bg: '#1a1815', fg: '#fbfaf7', border: '1px solid #1a1815' } : a === 'New states' ? { bg: '#0f766e', fg: '#fff', border: '1px solid #0f766e' } : { bg: 'transparent', fg: '#1a1815', border: '1px solid #cfc8b8' };
+    const C = [
+      ['Button', 'Restyle', 'New radius (12/14 px), a 44 px minimum height and an aria-busy loading state. Disabled uses aria-disabled plus a reason. Keep it flat: no gradients.'],
+      ['Card', 'Restyle', 'Hairline border with shadow-1. Never nest a card inside a card. Interactive cards get a hover border in --text.'],
+      ['Chip', 'Restyle', 'Selected = tick + fill, not colour alone. 40 px tall with an 8 px gap. Filters only, never navigation.'],
+      ['Modal', 'Restyle', 'Becomes a bottom sheet on mobile, with drag to close and an explicit close button. Focus goes to the title and comes back on close.'],
+      ['PageHeader', 'Restyle', 'Display serif at 32/44 px, with an optional single sub-line. No action clusters: one secondary action at most.'],
+      ['Sidebar', 'Restyle', 'Children only appear under the active tab. Footer: Ask the tutor ⌘J, Search ⌘K, and a quiet tutor-goes line on Free.'],
+      ['MobileTabBar', 'Restyle', 'Five labelled tabs. The Ask pill gets a text label and is hidden in sessions and sheets, and when the keyboard is open.'],
+      ['EmptyState', 'Restyle', 'Always offers something useful straight away (bank questions, cards), never only "Add material".'],
+      ['Skeleton', 'Restyle', 'One skeleton per screen, matched to the real layout box for box. aria-hidden, with the region set to aria-busy.'],
+      ['InlineFeedback', 'Restyle', 'Four tones (info, success, warning, danger). Warning is only for heads-ups before a limit, and danger only for real failures.'],
+      ['HintLadder', 'New states', 'State the rule before the first rung. Hints of 25 words or fewer. Rung 3 becomes "Show me how, then one like it", which queues a fresh question. Pre-written ladders for bank questions.'],
+      ['ConfidencePicker', 'Restyle', 'Shown after an answer is picked and before Check. Optional, and can be switched off in Settings ▸ Study. Never red or green.'],
+      ['MasteryLadder', 'New states', 'Five evidence-based rungs (Started → Remembered → Remembered later → Used it → Explained). Unreached rungs are dashed.'],
+      ['MisconceptionRepair', 'New states', 'Becomes the mix-up card: Fixing → Check-back ready → Fixed / Not yet. Ends with the check-back date. Labelled "Not checked by a teacher yet" when the mix-up was spotted by AI.'],
+      ['WrongAnswerNote', 'Replace', 'Merged into the answer feedback sheet: "Not quite. [answer]" + one sentence + a side-by-side. No red, no cross.'],
+      ['PaywallModal', 'Replace', 'Split into a LimitNotice (start sheet and between tasks) and a /upgrade page. It never opens on its own mid-task.'],
+      ['TurboChat', 'Restyle', 'Source chips under every reply, open to the exact passage. "From general knowledge" when there are none. Goes left shown in the header.'],
+      ['CommandPalette', 'Restyle', 'Verbs first (Practise, Ask, Add material), plus the toggles people use: dark, reading, text size. Replaces the hidden ai: prefix.'],
+      ['Pending', 'Replace', 'Real progress steps from the server, a time estimate, and something useful to do meanwhile. "Taking longer than usual" after 30 s.'],
+      ['AiErrorCard', 'Restyle', 'Keep the copy approach. It now says whose problem it is, that no go was used, and the first button always works offline.']
+    ];
+    const R = [
+      ['1', 'Tokens + Today 1c', '1–2 sprints', 'Ship the token table and the restyled Button, Card and Skeleton. Rebuild Today as one card with a time chip, the welcome-back state and the new empty state.', 'J2 taps to first question; share of opens that start something'],
+      ['2', 'Question flow', '2 sprints', 'Bank-first sessions with generated questions slotting in behind. Answer feedback sheet, hint ladder states, Save and stop.', 'Sessions started per active user; quiz attempts (currently in single digits)'],
+      ['3', 'Mistake loop', '2 sprints', 'Check-back as Today’s next step, the check-back screen, the Fixed moment, the Mix-ups list (Fixed first), the check-back reminder.', 'Mix-ups resolved / logged (currently 0 of 33)'],
+      ['4', 'First run', '1–2 sprints', 'Honest board labels, the 2-minute check, "Here’s where you’re starting", exam picked from papers. Replaces the replay wizard’s menu recap.', 'Sign-up → first answered question; D7 return'],
+      ['5', 'Progress + limits', '2 sprints', 'Parent-legible strip, readiness ranges, low-data states, LimitNotice, /upgrade.', 'Readiness views without bounce; limit-reached exits'],
+      ['6', 'Plan, Library, Settings', '2–3 sprints', 'One week view, When I’m free sheet, auto-replan with undo, two-tab Library, reading mode, six-section Settings.', 'Plans adjusted vs abandoned; reading-mode adoption']
+    ];
+    const B = [
+      ['One next-step engine', 'Backend', 'Consolidate the six deciders (trajectory forecast, mistake ranking, autoSchedule and others) into one ranked rule list that every screen reads. Unify the deck and quiz-only forecasts.', 'Today 1c, Practise top card, Plan "now", Progress best move'],
+      ['Evidence-gated mastery rungs', 'Backend · lib/mastery', 'Rungs need types of evidence (delayed recall, constructed response, an explanation) rather than counts of correct MCQs. Migrate existing rungs down where the evidence is missing.', 'MasteryLadder, session summary, Progress'],
+      ['Check-back scheduling and reminder', 'Backend', 'At least 2 days after the re-teach. A different question built for the same mix-up, with a trap option. A "check-back ready" push or email as the one reminder that’s on by default. "Not yet" reschedules for 2–4 days later.', 'Mistake loop'],
+      ['Bank-first session assembly', 'Backend', 'Start sessions from the question bank and stream generated questions into the queue. Cache per topic for partly-ready boards, so nothing regenerates over 4G.', 'J2 target, Aarav'],
+      ['Pre-written hint ladders for bank questions', 'Content', 'Three rungs per bank question, so hints never wait on AI.', 'HintLadder'],
+      ['Board support levels', 'Product + data', 'Explicit Ready / Partly ready per board in the catalogue. "Tell me when it’s ready" sign-ups. "Not on my syllabus" reports feed coverage.', 'Board picker, partly-ready labels'],
+      ['Server-sent AI progress steps', 'Backend', 'Emit real stages (read, write, check) and a p50-based estimate for the Pending replacement.', 'AI working state'],
+      ['Limit checked at session start only', 'Backend + billing', 'Reserve the go when a session starts and never cut a session off. Expose the remaining goes to the client for the show-when-2-or-fewer rule.', 'LimitNotice, Sam'],
+      ['Placement check', 'Product · NEW', 'Up to 12 questions across the chosen subjects, including "I haven’t learnt this yet" as an untested signal. Reuses PlacementView.', 'First run'],
+      ['Auto-replan on return', 'Backend · NEW', 'After 7+ days away, rebuild the plan from today with undo. Produce a "still fits / tight" verdict, and a drop list ordered by marks.', 'Welcome back, P3']
+    ];
+    return {
+      comps: C.map(c => Object.assign({ name: c[0], action: c[1], what: c[2] }, tone(c[1]))),
+      rollout: R.map(r => ({ n: r[0], title: r[1], size: r[2], what: r[3], metric: r[4] })),
+      backend: B.map(b => ({ title: b[0], kind: b[1], what: b[2], blocks: b[3] }))
+    };
+  }
+}
+</script>
+</body>
+</html>

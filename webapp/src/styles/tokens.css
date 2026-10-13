@@ -1,7 +1,12 @@
-/* Design tokens, ported 1:1 from the vanilla app's style.css :root block
- * (REACT_MIGRATION.md decision #3 — no visual redesign). Keep in lockstep
- * with style.css until the last vanilla route is cut over; the parity test
- * in tokens.test.ts enforces this. */
+/* Design tokens. Originally ported 1:1 from the vanilla app's style.css
+ * :root block; since 2026-10 merged with the Learnora revamp token table
+ * (design_handoff/tokens.css). Existing names are kept — where the revamp
+ * renames a role (--on-accent, --shadow-1, --surface-sunk …) the new name is
+ * added alongside the old one, not instead of it, so no consumer breaks.
+ *
+ * Theming still runs on body.dark-theme / body[data-theme-color] (themes.css),
+ * not the handoff's [data-theme]/[data-accent] attributes: that is what the
+ * theme engine writes, and it ships 13 presets, not the handoff's 4. */
 
 :root {
   /* Vertical room the fixed "Ask AI" command bar needs at the end of a
@@ -17,7 +22,7 @@
      override it; this value is the fallback for an unknown accent. */
   --accent-rgb: 15, 118, 110;
   --accent: #0f766e;
-  --accent-hover: #0c5f59;
+  --accent-hover: #0b5f58;
   --accent-press: #094943;
   --accent-soft: rgba(15, 118, 110, 0.12);
   --accent-ring: rgba(15, 118, 110, 0.32);
@@ -43,21 +48,26 @@
      likewise declared on `body`. */
 
   /* --- Semantic --- */
-  --success: #1e8e6b;
-  --success-soft: rgba(30, 142, 107, 0.12);
-  --warning: #c98a2e;
-  --warning-soft: rgba(201, 138, 46, 0.14);
+  /* Revamp: success and warning fills walked darker so each clears 3:1 as a
+     graphic on --bg; the soft washes are opaque so a label's contrast on
+     them is the same on every surface. */
+  --success: #17805f;
+  --success-soft: #e3f1ea;
+  --warning: #b7791f;
+  --warning-soft: #f7ecd8;
   --danger: #c2453a;
-  --danger-soft: rgba(194, 69, 58, 0.12);
+  --danger-soft: #f8e5e2;
+  --info: #3d6aa8;
+  --info-text: #2f5286;
+  --info-soft: #e6edf6;
+  --info-on: #ffffff;
   /* Label colour for anything filled with --success/--warning/--danger —
      same job as --accent-on, added for the same reason: a handful of these
      fills hardcoded `color: #fff`, and dark-theme's --warning (2.18:1) and
-     --danger (3.71:1) both fail white at AA. --success-on is pure black
-     rather than --accent-ink: neither white (4.09:1) nor --accent-ink
-     (4.47:1) clears AA against --success, and unlike the accent presets this
-     token parity-tests 1:1 against the vanilla's style.css, so the fill
-     itself isn't free to move — only the label is. */
-  --success-on: #000000;
+     --danger (3.71:1) both fail white at AA. --success-on was pure black
+     against the old, lighter #1e8e6b (white scored 4.09:1); the revamp's
+     darker #17805f carries white at 5.0:1, so it is white again. */
+  --success-on: #ffffff;
   --warning-on: var(--accent-ink);
   --danger-on: #ffffff;
   /* The exam list's difficulty chip paints a two-stop gradient rather than a
@@ -91,10 +101,14 @@
      --danger-2 is a coincidence, not a relation: that token is the exam
      chip's second gradient stop and is not free to move with this one.
 
-     Dark mode points all three back at the fill (themes.css), where the
-     fills are light-on-dark and already clear AA as text. */
-  --success-text: #15634b;
-  --warning-text: #76511b;
+     Dark mode has its own lighter label tones (themes.css).
+
+     2026-10 revamp: the handoff keeps #15634b / #76511b, but its darker
+     fills (#17805f, #b7791f) drag the worst-case wash above under 4.5:1
+     (4.45 and 4.47), so both are walked one notch darker in the same hue.
+     Against the revamp's opaque --*-soft washes they read at 6.2-6.4:1. */
+  --success-text: #15614a;
+  --warning-text: #74501b;
   --danger-text: #96352d;
 
   /* --- Page surfaces --- */
@@ -105,6 +119,10 @@
   --surface-2: #f0ede5;
   --surface-hover: #e8e4da;
   --surface-active: #ded9cc;
+  /* Revamp surface roles: a recessed well (quote boxes, notes, skeletons)
+     and a floating sheet/popover surface. */
+  --surface-sunk: #f2efe8;
+  --surface-raised: #ffffff;
 
   /* --- Glass --- */
   --glass-bg: rgba(255, 255, 255, 0.66);
@@ -136,7 +154,10 @@
      when you need just the colour. Declared on `body` at the foot of this
      file, because --glass-border-subtle is one of the tokens the themes
      re-declare. */
-  --line: rgba(28, 24, 18, 0.06);
+  --line: #e2ddd1;
+  /* Control edges (chips, inputs, secondary buttons) and the dashed
+     "untested" outline. 3.4:1 on --surface, so it reads as a boundary. */
+  --line-strong: #8f8778;
 
   /* --- Radius --- */
   /* Tightened one step across the board. The app was rendering essentially
@@ -171,7 +192,7 @@
      cards get a hairline and a tone step instead. */
   --shadow-sm: 0 1px 2px rgba(24, 20, 14, 0.06);
   --shadow-md: 0 4px 12px -2px rgba(24, 20, 14, 0.1);
-  --shadow-lg: 0 16px 40px -12px rgba(24, 20, 14, 0.16);
+  --shadow-lg: 0 16px 40px -12px rgba(24, 20, 14, 0.18);
   /* --shadow-accent is themed (it wraps --accent-ring) and lives on `body`. */
 
   /* --- Typography --- */
@@ -183,8 +204,7 @@
      same colour and width, so headings and body read as one undifferentiated
      texture; that flatness is a large part of why the app looked templated. */
   --font:
-    "Instrument Sans", "Inter", system-ui, -apple-system, "Segoe UI",
-    sans-serif;
+    "Instrument Sans", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-head: "Newsreader", "Spectral", Georgia, "Times New Roman", serif;
   /* Figures in stats, timers and tables must not reflow as they tick. */
   --font-numeric: "Instrument Sans", system-ui, sans-serif;
@@ -208,7 +228,7 @@
   --fs-3xl: clamp(30px, 3.2vw, 38px);
   --fs-4xl: clamp(38px, 4.6vw, 52px);
   --lh: 1.6;
-  --measure: 68ch;
+  --measure: 65ch;
 
   /* --- Tracking (letter-spacing) --- */
   --tracking-tight: -0.015em;
@@ -265,11 +285,10 @@
   /* Only the geometry lives here. The four that resolve to a *themed* value
      (--card-bg, --card-bg-subtle, --card-border, --card-border-hover) and the
      two shadows are declared on `body` at the foot of this file. */
-  --card-radius: var(--r-lg);
-  --card-radius-lg: var(--r-xl);
+  --card-radius: var(--radius-md);
+  --card-radius-lg: var(--radius-lg);
   --card-transition:
-    transform var(--t-fast) var(--ease),
-    box-shadow var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease),
     border-color var(--t-fast) var(--ease);
   --card-hover-lift: translateY(-2px);
   --card-hover-lift-sm: translateY(-1px);
@@ -321,6 +340,103 @@
   --topbar-height: 64px;
   --control-sm: 32px;
   --control-lg: 48px;
+
+  /* ---------------------------------------------------------------------- *
+   * 2026-10 revamp scales (design_handoff/tokens.css). New names only; the
+   * older --s-*, --r-*, --fs-*, --t-* scales stay for existing consumers.
+   * ---------------------------------------------------------------------- */
+
+  /* Type. Newsreader is display/H1/H2 only (≥22px), never questions or
+     answers. --font-reading is the handoff's --font-read (Atkinson
+     Hyperlegible, reading mode only); renamed because --font-read is already
+     the AI-prose serif above. */
+  --font-display: "Newsreader", Georgia, serif;
+  --font-body: "Instrument Sans", system-ui, sans-serif;
+  --font-reading: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --text-display: 44px;
+  --leading-display: 1.05;
+  --text-display-sm: 34px;
+  --text-h1: 32px;
+  --leading-h1: 1.15;
+  --text-h2: 24px;
+  --leading-h2: 1.25;
+  --text-h3: 19px;
+  --leading-h3: 1.35;
+  --text-question: 19px;
+  --leading-question: 1.45;
+  --text-body-lg: 18px;
+  --leading-body-lg: 1.55;
+  --text-body: 16px;
+  --leading-body: 1.55;
+  --text-small: 14px;
+  --leading-small: 1.45;
+  --text-caption: 13px;
+  --leading-caption: 1.4;
+  --text-num-xl: 40px;
+  --leading-num-xl: 1;
+
+  /* Space (4px base). */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radius. Buttons 12–14, cards 14–20, sheets 20–22. */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+  --radius-control: 12px;
+
+  /* Motion. No spring overshoot; --ease-spring above is legacy. */
+  --dur-fast: 140ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* Layers. */
+  --z-base: 0;
+  --z-raised: 1;
+  --z-sticky: 100;
+  --z-nav: 200;
+  --z-ask: 300;
+  --z-drawer: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+  --z-tooltip: 700;
+  --tap-min: 44px;
+}
+
+/* Reading mode (NEW in the revamp; nothing sets the attribute yet — the
+   Settings toggle lands with rollout step 6). Atkinson for body and
+   headings, larger and more open, never justified. */
+[data-reading="on"] {
+  --font-display: var(--font-reading);
+  --font-body: var(--font-reading);
+  --text-body: 19px;
+  --leading-body: 1.75;
+  --tracking-body: 0.01em;
+  --word-spacing-body: 0.08em;
+  --measure: 60ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 80ms;
+    --dur-slow: 80ms;
+    --ease-out: linear;
+  }
 }
 
 /* --- Theme-derived aliases ------------------------------------------------
@@ -360,12 +476,26 @@ body {
 
   --card-bg: var(--surface);
   --card-bg-subtle: var(--surface-2);
-  --card-border: var(--border);
-  --card-border-hover: var(--accent-ring);
-  --card-shadow: var(--shadow-sm);
-  --card-shadow-hover: var(--shadow-md);
+  /* Revamp: an opaque hairline plus --shadow-1; interactive cards answer
+     hover with a --text edge rather than a lift or a tinted glow. */
+  --card-border: 1px solid var(--line);
+  --card-border-hover: var(--text);
+  --card-shadow: var(--shadow-1);
+  --card-shadow-hover: var(--shadow-1);
 
   --shadow-accent: 0 0 0 1px var(--accent-ring);
+
+  /* Revamp role names for tokens the themes already re-declare. Aliases, so
+     every preset and dark mode follow without a second copy of each ramp. */
+  --on-accent: var(--accent-on);
+  --focus-ring: var(--accent);
+  --on-success: var(--success-on);
+  --on-warning: var(--warning-on);
+  --on-danger: var(--danger-on);
+  --on-info: var(--info-on);
+  --shadow-1: var(--shadow-sm);
+  --shadow-2: var(--shadow-md);
+  --shadow-3: var(--shadow-lg);
 
   /* Redesign accent roles. The handoff gives these as teal hexes
      (#e1ece9 wash, #0b5c55 label, #cfe0dc / #9cc6c0 edges), but the app

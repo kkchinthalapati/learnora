@@ -1,90 +1,93 @@
 /* Originally ported from style.css's `button` / .btn-* rules; restyled flat
- * for the 2026-09 redesign (no gradients, no sheen, no hover lift). */
+ * for the 2026-09 redesign, then to the 2026-10 revamp's component sheet
+ * (design_handoff/design/Design System.dc.html → Button): 12px radius at
+ * 44px, 14px at 52px, a 2px --focus-ring, a pulse for loading and a dashed
+ * "not yet" look for disabled. Still no gradients, sheen or hover lift. */
 
 .btn {
   display: inline-flex;
-  min-height: var(--touch-target-min);
+  min-height: var(--tap-min);
   align-items: center;
   justify-content: center;
-  gap: var(--s-2);
+  gap: var(--space-2);
   font-family: inherit;
   font-size: var(--fs-base);
   font-weight: 600;
   line-height: 1.2;
-  padding: 12px 20px;
+  padding: 0 var(--space-4);
   border: 1px solid transparent;
-  border-radius: var(--r-md);
+  border-radius: var(--radius-control);
   cursor: pointer;
   color: var(--text);
   background: transparent;
   transition:
-    background var(--t-fast) var(--ease),
-    border-color var(--t-fast) var(--ease),
-    color var(--t-fast) var(--ease),
-    transform var(--t-fast) var(--ease);
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
-.btn:active:not(:disabled) {
+.btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn:active:not(:disabled, [aria-disabled="true"]) {
   transform: translateY(1px);
 }
 
-/* Flat accent fill. The 135deg gradient and white sheen are gone
- * (2026-09 redesign): a gradient primary is the loudest "generated UI" tell
- * there is, and one flat teal button per screen is the whole hierarchy. */
+/* Flat accent fill. One per screen is the whole hierarchy. */
 .primary {
   background: var(--accent);
-  color: var(--accent-on);
+  color: var(--on-accent);
   border-color: var(--accent);
   text-shadow: var(--accent-on-shadow);
 }
-.primary:hover:not(:disabled) {
+.primary:hover:not(:disabled, [aria-disabled="true"]),
+.primary:active:not(:disabled, [aria-disabled="true"]) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
-}
-.primary:active {
-  background: var(--accent-press);
-  border-color: var(--accent-press);
-}
-.primary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .secondary {
   background: var(--surface);
   color: var(--text);
-  border-color: var(--hairline-strong);
+  border-color: var(--line-strong);
 }
-.secondary:hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: var(--accent-line-strong);
+.secondary:hover:not(:disabled, [aria-disabled="true"]),
+.secondary:active:not(:disabled, [aria-disabled="true"]) {
+  background: var(--surface-sunk);
+  border-color: var(--text);
 }
 
-/* Lowest-emphasis text action ("Quiet" in the redesign) — no fill, no
- * border at rest. For the "Copy", "Dismiss", "Show more" inline actions. */
+/* Lowest-emphasis action ("Something else", "Show me how"): accent text,
+ * no fill or edge at rest, a soft accent wash on hover. */
 .ghost {
+  padding: 0 var(--space-3);
   background: transparent;
-  color: var(--text-muted);
+  color: var(--accent-text);
   border-color: transparent;
 }
-.ghost:hover:not(:disabled) {
-  background: var(--track);
-  color: var(--text);
-}
-.ghost:active {
-  background: var(--surface-active);
+.ghost:hover:not(:disabled, [aria-disabled="true"]),
+.ghost:active:not(:disabled, [aria-disabled="true"]) {
+  background: var(--accent-soft);
 }
 
-/* Destructive: a text action with a soft hover, never a red slab. Pair it
-   with an inline confirm that names what will be lost, then an undo toast
-   (useDeferredDelete). */
+/* Destructive. Only for actions that lose something (Delete account),
+ * never for anything about learning. Pair it with an inline confirm that
+ * names what will be lost. */
 .danger {
-  background: transparent;
-  color: var(--danger-text);
-  border-color: transparent;
+  background: var(--danger);
+  color: var(--on-danger);
+  border-color: var(--danger);
 }
-.danger:hover:not(:disabled) {
-  background: var(--danger-soft);
+.danger:hover:not(:disabled, [aria-disabled="true"]),
+.danger:active:not(:disabled, [aria-disabled="true"]) {
+  background: var(--danger-text);
+  border-color: var(--danger-text);
+}
+.danger:focus-visible {
+  outline-color: var(--danger);
 }
 
 .warning {
@@ -92,9 +95,9 @@
   color: var(--warning-text);
   border-color: transparent;
 }
-.warning:hover:not(:disabled) {
+.warning:hover:not(:disabled, [aria-disabled="true"]) {
   background: var(--warning);
-  color: var(--warning-on);
+  color: var(--on-warning);
 }
 
 .success {
@@ -102,58 +105,103 @@
   color: var(--success-text);
   border-color: transparent;
 }
-.success:hover:not(:disabled) {
+.success:hover:not(:disabled, [aria-disabled="true"]) {
   background: var(--success);
-  color: var(--success-on);
+  color: var(--on-success);
 }
 
-/* A real disabled fill rather than a faded version of the live one: at
-   opacity .55 a disabled primary still read as teal, i.e. as clickable. */
-.btn:disabled {
+/* Disabled keeps its label and reads as "not yet", not as a faded live
+ * button. `aria-disabled="true"` gets the same look, so a control can stay
+ * in the focus order (and say why beside it) without acting. */
+.btn:disabled,
+.btn[aria-disabled="true"] {
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
-}
-.primary:disabled {
-  background: var(--surface-active);
-  border-color: var(--surface-active);
-  color: var(--text-faint);
   text-shadow: none;
 }
-.secondary:disabled,
-.ghost:disabled,
+.primary:disabled,
+.primary[aria-disabled="true"],
 .danger:disabled,
+.danger[aria-disabled="true"] {
+  background: var(--surface-sunk);
+  border: 1px dashed var(--line-strong);
+  color: var(--text-muted);
+}
+.secondary:disabled,
+.secondary[aria-disabled="true"] {
+  background: transparent;
+  border: 1px dashed var(--line-strong);
+  color: var(--text-muted);
+}
+.ghost:disabled,
+.ghost[aria-disabled="true"] {
+  color: var(--text-muted);
+}
 .warning:disabled,
-.success:disabled {
+.warning[aria-disabled="true"],
+.success:disabled,
+.success[aria-disabled="true"] {
   opacity: 0.55;
 }
 
+/* Busy keeps the live colours (it is working, not unavailable) and the
+ * button's width, so nothing jumps. */
+.btn[aria-busy="true"] {
+  cursor: progress;
+}
+.primary[aria-busy="true"]:disabled {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--on-accent);
+}
+.secondary[aria-busy="true"]:disabled {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+}
+.ghost[aria-busy="true"]:disabled {
+  color: var(--accent-text);
+}
+.danger[aria-busy="true"]:disabled {
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  color: var(--on-danger);
+}
+
+/* The 52px "Start · 8 min" size. */
 .lg {
-  min-height: var(--control-lg);
-  padding: var(--s-3) var(--s-6);
-}
-
-/* Busy: an inline spinner beside the verb ("Saving"), not a replaced label. */
-.spinner {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: var(--r-pill);
-  animation: btn-spin 0.8s linear infinite;
-}
-
-@keyframes btn-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  min-height: 52px;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-md);
+  font-size: var(--text-body);
 }
 
 .sm {
-  min-height: var(--touch-target-min);
-  padding: 6px 12px;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-3);
   font-size: var(--fs-sm);
+}
+
+/* Busy: a small pulsing dot beside the verb ("Saving"), not a spinner that
+ * replaces the label. */
+.spinner {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  animation: btn-pulse 1.2s var(--ease-standard) infinite;
+}
+
+@keyframes btn-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -165,6 +213,6 @@
     transform: none;
   }
   .spinner {
-    animation-duration: 2.4s;
+    animation: none;
   }
 }

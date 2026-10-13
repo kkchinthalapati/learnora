@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { useTimer } from "../../context/timer";
 import { useOptionalAuth } from "../../context/auth";
 import { useCreateModal } from "../../context/createModal";
 import { useTrajectory } from "../../hooks/useTrajectory";
-import { useFlashcards, useFlashcardsDueCount } from "../../hooks/useFlashcards";
+import {
+  useFlashcards,
+  useFlashcardsDueCount,
+} from "../../hooks/useFlashcards";
 import { useContinuity } from "../../hooks/useContinuity";
 import { useRemoteSessionResume } from "../../hooks/useRemoteSessionResume";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
@@ -26,26 +29,32 @@ import {
 import { TodayHero } from "./TodayHero";
 import { TodayRail } from "./TodayRail";
 import { SessionCompletePanel } from "./SessionCompletePanel";
-import text from "../../styles/text.module.css";
+import { Skeleton } from "../../components/Skeleton";
 import styles from "./today.module.css";
 
-const DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-});
+/** Away this long, Today greets you back instead of saying good morning. */
+export const WELCOME_BACK_DAYS = 7;
 
-/** "Wed 30 Sep" — built from parts so no locale slips in "Sept" or a comma. */
-function metaDate(d: Date): string {
-  const part = (type: string) =>
-    DATE_FORMAT.formatToParts(d).find((p) => p.type === type)?.value ?? "";
-  return `${part("weekday")} ${part("day")} ${part("month")}`;
+/** "Morning, Maya." / "Welcome back, Priya." — the 1c greeting. */
+export function greetingFor(
+  now: Date,
+  firstName?: string,
+  welcomeBack = false,
+): string {
+  const hour = now.getHours();
+  const word = welcomeBack
+    ? "Welcome back"
+    : hour < 12
+      ? "Morning"
+      : hour < 18
+        ? "Afternoon"
+        : "Evening";
+  return firstName ? `${word}, ${firstName}.` : `${word}.`;
 }
 
-/* Today answers one question — what should I do now? — with one button.
- * Headline and lead card (TodayHero), up to three rows of "also worth doing",
- * and a rail of context. Everything else the old Today stacked here (due
- * tasks, next exam, notebook shelf, resume card) folds into those three. */
+/* Today answers one question — what should I do now? — with one button
+ * (design 1c). A greeting, one next-step card (TodayHero), the mistake loop,
+ * and a rail of what comes later. Readiness lives on Progress, not here. */
 export function TodayView() {
   const navigate = useNavigate();
   const auth = useOptionalAuth();
@@ -59,7 +68,8 @@ export function TodayView() {
   } = useTimer();
   const { exam, forecast, needsMaterial, isPending } = useTrajectory();
   const { snapshot } = useContinuity();
-  const { ranked: misconceptions } = useMisconceptions();
+  const { ranked: misconceptions, isPending: mistakesPending } =
+    useMisconceptions();
   const attempts = useQuizAttempts();
   const tasks = useTasks();
   const sessions = useSessionsSince(7);
@@ -84,8 +94,9 @@ export function TodayView() {
   const topDeckDue = useMemo(
     () =>
       topDeckId
-        ? dueCardsFrom((cards.data ?? []).filter((c) => c.deck_id === topDeckId))
-            .length
+        ? dueCardsFrom(
+            (cards.data ?? []).filter((c) => c.deck_id === topDeckId),
+          ).length
         : 0,
     [cards.data, topDeckId],
   );
@@ -136,15 +147,45 @@ export function TodayView() {
 
   const daysToExam = forecast?.daysRemaining;
 
+  /* Back after a break: something studied before, nothing in the last week.
+     Greets the student back with no catching up — never an overdue count. */
+  const welcomeBack = useMemo(() => {
+    if (sessions.isPending || attempts.isPending) return false;
+    if ((sessions.data ?? []).length > 0) return false;
+    const cutoff = now.getTime() - WELCOME_BACK_DAYS * 86_400_000;
+    const times = [
+      ...(attempts.data ?? []).map((a) => new Date(a.created_at).getTime()),
+      ...(snapshot.lastStudySession?.lastActiveAt
+        ? [new Date(snapshot.lastStudySession.lastActiveAt).getTime()]
+        : []),
+    ];
+    return times.length > 0 && times.every((t) => t < cutoff);
+  }, [
+    sessions.isPending,
+    sessions.data,
+    attempts.isPending,
+    attempts.data,
+    snapshot,
+    now,
+  ]);
+
   return (
     <div className={styles.page}>
       <div className={styles.main}>
-        <p className={text.meta}>
-          {metaDate(now)}
-          {exam && daysToExam !== undefined
-            ? ` · ${exam.exam_name} in ${daysToExam} ${daysToExam === 1 ? "day" : "days"}`
-            : ""}
-        </p>
+        <header className={styles.greetingBlock}>
+          {exam && daysToExam !== undefined ? (
+            <span className={styles.examPill}>
+              {exam.exam_name} in {daysToExam}{" "}
+              {daysToExam === 1 ? "day" : "days"}
+            </span>
+          ) : null}
+          <h1 className={styles.greeting}>
+            {greetingFor(now, firstName, welcomeBack)}
+          </h1>
+          {welcomeBack ? (
+            <p className={styles.greetingSub}>No catching up needed.</p>
+          ) : null}
+        </header>
         <TodayHero
           exam={exam}
           forecast={forecast}
@@ -152,7 +193,6 @@ export function TodayView() {
           isPending={isPending}
           dueCards={topDeckDue}
           totalDue={totalDue}
-          firstName={firstName}
           session={session}
           rough={rough}
           shortOnTime={shortOnTime}
@@ -169,7 +209,8 @@ export function TodayView() {
                deck to pass. */
             const deckId = isDeckTopicId(topicId) ? topicId : undefined;
             const folderId = deckId
-              ? (decks.data ?? []).find((d) => d.id === deckId)?.folder_id ?? null
+              ? ((decks.data ?? []).find((d) => d.id === deckId)?.folder_id ??
+                null)
               : null;
             prepareFocus(minutes, label, folderId, deckId);
             /* The button says "Start"; landing on a stopped clock and needing
@@ -180,46 +221,25 @@ export function TodayView() {
         />
         <MistakeLoopSection misconceptions={misconceptions} now={now} />
         {completed ? (
-          <SessionCompletePanel session={completed} onClose={dismissCompletedFocus} />
-        ) : null}
-        {!isPending && rows.length > 0 ? (
-          <section aria-labelledby="today-also">
-            <h2 id="today-also" className={styles.sectionTitle}>
-              Also worth doing today
-            </h2>
-            <ul className={styles.rows}>
-              {rows.map((row) => (
-                <li key={row.id} className={styles.row}>
-                  <span className={styles.dot} data-kind={row.kind} aria-hidden="true" />
-                  <span className={styles.rowLabel}>
-                    {row.kind === "recall" ? (
-                      <span className={styles.srOnly}>Memory: </span>
-                    ) : null}
-                    {row.label}
-                  </span>
-                  <span className={styles.rowEstimate}>{row.estimate}</span>
-                  <Link
-                    to={row.to}
-                    className={styles.rowAction}
-                    aria-label={`${row.action}: ${row.label}`}
-                  >
-                    {row.action}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <SessionCompletePanel
+            session={completed}
+            onClose={dismissCompletedFocus}
+          />
         ) : null}
       </div>
-      {!isPending ? (
+      {isPending ? (
+        <div className={styles.rail} aria-hidden="true">
+          <Skeleton height={121} radius="var(--radius-md)" />
+        </div>
+      ) : (
         <TodayRail
-          exam={exam}
-          topics={forecast?.topics ?? []}
+          rows={rows}
+          hasMistakes={mistakesPending || misconceptions.length > 0}
           studiedDates={studiedDates}
           showWeek={isFlagOn("weeklyGoal")}
           now={now}
         />
-      ) : null}
+      )}
     </div>
   );
 }

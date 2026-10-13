@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Learnora · Design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Instrument+Sans:wght@400;500;600&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+html{scroll-behavior:smooth}
+body{margin:0;background:#f7f5f0;color:#1a1815;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0f766e;text-underline-offset:3px}
+a:hover{color:#0b5f58}
+*:focus-visible{outline:2px solid var(--focus-ring,#0f766e);outline-offset:2px}
+@keyframes lnPulse{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes lnShimmer{0%{opacity:.55}50%{opacity:1}100%{opacity:.55}}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
+</style>
+</helmet>
+
+<div style="--bg:#f7f5f0;--surface:#ffffff;--surface-sunk:#f2efe8;--surface-raised:#ffffff;--line:#e2ddd1;--line-strong:#8f8778;--text:#1a1815;--text-secondary:#3d3830;--text-muted:#625c50;--accent:#0f766e;--accent-hover:#0b5f58;--accent-text:#0f766e;--accent-soft:#e2efec;--on-accent:#ffffff;--focus-ring:#0f766e;--success:#17805f;--success-text:#15634b;--success-soft:#e3f1ea;--on-success:#ffffff;--warning:#b7791f;--warning-text:#76511b;--warning-soft:#f7ecd8;--on-warning:#1a1815;--danger:#c2453a;--danger-text:#96352d;--danger-soft:#f8e5e2;--on-danger:#ffffff;--info:#3d6aa8;--info-text:#2f5286;--info-soft:#e6edf6;--on-info:#ffffff;--shadow-1:0 1px 2px rgba(24,20,14,.06);--shadow-2:0 4px 12px -2px rgba(24,20,14,.10);--shadow-3:0 16px 40px -12px rgba(24,20,14,.18);--font-display:Newsreader,Georgia,serif;--font-body:'Instrument Sans',system-ui,sans-serif;--text-body:16px;--leading-body:1.55;--tracking-body:0;--word-body:0;--measure:65ch">
+<div style="{{ themeVars }}">
+<div style="min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--font-body);padding-bottom:120px;transition:background-color 200ms cubic-bezier(.2,0,0,1),color 200ms">
+
+<header style="max-width:1280px;margin:0 auto;padding:56px 24px 28px">
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)">
+    <span style="display:inline-flex;align-items:center;gap:8px;color:var(--text)"><span style="width:22px;height:22px;border-radius:6px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-family:Newsreader,serif;font-size:15px;letter-spacing:0;text-transform:none">L</span>Learnora revamp</span>
+    <span>·</span><span>Step 4 · Design system</span><span>·</span><a href="Research Report.dc.html" style="color:var(--accent-text)">← Research + IA</a>
+  </div>
+  <h1 style="font-family:var(--font-display);font-weight:400;font-size:clamp(40px,6vw,68px);line-height:1.02;letter-spacing:-0.015em;margin:20px 0 16px;max-width:16ch;text-wrap:balance">Calm by default, honest by construction</h1>
+  <p style="font-size:18px;line-height:1.55;color:var(--text-secondary);max-width:66ch;margin:0;text-wrap:pretty">An evolution of the current paper-and-teal language rather than a replacement. Students already chose it and it already tests AA. What changes: fewer fonts, no glass, no spring easing, tighter colour roles, and components for the parts that make Learnora different: mix-ups, hints, uncertainty and waiting.</p>
+
+  <div style="margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.5"><strong style="font-weight:600;display:block;margin-bottom:4px">Kept</strong>Warm paper #f7f5f0, white surfaces, deep teal, Newsreader for display, flat buttons, soft low shadows, the accent and accent-text split.</div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.5"><strong style="font-weight:600;display:block;margin-bottom:4px">Dropped</strong>Glass blur (it costs a lot to render on Aarav's phone and adds no meaning). Spring overshoot easing. A separate body font: Instrument Sans now does body and numbers, which is one less download.</div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.5"><strong style="font-weight:600;display:block;margin-bottom:4px">Fixed</strong>The warning fill was 2.9:1 on white, below the 3:1 minimum, so it's now #b7791f. Text on the success fill was 4.1:1, so the fill is now #17805f. Hacker green #22c55e is too light to use as a fill on white (2.3:1), so the light theme derives #15803d from it.</div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.5"><strong style="font-weight:600;display:block;margin-bottom:4px">Added <span style="font-size:11px;font-weight:600;color:var(--accent-text)">NEW</span></strong>Info ramp, an "untested" treatment, reading mode tokens, an evidence-based mastery ladder, check-back states, and a range-based readiness indicator.</div>
+  </div>
+</header>
+
+<div style="position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--line)">
+  <div style="max-width:1280px;margin:0 auto;padding:10px 24px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center">
+    <div role="group" aria-label="Colour mode" style="display:flex;gap:6px;align-items:center">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)">Mode</span>
+      <div style="display:flex;padding:3px;border-radius:999px;background:var(--surface-sunk);border:1px solid var(--line)">
+        <sc-for list="{{ modeOpts }}" as="o" hint-placeholder-count="2">
+          <sc-if value="{{ o.active }}" hint-placeholder-val="{{ false }}"><button type="button" aria-pressed="true" onClick="{{ o.on }}" style="font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border-radius:999px;border:0;background:var(--surface);color:var(--text);box-shadow:var(--shadow-1);cursor:pointer">{{ o.label }}</button></sc-if>
+          <sc-if value="{{ o.inactive }}" hint-placeholder-val="{{ true }}"><button type="button" aria-pressed="false" onClick="{{ o.on }}" style="font:inherit;font-size:13px;min-height:36px;padding:0 14px;border-radius:999px;border:0;background:transparent;color:var(--text-secondary);cursor:pointer">{{ o.label }}</button></sc-if>
+        </sc-for>
+      </div>
+    </div>
+    <div role="group" aria-label="Accent preset" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)">Preset</span>
+      <sc-for list="{{ presetOpts }}" as="o" hint-placeholder-count="4">
+        <sc-if value="{{ o.active }}" hint-placeholder-val="{{ false }}"><button type="button" aria-pressed="true" onClick="{{ o.on }}" style="font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 12px 0 8px;border-radius:999px;border:1.5px solid var(--text);background:var(--surface);color:var(--text);display:inline-flex;gap:8px;align-items:center;cursor:pointer"><span aria-hidden="true" style="width:18px;height:18px;border-radius:50%;background:{{ o.sw }}"></span>{{ o.label }}</button></sc-if>
+        <sc-if value="{{ o.inactive }}" hint-placeholder-val="{{ true }}"><button type="button" aria-pressed="false" onClick="{{ o.on }}" style="font:inherit;font-size:13px;min-height:36px;padding:0 12px 0 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text-secondary);display:inline-flex;gap:8px;align-items:center;cursor:pointer"><span aria-hidden="true" style="width:18px;height:18px;border-radius:50%;background:{{ o.sw }}"></span>{{ o.label }}</button></sc-if>
+      </sc-for>
+    </div>
+    <label style="display:inline-flex;gap:10px;align-items:center;font-size:14px;cursor:pointer;min-height:44px">
+      <button type="button" role="switch" aria-checked="{{ readingAria }}" onClick="{{ toggleReading }}" style="width:44px;height:26px;border-radius:999px;border:0;padding:3px;background:{{ readingTrack }};cursor:pointer;display:flex;justify-content:{{ readingJustify }}"><span style="width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></button>
+      Reading mode
+    </label>
+    <nav aria-label="Sections" style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;font-size:13px">
+      <a href="#colour" style="padding:6px 8px;color:var(--text-secondary)">Colour</a>
+      <a href="#type" style="padding:6px 8px;color:var(--text-secondary)">Type</a>
+      <a href="#foundations" style="padding:6px 8px;color:var(--text-secondary)">Foundations</a>
+      <a href="#components" style="padding:6px 8px;color:var(--text-secondary)">Components</a>
+      <a href="#learning" style="padding:6px 8px;color:var(--text-secondary)">Learning</a>
+      <a href="#system-states" style="padding:6px 8px;color:var(--text-secondary)">AI + limits</a>
+      <a href="#tokens" style="padding:6px 8px;color:var(--accent-text);font-weight:600">Token table</a>
+    </nav>
+  </div>
+</div>
+
+<!-- PRINCIPLES IN PRACTICE -->
+<section data-screen-label="DS 00 Principles" style="max-width:1280px;margin:0 auto;padding:64px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)">00 · Principles in practice</div>
+  <h2 style="font-family:var(--font-display);font-weight:400;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:8px 0 10px">Four do / don't pairs that shaped the tokens</h2>
+  <p style="font-size:16px;line-height:1.55;color:var(--text-secondary);max-width:66ch;margin:0 0 24px">All ten principles, with copy examples, are in the <a href="Research Report.dc.html#principles" style="color:var(--accent-text)">research report</a>. These are the ones that needed a decision at system level.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:12px">
+      <strong style="font-weight:600;font-size:15px">P4 · Untested is neutral</strong>
+      <div style="display:grid;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:10px;border:1.5px dashed var(--line-strong);font-size:14px"><span>Le Chatelier</span><span style="color:var(--text-muted)">Not tried yet</span></div>
+        <div style="font-size:12px;font-weight:600;color:var(--success-text)">Do</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:10px;background:#c2453a;color:#fff;font-size:14px;opacity:.85"><span>Le Chatelier</span><span>Weak · 0%</span></div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted)">Don't: red and a 0% for something never tested</div>
+      </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:12px">
+      <strong style="font-weight:600;font-size:15px">P4 · Ranges, not scores</strong>
+      <div style="display:grid;gap:8px">
+        <div style="padding:12px 14px;border-radius:10px;background:var(--surface-sunk);font-size:14px;line-height:1.45"><span style="font-weight:600">Likely a 5 or 6</span><br><span style="color:var(--text-muted)">Based on 12 questions, so it's rough for now.</span></div>
+        <div style="font-size:12px;font-weight:600;color:var(--success-text)">Do</div>
+        <div style="padding:12px 14px;border-radius:10px;background:var(--surface-sunk);font-size:28px;font-weight:600;font-family:'Instrument Sans'">62% ready</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted)">Don't: a bare number with false precision</div>
+      </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:12px">
+      <strong style="font-weight:600;font-size:15px">P3 · No guilt counts</strong>
+      <div style="display:grid;gap:8px">
+        <div style="padding:12px 14px;border-radius:10px;background:var(--surface-sunk);font-size:14px">Welcome back. Here's a 5-minute restart.</div>
+        <div style="font-size:12px;font-weight:600;color:var(--success-text)">Do</div>
+        <div style="padding:12px 14px;border-radius:10px;background:var(--surface-sunk);font-size:14px;display:flex;gap:8px;align-items:center"><span style="min-width:24px;height:24px;border-radius:999px;background:#c2453a;color:#fff;font-size:12px;font-weight:600;display:grid;place-items:center;padding:0 6px">84</span>cards overdue · 3 h behind</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted)">Don't: a red count that grows while you're away</div>
+      </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:12px">
+      <strong style="font-weight:600;font-size:15px">P6 · Flat, one accent</strong>
+      <div style="display:grid;gap:8px">
+        <span style="display:inline-flex;justify-content:center;align-items:center;min-height:48px;border-radius:12px;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:15px">Practise osmosis · 8 min</span>
+        <div style="font-size:12px;font-weight:600;color:var(--success-text)">Do</div>
+        <span style="display:inline-flex;justify-content:center;align-items:center;min-height:48px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff;font-weight:600;font-size:15px;box-shadow:0 8px 24px rgba(124,58,237,.45)">✨ Start learning</span>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted)">Don't: gradient fill, glow, sparkle</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COLOUR -->
+<section id="colour" data-screen-label="DS 01 Colour" style="max-width:1280px;margin:0 auto;padding:80px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)">01 · Colour</div>
+  <h2 style="font-family:var(--font-display);font-weight:400;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:8px 0 10px">Every colour has a job, and the job is in its name</h2>
+  <p style="font-size:16px;line-height:1.55;color:var(--text-secondary);max-width:66ch;margin:0 0 24px">Each role has four tokens. <strong style="font-weight:600">fill</strong> is for shapes and must be ≥3:1 against the surface. <strong style="font-weight:600">text</strong> is for words and must be ≥4.5:1 on bg, surface and soft. <strong style="font-weight:600">soft</strong> is a tinted background. <strong style="font-weight:600">on-fill</strong> is for words placed on the fill. Red appears only for genuine errors and destructive actions. "Untested" and "behind" never get a semantic colour.</p>
+
+  <div style="display:grid;gap:14px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:12px"><strong style="font-weight:600">Neutral</strong><span style="font-size:13px;color:var(--text-muted)">Warm, chroma under 0.02. Carries 90% of every screen.</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px">
+        <sc-for list="{{ neutralSw }}" as="s" hint-placeholder-count="9">
+          <div style="display:grid;gap:6px"><div style="height:64px;border-radius:10px;background:{{ s.hex }};border:1px solid var(--line)"></div><div style="font-size:12px;line-height:1.35"><span style="font-family:'JetBrains Mono',monospace">{{ s.token }}</span><br><span style="color:var(--text-muted)">{{ s.hex }} · {{ s.use }}</span></div></div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">
+      <sc-for list="{{ roleSw }}" as="r" hint-placeholder-count="5">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:12px;align-content:start">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><strong style="font-weight:600">{{ r.name }}</strong><span style="font-size:12px;color:var(--text-muted);text-align:right">{{ r.when }}</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+            <sc-for list="{{ r.sw }}" as="s" hint-placeholder-count="4">
+              <div style="display:grid;gap:4px"><div style="height:44px;border-radius:8px;background:{{ s.hex }};border:1px solid var(--line)"></div><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.3">{{ s.k }}<br><span style="color:var(--text-muted)">{{ s.hex }}</span></span></div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;background:{{ r.soft }};color:{{ r.text }};font-size:14px;font-weight:500">{{ r.sample }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><strong style="font-weight:600">AA proof · {{ themeName }}</strong><span style="font-size:13px;font-weight:600;color:{{ aaColor }}">{{ aaSummary }}</span></div>
+      <p style="margin:6px 0 12px;font-size:13px;line-height:1.45;color:var(--text-muted)">Worked out live from the tokens, using the WCAG 2.2 relative-luminance formula. Change the mode or preset above to re-check. All 8 combinations: <strong style="font-weight:600;color:var(--text)">{{ aaAll }}</strong>.</p>
+      <div style="max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)"><th style="padding:8px 10px;border-bottom:1px solid var(--line);font-weight:500">Pair</th><th style="padding:8px;border-bottom:1px solid var(--line);font-weight:500">Sample</th><th style="padding:8px;border-bottom:1px solid var(--line);font-weight:500;text-align:right">Ratio</th><th style="padding:8px 10px;border-bottom:1px solid var(--line);font-weight:500;text-align:right">Needs</th></tr></thead>
+          <tbody>
+            <sc-for list="{{ aaRows }}" as="a" hint-placeholder-count="12">
+              <tr><td style="padding:7px 10px;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:11.5px">{{ a.label }}</td><td style="padding:5px 8px;border-bottom:1px solid var(--line)"><span style="display:inline-block;padding:3px 8px;border-radius:6px;background:{{ a.bg }};color:{{ a.fg }};font-weight:600;font-size:12px;border:1px solid var(--line)">{{ a.sample }}</span></td><td style="padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;font-weight:600">{{ a.ratio }}</td><td style="padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;color:{{ a.passColor }};font-weight:600">{{ a.verdict }}</td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:12px;align-content:start">
+      <strong style="font-weight:600">Presets under the same rules</strong>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">A preset supplies one hue. The theme studio derives fill, hover, text, soft and on-fill for each mode, then rejects the theme or darkens it until every pair passes. Shown here: the four presets the brief asks for, each in light and dark.</p>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+        <sc-for list="{{ presetCards }}" as="p" hint-placeholder-count="8">
+          <div style="{{ p.vars }}">
+            <div style="background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted)"><span>{{ p.name }}</span><span>{{ p.mode }}</span></div>
+              <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:8px">
+                <span style="font-family:Newsreader,serif;font-size:17px;line-height:1.2">Practise osmosis</span>
+                <span style="font-size:12px;color:var(--accent-text);font-weight:600">Worth the most marks this week</span>
+                <span style="display:flex;justify-content:center;align-items:center;min-height:36px;border-radius:9px;background:var(--accent);color:var(--on-accent);font-size:13px;font-weight:600">Start · 8 min</span>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap"><span style="font-size:11px;padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent-text);font-weight:600">Fixing</span><span style="font-size:11px;padding:3px 8px;border-radius:999px;background:var(--success-soft);color:var(--success-text);font-weight:600">Fixed</span><span style="font-size:11px;padding:2px 8px;border-radius:999px;border:1px dashed var(--line-strong);color:var(--text-muted)">Not tried</span></div>
+              <span style="font-size:11px;color:{{ p.passColor }};font-weight:600">{{ p.aa }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">The other presets (original, minimal, ocean, breeze, forest, cyberpunk, ruby, warm, sunset) go through the same derivation. Ruby and cyberpunk keep their hue for the accent, but danger stays distinguishable because errors always come with an icon and words, never colour alone.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TYPE -->
+<section id="type" data-screen-label="DS 02 Type" style="max-width:1280px;margin:0 auto;padding:80px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)">02 · Type</div>
+  <h2 style="font-family:var(--font-display);font-weight:400;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:8px 0 10px">Serif for the app's voice, sans for everything you read</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-top:20px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;font-size:15px;line-height:1.55;color:var(--text-secondary)">
+      <strong style="font-weight:600;color:var(--text)">Why I kept Newsreader</strong>
+      <p style="margin:6px 0 0">It gives Learnora a calm, bookish voice that sets it apart from loud study apps, and it marks the difference between the app speaking ("Welcome back") and the content you're studying. Liam's problem was serif <em>body</em> text, not headings. So the rules are: only Display, H1 and H2, never below 22 px, never in a question, answer or note, and reading mode swaps it for sans.</p>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;font-size:15px;line-height:1.55;color:var(--text-secondary)">
+      <strong style="font-weight:600;color:var(--text)">Three families, down from four</strong>
+      <p style="margin:6px 0 0">Newsreader (display) · Instrument Sans (body, UI and tabular numbers) · Atkinson Hyperlegible (reading mode only, loaded only when it's on). JetBrains Mono stays, but only on code blocks. That's one less font file for Aarav to download.</p>
+    </div>
+  </div>
+  <div style="margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden">
+    <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="9">
+      <div style="display:grid;grid-template-columns:minmax(150px,200px) minmax(0,1fr);gap:16px;align-items:baseline;padding:16px 18px;border-bottom:1px solid var(--line)">
+        <div style="font-size:12px;line-height:1.45"><span style="font-family:'JetBrains Mono',monospace">{{ t.token }}</span><br><span style="color:var(--text-muted)">{{ t.spec }}</span></div>
+        <div style="font-family:{{ t.family }};font-size:{{ t.size }};line-height:{{ t.lh }};font-weight:{{ t.weight }};letter-spacing:{{ t.track }};font-variant-numeric:{{ t.num }};text-wrap:pretty">{{ t.sample }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong style="font-weight:600">Reading mode <span style="font-size:11px;font-weight:600;color:var(--accent-text)">NEW</span></strong><span style="font-size:13px;color:var(--text-muted)">Use the toggle at the top to compare</span></div>
+      <article style="background:var(--surface-sunk);border-radius:12px;padding:18px 20px;max-width:var(--measure)">
+        <h3 style="margin:0 0 8px;font-family:var(--font-display);font-weight:400;font-size:24px;line-height:1.25">Osmosis</h3>
+        <p style="margin:0 0 1em;font-size:var(--text-body);line-height:var(--leading-body);letter-spacing:var(--tracking-body);word-spacing:var(--word-body)">Osmosis is when water moves across a membrane. It goes from where there is more water to where there is less.</p>
+        <p style="margin:0;font-size:var(--text-body);line-height:var(--leading-body);letter-spacing:var(--tracking-body);word-spacing:var(--word-body)">The membrane lets water through, but not bigger things like sugar. That is why a raisin swells up in water.</p>
+      </article>
+      <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.5;color:var(--text-secondary)"><li>Body text goes from 16 to 19 px and line height from 1.55 to 1.75, with a little extra letter and word spacing.</li><li>Atkinson Hyperlegible, and headings switch to sans. Always left-aligned, never justified, no italics.</li><li>Line length capped at 60ch. Paragraphs get space between them instead of first-line indents.</li><li>Every long text gets a read-aloud button. Reading mode is offered the first time a passage runs past 80 words.</li></ul>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start">
+      <strong style="font-weight:600">Maths, numbers and code</strong>
+      <div style="display:grid;gap:10px;font-size:15px">
+        <div style="padding:14px;border-radius:10px;background:var(--surface-sunk)"><span style="font-family:'Instrument Sans';font-style:italic">V</span> = <span style="font-style:italic">I</span> × <span style="font-style:italic">R</span> &nbsp;→&nbsp; 12 V = 0.5 A × <span style="font-style:italic">R</span> &nbsp;→&nbsp; <span style="font-style:italic">R</span> = 24 Ω</div>
+        <div style="padding:14px;border-radius:10px;background:var(--surface-sunk);display:flex;gap:18px;flex-wrap:wrap;font-variant-numeric:tabular-nums"><span><span style="font-size:28px;font-weight:600">3</span> <span style="color:var(--text-muted);font-size:13px">of 6 done</span></span><span><span style="font-size:28px;font-weight:600">8</span> <span style="color:var(--text-muted);font-size:13px">min</span></span><span><span style="font-size:28px;font-weight:600">5–6</span> <span style="color:var(--text-muted);font-size:13px">likely grade</span></span></div>
+        <code style="display:block;padding:12px 14px;border-radius:10px;background:var(--surface-sunk);font-family:'JetBrains Mono',monospace;font-size:13px">2 NO₂(g) ⇌ N₂O₄(g)  ΔH = −57 kJ mol⁻¹</code>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Maths is rendered with KaTeX (already in the app) at body size, never smaller. Units sit next to the number, in the same weight. Tabular numbers are used anywhere numbers line up or count.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOUNDATIONS -->
+<section id="foundations" data-screen-label="DS 03 Foundations" style="max-width:1280px;margin:0 auto;padding:80px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)">03 · Space, radius, elevation, motion, layers, icons</div>
+  <h2 style="font-family:var(--font-display);font-weight:400;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:8px 0 24px">Small sets, used strictly</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:8px;align-content:start">
+      <strong style="font-weight:600">Space · 4 px base</strong>
+      <sc-for list="{{ spaceRows }}" as="s" hint-placeholder-count="10">
+        <div style="display:grid;grid-template-columns:86px 36px 1fr;gap:8px;align-items:center;font-size:12px"><span style="font-family:'JetBrains Mono',monospace">{{ s.token }}</span><span style="color:var(--text-muted);font-variant-numeric:tabular-nums">{{ s.px }}</span><span style="display:flex;gap:8px;align-items:center"><span style="height:10px;width:{{ s.w }};background:var(--accent);border-radius:2px"></span><span style="color:var(--text-muted)">{{ s.use }}</span></span></div>
+      </sc-for>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:14px;align-content:start">
+      <strong style="font-weight:600">Radius</strong>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+        <sc-for list="{{ radiusRows }}" as="r" hint-placeholder-count="5">
+          <div style="display:grid;gap:6px;justify-items:center;text-align:center"><span style="width:52px;height:52px;background:var(--accent-soft);border:1.5px solid var(--accent);border-radius:{{ r.v }}"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.3">{{ r.token }}<br><span style="color:var(--text-muted)">{{ r.v }}</span></span></div>
+        </sc-for>
+      </div>
+      <p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.45">Chips and controls use sm. Cards use md, sheets lg, pills full. Nothing is mixed inside a component.</p>
+      <strong style="font-weight:600;margin-top:4px">Elevation</strong>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;background:var(--bg);padding:14px;border-radius:12px">
+        <sc-for list="{{ elevRows }}" as="e" hint-placeholder-count="4">
+          <div style="display:grid;gap:6px;text-align:center"><span style="height:52px;background:var(--surface);border-radius:10px;border:{{ e.border }};box-shadow:{{ e.v }}"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.3">{{ e.token }}<br><span style="color:var(--text-muted)">{{ e.use }}</span></span></div>
+        </sc-for>
+      </div>
+      <p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.45">Most surfaces are flat, with a hairline border. Shadows mean the thing sits above the page (a sheet, drawer or toast). No glass blur.</p>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start">
+      <strong style="font-weight:600">Motion</strong>
+      <sc-for list="{{ motionRows }}" as="m" hint-placeholder-count="6">
+        <div style="display:grid;grid-template-columns:132px 1fr;gap:8px;font-size:12px;line-height:1.4"><span style="font-family:'JetBrains Mono',monospace">{{ m.token }}</span><span><span style="font-weight:600">{{ m.v }}</span> <span style="color:var(--text-muted)">· {{ m.use }}</span></span></div>
+      </sc-for>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+        <button type="button" onClick="{{ playMotion }}" style="font:inherit;font-size:13px;font-weight:600;min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);color:var(--text);cursor:pointer">Play sheet entry</button>
+        <div style="flex:1;height:44px;border-radius:10px;background:var(--surface-sunk);overflow:hidden;position:relative"><span style="position:absolute;left:8px;top:8px;width:60px;height:28px;border-radius:8px;background:var(--accent);transform:{{ motionX }};opacity:{{ motionO }};transition:transform 320ms cubic-bezier(.2,0,0,1),opacity 200ms"></span></div>
+      </div>
+      <p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.45">With reduced motion on, movement becomes an 80 ms fade. Nothing loops except the AI-working pulse, and that stops too. No confetti, no bouncing.</p>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:8px;align-content:start">
+      <strong style="font-weight:600">Layers · z-index</strong>
+      <sc-for list="{{ zRows }}" as="z" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:120px 44px 1fr;gap:8px;font-size:12px"><span style="font-family:'JetBrains Mono',monospace">{{ z.token }}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">{{ z.v }}</span><span style="color:var(--text-muted)">{{ z.use }}</span></div>
+      </sc-for>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:12px;align-content:start">
+      <strong style="font-weight:600">Icons</strong>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+        <sc-for list="{{ navIcons }}" as="i" hint-placeholder-count="5">
+          <div style="display:grid;justify-items:center;gap:4px;padding:8px 0;border-radius:10px;color:{{ i.color }};background:{{ i.bg }}"><span aria-hidden="true" style="width:22px;height:22px;background:currentColor;-webkit-mask:{{ i.mask }};mask:{{ i.mask }}"></span><span style="font-size:11px;font-weight:600">{{ i.label }}</span></div>
+        </sc-for>
+      </div>
+      <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.5;color:var(--text-secondary)"><li>One set: keep the app's own <code style="font-family:'JetBrains Mono',monospace;font-size:12px">components/icons</code>, with a 24 px grid and 1.75 stroke. The specimens here use a lookalike open-source set as a stand-in.</li><li>Primary nav always shows a text label. Icon-only buttons need an <code style="font-family:'JetBrains Mono',monospace;font-size:12px">aria-label</code> and a tooltip, and are only for common actions: close, read aloud, more.</li><li>No decorative icons in headings, and no sparkle icon for AI.</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- CORE COMPONENTS -->
+<section id="components" data-screen-label="DS 04 Core components" style="max-width:1280px;margin:0 auto;padding:80px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)">04 · Core components</div>
+  <h2 style="font-family:var(--font-display);font-weight:400;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:8px 0 10px">Controls</h2>
+  <p style="font-size:16px;line-height:1.55;color:var(--text-secondary);max-width:66ch;margin:0 0 24px">States are drawn side by side so they can be reviewed together. Everything is at least 44 px tall. The same size works on mobile and desktop, and full-width primary buttons are mobile-only.</p>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;overflow-x:auto">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px"><strong style="font-weight:600">Button</strong><span style="font-size:13px;color:var(--text-muted)">Restyle <code style="font-family:'JetBrains Mono',monospace">Button</code>. At most one primary per screen (P1).</span></div>
+    <div style="display:grid;grid-template-columns:90px repeat(6,minmax(118px,1fr));gap:10px;align-items:center;min-width:880px;font-size:14px">
+      <span></span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted)">default</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted)">hover</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted)">focus</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted)">active</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted)">disabled</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted)">loading</span>
+
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px">primary</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--on-accent);font-weight:600">Start · 8 min</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--accent-hover);color:var(--on-accent);font-weight:600">Start · 8 min</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--on-accent);font-weight:600;outline:2px solid var(--focus-ring);outline-offset:2px">Start · 8 min</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--accent-hover);color:var(--on-accent);font-weight:600;transform:translateY(1px)">Start · 8 min</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--surface-sunk);color:var(--text-muted);font-weight:600;border:1px dashed var(--line-strong)">Start · 8 min</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--on-accent);font-weight:600"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:lnPulse 1.2s infinite"></span>Starting…</span>
+
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px">secondary</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--surface);color:var(--text);border:1px solid var(--line-strong);font-weight:600">Save and stop</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--surface-sunk);color:var(--text);border:1px solid var(--text);font-weight:600">Save and stop</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--surface);color:var(--text);border:1px solid var(--line-strong);font-weight:600;outline:2px solid var(--focus-ring);outline-offset:2px">Save and stop</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--surface-sunk);color:var(--text);border:1px solid var(--text);font-weight:600;transform:translateY(1px)">Save and stop</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:transparent;color:var(--text-muted);border:1px dashed var(--line-strong);font-weight:600">Save and stop</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;background:var(--surface);color:var(--text);border:1px solid var(--line-strong);font-weight:600"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:lnPulse 1.2s infinite"></span>Saving…</span>
+
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px">ghost</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:var(--accent-text);font-weight:600">Show me how</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:var(--accent-text);background:var(--accent-soft);font-weight:600">Show me how</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:var(--accent-text);font-weight:600;outline:2px solid var(--focus-ring);outline-offset:2px">Show me how</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:var(--accent-text);background:var(--accent-soft);font-weight:600;transform:translateY(1px)">Show me how</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;color:var(--text-muted);font-weight:600;text-decoration:line-through">Show me how</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;gap:8px;min-height:44px;padding:0 12px;border-radius:12px;color:var(--accent-text);font-weight:600"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:lnPulse 1.2s infinite"></span>Loading…</span>
+
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px">danger</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--danger);color:var(--on-danger);font-weight:600">Delete account</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--danger-text);color:var(--on-danger);font-weight:600">Delete account</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--danger);color:var(--on-danger);font-weight:600;outline:2px solid var(--danger);outline-offset:2px">Delete account</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--danger-text);color:var(--on-danger);font-weight:600;transform:translateY(1px)">Delete account</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;background:var(--surface-sunk);color:var(--text-muted);font-weight:600;border:1px dashed var(--line-strong)">Delete account</span>
+      <span style="display:inline-flex;justify-content:center;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;background:var(--danger);color:var(--on-danger);font-weight:600"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:lnPulse 1.2s infinite"></span>Deleting…</span>
+    </div>
+    <p style="margin:14px 0 0;font-size:13px;line-height:1.45;color:var(--text-muted)">Disabled buttons keep their label and say why next to them ("Pick an answer first"). They use <code style="font-family:'JetBrains Mono',monospace">aria-disabled</code> so they stay in the focus order for Noor. Loading keeps the button's width so nothing jumps, and sets <code style="font-family:'JetBrains Mono',monospace">aria-busy</code>. Danger is only for Settings ▸ Delete account, never for anything to do with learning.</p>
+  </div>
+
+  <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Icon button</strong><span style="font-size:12px;color:var(--text-muted)">IconButton · 44×44</span></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <span title="Read aloud" style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--text)"><span aria-hidden="true" style="width:20px;height:20px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/volume-2.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/volume-2.svg) center/contain no-repeat"></span></span>
+        <span style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--text);background:var(--surface-sunk)"><span aria-hidden="true" style="width:20px;height:20px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/volume-2.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/volume-2.svg) center/contain no-repeat"></span></span>
+        <span style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--text);outline:2px solid var(--focus-ring);outline-offset:2px"><span aria-hidden="true" style="width:20px;height:20px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/volume-2.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/volume-2.svg) center/contain no-repeat"></span></span>
+        <span style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--accent-text);background:var(--accent-soft)"><span aria-hidden="true" style="width:20px;height:20px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/volume-2.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/volume-2.svg) center/contain no-repeat"></span></span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:8px;background:var(--text);color:var(--bg)">Read aloud</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">default · hover · focus · on (pressed, <code style="font-family:'JetBrains Mono',monospace">aria-pressed</code>) · tooltip. The tooltip shows the same text as the <code style="font-family:'JetBrains Mono',monospace">aria-label</code>. If an icon button has no label, CI fails.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Text input</strong><span style="font-size:12px;color:var(--text-muted)">48 px · label always visible</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <label style="display:grid;gap:6px;font-size:14px;font-weight:600">Email<span style="display:flex;align-items:center;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);font-weight:400;color:var(--text-muted)">you@school.org</span></label>
+        <label style="display:grid;gap:6px;font-size:14px;font-weight:600">Email<span style="display:flex;align-items:center;min-height:48px;padding:0 14px;border-radius:10px;border:2px solid var(--accent);background:var(--surface);font-weight:400;box-shadow:0 0 0 3px var(--accent-soft)">maya@school|</span></label>
+        <label style="display:grid;gap:6px;font-size:14px;font-weight:600">Email<span style="display:flex;align-items:center;min-height:48px;padding:0 14px;border-radius:10px;border:2px solid var(--danger);background:var(--surface);font-weight:400">maya.school.org</span><span style="display:flex;gap:6px;font-weight:400;font-size:13px;color:var(--danger-text);line-height:1.35"><span aria-hidden="true" style="flex:none;width:16px;height:16px;margin-top:1px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/circle-alert.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/circle-alert.svg) center/contain no-repeat"></span>This needs an @. Check it’s your full email.</span></label>
+        <label style="display:grid;gap:6px;font-size:14px;font-weight:600;color:var(--text-muted)">School email<span style="display:flex;align-items:center;min-height:48px;padding:0 14px;border-radius:10px;border:1px dashed var(--line-strong);background:var(--surface-sunk);font-weight:400">Set by your school</span></label>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">default · focus · error · disabled. Errors use an icon, words and a thicker border, never colour alone. The message says how to fix it and is linked with <code style="font-family:'JetBrains Mono',monospace">aria-describedby</code>.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Numeric and maths input</strong><span style="font-size:12px;color:var(--text-muted)">NumericAnswerInput</span></div>
+      <label style="display:grid;gap:6px;font-size:14px;font-weight:600">Your answer
+        <span style="display:flex;align-items:center;min-height:56px;border-radius:12px;border:2px solid var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-soft);overflow:hidden"><span style="flex:1;padding:0 14px;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums">24</span><span style="align-self:stretch;display:grid;place-items:center;padding:0 16px;background:var(--surface-sunk);font-size:18px;font-weight:600;border-left:1px solid var(--line)">Ω</span></span>
+      </label>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px" aria-label="Maths keys">
+        <span style="min-height:44px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-size:15px">×10ⁿ</span><span style="min-height:44px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-size:15px">x²</span><span style="min-height:44px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-size:15px">√</span><span style="min-height:44px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-size:15px">−</span><span style="min-height:44px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-size:15px">⁄</span><span style="min-height:44px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-size:15px">.</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Opens the numeric keyboard (<code style="font-family:'JetBrains Mono',monospace">inputmode="decimal"</code>). The unit is fixed beside the field and read out as part of the label. It accepts "0.5", ".5" and "1/2". If the unit is wrong, it nudges you instead of marking it wrong.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Select and combobox</strong><span style="font-size:12px;color:var(--text-muted)">Board picker, open</span></div>
+      <label style="display:grid;gap:6px;font-size:14px;font-weight:600">Which exams?
+        <span style="display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 14px;border-radius:10px;border:2px solid var(--accent);background:var(--surface);font-weight:400">cbs<span aria-hidden="true" style="width:18px;height:18px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/chevron-up.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/chevron-up.svg) center/contain no-repeat"></span></span>
+      </label>
+      <div role="listbox" style="border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-2);background:var(--surface-raised);padding:6px;display:grid;gap:2px">
+        <div style="padding:10px 12px;border-radius:8px;background:var(--accent-soft);display:grid;gap:2px"><span style="display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px">CBSE Class 10<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line-strong);color:var(--text-secondary)">Partly ready</span></span><span style="font-size:13px;color:var(--text-secondary);line-height:1.4">You can study any topic. CBSE chapters and marks aren’t built in yet.</span></div>
+        <div style="padding:10px 12px;border-radius:8px;display:grid;gap:2px"><span style="display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px">CBSE Class 9<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line-strong);color:var(--text-secondary)">Partly ready</span></span></div>
+        <div style="padding:10px 12px;border-radius:8px;display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--text-secondary)">Not listed? Type your subject instead</div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Uses the ARIA combobox pattern. Arrow keys move through options and Enter picks one. On mobile under 8 options, it becomes a sheet of radio rows instead. Support level is shown on every option, with the reason given for the selected one.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Toggle</strong><span style="font-size:12px;color:var(--text-muted)">role=switch · whole row is the target</span></div>
+      <div style="display:grid;gap:2px">
+        <div style="display:flex;justify-content:space-between;align-items:center;min-height:52px;gap:12px;font-size:15px"><span>Reading mode<br><span style="font-size:13px;color:var(--text-muted)">Bigger text, more space</span></span><span style="width:44px;height:26px;border-radius:999px;background:var(--accent);padding:3px;display:flex;justify-content:flex-end;box-sizing:border-box"><span style="width:20px;height:20px;border-radius:50%;background:#fff"></span></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;min-height:52px;gap:12px;font-size:15px;border-top:1px solid var(--line)"><span>Reduce motion</span><span style="width:44px;height:26px;border-radius:999px;background:var(--line-strong);padding:3px;display:flex;box-sizing:border-box"><span style="width:20px;height:20px;border-radius:50%;background:#fff"></span></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;min-height:52px;gap:12px;font-size:15px;border-top:1px solid var(--line)"><span>Dark mode</span><span style="width:44px;height:26px;border-radius:999px;background:var(--line-strong);padding:3px;display:flex;box-sizing:border-box;outline:2px solid var(--focus-ring);outline-offset:2px"><span style="width:20px;height:20px;border-radius:50%;background:#fff"></span></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;min-height:52px;gap:12px;font-size:15px;border-top:1px solid var(--line);color:var(--text-muted)"><span>Calendar sync<br><span style="font-size:13px">Part of Pro</span></span><span style="width:44px;height:26px;border-radius:999px;border:1px dashed var(--line-strong);padding:2px;display:flex;box-sizing:border-box"><span style="width:20px;height:20px;border-radius:50%;background:var(--surface-sunk)"></span></span></div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">on · off · focus · disabled-with-reason. The change applies straight away, with no Save button.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Chip and badge</strong><span style="font-size:12px;color:var(--text-muted)">Chip · Badge</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span style="display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line-strong);font-size:14px">Osmosis</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:14px;font-weight:600"><span aria-hidden="true" style="width:14px;height:14px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/check.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/check.svg) center/contain no-repeat"></span>Biology</span>
+        <span style="display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:999px;background:var(--surface-sunk);border:1px solid var(--text);font-size:14px">Chemistry</span>
+        <span style="display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line-strong);font-size:14px;outline:2px solid var(--focus-ring);outline-offset:2px">Physics</span>
+        <span style="display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:999px;border:1px dashed var(--line-strong);color:var(--text-muted);font-size:14px">Maths</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">default · selected (tick and fill, not colour alone) · hover · focus · disabled. Chips are 40 px tall, with an 8 px gap so the touch area reaches 44 px. Use them for multi-select and filters only, never as navigation.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-top:6px;border-top:1px solid var(--line)">
+        <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--accent);color:var(--on-accent)">NEW</span>
+        <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--text);color:var(--text)">Pro</span>
+        <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line-strong);color:var(--text-secondary)">Partly ready</span>
+        <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surface-sunk);color:var(--text-secondary)">Saved offline</span>
+        <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--success-soft);color:var(--success-text)">Fixed</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">These five badges are the whole set. No counts and no notification dots, anywhere in the app (P3, P6).</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Card and list row</strong><span style="font-size:12px;color:var(--text-muted)">Card · ListRow</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="padding:16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);display:grid;gap:4px"><span style="font-size:12px;color:var(--text-muted)">static</span><span style="font-weight:600">Biology</span><span style="font-size:13px;color:var(--text-secondary)">AQA · 3 notes</span></div>
+        <div style="padding:16px;border-radius:14px;border:1px solid var(--text);background:var(--surface);box-shadow:var(--shadow-2);display:grid;gap:4px"><span style="font-size:12px;color:var(--text-muted)">interactive · hover</span><span style="font-weight:600">Chemistry</span><span style="font-size:13px;color:var(--text-secondary)">AQA · no notes yet</span></div>
+      </div>
+      <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:12px;min-height:60px;padding:0 14px"><span aria-hidden="true" style="width:20px;height:20px;flex:none;color:var(--text-secondary);background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/file-text.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/file-text.svg) center/contain no-repeat"></span><span style="flex:1;display:grid"><span style="font-weight:500">Osmosis notes</span><span style="font-size:13px;color:var(--text-muted)">Pasted · 2 days ago</span></span><span aria-hidden="true" style="width:18px;height:18px;color:var(--text-muted);background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/chevron-right.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/chevron-right.svg) center/contain no-repeat"></span></div>
+        <div style="display:flex;align-items:center;gap:12px;min-height:60px;padding:0 14px;border-top:1px solid var(--line);background:var(--surface-sunk)"><span aria-hidden="true" style="width:20px;height:20px;flex:none;color:var(--text-secondary);background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/layers.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/layers.svg) center/contain no-repeat"></span><span style="flex:1;display:grid"><span style="font-weight:500">Cell biology cards</span><span style="font-size:13px;color:var(--text-muted)">24 cards</span></span><span aria-hidden="true" style="width:18px;height:18px;color:var(--text-muted);background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/chevron-right.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/chevron-right.svg) center/contain no-repeat"></span></div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Cards don't sit inside other cards. On mobile, a card is the full width minus 16 px on each side. The whole row is the link, with one accessible name ("Osmosis notes, pasted 2 days ago").</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Tabs and segmented control</strong><span style="font-size:12px;color:var(--text-muted)">Tabs · Segmented</span></div>
+      <div role="tablist" style="display:flex;gap:4px;border-bottom:1px solid var(--line)">
+        <span style="min-height:44px;display:flex;align-items:center;padding:0 12px;font-weight:600;border-bottom:2px solid var(--accent);color:var(--text);margin-bottom:-1px">Subjects</span>
+        <span style="min-height:44px;display:flex;align-items:center;padding:0 12px;color:var(--text-secondary)">All material</span>
+      </div>
+      <div style="display:grid;gap:6px"><span style="font-size:14px;font-weight:600">How long have you got?</span>
+        <div role="radiogroup" style="display:grid;grid-template-columns:repeat(3,1fr);padding:4px;border-radius:12px;background:var(--surface-sunk);border:1px solid var(--line)">
+          <span style="min-height:44px;display:grid;place-items:center;border-radius:9px;font-size:15px;color:var(--text-secondary)">5 min</span>
+          <span style="min-height:44px;display:grid;place-items:center;border-radius:9px;font-size:15px;font-weight:600;background:var(--surface);box-shadow:var(--shadow-1);border:1px solid var(--line-strong)">10 min</span>
+          <span style="min-height:44px;display:grid;place-items:center;border-radius:9px;font-size:15px;color:var(--text-secondary)">20 min</span>
+        </div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Tabs are for views of the same thing (two at most on mobile). Segmented is a radiogroup for 2–4 short options, and arrow keys move between them.</p>
+    </div>
+  </div>
+
+  <h2 style="font-family:var(--font-display);font-weight:400;font-size:clamp(26px,3.4vw,34px);line-height:1.1;margin:48px 0 18px">Overlays and feedback</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Sheet (mobile) and modal (desktop)</strong><span style="font-size:12px;color:var(--text-muted)">Modal · replace</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:10px;align-items:end">
+        <div style="height:250px;border-radius:18px;background:var(--surface-sunk);border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;position:relative">
+          <div style="position:absolute;inset:0;background:rgba(13,12,10,.32)"></div>
+          <div style="position:relative;background:var(--surface);border-radius:18px 18px 0 0;padding:10px 14px 14px;display:grid;gap:10px;box-shadow:var(--shadow-3)">
+            <span style="justify-self:center;width:36px;height:4px;border-radius:2px;background:var(--line-strong)"></span>
+            <span style="display:flex;justify-content:space-between;align-items:center"><strong style="font-weight:600;font-size:16px">Add an exam</strong><span aria-label="Close" style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:18px;color:var(--text-secondary)">×</span></span>
+            <span style="min-height:40px;border-radius:9px;border:1px solid var(--line-strong);display:flex;align-items:center;padding:0 10px;font-size:13px;color:var(--text-muted)">Combined Science Paper 1</span>
+            <span style="min-height:40px;border-radius:10px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-size:13px;font-weight:600">Add exam</span>
+          </div>
+        </div>
+        <div style="height:250px;border-radius:14px;background:var(--surface-sunk);border:1px solid var(--line);position:relative;display:grid;place-items:center">
+          <div style="position:absolute;inset:0;background:rgba(13,12,10,.32);border-radius:14px"></div>
+          <div style="position:relative;width:78%;background:var(--surface);border-radius:16px;padding:16px;display:grid;gap:10px;box-shadow:var(--shadow-3)">
+            <span style="display:flex;justify-content:space-between;align-items:center"><strong style="font-weight:600;font-size:16px">Stop this session?</strong><span aria-label="Close" style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:18px;color:var(--text-secondary)">×</span></span>
+            <span style="font-size:13px;line-height:1.45;color:var(--text-secondary)">You did 4 of 6. That counts, and we’ve saved it.</span>
+            <span style="display:flex;gap:8px;justify-content:flex-end"><span style="min-height:36px;padding:0 12px;border-radius:9px;border:1px solid var(--line-strong);display:grid;place-items:center;font-size:13px;font-weight:600">Keep going</span><span style="min-height:36px;padding:0 12px;border-radius:9px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-size:13px;font-weight:600">Save and stop</span></span>
+          </div>
+        </div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Focus moves to the title when it opens, Tab cycles inside, Esc or the close button exits, and focus goes back to whatever opened it. On mobile the sheet can be dragged down to close, and there's always a close button too. Never open a modal the student didn't ask for (P10).</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Toast and inline feedback</strong><span style="font-size:12px;color:var(--text-muted)">Toast · InlineFeedback</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--text);color:var(--bg);box-shadow:var(--shadow-3);font-size:14px"><span>Plan moved to fit this week.</span><span style="font-weight:600;text-decoration:underline;text-underline-offset:3px;min-height:32px;display:flex;align-items:center">Undo</span></div>
+      <div style="display:grid;gap:8px">
+        <div style="display:flex;gap:10px;padding:12px 14px;border-radius:12px;background:var(--info-soft);color:var(--info-text);font-size:14px;line-height:1.45"><span aria-hidden="true" style="flex:none;width:18px;height:18px;margin-top:1px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/info.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/info.svg) center/contain no-repeat"></span><span>This forecast is rough. It’s based on 12 questions so far.</span></div>
+        <div style="display:flex;gap:10px;padding:12px 14px;border-radius:12px;background:var(--success-soft);color:var(--success-text);font-size:14px;line-height:1.45"><span aria-hidden="true" style="flex:none;width:18px;height:18px;margin-top:1px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/circle-check.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/circle-check.svg) center/contain no-repeat"></span><span>Saved. You can pick this up on any device.</span></div>
+        <div style="display:flex;gap:10px;padding:12px 14px;border-radius:12px;background:var(--warning-soft);color:var(--warning-text);font-size:14px;line-height:1.45"><span aria-hidden="true" style="flex:none;width:18px;height:18px;margin-top:1px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/triangle-alert.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/triangle-alert.svg) center/contain no-repeat"></span><span>2 tutor goes left today. Bank questions don’t use any.</span></div>
+        <div style="display:flex;gap:10px;padding:12px 14px;border-radius:12px;background:var(--danger-soft);color:var(--danger-text);font-size:14px;line-height:1.45"><span aria-hidden="true" style="flex:none;width:18px;height:18px;margin-top:1px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/circle-alert.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/circle-alert.svg) center/contain no-repeat"></span><span>That file couldn’t be read. Try a PDF or a photo of the page.</span></div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Toasts last 6 s. They pause on hover or focus, sit above the tab bar, and are announced with <code style="font-family:'JetBrains Mono',monospace">role="status"</code>. Anything with Undo stays for 10 s. Warning is for heads-ups before a limit. Danger is only for things that actually broke.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Drawer</strong><span style="font-size:12px;color:var(--text-muted)">Tutor drawer · 420 px desktop</span></div>
+      <div style="height:220px;border-radius:14px;background:var(--bg);border:1px solid var(--line);display:grid;grid-template-columns:1fr 46%;overflow:hidden">
+        <div style="padding:14px;display:grid;gap:8px;align-content:start"><span style="height:12px;width:60%;border-radius:4px;background:var(--line)"></span><span style="height:70px;border-radius:10px;background:var(--surface);border:1px solid var(--line)"></span><span style="height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--line)"></span></div>
+        <div style="background:var(--surface);border-left:1px solid var(--line);box-shadow:-16px 0 40px -16px rgba(24,20,14,.2);padding:12px;display:grid;grid-template-rows:auto 1fr auto;gap:8px">
+          <span style="display:flex;justify-content:space-between;font-weight:600;font-size:14px">Ask the tutor<span style="color:var(--text-muted)">×</span></span>
+          <span style="font-size:12px;line-height:1.45;color:var(--text-secondary)">Answers use your notes first.</span>
+          <span style="min-height:40px;border-radius:10px;border:1px solid var(--line-strong);display:flex;align-items:center;padding:0 10px;font-size:12px;color:var(--text-muted)">Ask about osmosis…</span>
+        </div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">The drawer doesn't block the page, so you can scroll and select behind it. It isn't a focus trap: Esc closes it and F6 switches between the drawer and the page. On mobile it's full screen, with a back button.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Skeleton and empty state</strong><span style="font-size:12px;color:var(--text-muted)">Skeleton · EmptyState</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div aria-hidden="true" style="border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;background:var(--surface)">
+          <span style="height:10px;width:40%;border-radius:4px;background:var(--surface-sunk);animation:lnShimmer 1.6s infinite"></span>
+          <span style="height:22px;width:85%;border-radius:6px;background:var(--surface-sunk);animation:lnShimmer 1.6s infinite"></span>
+          <span style="height:12px;width:60%;border-radius:4px;background:var(--surface-sunk);animation:lnShimmer 1.6s infinite"></span>
+          <span style="height:44px;border-radius:12px;background:var(--surface-sunk);animation:lnShimmer 1.6s infinite"></span>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px;align-content:start;background:var(--surface)">
+          <strong style="font-weight:600;font-size:15px">No notes yet</strong>
+          <span style="font-size:13px;line-height:1.45;color:var(--text-secondary)">You don’t need any. There are exam-board questions ready for Biology.</span>
+          <span style="min-height:44px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-size:14px;font-weight:600">Practise Biology</span>
+          <span style="font-size:13px;color:var(--accent-text);font-weight:600">or add your notes</span>
+        </div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Each skeleton matches its real component box for box (Today's hero above), so nothing jumps when content arrives. It's hidden from screen readers, and the region gets <code style="font-family:'JetBrains Mono',monospace">aria-busy</code>. An empty state always offers something useful straight away, never just "add something".</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Session progress</strong><span style="font-size:12px;color:var(--text-muted)">Time-boxed, not a guilt bar</span></div>
+      <div style="display:grid;gap:10px;padding:14px;border-radius:12px;background:var(--surface-sunk)">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:14px"><span style="font-weight:600">Question 4 of 6</span><span style="color:var(--text-secondary)">About 3 min left</span></div>
+        <div role="progressbar" aria-valuemin="0" aria-valuemax="6" aria-valuenow="3" aria-label="3 of 6 questions done" style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px">
+          <span style="height:6px;border-radius:3px;background:var(--accent)"></span><span style="height:6px;border-radius:3px;background:var(--accent)"></span><span style="height:6px;border-radius:3px;background:var(--accent)"></span><span style="height:6px;border-radius:3px;background:var(--accent);opacity:.45"></span><span style="height:6px;border-radius:3px;background:var(--line-strong);opacity:.4"></span><span style="height:6px;border-radius:3px;background:var(--line-strong);opacity:.4"></span>
+        </div>
+        <span style="font-size:13px;color:var(--text-secondary)">Stop any time. Everything you’ve done is saved.</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Segments count questions, not correctness, so a wrong answer looks exactly like a right one here. There's no countdown, except in a timed mock you chose yourself.</p>
+    </div>
+  </div>
+</section>
+
+<!-- LEARNING COMPONENTS -->
+<section id="learning" data-screen-label="DS 05 Learning components" style="max-width:1280px;margin:0 auto;padding:80px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)">05 · Learning components</div>
+  <h2 style="font-family:var(--font-display);font-weight:400;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:8px 0 10px">The parts that make Learnora different</h2>
+  <p style="font-size:16px;line-height:1.55;color:var(--text-secondary);max-width:66ch;margin:0 0 24px">Sample content only: GCSE Biology (osmosis), CBSE Physics (Ohm’s law), IB Chemistry (le Chatelier).</p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px">
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Question card · multiple choice</strong><span style="font-size:12px;color:var(--text-muted)">QuestionCard</span></div>
+      <div style="display:grid;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-muted)"><span>Biology · Osmosis · AQA bank</span><span title="Read aloud" style="width:44px;height:44px;margin:-10px -10px -10px 0;display:grid;place-items:center;color:var(--text-secondary)"><span aria-hidden="true" style="width:20px;height:20px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/volume-2.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/volume-2.svg) center/contain no-repeat"></span></span></div>
+        <p style="margin:0;font-size:19px;line-height:1.45;font-weight:500">A potato chip is put in very salty water for an hour. What happens to its mass?</p>
+        <div role="radiogroup" style="display:grid;gap:8px">
+          <span style="display:flex;gap:12px;align-items:center;min-height:52px;padding:0 14px;border-radius:12px;border:1px solid var(--line-strong);font-size:16px"><span style="width:26px;height:26px;border-radius:7px;border:1px solid var(--line-strong);display:grid;place-items:center;font-size:13px;font-weight:600">A</span>It goes up</span>
+          <span style="display:flex;gap:12px;align-items:center;min-height:52px;padding:0 14px;border-radius:12px;border:2px solid var(--accent);background:var(--accent-soft);font-size:16px;font-weight:500"><span style="width:26px;height:26px;border-radius:7px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-size:13px;font-weight:600">B</span>It goes down</span>
+          <span style="display:flex;gap:12px;align-items:center;min-height:52px;padding:0 14px;border-radius:12px;border:1px solid var(--line-strong);font-size:16px"><span style="width:26px;height:26px;border-radius:7px;border:1px solid var(--line-strong);display:grid;place-items:center;font-size:13px;font-weight:600">C</span>It stays the same</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><span style="font-size:14px;color:var(--accent-text);font-weight:600;min-height:44px;display:flex;align-items:center">I’m stuck</span><span style="min-height:48px;padding:0 20px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600">Check</span></div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Question text is 19 px, sans, never serif. Options are full-width rows at least 52 px tall, and a letter key picks them on desktop. "Report a problem" lives in the ⋯ menu on the header line. On mobile the question sticks to the top and the Check button to the bottom.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Confidence tap</strong><span style="font-size:12px;color:var(--text-muted)">ConfidencePicker · restyle</span></div>
+      <div style="display:grid;gap:10px;padding:16px;border-radius:12px;background:var(--surface-sunk)">
+        <span style="font-weight:600">How sure are you?</span>
+        <div role="radiogroup" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <span style="min-height:48px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);display:grid;place-items:center;font-size:15px">Guessing</span>
+          <span style="min-height:48px;border-radius:12px;border:2px solid var(--text);background:var(--surface);display:grid;place-items:center;font-size:15px;font-weight:600">Fairly sure</span>
+          <span style="min-height:48px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);display:grid;place-items:center;font-size:15px">Certain</span>
+        </div>
+        <span style="font-size:13px;color:var(--text-secondary)">Optional. It helps us spot lucky guesses.</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">It appears after you pick an answer and before Check. One tap, then it's gone. It's never red or green, because confidence isn't right or wrong. Jordan can switch it off in Settings ▸ Study.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Hint ladder</strong><span style="font-size:12px;color:var(--text-muted)">HintLadder · restyle</span></div>
+      <div style="display:grid;gap:8px">
+        <div style="font-size:13px;line-height:1.45;color:var(--text-secondary);padding:10px 12px;border-radius:10px;background:var(--surface-sunk)">Hints are always free. If you use one, we’ll give you a fresh question later to make it count.</div>
+        <div style="display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;padding:12px;border-radius:12px;border:1px solid var(--accent);background:var(--accent-soft)">
+          <span style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-size:13px;font-weight:600">1</span>
+          <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:600;color:var(--accent-text)">Nudge</span><span style="font-size:15px;line-height:1.45">Where is there more water: inside the potato, or in the salty water?</span></span>
+        </div>
+        <div style="display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:12px;border-radius:12px;border:1px solid var(--line-strong)">
+          <span style="width:28px;height:28px;border-radius:50%;border:1px solid var(--line-strong);display:grid;place-items:center;font-size:13px;font-weight:600">2</span>
+          <span style="font-size:15px">One step</span><span style="font-size:13px;color:var(--accent-text);font-weight:600">Show</span>
+        </div>
+        <div style="display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:12px;border-radius:12px;border:1px dashed var(--line-strong);color:var(--text-secondary)">
+          <span style="width:28px;height:28px;border-radius:50%;border:1px dashed var(--line-strong);display:grid;place-items:center;font-size:13px;font-weight:600">3</span>
+          <span style="font-size:15px">Show me how, then give me one like it</span><span style="font-size:12px">after step 2</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--accent-text);font-weight:600;min-height:44px">Still stuck? Ask about this question</div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">The rule is said once, before the first hint (Sofia's J4). Rungs unlock in order. Hints are 25 words or fewer and never give the answer. The worked solution is called "Show me how", and a fresh question follows it, so asking for help leads somewhere instead of just counting as wrong (Ben's J4). Each hint loads as a skeleton the same size as a hint, and bank questions come with ladders already written.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Question card · numeric and short answer</strong><span style="font-size:12px;color:var(--text-muted)">CBSE + IB samples</span></div>
+      <div style="display:grid;gap:10px;padding:14px;border-radius:12px;border:1px solid var(--line)">
+        <span style="font-size:13px;color:var(--text-muted)">Physics · Ohm’s law · AI-written, general</span>
+        <p style="margin:0;font-size:17px;line-height:1.45;font-weight:500">A torch bulb draws 0.5 A from a 12 V supply. What is its resistance?</p>
+        <span style="display:flex;align-items:center;min-height:52px;border-radius:12px;border:1px solid var(--line-strong);overflow:hidden"><span style="flex:1;padding:0 14px;color:var(--text-muted)">Type a number</span><span style="align-self:stretch;display:grid;place-items:center;padding:0 14px;background:var(--surface-sunk);font-weight:600;border-left:1px solid var(--line)">Ω</span></span>
+      </div>
+      <div style="display:grid;gap:10px;padding:14px;border-radius:12px;border:1px solid var(--line)">
+        <span style="font-size:13px;color:var(--text-muted)">Chemistry · Le Chatelier · IB HL</span>
+        <p style="margin:0;font-size:17px;line-height:1.45;font-weight:500">2NO₂ ⇌ N₂O₄ is exothermic. The mixture is cooled. Say what happens to the colour, and why.</p>
+        <span style="display:block;min-height:96px;border-radius:12px;border:1px solid var(--line-strong);padding:12px 14px;color:var(--text-muted);font-size:15px">In a sentence or two…</span>
+        <span style="font-size:13px;color:var(--text-secondary)">Checked by the tutor against the mark scheme · 1 tutor go</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Where a question comes from is always shown: exam-board bank, your notes, or "AI-written, general" for boards that are partly ready. If marking a short answer costs a tutor go, it says so before you start typing.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start;grid-column:1/-1">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong style="font-weight:600">Answer feedback</strong><span style="font-size:12px;color:var(--text-muted)">Replaces WrongAnswerNote and MisconceptionRepair. Short, warm, specific (P5).</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+        <div style="padding:16px;border-radius:14px;background:var(--success-soft);display:grid;gap:8px;align-content:start">
+          <span style="display:flex;gap:8px;align-items:center;color:var(--success-text);font-weight:600"><span aria-hidden="true" style="width:20px;height:20px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/circle-check.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/circle-check.svg) center/contain no-repeat"></span>Right</span>
+          <span style="font-size:15px;line-height:1.5">Water moves out of the potato into the saltier water, so it gets lighter.</span>
+          <span style="min-height:44px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600;margin-top:4px">Next</span>
+        </div>
+        <div style="padding:16px;border-radius:14px;background:var(--surface-sunk);border:1px solid var(--line);display:grid;gap:10px;align-content:start">
+          <span style="display:flex;gap:8px;align-items:center;font-weight:600"><span aria-hidden="true" style="width:20px;height:20px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/circle-dot.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/circle-dot.svg) center/contain no-repeat"></span>Not quite. It goes down.</span>
+          <div style="padding:12px;border-radius:10px;background:var(--surface);display:grid;gap:6px">
+            <span style="font-size:12px;font-weight:600;color:var(--accent-text)">Common mix-up</span>
+            <span style="font-size:15px;line-height:1.45">“Salt soaks <em>into</em> the potato.” It’s the water that moves, and it moves <em>out</em>, towards the salt.</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;line-height:1.35"><span style="padding:8px;border-radius:8px;border:1px dashed var(--line-strong)">Salt moves in<br><span style="color:var(--text-muted)">→ heavier</span></span><span style="padding:8px;border-radius:8px;border:1px solid var(--accent);background:var(--accent-soft)">Water moves out<br><span style="color:var(--text-secondary)">→ lighter</span></span></div>
+          <span style="font-size:13px;color:var(--text-secondary)">Saved to Fixing. We’ll check it again on Thursday with a new question.</span>
+          <span style="min-height:44px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600">Got it, next</span>
+        </div>
+        <div style="padding:16px;border-radius:14px;background:var(--surface-sunk);border:1px solid var(--line);display:grid;gap:8px;align-content:start">
+          <span style="display:flex;gap:8px;align-items:center;font-weight:600"><span aria-hidden="true" style="width:20px;height:20px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/life-buoy.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/life-buoy.svg) center/contain no-repeat"></span>Right, with a hint</span>
+          <span style="font-size:15px;line-height:1.5">Nicely worked out. Because you used a hint, this one doesn’t count towards “Remembered” yet.</span>
+          <span style="font-size:13px;color:var(--text-secondary)">We’ve added a similar question to the end of this session.</span>
+          <span style="min-height:44px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600;margin-top:4px">Next</span>
+        </div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Wrong answers get no red and no cross. The neutral surface and the words "Not quite" carry it, so mistakes don't feel like a punishment. The answer appears in the first line, then one sentence on the mix-up, a side-by-side, and the check-back date. It's announced with <code style="font-family:'JetBrains Mono',monospace">aria-live="polite"</code>, and the option you picked stays focusable with its result in its label. "Not checked by a teacher yet" appears whenever the mix-up was spotted by AI.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start;grid-column:1/-1">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong style="font-weight:600">Mix-up card · Fixing → Check-back due → Fixed</strong><span style="font-size:12px;color:var(--text-muted)">NEW states on MisconceptionRepair. The top fix for issue #1.</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+        <div style="padding:16px;border-radius:14px;border:1px solid var(--line);display:grid;gap:8px;align-content:start">
+          <span style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent-text)">Fixing</span><span style="font-size:12px;color:var(--text-muted)">Biology</span></span>
+          <span style="font-size:16px;font-weight:600;line-height:1.35">Salt soaks into cells</span>
+          <span style="font-size:14px;color:var(--text-secondary);line-height:1.45">You’ve had the re-teach. Check-back on <strong style="font-weight:600;color:var(--text)">Thursday</strong>.</span>
+          <div aria-label="Step 1 of 2 done" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px"><span style="height:6px;border-radius:3px;background:var(--accent)"></span><span style="height:6px;border-radius:3px;background:var(--line-strong);opacity:.4"></span></div>
+          <span style="font-size:12px;color:var(--text-muted)">Spotted Mon · re-taught Mon</span>
+        </div>
+        <div style="padding:16px;border-radius:14px;border:2px solid var(--accent);background:var(--surface);display:grid;gap:8px;align-content:start;box-shadow:var(--shadow-2)">
+          <span style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--accent);color:var(--on-accent)">Check-back ready</span><span style="font-size:12px;color:var(--text-muted)">1 question · about 1 min</span></span>
+          <span style="font-size:16px;font-weight:600;line-height:1.35">Prove you’ve fixed it</span>
+          <span style="font-size:14px;color:var(--text-secondary);line-height:1.45">On Monday you thought salt soaks into cells. Here’s a new question to see if that’s changed.</span>
+          <span style="min-height:48px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600;margin-top:4px">Try it · 1 min</span>
+        </div>
+        <div style="padding:16px;border-radius:14px;background:var(--success-soft);display:grid;gap:8px;align-content:start">
+          <span style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--success);color:var(--on-success)">Fixed</span><span style="font-size:12px;color:var(--success-text)">Thu 16 Oct</span></span>
+          <span style="font-size:16px;font-weight:600;line-height:1.35;color:var(--success-text)">Water moves, not salt</span>
+          <span style="font-size:14px;line-height:1.45;color:var(--success-text)">You got a brand-new question right, 3 days later. That’s how we know it stuck.</span>
+          <span style="font-size:13px;color:var(--success-text);font-weight:600">4 mix-ups fixed so far</span>
+        </div>
+        <div style="padding:16px;border-radius:14px;border:1px solid var(--line);display:grid;gap:8px;align-content:start">
+          <span style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent-text)">Fixing</span><span style="font-size:12px;color:var(--text-muted)">Not yet</span></span>
+          <span style="font-size:16px;font-weight:600;line-height:1.35">Still a bit stuck. That’s normal.</span>
+          <span style="font-size:14px;color:var(--text-secondary);line-height:1.45">Most mix-ups take two goes. We’ll try a different way and check again on Sunday.</span>
+        </div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Passing a check-back gets a calm moment, not confetti: the card's tint turns to success, the title is rewritten as the corrected belief, and it's announced as "Fixed: water moves, not salt". A failed check-back keeps the card in Fixing and gives a new date, and never shows a red state. The two-segment bar is the whole loop: re-teach, then check-back.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Readiness with uncertainty</strong><span style="font-size:12px;color:var(--text-muted)">NEW · replaces bare %</span></div>
+      <div style="display:grid;gap:10px;padding:16px;border-radius:12px;border:1px solid var(--line)">
+        <span style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted)"><span>Combined Science Paper 1 · 24 days</span><span>AQA</span></span>
+        <span style="font-size:22px;font-weight:600">Likely a 5 or 6</span>
+        <div role="img" aria-label="Likely grade 5 to 6, could be 4 to 7. Rough, based on 31 questions." style="position:relative;height:28px">
+          <div style="position:absolute;left:0;right:0;top:12px;height:4px;border-radius:2px;background:var(--surface-sunk)"></div>
+          <div style="position:absolute;left:30%;width:42%;top:8px;height:12px;border-radius:6px;background:var(--accent-soft);border:1px dashed var(--accent)"></div>
+          <div style="position:absolute;left:42%;width:18%;top:8px;height:12px;border-radius:6px;background:var(--accent)"></div>
+          <div style="position:absolute;left:0;right:0;top:22px;display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);font-variant-numeric:tabular-nums"><span>1</span><span>3</span><span>5</span><span>7</span><span>9</span></div>
+        </div>
+        <span style="font-size:13px;line-height:1.45;color:var(--text-secondary);margin-top:6px">Rough: based on 31 questions and 2 weeks of cards. Could be 4 to 7.</span>
+        <span style="font-size:14px;line-height:1.45"><strong style="font-weight:600">Best next move:</strong> osmosis. It’s worth the most marks and it’s fading.</span>
+      </div>
+      <div style="display:grid;gap:10px;padding:16px;border-radius:12px;border:1.5px dashed var(--line-strong)">
+        <span style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted)"><span>Chemistry HL Paper 2</span><span>IB</span></span>
+        <span style="font-size:18px;font-weight:600">Not enough to go on yet</span>
+        <span style="font-size:14px;line-height:1.45;color:var(--text-secondary)">Do a 2-minute check and we’ll give you a first rough idea.</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">The solid band is the likely range and the dashed band is the possible range. Labels are grades where the board has them, or words ("on track for a pass") where it doesn't. Below about 20 answers, we show no band at all. Every chart has a sentence in its <code style="font-family:'JetBrains Mono',monospace">aria-label</code>, plus a "Show as a table" option.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Mastery ladder · evidence-based</strong><span style="font-size:12px;color:var(--text-muted)">MasteryLadder · lib/mastery change</span></div>
+      <ol style="margin:0;padding:0;list-style:none;display:grid;gap:6px">
+        <li style="display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start"><span style="width:22px;height:22px;border-radius:50%;background:var(--accent);margin-top:1px"></span><span style="display:grid"><span style="font-weight:600">Started</span><span style="font-size:13px;color:var(--text-muted)">Seen it, had a go</span></span></li>
+        <li style="display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start"><span style="width:22px;height:22px;border-radius:50%;background:var(--accent);margin-top:1px"></span><span style="display:grid"><span style="font-weight:600">Remembered</span><span style="font-size:13px;color:var(--text-muted)">Right the same day, no hints</span></span></li>
+        <li style="display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start"><span style="width:22px;height:22px;border-radius:50%;border:2px solid var(--accent);background:var(--accent-soft);margin-top:1px"></span><span style="display:grid"><span style="font-weight:600">Remembered later</span><span style="font-size:13px;color:var(--text-muted)">Right again, 2+ days later. Next: your check-back on Thursday</span></span></li>
+        <li style="display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;color:var(--text-muted)"><span style="width:22px;height:22px;border-radius:50%;border:1.5px dashed var(--line-strong);margin-top:1px"></span><span style="display:grid"><span style="font-weight:600">Used it</span><span style="font-size:13px">A worked or written question, not just multiple choice</span></span></li>
+        <li style="display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;color:var(--text-muted)"><span style="width:22px;height:22px;border-radius:50%;border:1.5px dashed var(--line-strong);margin-top:1px"></span><span style="display:grid"><span style="font-weight:600">Explained it</span><span style="font-size:13px">Taught it back and the tutor agreed</span></span></li>
+      </ol>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Each rung names the evidence it needs. Multiple choice alone can't go past "Remembered later". Rungs you haven't reached yet are dashed, which means not tested yet, not failed. Inside a session it shrinks to one line: "Osmosis · Remembered later".</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Flashcard</strong><span style="font-size:12px;color:var(--text-muted)">Keep it fresh · works offline</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="min-height:170px;border-radius:16px;border:1px solid var(--line);box-shadow:var(--shadow-1);padding:16px;display:grid;align-content:space-between;gap:10px"><span style="font-size:12px;color:var(--text-muted)">Front · Biology</span><span style="font-size:18px;font-weight:500;line-height:1.35">What is a partially permeable membrane?</span><span style="font-size:13px;color:var(--accent-text);font-weight:600">Tap to flip</span></div>
+        <div style="min-height:170px;border-radius:16px;border:1px solid var(--line);background:var(--surface-sunk);padding:16px;display:grid;align-content:space-between;gap:10px"><span style="font-size:12px;color:var(--text-muted)">Back</span><span style="font-size:16px;line-height:1.45">A membrane that lets small things like water through, but not bigger things like sugar.</span><span style="font-size:12px;color:var(--text-muted)">From: Osmosis notes</span></div>
+      </div>
+      <div style="display:grid;gap:6px"><span style="font-size:14px;font-weight:600">How did that go?</span>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+          <span style="min-height:52px;border-radius:12px;border:1px solid var(--line-strong);display:grid;place-items:center;text-align:center;font-size:14px;line-height:1.2">Forgot<br><span style="font-size:11px;color:var(--text-muted)">today</span></span>
+          <span style="min-height:52px;border-radius:12px;border:1px solid var(--line-strong);display:grid;place-items:center;text-align:center;font-size:14px;line-height:1.2">Tricky<br><span style="font-size:11px;color:var(--text-muted)">2 days</span></span>
+          <span style="min-height:52px;border-radius:12px;border:2px solid var(--accent);background:var(--accent-soft);display:grid;place-items:center;text-align:center;font-size:14px;font-weight:600;line-height:1.2">Got it<br><span style="font-size:11px;color:var(--text-secondary);font-weight:400">5 days</span></span>
+          <span style="min-height:52px;border-radius:12px;border:1px solid var(--line-strong);display:grid;place-items:center;text-align:center;font-size:14px;line-height:1.2">Easy<br><span style="font-size:11px;color:var(--text-muted)">12 days</span></span>
+        </div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">These are the FSRS ratings in plain words, each showing when the card comes back. Keys 1–4 and Space work on desktop. When you're offline, a "Saved offline" badge appears and reviews sync later, with no error.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Session summary</strong><span style="font-size:12px;color:var(--text-muted)">Effort and fixes, never a harsh score</span></div>
+      <div style="display:grid;gap:12px;padding:18px;border-radius:14px;background:var(--surface-sunk)">
+        <span style="font-family:var(--font-display);font-size:26px;line-height:1.15">That’s 9 minutes well spent.</span>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-variant-numeric:tabular-nums">
+          <span style="display:grid;padding:10px;border-radius:10px;background:var(--surface)"><span style="font-size:24px;font-weight:600">6</span><span style="font-size:12px;color:var(--text-secondary)">questions done</span></span>
+          <span style="display:grid;padding:10px;border-radius:10px;background:var(--surface)"><span style="font-size:24px;font-weight:600">1</span><span style="font-size:12px;color:var(--text-secondary)">mix-up found</span></span>
+          <span style="display:grid;padding:10px;border-radius:10px;background:var(--success-soft);color:var(--success-text)"><span style="font-size:24px;font-weight:600">1</span><span style="font-size:12px">fixed for good</span></span>
+        </div>
+        <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><span style="font-weight:600">Coming up</span><span style="color:var(--text-secondary)">Thu · check-back on “salt soaks into cells” · 1 min</span><span style="color:var(--text-secondary)">Sat · 8 cards to keep osmosis fresh</span></div>
+        <span style="min-height:48px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600">Done for now</span>
+        <span style="font-size:14px;color:var(--accent-text);font-weight:600;text-align:center">See every question</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">The score ("4 of 6 right") only appears inside "See every question". The primary action is to stop, because the session has an end (P2). "Keep going" shows up only when the student picked 20 minutes.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Tutor chat with sources</strong><span style="font-size:12px;color:var(--text-muted)">TurboChat · restyle</span></div>
+      <div style="display:grid;gap:10px">
+        <div style="justify-self:end;max-width:80%;padding:10px 14px;border-radius:16px 16px 4px 16px;background:var(--accent);color:var(--on-accent);font-size:15px;line-height:1.45">why does the raisin get bigger</div>
+        <div style="max-width:88%;display:grid;gap:8px">
+          <div style="padding:12px 14px;border-radius:16px 16px 16px 4px;background:var(--surface-sunk);font-size:15px;line-height:1.5">There’s more water outside the raisin than inside. So water moves in through its skin, and it swells.</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px"><span style="display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border-radius:999px;border:1px solid var(--line-strong);min-height:28px"><span aria-hidden="true" style="width:14px;height:14px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/file-text.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/file-text.svg) center/contain no-repeat"></span>Your notes · Osmosis, p.1</span><span style="display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;border:1px solid var(--line-strong);min-height:28px">AQA spec 4.1.3.2</span></div>
+        </div>
+        <div style="max-width:88%;padding:12px 14px;border-radius:16px 16px 16px 4px;background:var(--surface-sunk);display:flex;gap:8px;align-items:center;font-size:14px;color:var(--text-secondary)"><span style="display:flex;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:lnPulse 1.2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:lnPulse 1.2s .2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:lnPulse 1.2s .4s infinite"></span></span>Reading your notes…</div>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Sources sit under each reply and open the exact passage. With no sources, the reply says "From general knowledge, not your notes". The tutor's bubbles aren't avatars or a character, just a calm surface. The pending state says what it's doing, and the Stop button sits by the input.</p>
+    </div>
+  </div>
+</section>
+
+<!-- AI + LIMITS -->
+<section id="system-states" data-screen-label="DS 06 AI, limits, consent, offline" style="max-width:1280px;margin:0 auto;padding:80px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)">06 · Waiting, failing, limits, consent, offline</div>
+  <h2 style="font-family:var(--font-display);font-weight:400;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:8px 0 24px">Honest about the machinery, always with a way forward</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px">
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">AI is working</strong><span style="font-size:12px;color:var(--text-muted)">Pending · replace</span></div>
+      <div style="display:grid;gap:10px;padding:14px;border-radius:12px;background:var(--surface-sunk)">
+        <span style="display:flex;justify-content:space-between;gap:8px;font-size:14px"><span style="font-weight:600">Writing 4 new questions on osmosis</span><span style="color:var(--text-secondary)">about 20 s</span></span>
+        <div style="height:4px;border-radius:2px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:45%;background:var(--accent);border-radius:2px"></span></div>
+        <span style="font-size:13px;color:var(--text-secondary)">Step 2 of 3 · checking them against the AQA spec</span>
+      </div>
+      <div style="display:grid;gap:8px;padding:14px;border-radius:12px;border:1px solid var(--line)">
+        <span style="font-size:12px;font-weight:600;color:var(--accent-text)">Try this one while you wait · exam-board question</span>
+        <span style="font-size:15px;line-height:1.45">Which way does water move when a cell is put in pure water?</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">The bar follows real steps from the server and never loops. After 30 s the message changes to "Taking longer than usual. You can carry on, and they'll appear when they're ready." The student is never stuck on the waiting screen.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">AI failed</strong><span style="font-size:12px;color:var(--text-muted)">AiErrorCard · keep and restyle</span></div>
+      <div style="display:grid;gap:10px;padding:16px;border-radius:12px;border:1px solid var(--line);background:var(--surface)">
+        <span style="font-weight:600">The question writer is busy right now</span>
+        <span style="font-size:14px;line-height:1.5;color:var(--text-secondary)">That’s on our side, not your connection. Nothing you did was lost, and it didn’t use a tutor go.</span>
+        <span style="min-height:48px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600">Use 6 exam-board questions</span>
+        <span style="font-size:14px;color:var(--accent-text);font-weight:600;text-align:center">Try writing them again</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">Provider fallback happens silently. This card only appears once every provider has failed. It says whose problem it is, what was kept and what it cost, and the first button always works offline or from the bank.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Usage meter and limit notices</strong><span style="font-size:12px;color:var(--text-muted)">PaywallModal → LimitNotice</span></div>
+      <div style="display:grid;gap:8px;padding:14px;border-radius:12px;border:1px solid var(--line)">
+        <span style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:600">Tutor goes today</span><span style="font-variant-numeric:tabular-nums">3 of 5 left</span></span>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px"><span style="height:8px;border-radius:4px;background:var(--line-strong);opacity:.35"></span><span style="height:8px;border-radius:4px;background:var(--line-strong);opacity:.35"></span><span style="height:8px;border-radius:4px;background:var(--accent)"></span><span style="height:8px;border-radius:4px;background:var(--accent)"></span><span style="height:8px;border-radius:4px;background:var(--accent)"></span></div>
+        <span style="font-size:13px;color:var(--text-secondary)">They come back at midnight. Bank questions, cards and your plan are unlimited.</span>
+      </div>
+      <div style="display:flex;gap:10px;padding:12px 14px;border-radius:12px;background:var(--warning-soft);color:var(--warning-text);font-size:14px;line-height:1.45"><span aria-hidden="true" style="flex:none;width:18px;height:18px;margin-top:1px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/triangle-alert.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/triangle-alert.svg) center/contain no-repeat"></span><span><strong style="font-weight:600">Before you start:</strong> this session uses 1 tutor go. You’ll have 2 left.</span></div>
+      <div style="display:grid;gap:8px;padding:14px;border-radius:12px;background:var(--surface-sunk)">
+        <span style="font-weight:600">You’ve used today’s tutor goes</span>
+        <span style="font-size:14px;line-height:1.45;color:var(--text-secondary)">That session is finished and saved. Here’s what you can still do for free:</span>
+        <span style="min-height:44px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600">10 exam-board questions</span>
+        <span style="font-size:13px;color:var(--text-secondary);text-align:center">Want more tutor goes? <span style="color:var(--accent-text);font-weight:600;text-decoration:underline;text-underline-offset:3px">See Plus</span></span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">The meter is visible on the start sheet, in the sidebar and in Settings. Limits are only checked when a session starts, never in the middle of one: if your last go runs out mid-session, that session finishes anyway. Free options come first, and the upgrade is the last line (P10, Sam's J8).</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">AI consent, once</strong><span style="font-size:12px;color:var(--text-muted)">AiConsentBridge · restyle</span></div>
+      <div style="display:grid;gap:10px;padding:16px;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow-2)">
+        <span style="font-family:var(--font-display);font-size:22px;line-height:1.2">Before the tutor helps</span>
+        <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.55;color:var(--text-secondary)"><li>What you type, and the notes you choose, go to our AI partners (named in Privacy) to write answers.</li><li>They don’t keep it or train on it.</li><li>Your name and email are never sent.</li></ul>
+        <span style="min-height:48px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600">OK, turn on the tutor</span>
+        <span style="font-size:14px;color:var(--accent-text);font-weight:600;text-align:center">Not now, use bank questions only</span>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">It appears the first time a student does something that needs AI, not at sign-up. Saying no still leaves a working app. It can be changed any time in Settings ▸ Privacy and data. Provider names come from the disclosed list in the privacy policy.</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:12px;align-content:start">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:600">Offline banner</strong><span style="font-size:12px;color:var(--text-muted)">PWA · restyle</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:var(--surface-sunk);border:1px solid var(--line);font-size:14px"><span style="display:flex;gap:8px;align-items:center"><span aria-hidden="true" style="width:18px;height:18px;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.454.0/icons/wifi-off.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.454.0/icons/wifi-off.svg) center/contain no-repeat"></span>You’re offline. Cards still work.</span><span style="font-weight:600;color:var(--accent-text)">Review cards</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:var(--success-soft);color:var(--success-text);font-size:14px"><span>Back online. 12 reviews synced.</span></div>
+      <p style="margin:0;font-size:13px;line-height:1.45;color:var(--text-muted)">The banner is neutral, not a warning, and appears under the top bar. It's announced once. Anything that needs the network shows "Needs a connection" in place of a failure.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TOKENS -->
+<section id="tokens" data-screen-label="DS 07 Token table" style="max-width:1280px;margin:0 auto;padding:80px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)">07 · Token table</div>
+  <h2 style="font-family:var(--font-display);font-weight:400;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:8px 0 10px">Ready to drop into tokens.css</h2>
+  <p style="font-size:16px;line-height:1.55;color:var(--text-secondary);max-width:66ch;margin:0 0 20px">Generated from the same values that drive this page, so the proof above and the CSS can't drift apart. Existing names (<code style="font-family:'JetBrains Mono',monospace;font-size:13px">--accent</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px">--accent-text</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px">--success-text</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px">--bg</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px">--surface</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px">--text</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px">--text-muted</code>) are kept, so current components don't break. New ones are additions.</p>
+  <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:14px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap">
+        <div style="display:flex;gap:4px">
+          <sc-for list="{{ cssTabs }}" as="t" hint-placeholder-count="3">
+            <sc-if value="{{ t.active }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ t.on }}" aria-pressed="true" style="font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 12px;border-radius:8px;border:0;background:var(--accent-soft);color:var(--accent-text);cursor:pointer">{{ t.label }}</button></sc-if>
+            <sc-if value="{{ t.inactive }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ t.on }}" aria-pressed="false" style="font:inherit;font-size:13px;min-height:36px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--text-secondary);cursor:pointer">{{ t.label }}</button></sc-if>
+          </sc-for>
+        </div>
+        <button type="button" onClick="{{ copyCss }}" style="font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--text);cursor:pointer">{{ copyLabel }}</button>
+      </div>
+      <pre style="margin:0;padding:16px 18px;max-height:560px;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.6;color:var(--text);background:var(--surface-sunk)">{{ cssText }}</pre>
+    </div>
+  </div>
+</section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { mode: 'light', preset: 'teal', reading: false, motion: false, cssTab: 'light', copied: false };
+
+  NEU = {
+    light: { bg: '#f7f5f0', surface: '#ffffff', sunk: '#f2efe8', raised: '#ffffff', line: '#e2ddd1', lineStrong: '#8f8778', text: '#1a1815', text2: '#3d3830', muted: '#625c50' },
+    dark: { bg: '#0d0c0a', surface: '#161511', sunk: '#1e1c18', raised: '#211f1a', line: '#2c2924', lineStrong: '#6b655a', text: '#f0ece4', text2: '#cbc4b8', muted: '#a8a094' }
+  };
+  PRE = {
+    teal: { name: 'Default teal', light: { fill: '#0f766e', hover: '#0b5f58', text: '#0f766e', soft: '#e2efec', on: '#ffffff' }, dark: { fill: '#5fb3a3', hover: '#7cc6b8', text: '#6fc2b2', soft: '#16302b', on: '#0d0c0a' } },
+    hacker: { name: 'Hacker', light: { fill: '#15803d', hover: '#116a32', text: '#166534', soft: '#e3f1e6', on: '#ffffff' }, dark: { fill: '#22c55e', hover: '#4ade80', text: '#4ade80', soft: '#10291a', on: '#0d0c0a' } },
+    lavender: { name: 'Lavender', light: { fill: '#6d43e0', hover: '#5a33c4', text: '#6a3fdc', soft: '#ece6fb', on: '#ffffff' }, dark: { fill: '#a78bfa', hover: '#c0acfc', text: '#b9a2fb', soft: '#241c3a', on: '#0d0c0a' } },
+    mono: { name: 'Monochrome', light: { fill: '#1a1815', hover: '#3d3830', text: '#1a1815', soft: '#ebe8e1', on: '#fbfaf7' }, dark: { fill: '#f0ece4', hover: '#ffffff', text: '#f0ece4', soft: '#2a2722', on: '#0d0c0a' } }
+  };
+  SEM = {
+    light: { success: { fill: '#17805f', text: '#15634b', soft: '#e3f1ea', on: '#ffffff' }, warning: { fill: '#b7791f', text: '#76511b', soft: '#f7ecd8', on: '#1a1815' }, danger: { fill: '#c2453a', text: '#96352d', soft: '#f8e5e2', on: '#ffffff' }, info: { fill: '#3d6aa8', text: '#2f5286', soft: '#e6edf6', on: '#ffffff' } },
+    dark: { success: { fill: '#6fb98a', text: '#86c9a0', soft: '#15291e', on: '#0d0c0a' }, warning: { fill: '#d9a557', text: '#e3b46c', soft: '#2e2412', on: '#0d0c0a' }, danger: { fill: '#d9705f', text: '#e88a7b', soft: '#33191a', on: '#0d0c0a' }, info: { fill: '#85a7dc', text: '#9cb8e6', soft: '#172235', on: '#0d0c0a' } }
+  };
+  SHADOW = {
+    light: ['0 1px 2px rgba(24,20,14,.06)', '0 4px 12px -2px rgba(24,20,14,.10)', '0 16px 40px -12px rgba(24,20,14,.18)'],
+    dark: ['0 1px 2px rgba(0,0,0,.35)', '0 4px 12px -2px rgba(0,0,0,.5)', '0 16px 40px -12px rgba(0,0,0,.7)']
+  };
+
+  lum(h) { h = h.replace('#', ''); const c = [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+  cr(a, b) { const x = this.lum(a), y = this.lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+
+  vars(mode, preset, reading) {
+    const n = this.NEU[mode], a = this.PRE[preset][mode], s = this.SEM[mode], sh = this.SHADOW[mode];
+    const v = {
+      '--bg': n.bg, '--surface': n.surface, '--surface-sunk': n.sunk, '--surface-raised': n.raised, '--line': n.line, '--line-strong': n.lineStrong,
+      '--text': n.text, '--text-secondary': n.text2, '--text-muted': n.muted,
+      '--accent': a.fill, '--accent-hover': a.hover, '--accent-text': a.text, '--accent-soft': a.soft, '--on-accent': a.on, '--focus-ring': a.fill,
+      '--shadow-1': sh[0], '--shadow-2': sh[1], '--shadow-3': sh[2]
+    };
+    for (const k of ['success', 'warning', 'danger', 'info']) { v['--' + k] = s[k].fill; v['--' + k + '-text'] = s[k].text; v['--' + k + '-soft'] = s[k].soft; v['--on-' + k] = s[k].on; }
+    if (reading !== undefined) Object.assign(v, reading
+      ? { '--font-display': "'Atkinson Hyperlegible',system-ui,sans-serif", '--font-body': "'Atkinson Hyperlegible',system-ui,sans-serif", '--text-body': '19px', '--leading-body': '1.75', '--tracking-body': '0.01em', '--word-body': '0.08em', '--measure': '60ch' }
+      : { '--font-display': 'Newsreader,Georgia,serif', '--font-body': "'Instrument Sans',system-ui,sans-serif", '--text-body': '16px', '--leading-body': '1.55', '--tracking-body': '0', '--word-body': '0', '--measure': '65ch' });
+    return v;
+  }
+
+  pairs(mode, preset) {
+    const n = this.NEU[mode], a = this.PRE[preset][mode], s = this.SEM[mode];
+    const P = [
+      ['text / bg', n.text, n.bg, 4.5], ['text / surface', n.text, n.surface, 4.5], ['text-secondary / surface', n.text2, n.surface, 4.5],
+      ['text-secondary / sunk', n.text2, n.sunk, 4.5], ['text-muted / bg', n.muted, n.bg, 4.5], ['text-muted / surface', n.muted, n.surface, 4.5], ['text-muted / sunk', n.muted, n.sunk, 4.5],
+      ['line-strong / surface (UI)', n.lineStrong, n.surface, 3],
+      ['accent-text / bg', a.text, n.bg, 4.5], ['accent-text / surface', a.text, n.surface, 4.5], ['accent-text / accent-soft', a.text, a.soft, 4.5],
+      ['on-accent / accent', a.on, a.fill, 4.5], ['on-accent / accent-hover', a.on, a.hover, 4.5], ['accent fill / surface (UI)', a.fill, n.surface, 3], ['accent fill / bg (UI)', a.fill, n.bg, 3]
+    ];
+    for (const k of ['success', 'warning', 'danger', 'info']) {
+      P.push([k + '-text / surface', s[k].text, n.surface, 4.5], [k + '-text / ' + k + '-soft', s[k].text, s[k].soft, 4.5], ['on-' + k + ' / ' + k, s[k].on, s[k].fill, 4.5], [k + ' fill / surface (UI)', s[k].fill, n.surface, 3]);
+    }
+    return P.map(([label, fg, bg, need]) => { const r = this.cr(fg, bg); return { label, fg, bg, need, r, pass: r >= need }; });
+  }
+
+  css(mode) {
+    const lines = [];
+    if (mode === 'base') {
+      lines.push(':root {', '  /* type */',
+        "  --font-display: \"Newsreader\", Georgia, serif;", "  --font-body: \"Instrument Sans\", system-ui, sans-serif;", "  --font-numeric: var(--font-body); /* + font-variant-numeric: tabular-nums */",
+        "  --font-read: \"Atkinson Hyperlegible\", system-ui, sans-serif;", "  --font-mono: \"JetBrains Mono\", ui-monospace, monospace;");
+      this.TYPE.forEach(t => lines.push(`  --text-${t.id}: ${t.px}px;  --leading-${t.id}: ${t.lh};`));
+      lines.push('  --measure: 65ch;', '', '  /* space (4px base) */');
+      this.SPACE.forEach(s => lines.push(`  --space-${s[0]}: ${s[1]}px;`));
+      lines.push('', '  /* radius */'); this.RADIUS.forEach(r => lines.push(`  --radius-${r[0]}: ${r[1]};`));
+      lines.push('', '  /* motion */'); this.MOTION.forEach(m => lines.push(`  --${m[0]}: ${m[1]};`));
+      lines.push('', '  /* layers */'); this.Z.forEach(z => lines.push(`  --z-${z[0]}: ${z[1]};`));
+      lines.push('  --tap-min: 44px;', '}', '',
+        '[data-reading="on"] {', '  --font-display: var(--font-read);', '  --font-body: var(--font-read);', '  --text-body: 19px;  --leading-body: 1.75;', '  --tracking-body: 0.01em;  --word-spacing-body: 0.08em;', '  --measure: 60ch;', '}', '',
+        '@media (prefers-reduced-motion: reduce) {', '  :root { --dur-fast: 0ms; --dur-base: 80ms; --dur-slow: 80ms; --ease-out: linear; }', '}');
+      return lines.join('\n');
+    }
+    const sel = mode === 'light' ? ':root, [data-theme="light"]' : '[data-theme="dark"]';
+    const v = this.vars(mode, 'teal');
+    lines.push(`${sel} {`, '  /* default teal preset; other presets override only the --accent* group */');
+    Object.entries(v).forEach(([k, val]) => lines.push(`  ${k}: ${val};`));
+    lines.push('}', '');
+    ['hacker', 'lavender', 'mono'].forEach(p => {
+      const a = this.PRE[p][mode];
+      lines.push(`${mode === 'light' ? '' : '[data-theme="dark"]'}[data-accent="${p}"] {`, `  --accent: ${a.fill}; --accent-hover: ${a.hover}; --accent-text: ${a.text};`, `  --accent-soft: ${a.soft}; --on-accent: ${a.on}; --focus-ring: ${a.fill};`, '}');
+    });
+    return lines.join('\n');
+  }
+
+  TYPE = [
+    { id: 'display', px: 44, lh: 1.05, family: 'var(--font-display)', w: 400, track: '-0.015em', sample: 'Welcome back, Priya', spec: '44/1.05 · mobile 34 · display' },
+    { id: 'h1', px: 32, lh: 1.15, family: 'var(--font-display)', w: 400, track: '-0.01em', sample: 'Practise osmosis', spec: '32/1.15 · mobile 28 · display' },
+    { id: 'h2', px: 24, lh: 1.25, family: 'var(--font-display)', w: 400, track: '0', sample: 'Things you’ve fixed', spec: '24/1.25 · mobile 22 · display' },
+    { id: 'h3', px: 19, lh: 1.35, family: 'var(--font-body)', w: 600, track: '0', sample: 'Combined Science Paper 1', spec: '19/1.35 · sans 600' },
+    { id: 'question', px: 19, lh: 1.45, family: 'var(--font-body)', w: 500, track: '0', sample: 'What happens to the mass of the potato chip?', spec: '19/1.45 · sans 500 · questions' },
+    { id: 'body-lg', px: 18, lh: 1.55, family: 'var(--font-body)', w: 400, track: '0', sample: 'Water moves from where there is more of it to where there is less.', spec: '18/1.55 · lead text' },
+    { id: 'body', px: 16, lh: 1.55, family: 'var(--font-body)', w: 400, track: '0', sample: 'We’ll check this on Thursday with a new question.', spec: '16/1.55 · default, 65ch max' },
+    { id: 'small', px: 14, lh: 1.45, family: 'var(--font-body)', w: 400, track: '0', sample: 'Based on 31 questions and 2 weeks of cards.', spec: '14/1.45 · meta' },
+    { id: 'caption', px: 13, lh: 1.4, family: 'var(--font-body)', w: 500, track: '0', sample: 'Biology · Osmosis · AQA bank', spec: '13/1.4 · smallest allowed' },
+    { id: 'num-xl', px: 40, lh: 1, family: 'var(--font-body)', w: 600, track: '-0.01em', sample: '5–6  ·  3 of 6  ·  8 min', spec: '40/1 · tabular nums', num: 'tabular-nums' }
+  ];
+  SPACE = [['0', 0, ''], ['1', 4, 'icon to label'], ['2', 8, 'chip gap'], ['3', 12, 'inside a row'], ['4', 16, 'card padding (mobile), page gutter'], ['5', 20, 'card padding (desktop)'], ['6', 24, 'between cards'], ['8', 32, 'section gap (mobile)'], ['10', 40, ''], ['12', 48, 'section gap (desktop)'], ['16', 64, 'page top (desktop)']];
+  RADIUS = [['sm', '10px'], ['md', '14px'], ['lg', '20px'], ['xl', '28px'], ['full', '999px']];
+  MOTION = [['dur-fast', '140ms', 'hover, press, toggle'], ['dur-base', '200ms', 'feedback appears, tint changes'], ['dur-slow', '320ms', 'sheet, drawer, card flip'], ['ease-out', 'cubic-bezier(0.2, 0, 0, 1)', 'things arriving'], ['ease-in', 'cubic-bezier(0.4, 0, 1, 1)', 'things leaving (use dur-fast)'], ['ease-standard', 'cubic-bezier(0.2, 0, 0.2, 1)', 'moves within the page']];
+  Z = [['base', 0, 'page'], ['raised', 1, 'sticky question, card on top'], ['sticky', 100, 'top bar, session bar'], ['nav', 200, 'sidebar, tab bar'], ['ask', 300, 'Ask pill'], ['drawer', 400, 'tutor drawer'], ['modal', 500, 'sheet, modal + scrim'], ['toast', 600, 'toasts, offline banner'], ['tooltip', 700, 'tooltips']];
+
+  mask(name) { return `url(https://unpkg.com/lucide-static@0.454.0/icons/${name}.svg) center/contain no-repeat`; }
+
+  renderVals() {
+    const { mode, preset, reading } = this.state;
+    const n = this.NEU[mode], a = this.PRE[preset][mode], s = this.SEM[mode];
+    const opt = (k, v, label, extra) => Object.assign({ label, active: this.state[k] === v, inactive: this.state[k] !== v, on: () => this.setState({ [k]: v }) }, extra || {});
+
+    const rows = this.pairs(mode, preset);
+    const failing = rows.filter(r => !r.pass).length;
+    let allN = 0, allF = 0;
+    for (const m of ['light', 'dark']) for (const p of Object.keys(this.PRE)) { const pr = this.pairs(m, p); allN += pr.length; allF += pr.filter(r => !r.pass).length; }
+
+    const presetCards = [];
+    for (const p of Object.keys(this.PRE)) for (const m of ['light', 'dark']) {
+      const pr = this.pairs(m, p); const f = pr.filter(r => !r.pass).length;
+      presetCards.push({ name: this.PRE[p].name, mode: m, vars: this.vars(m, p), aa: f ? `${f} pair(s) fail` : `All ${pr.length} pairs pass AA`, passColor: f ? s.danger.text : this.SEM[m].success.text });
+    }
+
+    const roleSw = [
+      { name: 'Accent', when: 'One per screen: primary action, focus, current', fill: a.fill, k: 'accent' },
+      { name: 'Success', when: 'Right answers, fixed mix-ups', k: 'success', ...s.success },
+      { name: 'Warning', when: 'Heads-up before a limit. Never “behind”.', k: 'warning', ...s.warning },
+      { name: 'Danger', when: 'Real errors, destructive actions only', k: 'danger', ...s.danger },
+      { name: 'Info', when: 'Explanations about the data', k: 'info', ...s.info }
+    ].map(r => {
+      const c = r.k === 'accent' ? { fill: a.fill, text: a.text, soft: a.soft, on: a.on } : r;
+      const sample = { accent: 'Worth the most marks this week', success: 'Fixed: water moves, not salt', warning: '2 tutor goes left today', danger: 'That file couldn’t be read', info: 'Rough: based on 12 questions' }[r.k];
+      return { name: r.name, when: r.when, soft: c.soft, text: c.text, sample, sw: [{ k: 'fill', hex: c.fill }, { k: 'text', hex: c.text }, { k: 'soft', hex: c.soft }, { k: 'on-fill', hex: c.on }] };
+    });
+
+    const neutralSw = [['--bg', n.bg, 'page'], ['--surface', n.surface, 'cards'], ['--surface-sunk', n.sunk, 'wells, inputs'], ['--surface-raised', n.raised, 'menus'], ['--line', n.line, 'hairlines'], ['--line-strong', n.lineStrong, 'control borders, untested'], ['--text-muted', n.muted, 'meta'], ['--text-secondary', n.text2, 'supporting'], ['--text', n.text, 'primary']].map(([token, hex, use]) => ({ token, hex, use }));
+
+    const typeScale = this.TYPE.map(t => ({ token: '--text-' + t.id, spec: t.spec, family: t.family, size: t.px + 'px', lh: String(t.lh), weight: String(t.w), track: t.track, num: t.num || 'normal', sample: t.sample }));
+    const spaceRows = this.SPACE.map(x => ({ token: '--space-' + x[0], px: x[1], w: (x[1] * 2) + 'px', use: x[2] }));
+    const radiusRows = this.RADIUS.map(r => ({ token: r[0], v: r[1] === '999px' ? '26px' : r[1] })).map((r, i) => ({ token: r.token, v: this.RADIUS[i][1] === '999px' ? '999px' : r.v }));
+    const elevRows = [{ token: 'e0', v: 'none', border: '1px solid var(--line)', use: 'most things' }, { token: 'e1', v: 'var(--shadow-1)', border: '1px solid var(--line)', use: 'pressed card' }, { token: 'e2', v: 'var(--shadow-2)', border: '1px solid var(--line)', use: 'menu, hover' }, { token: 'e3', v: 'var(--shadow-3)', border: '0', use: 'sheet, toast' }];
+    const motionRows = this.MOTION.map(m => ({ token: '--' + m[0], v: m[1], use: m[2] }));
+    const zRows = this.Z.map(z => ({ token: '--z-' + z[0], v: z[1], use: z[2] }));
+    const navIcons = [['house', 'Today', true], ['circle-play', 'Practise'], ['library', 'Library'], ['calendar', 'Plan'], ['chart-no-axes-column', 'Progress']].map(([ic, label, on]) => ({ label, mask: this.mask(ic), color: on ? a.text : n.text2, bg: on ? a.soft : 'transparent' }));
+
+    const cssText = this.css(this.state.cssTab);
+
+    return {
+      themeVars: this.vars(mode, preset, reading),
+      themeName: `${this.PRE[preset].name} · ${mode}`,
+      modeOpts: [opt('mode', 'light', 'Light'), opt('mode', 'dark', 'Dark')],
+      presetOpts: Object.entries(this.PRE).map(([k, p]) => opt('preset', k, p.name, { sw: p[mode].fill })),
+      readingAria: reading ? 'true' : 'false', readingTrack: reading ? a.fill : n.lineStrong, readingJustify: reading ? 'flex-end' : 'flex-start',
+      toggleReading: () => this.setState({ reading: !reading }),
+      aaRows: rows.map(r => ({ label: r.label, fg: r.fg, bg: r.bg, sample: 'Aa 12', ratio: r.r.toFixed(2) + ':1', verdict: (r.pass ? 'Pass ' : 'Fail ') + r.need + ':1', passColor: r.pass ? s.success.text : s.danger.text })),
+      aaSummary: failing ? `${failing} failing` : `All ${rows.length} pairs pass`, aaColor: failing ? s.danger.text : s.success.text,
+      aaAll: allF ? `${allF} of ${allN} pairs fail` : `${allN} of ${allN} pairs pass`,
+      presetCards, roleSw, neutralSw, typeScale, spaceRows, radiusRows, elevRows, motionRows, zRows, navIcons,
+      motionX: this.state.motion ? 'translateX(140px)' : 'translateX(0)', motionO: this.state.motion ? '1' : '.6',
+      playMotion: () => this.setState({ motion: !this.state.motion }),
+      cssTabs: [opt('cssTab', 'light', 'Light colours'), opt('cssTab', 'dark', 'Dark colours'), opt('cssTab', 'base', 'Type, space, motion, z')],
+      cssText,
+      copyLabel: this.state.copied ? 'Copied' : 'Copy CSS',
+      copyCss: () => { try { navigator.clipboard.writeText([this.css('light'), this.css('dark'), this.css('base')].join('\n\n')); } catch (e) {} this.setState({ copied: true }); setTimeout(() => this.setState({ copied: false }), 1800); }
+    };
+  }
+}
+</script>
+</body>
+</html>
