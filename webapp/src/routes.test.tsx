@@ -67,8 +67,12 @@ describe("route skeleton", () => {
     vi.restoreAllMocks();
   });
 
+  /* Today 1c's h1 is the greeting ("Morning, Maya."); the step is the
+     card's h2 below it. */
+  const TODAY_GREETING = /^(Morning|Afternoon|Evening|Welcome back)\b/;
+
   it.each([
-    ["/", "Add your next exam to get a next step"],
+    ["/", TODAY_GREETING],
     /* The app shell's Header now supplies the page's <h1> (the redesign
        audit found Tasks' old page-only "Tasks" heading duplicating the
        shell's own nav-derived label right below it); the shell's label —
@@ -98,7 +102,7 @@ describe("route skeleton", () => {
   });
 
   /* Old URLs redirect, never 404 (2026-09 redesign route map). */
-  it.each([["/dashboard", "Add your next exam to get a next step"]])(
+  it.each([["/dashboard", TODAY_GREETING]])(
     "%s redirects to Today",
     async (path, heading) => {
       renderAt(path);

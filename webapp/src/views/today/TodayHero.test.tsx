@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+/* Today 1c: the greeting is TodayView's h1; the step's title is the card's
+   h2, and the time chip ("45 min ▾") is a labelled select. */
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
@@ -39,7 +41,7 @@ describe("TodayHero — next step", () => {
   it("names the topic in one headline and keeps the timed block as the fallback", async () => {
     const onStart = vi.fn();
     renderHero({ onStart });
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Study Enzymes next.");
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Study Enzymes next.");
     /* mastery 0.3 on 0.6 evidence: getting it wrong, not forgetting it. */
     expect(screen.getByRole("link", { name: /find what's missing in enzymes/i })).toBeInTheDocument();
     expect(screen.getByText(/rehearse the same mistake/i)).toBeInTheDocument();
@@ -91,8 +93,9 @@ describe("TodayHero — scenarios", () => {
   };
 
   it("returning: resumes the unfinished session", () => {
-    renderHero({ session, firstName: "Maya" });
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Pick up where you left off, Maya.");
+    renderHero({ session });
+    expect(screen.getByText("Pick up where you left off")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Cellular respiration");
     expect(screen.getByText("Explain session · Biology")).toBeInTheDocument();
     expect(screen.getByText(/You stopped at step 3, the electron transport chain/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Resume · 12 min left" })).toHaveAttribute("href", "/study/s1?mode=explain");
@@ -102,16 +105,18 @@ describe("TodayHero — scenarios", () => {
   it("short on time: a mixed recall session, and the unfinished one one link away", async () => {
     const onShortOnTime = vi.fn();
     renderHero({ session, shortOnTime: true, totalDue: 18, onShortOnTime });
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Ten minutes is enough to keep things from fading.");
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Ten minutes is enough to keep things from fading.");
     expect(screen.getByText("18 cards due")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Start · \d+ min/ })).toHaveAttribute("href", "/study/new?mode=recall&minutes=10");
     expect(screen.getByRole("link", { name: "Resume it instead" })).toHaveAttribute("href", "/study/s1?mode=explain");
   });
 
-  it("lets the student say they only have ten minutes", async () => {
+  it("lets the student say they only have ten minutes, from the time chip", async () => {
     const onShortOnTime = vi.fn();
     renderHero({ onShortOnTime });
-    await userEvent.click(screen.getByRole("button", { name: "Only have 10 minutes?" }));
+    const chip = screen.getByRole("combobox", { name: "How long have you got?" });
+    expect(chip).toHaveDisplayValue("45 min");
+    await userEvent.selectOptions(chip, "10 min");
     expect(onShortOnTime).toHaveBeenCalledWith(true);
   });
 
@@ -119,7 +124,7 @@ describe("TodayHero — scenarios", () => {
     const attempt = { id: "a", quiz_id: "q9", score: 11, total: 16, created_at: "2026-09-29T20:00:00" } as QuizAttempt;
     const fix = (id: string, concept: string) => ({ id, concept, summary: `${concept} diagnosis`, originTool: "quiz", status: "open", lastSeenAt: "2026-09-29T20:00:05" }) as Misconception;
     renderHero({ rough: { attempt, fixes: [fix("m1", "Where ATP synthase sits"), fix("m2", "Reading the yield table")] } });
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Yesterday's test showed us two things to fix.");
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Yesterday's test showed us two things to fix.");
     const first = screen.getByRole("link", { name: "Fix this · 8 min" });
     expect(first.getAttribute("href")).toMatch(/^\/study\/new\?mode=socratic&topic=Where\+ATP\+synthase\+sits&misconception=m1$/);
     expect(screen.getByRole("link", { name: "Practise · 5 min" }).getAttribute("href")).toMatch(/mode=practice/);
@@ -130,13 +135,21 @@ describe("TodayHero — scenarios", () => {
   it("all done: clear for today, with one optional stretch", () => {
     const quiet = { ...forecast, interventions: [], topics: [{ id: "d1", label: "Enzymes", mastery: 0.8, evidence: 0.6, stabilityDays: 60, weight: 1, cardCount: 3 }] } as unknown as TrajectoryForecast;
     renderHero({ forecast: quiet });
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You're clear for today.");
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("You're clear for today.");
     expect(screen.getByRole("link", { name: /explain Enzymes in your own words/ })).toHaveAttribute("href", "/study/new?mode=teach&topic=Enzymes");
   });
 
-  it("asks for material when there is an exam but nothing to project", () => {
-    renderHero({ forecast: null, needsMaterial: true });
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/add material for AP Chem Unit 3/i);
+  it("starts with questions, not an upload, when there is an exam but nothing to project", async () => {
+    const onCreate = vi.fn();
+    renderHero({ forecast: null, needsMaterial: true, onCreate });
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Try a few questions on AP Chem Unit 3");
+    expect(screen.getByRole("link", { name: "Start · 5 min" })).toHaveAttribute(
+      "href",
+      "/study/new?mode=practice&topic=AP+Chem+Unit+3&minutes=5",
+    );
+    /* Adding material is still there, as the quiet alternative. */
+    await userEvent.click(screen.getByRole("button", { name: "Add material" }));
+    expect(onCreate).toHaveBeenCalled();
   });
 
   it("asks for an exam when there is none", () => {

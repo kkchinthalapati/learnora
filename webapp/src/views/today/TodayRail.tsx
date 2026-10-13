@@ -1,10 +1,6 @@
 import { Link } from "react-router";
-import { MasteryLadder } from "../../components/learning/MasteryLadder";
-import type { Exam } from "../../api/types";
 import { localDateStr } from "../../lib/date";
-import { topicMastery } from "../../lib/mastery";
-import { WEEKLY_GOAL_DAYS, weekDates } from "../../lib/todayPlan";
-import type { TopicState } from "../../lib/trajectory";
+import { WEEKLY_GOAL_DAYS, weekDates, type AlsoRow } from "../../lib/todayPlan";
 import styles from "./today.module.css";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -18,66 +14,75 @@ const DAY_NAMES = [
   "Sunday",
 ];
 
-/* Context, not action: where each topic stands and how the week is going.
-   Nothing here competes with the lead card's button. */
+/* Today 1c's right rail (below the card on mobile): what comes later, and
+   nothing that competes with the card's button. Readiness is deliberately
+   not here — it lives on Progress. No counts in red, no badges. */
 export function TodayRail({
-  exam,
-  topics,
+  rows,
+  hasMistakes,
   studiedDates,
   showWeek,
   now = new Date(),
 }: {
-  exam: Exam | null;
-  topics: TopicState[];
+  /** lib/todayPlan `alsoWorthDoing`, already filtered for the scenario. */
+  rows: AlsoRow[];
+  /** Whether the ledger has anything open; when it doesn't, say so calmly. */
+  hasMistakes: boolean;
   /** Local dates (YYYY-MM-DD) with any study session or quiz. */
   studiedDates: Set<string>;
   /** Experimental weekly goal (lib/flags `weeklyGoal`). */
   showWeek: boolean;
   now?: Date;
 }) {
-  const shown = [...topics].sort((a, b) => b.weight - a.weight).slice(0, 5);
   const week = weekDates(now);
   const today = localDateStr(now);
   const studied = week.filter((d) => studiedDates.has(d)).length;
 
-  if (shown.length === 0 && !showWeek) return null;
-
   return (
-    <aside className={styles.rail} aria-label="Where you stand">
-      {shown.length > 0 ? (
-        <section className={styles.railSection} aria-labelledby="rail-exam">
-          <div className={styles.railHead}>
-            <h2 id="rail-exam" className={styles.railTitle}>
-              {exam?.exam_name ?? "Your topics"}
-            </h2>
-            <Link to="/analytics" className={styles.inlineLink}>
-              Progress
-            </Link>
-          </div>
-          <div className={styles.ladders}>
-            {shown.map((t) => {
-              const m = topicMastery(t);
-              return (
-                <MasteryLadder
-                  key={t.id}
-                  topic={t.label}
-                  rung={m.rung}
-                  fading={m.fading}
-                  size="sm"
-                />
-              );
-            })}
-          </div>
-          <p className={styles.caption}>
-            Seen → Recalled → Applied → Explained. Each step needs evidence
-            from a check, not time spent.
-          </p>
+    <aside className={styles.rail} aria-label="Later today">
+      {rows.length > 0 ? (
+        <section className={styles.listCard} aria-labelledby="today-later">
+          <h2 id="today-later" className={styles.listTitle}>
+            Later today
+          </h2>
+          <ul className={styles.list}>
+            {rows.map((row) => (
+              <li key={row.id} className={styles.listRow}>
+                <span className={styles.listText}>
+                  <span className={styles.listLabel}>
+                    {row.kind === "recall" ? (
+                      <span className={styles.srOnly}>Memory: </span>
+                    ) : null}
+                    {row.label}
+                  </span>
+                  <span className={styles.listSub}>{row.estimate}</span>
+                </span>
+                <Link
+                  to={row.to}
+                  className={styles.rowAction}
+                  aria-label={`${row.action}: ${row.label}`}
+                >
+                  {row.action}
+                  <span aria-hidden="true"> ›</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 
+      {!hasMistakes ? (
+        <div className={styles.emptyNote}>
+          <span className={styles.emptyTitle}>Nothing to fix yet</span>
+          <span className={styles.emptyText}>
+            If you mix something up, it’ll show here and we’ll help you sort it.
+          </span>
+        </div>
+      ) : null}
+
       {showWeek ? (
-        <section className={styles.railSection} aria-labelledby="rail-week">
-          <h2 id="rail-week" className={styles.railTitle}>
+        <section className={styles.listCard} aria-labelledby="rail-week">
+          <h2 id="rail-week" className={styles.listTitle}>
             This week
           </h2>
           <ol className={styles.week}>
@@ -109,6 +114,15 @@ export function TodayRail({
           </p>
         </section>
       ) : null}
+
+      <p className={styles.note}>
+        Readiness lives on{" "}
+        <Link to="/analytics" className={styles.inlineLink}>
+          Progress
+        </Link>
+        . We keep it off Today, so the first thing you see is what to do, not
+        how you’re doing.
+      </p>
     </aside>
   );
 }

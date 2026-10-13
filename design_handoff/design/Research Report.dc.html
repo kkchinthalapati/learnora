@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Learnora revamp · Checkpoint 1 · Research, principles and IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+html{scroll-behavior:smooth}
+body{margin:0;background:#f7f5f0;color:#1a1815;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0f766e;text-underline-offset:3px}
+a:hover{color:#0b5a54}
+*:focus-visible{outline:2px solid #0f766e;outline-offset:2px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;padding-bottom:120px">
+
+<header style="max-width:1240px;margin:0 auto;padding:56px 24px 32px">
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5d564b">
+    <span style="display:inline-flex;align-items:center;gap:8px;color:#1a1815"><span style="width:22px;height:22px;border-radius:6px;background:#0f766e;color:#fff;display:grid;place-items:center;font-family:Newsreader,serif;font-size:15px;letter-spacing:0;text-transform:none">L</span>Learnora revamp</span>
+    <span>·</span><span>Checkpoint 1 of 3</span><span>·</span><span>10 Oct 2026</span>
+  </div>
+  <h1 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(40px,6vw,68px);line-height:1.02;letter-spacing:-0.015em;margin:20px 0 16px;max-width:18ch;text-wrap:balance">Where students get stuck today, and the shape of the fix</h1>
+  <p style="font-size:18px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0;text-wrap:pretty">Steps 1–3 of the brief: a baseline walkthrough of the current product with ten personas, the friction log and top-10 issues, then the principles and a simpler information architecture. No visuals yet. I want you to steer these before I build the design system.</p>
+
+  <ol style="list-style:none;padding:0;margin:32px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px" aria-label="Where this checkpoint sits">
+    <li style="border-top:3px solid #0f766e;padding-top:10px;font-size:14px;line-height:1.35"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#0f766e">01 · done</span><br>Baseline walkthrough</li>
+    <li style="border-top:3px solid #0f766e;padding-top:10px;font-size:14px;line-height:1.35"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#0f766e">02 · done</span><br>Friction log + top 10</li>
+    <li style="border-top:3px solid #0f766e;padding-top:10px;font-size:14px;line-height:1.35"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#0f766e">03 · done</span><br>Principles + IA</li>
+    <li style="border-top:3px solid #d6d0c2;padding-top:10px;font-size:14px;line-height:1.35;color:#5d564b"><span style="font-family:'JetBrains Mono',monospace;font-size:11px">04</span><br>Design system</li>
+    <li style="border-top:3px solid #d6d0c2;padding-top:10px;font-size:14px;line-height:1.35;color:#5d564b"><span style="font-family:'JetBrains Mono',monospace;font-size:11px">05</span><br>Screens + flows</li>
+    <li style="border-top:3px solid #d6d0c2;padding-top:10px;font-size:14px;line-height:1.35;color:#5d564b"><span style="font-family:'JetBrains Mono',monospace;font-size:11px">06</span><br>Test rounds 1 + 2</li>
+    <li style="border-top:3px solid #d6d0c2;padding-top:10px;font-size:14px;line-height:1.35;color:#5d564b"><span style="font-family:'JetBrains Mono',monospace;font-size:11px">07</span><br>Final package</li>
+  </ol>
+
+  <div style="margin-top:36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d564b">What I read</div>
+      <p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:#3d3830">routes.tsx, TodayHero, TodayView, MistakeLoopSection, StudyLabView, WelcomeView, FirstRunView, Pending, AiErrorCard, persona test 06, DESIGN.md, research/current-state-audit.md.</p>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d564b">The number that frames it</div>
+      <p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:#3d3830"><span style="font-family:Newsreader,serif;font-size:30px;line-height:1;color:#1a1815">0 of 33</span><br>mix-ups logged in production have been marked fixed. 3 quiz attempts, all time. 8 students active in 30 days.</p>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d564b">Method caveat</div>
+      <p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:#3d3830">This walks through the code and the described IA, not live sessions. First run at <code style="font-family:'JetBrains Mono',monospace;font-size:12px">/welcome</code> is FirstRunView, as you confirmed. J1 was redone against it. The wizard only appears on setup replay.</p>
+    </div>
+  </div>
+</header>
+
+<nav aria-label="Sections" style="position:sticky;top:0;z-index:10;background:#f7f5f0;border-bottom:1px solid #e2ddd1">
+  <div style="max-width:1240px;margin:0 auto;padding:10px 24px;display:flex;gap:6px;overflow-x:auto">
+    <a href="#personas" style="flex:none;font-size:14px;padding:8px 12px;border-radius:999px;color:#1a1815;text-decoration:none;border:1px solid #e2ddd1;background:#fffefb">Personas</a>
+    <a href="#audit" style="flex:none;font-size:14px;padding:8px 12px;border-radius:999px;color:#1a1815;text-decoration:none;border:1px solid #e2ddd1;background:#fffefb">Audit check</a>
+    <a href="#log" style="flex:none;font-size:14px;padding:8px 12px;border-radius:999px;color:#1a1815;text-decoration:none;border:1px solid #e2ddd1;background:#fffefb">Friction log</a>
+    <a href="#heatmap" style="flex:none;font-size:14px;padding:8px 12px;border-radius:999px;color:#1a1815;text-decoration:none;border:1px solid #e2ddd1;background:#fffefb">Stress heatmap</a>
+    <a href="#top10" style="flex:none;font-size:14px;padding:8px 12px;border-radius:999px;color:#1a1815;text-decoration:none;border:1px solid #e2ddd1;background:#fffefb">Top 10</a>
+    <a href="#principles" style="flex:none;font-size:14px;padding:8px 12px;border-radius:999px;color:#1a1815;text-decoration:none;border:1px solid #e2ddd1;background:#fffefb">Principles</a>
+    <a href="#ia" style="flex:none;font-size:14px;padding:8px 12px;border-radius:999px;color:#1a1815;text-decoration:none;border:1px solid #e2ddd1;background:#fffefb">IA</a>
+    <a href="#routes" style="flex:none;font-size:14px;padding:8px 12px;border-radius:999px;color:#1a1815;text-decoration:none;border:1px solid #e2ddd1;background:#fffefb">Route mapping</a>
+    <a href="#next" style="flex:none;font-size:14px;padding:8px 12px;border-radius:999px;color:#fff;text-decoration:none;background:#0f766e">Decisions</a>
+  </div>
+</nav>
+
+<!-- 01 PERSONAS -->
+<section id="personas" data-screen-label="01 Personas" style="max-width:1240px;margin:0 auto;padding:72px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">01 · The panel</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-0.01em;margin:8px 0 12px;text-wrap:balance">Ten people, one quit trigger each</h2>
+  <p style="font-size:17px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 28px;text-wrap:pretty">The avatars stay the same through the whole package. The quit trigger is the moment they close the app for good, so it's what every test round is scored against.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px">
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;background:oklch(0.87 0.07 60)">Aa</span><div><div style="font-weight:600;font-size:16px">Aarav, 15</div><div style="font-size:13px;color:#5d564b">CBSE Class 10 · Pune</div></div></div>
+      <dl style="margin:0;display:grid;gap:8px;font-size:14px;line-height:1.45">
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Device</dt><dd style="margin:2px 0 0">Low-end Android, 5.5", patchy 4G. Shares the phone with a sibling in the evening.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Wants</dt><dd style="margin:2px 0 0">Board marks his parents will see. Numerical and competency questions in NCERT language.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Fears</dt><dd style="margin:2px 0 0">Wasting data and time on something that isn't his syllabus.</dd></div>
+      </dl>
+      <p style="margin:auto 0 0;padding-top:12px;border-top:1px solid #ece7dc;font-size:14px;line-height:1.45"><strong style="font-weight:600">Quits when:</strong> pages load slowly or eat data, or he realises his syllabus isn't really there.</p>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;background:oklch(0.87 0.07 230)">Ma</span><div><div style="font-weight:600;font-size:16px">Maya, 16</div><div style="font-size:13px;color:#5d564b">AQA Combined Science + Maths · Leeds</div></div></div>
+      <dl style="margin:0;display:grid;gap:8px;font-size:14px;line-height:1.45">
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Device</dt><dd style="margin:2px 0 0">iPhone, in 10-minute gaps on the bus and at lunch.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Wants</dt><dd style="margin:2px 0 0">To be ready for mocks in three weeks.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Fears</dt><dd style="margin:2px 0 0">Spending the whole gap on setup.</dd></div>
+      </dl>
+      <p style="margin:auto 0 0;padding-top:12px;border-top:1px solid #ece7dc;font-size:14px;line-height:1.45"><strong style="font-weight:600">Quits when:</strong> it takes more than two taps to start practising.</p>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;background:oklch(0.87 0.07 300)">Jo</span><div><div style="font-weight:600;font-size:16px">Jordan, 14</div><div style="font-size:13px;color:#5d564b">Year 9 · ADHD · beta tester</div></div></div>
+      <dl style="margin:0;display:grid;gap:8px;font-size:14px;line-height:1.45">
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Device</dt><dd style="margin:2px 0 0">Phone. Skims everything, gets pulled away quickly.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Wants</dt><dd style="margin:2px 0 0">Quick wins and visuals. "bro what does this even mean"</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Fears</dt><dd style="margin:2px 0 0">Being bored, or feeling thick.</dd></div>
+      </dl>
+      <p style="margin:auto 0 0;padding-top:12px;border-top:1px solid #ece7dc;font-size:14px;line-height:1.45"><strong style="font-weight:600">Quits when:</strong> he sees a wall of text or a setup form.</p>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;background:oklch(0.87 0.07 0)">So</span><div><div style="font-weight:600;font-size:16px">Sofia, 17</div><div style="font-size:13px;color:#5d564b">IB · HL Chemistry, HL Biology</div></div></div>
+      <dl style="margin:0;display:grid;gap:8px;font-size:14px;line-height:1.45">
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Device</dt><dd style="margin:2px 0 0">Laptop, long evening sessions.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Wants</dt><dd style="margin:2px 0 0">To know exactly where she stands. Checks readiness a lot.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Fears</dt><dd style="margin:2px 0 0">A weakness she hasn't spotted. Exam anxiety.</dd></div>
+      </dl>
+      <p style="margin:auto 0 0;padding-top:12px;border-top:1px solid #ece7dc;font-size:14px;line-height:1.45"><strong style="font-weight:600">Quits when:</strong> she sees a scary number with no reason, or is called "weak" at something she hasn't been tested on.</p>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;background:oklch(0.87 0.07 150)">Li</span><div><div style="font-weight:600;font-size:16px">Liam, 15</div><div style="font-size:13px;color:#5d564b">GCSE · dyslexic</div></div></div>
+      <dl style="margin:0;display:grid;gap:8px;font-size:14px;line-height:1.45">
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Device</dt><dd style="margin:2px 0 0">Phone and a school laptop. Uses text-to-speech sometimes.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Wants</dt><dd style="margin:2px 0 0">To get through questions without reading them three times.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Fears</dt><dd style="margin:2px 0 0">Dense paragraphs, serif body text, justified text.</dd></div>
+      </dl>
+      <p style="margin:auto 0 0;padding-top:12px;border-top:1px solid #ece7dc;font-size:14px;line-height:1.45"><strong style="font-weight:600">Quits when:</strong> he gets long questions with no reading aids.</p>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;background:oklch(0.87 0.07 25)">Pr</span><div><div style="font-weight:600;font-size:16px">Priya, 16</div><div style="font-size:13px;color:#5d564b">ICSE Class 10 · back after 9 days ill</div></div></div>
+      <dl style="margin:0;display:grid;gap:8px;font-size:14px;line-height:1.45">
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Device</dt><dd style="margin:2px 0 0">Phone, mostly in the evening.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Wants</dt><dd style="margin:2px 0 0">To catch up without panicking.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Fears</dt><dd style="margin:2px 0 0">Being too far behind to catch up. Already feels guilty.</dd></div>
+      </dl>
+      <p style="margin:auto 0 0;padding-top:12px;border-top:1px solid #ece7dc;font-size:14px;line-height:1.45"><strong style="font-weight:600">Quits when:</strong> the dashboard is full of overdue counts and red.</p>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;background:oklch(0.87 0.07 270)">Sa</span><div><div style="font-weight:600;font-size:16px">Sam, 17</div><div style="font-size:13px;color:#5d564b">A-level · works part-time · free tier</div></div></div>
+      <dl style="margin:0;display:grid;gap:8px;font-size:14px;line-height:1.45">
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Device</dt><dd style="margin:2px 0 0">Android, late at night, always in dark mode.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Wants</dt><dd style="margin:2px 0 0">To fit study around shifts that change every week.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Fears</dt><dd style="margin:2px 0 0">Hitting a wall he can't pay to get past.</dd></div>
+      </dl>
+      <p style="margin:auto 0 0;padding-top:12px;border-top:1px solid #ece7dc;font-size:14px;line-height:1.45"><strong style="font-weight:600">Quits when:</strong> a paywall appears mid-session, or the AI runs out without warning.</p>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;background:oklch(0.87 0.07 110)">No</span><div><div style="font-weight:600;font-size:16px">Noor, 15</div><div style="font-size:13px;color:#5d564b">Blind · screen-reader user</div></div></div>
+      <dl style="margin:0;display:grid;gap:8px;font-size:14px;line-height:1.45">
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Device</dt><dd style="margin:2px 0 0">VoiceOver on iPhone, TalkBack on a tablet. Gestures and keyboard only.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Wants</dt><dd style="margin:2px 0 0">To move as fast as her classmates.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Fears</dt><dd style="margin:2px 0 0">Getting lost on a screen with no way back.</dd></div>
+      </dl>
+      <p style="margin:auto 0 0;padding-top:12px;border-top:1px solid #ece7dc;font-size:14px;line-height:1.45"><strong style="font-weight:600">Quits when:</strong> icon buttons have no labels, focus gets trapped in a modal, or a chart has no text.</p>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;background:oklch(0.87 0.07 195)">Be</span><div><div style="font-weight:600;font-size:16px">Ben, 13</div><div style="font-size:13px;color:#5d564b">Year 8 · first revision app</div></div></div>
+      <dl style="margin:0;display:grid;gap:8px;font-size:14px;line-height:1.45">
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Device</dt><dd style="margin:2px 0 0">His phone, after school.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Wants</dt><dd style="margin:2px 0 0">To do what his teacher said: revise for the test.</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Fears</dt><dd style="margin:2px 0 0">Words he doesn't know: deck, spaced repetition, misconception.</dd></div>
+      </dl>
+      <p style="margin:auto 0 0;padding-top:12px;border-top:1px solid #ece7dc;font-size:14px;line-height:1.45"><strong style="font-weight:600">Quits when:</strong> he hits jargon.</p>
+    </article>
+    <article style="background:#f2efe8;border:1px dashed #cfc8b8;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;background:#dcd6ca">Pa</span><div><div style="font-weight:600;font-size:16px">A parent</div><div style="font-size:13px;color:#5d564b">Secondary · glancing over a shoulder</div></div></div>
+      <dl style="margin:0;display:grid;gap:8px;font-size:14px;line-height:1.45">
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Wants</dt><dd style="margin:2px 0 0">"Is my kid actually doing work, and is it helping?"</dd></div>
+        <div><dt style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Tested on</dt><dd style="margin:2px 0 0">Progress only. No parent account, nothing that feels like surveillance.</dd></div>
+      </dl>
+      <p style="margin:auto 0 0;padding-top:12px;border-top:1px solid #e2ddd1;font-size:14px;line-height:1.45"><strong style="font-weight:600">Gives up when:</strong> Progress only makes sense if you're the student.</p>
+    </article>
+  </div>
+</section>
+
+<!-- 02 AUDIT CHECK -->
+<section id="audit" data-screen-label="02 Audit check" style="max-width:1240px;margin:0 auto;padding:88px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">02 · The team's hypotheses, checked against the code</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-0.01em;margin:8px 0 12px;text-wrap:balance">Six confirmed, two partly, plus two new findings</h2>
+  <p style="font-size:17px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 28px;text-wrap:pretty">The September redesign already fixed a lot: five-item nav, old tool URLs redirect into one session, flat buttons, honest "untested" logic. The problems that remain are mostly about <em>what gets shown first</em>, not missing features.</p>
+
+  <div style="display:grid;gap:1px;background:#e2ddd1;border:1px solid #e2ddd1;border-radius:16px;overflow:hidden">
+    <div style="background:#fffefb;padding:18px 20px;display:grid;grid-template-columns:minmax(0,1fr);gap:6px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid #1a1815">Partly</span><strong style="font-weight:600;font-size:16px">Too many destinations; five tools diagnose wrong beliefs</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830;max-width:90ch">The nav is already five items and Debugger, Feynman, Sparring, Viva and Exam Detective all redirect into <code style="font-family:'JetBrains Mono',monospace;font-size:12px">/study/:id</code>. But Study still shows five mode cards plus two variant links, Library has five tabs, Plan has four children, and 34 view folders remain. The overload moved from the nav into the screens.</p>
+    </div>
+    <div style="background:#fffefb;padding:18px 20px;display:grid;gap:6px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:#1a1815;color:#fbfaf7">Confirmed</span><strong style="font-weight:600;font-size:16px">Several "what next" engines contradict each other</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830;max-width:90ch">At least six deciders. Today's hero comes from the trajectory forecast; Study's "Based on your work" card comes from the mistake ranking; Plan blocks come from autoSchedule. Deck topics and quiz-only topics get two different forecasts. They can name different topics on the same day.</p>
+    </div>
+    <div style="background:#fffefb;padding:18px 20px;display:grid;gap:6px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:#1a1815;color:#fbfaf7">Confirmed</span><strong style="font-weight:600;font-size:16px">The mistake loop rarely completes</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830;max-width:90ch">The likely cause is visibility. A due retest is a secondary row called "Check: …" under the hero, and only appears on the day it's due. The repair screen never tells you <em>when</em> it's coming back. There's no reminder and no moment when something is marked "fixed". The section disappears entirely if the loop migration isn't applied.</p>
+    </div>
+    <div style="background:#fffefb;padding:18px 20px;display:grid;gap:6px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:#1a1815;color:#fbfaf7">Confirmed</span><strong style="font-weight:600;font-size:16px">Very few quizzes are taken</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830;max-width:90ch">With no notes, Today says "Add material to get a next step", even though there are 228 AQA bank questions. With a flashcard topic, the primary button starts a 25-minute focus timer and opens <code style="font-family:'JetBrains Mono',monospace;font-size:12px">/timer</code>. Practice is AI-first, and the bank is only a fallback.</p>
+    </div>
+    <div style="background:#fffefb;padding:18px 20px;display:grid;gap:6px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:#1a1815;color:#fbfaf7">Confirmed</span><strong style="font-weight:600;font-size:16px">Slow AI with nothing to do meanwhile</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830;max-width:90ch">While it waits, <code style="font-family:'JetBrains Mono',monospace;font-size:12px">Pending</code> shows a streaming cursor, a Stop button and a caption. The error card is good: it's calm, says what was kept and offers flashcards instead. But it only appears <em>after</em> failure, never during the wait.</p>
+    </div>
+    <div style="background:#fffefb;padding:18px 20px;display:grid;gap:6px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:#1a1815;color:#fbfaf7">Confirmed</span><strong style="font-weight:600;font-size:16px">Onboarding promises boards that aren't there</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830;max-width:90ch">Onboarding offers CBSE, and CBSE/ICSE Class 9, but the catalogue has no CBSE or ICSE syllabus. <strong style="font-weight:600">New:</strong> A-Level is offered too, and there's no A-level syllabus either. That affects Sam.</p>
+    </div>
+    <div style="background:#fffefb;padding:18px 20px;display:grid;gap:6px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:#1a1815;color:#fbfaf7">Confirmed</span><strong style="font-weight:600;font-size:16px">Mastery labels over-claim</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830;max-width:90ch">One correct answer gives "Recalled". Five in a row gives "Applied", whatever the question type. The first-run win screen shows the ladder after a single check.</p>
+    </div>
+    <div style="background:#fffefb;padding:18px 20px;display:grid;gap:6px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid #1a1815">Partly</span><strong style="font-weight:600;font-size:16px">The welcome screen sends people into menus</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830;max-width:90ch">Only on "Run setup again" (<code style="font-family:'JetBrains Mono',monospace;font-size:12px">?replay=1</code>) and <code style="font-family:'JetBrains Mono',monospace;font-size:12px">/setup/profile</code>. The real first run is FirstRunView: topic → mini lesson → quick win → two questions. It's value-first, which is right. Its problems are the AI wait, honest board labels, jargon on the win screen, and an exam named after the topic. The replay's recap still points into menus, including the retired Dashboard ▸ Customize.</p>
+    </div>
+    <div style="background:#eef3f1;padding:18px 20px;display:grid;gap:6px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:#0f766e;color:#fff">New</span><strong style="font-weight:600;font-size:16px">The accessibility floor is real. Noor's problems are concentrated, not everywhere</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830;max-width:90ch">Focus moves to the heading on each step, the error card uses <code style="font-family:'JetBrains Mono',monospace;font-size:12px">role="alert"</code>, and CI tests contrast and touch targets. Her friction is in charts, the week grid, and answer buttons that become disabled and drop out of the focus order.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 03 FRICTION LOG -->
+<section id="log" data-screen-label="03 Friction log" style="max-width:1240px;margin:0 auto;padding:88px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">03 · Baseline friction log</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-0.01em;margin:8px 0 12px;text-wrap:balance">Every place someone stalls, in their own words</h2>
+  <p style="font-size:17px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 24px;text-wrap:pretty">Each persona walks the ten journeys through the current product. I've played them adversarially: impatient, skimming, misreading. Filter by person, journey or severity. Clicking a heatmap cell below filters this table too.</p>
+
+  <div style="display:grid;gap:10px;margin-bottom:16px">
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b;width:72px">Person</span>
+      <sc-for list="{{ pChips }}" as="c" hint-placeholder-count="11">
+        <sc-if value="{{ c.active }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ c.on }}" aria-pressed="true" style="font:inherit;font-size:13px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid #0f766e;background:#0f766e;color:#fff;cursor:pointer">{{ c.label }}</button></sc-if>
+        <sc-if value="{{ c.inactive }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ c.on }}" aria-pressed="false" style="font:inherit;font-size:13px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid #d6d0c2;background:#fffefb;color:#1a1815;cursor:pointer" style-hover="border-color:#1a1815">{{ c.label }}</button></sc-if>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b;width:72px">Journey</span>
+      <sc-for list="{{ jChips }}" as="c" hint-placeholder-count="11">
+        <sc-if value="{{ c.active }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ c.on }}" aria-pressed="true" title="{{ c.title }}" style="font:inherit;font-size:13px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid #0f766e;background:#0f766e;color:#fff;cursor:pointer">{{ c.label }}</button></sc-if>
+        <sc-if value="{{ c.inactive }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ c.on }}" aria-pressed="false" title="{{ c.title }}" style="font:inherit;font-size:13px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid #d6d0c2;background:#fffefb;color:#1a1815;cursor:pointer" style-hover="border-color:#1a1815">{{ c.label }}</button></sc-if>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b;width:72px">Severity</span>
+      <sc-for list="{{ sChips }}" as="c" hint-placeholder-count="4">
+        <sc-if value="{{ c.active }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ c.on }}" aria-pressed="true" style="font:inherit;font-size:13px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid #0f766e;background:#0f766e;color:#fff;cursor:pointer">{{ c.label }}</button></sc-if>
+        <sc-if value="{{ c.inactive }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ c.on }}" aria-pressed="false" style="font:inherit;font-size:13px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid #d6d0c2;background:#fffefb;color:#1a1815;cursor:pointer" style-hover="border-color:#1a1815">{{ c.label }}</button></sc-if>
+      </sc-for>
+      <span style="margin-left:auto;font-size:14px;color:#3d3830" aria-live="polite">Showing {{ shown }} of {{ total }} · {{ shownBlockers }} blockers</span>
+      <button type="button" onClick="{{ clear }}" style="font:inherit;font-size:13px;min-height:36px;padding:0 12px;border-radius:999px;border:0;background:transparent;color:#0f766e;text-decoration:underline;text-underline-offset:3px;cursor:pointer">Clear filters</button>
+    </div>
+  </div>
+
+  <div style="overflow-x:auto;border:1px solid #e2ddd1;border-radius:16px;background:#fffefb">
+    <table style="width:100%;min-width:1420px;border-collapse:collapse;font-size:14px;line-height:1.45">
+      <thead>
+        <tr style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">
+          <th scope="col" style="padding:14px 14px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:110px">Persona</th>
+          <th scope="col" style="padding:14px 10px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:46px">Jny</th>
+          <th scope="col" style="padding:14px 10px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:130px">Step</th>
+          <th scope="col" style="padding:14px 10px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;min-width:300px;width:300px">What they see</th>
+          <th scope="col" style="padding:14px 10px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:210px">What they think</th>
+          <th scope="col" style="padding:14px 10px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:86px">Severity</th>
+          <th scope="col" style="padding:14px 10px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:70px">Breaks</th>
+          <th scope="col" style="padding:14px 14px 10px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:250px">Fix idea</th>
+        </tr>
+      </thead>
+      <tbody>
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+          <tr style="vertical-align:top">
+            <td style="padding:14px;border-bottom:1px solid #ece7dc"><span style="display:inline-flex;align-items:center;gap:8px"><span aria-hidden="true" style="width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:11px;background:{{ r.bg }}">{{ r.av }}</span>{{ r.name }}</span></td>
+            <td style="padding:14px 10px;border-bottom:1px solid #ece7dc;font-family:'JetBrains Mono',monospace;font-size:12px">{{ r.j }}</td>
+            <td style="padding:14px 10px;border-bottom:1px solid #ece7dc;font-weight:500">{{ r.step }}</td>
+            <td style="padding:14px 10px;border-bottom:1px solid #ece7dc;color:#3d3830">{{ r.sees }}</td>
+            <td style="padding:14px 10px;border-bottom:1px solid #ece7dc;font-family:Newsreader,Georgia,serif;font-size:16px;line-height:1.35">“{{ r.feels }}”</td>
+            <td style="padding:14px 10px;border-bottom:1px solid #ece7dc">
+              <sc-if value="{{ r.isB }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:#1a1815;color:#fbfaf7;white-space:nowrap">Blocker</span></sc-if>
+              <sc-if value="{{ r.isM }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid #1a1815;white-space:nowrap">Major</span></sc-if>
+              <sc-if value="{{ r.ism }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:500;padding:2px 9px;border-radius:999px;border:1px solid #cfc8b8;color:#5d564b;white-space:nowrap">Minor</span></sc-if>
+            </td>
+            <td style="padding:14px 10px;border-bottom:1px solid #ece7dc;font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">{{ r.pr }}</td>
+            <td style="padding:14px 14px 14px 10px;border-bottom:1px solid #ece7dc">{{ r.fix }}</td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:13px;color:#5d564b;margin:10px 0 0">P-numbers refer to the principles in section 06. Only the parent's J5 is tested.</p>
+</section>
+
+<!-- 04 HEATMAP -->
+<section id="heatmap" data-screen-label="04 Stress heatmap" style="max-width:1240px;margin:0 auto;padding:88px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">04 · Baseline stress</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-0.01em;margin:8px 0 12px;text-wrap:balance">{{ over2 }} of {{ cellsTested }} cells are above the target of 2</h2>
+  <p style="font-size:17px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 24px;text-wrap:pretty">Stress from 1 (calm) to 5 (would quit). Rounds 1 and 2 will sit next to this one once there are screens to test. The worst columns are "Am I ready?" (J5), getting a question wrong (J3) and planning (J9). J6 averages lower, but it holds Priya's 5, the clearest quit on the panel. The first run (J1) is better than the brief assumed, because FirstRunView is already value-first.</p>
+
+  <div style="overflow-x:auto;background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:16px">
+    <div role="table" aria-label="Baseline stress score by persona and journey" style="min-width:820px;display:grid;gap:4px">
+      <div role="row" style="display:grid;grid-template-columns:150px repeat(10,minmax(48px,1fr)) 64px;gap:4px;align-items:end">
+        <span role="columnheader" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5d564b;text-transform:uppercase;letter-spacing:.06em">Baseline</span>
+        <sc-for list="{{ journeys }}" as="jn" hint-placeholder-count="10">
+          <span role="columnheader" title="{{ jn.title }}" style="font-size:12px;line-height:1.2;text-align:center;color:#3d3830"><span style="font-family:'JetBrains Mono',monospace;font-weight:500;color:#1a1815">{{ jn.id }}</span><br>{{ jn.short }}</span>
+        </sc-for>
+        <span role="columnheader" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5d564b;text-align:center">Mean</span>
+      </div>
+      <sc-for list="{{ heat }}" as="h" hint-placeholder-count="10">
+        <div role="row" style="display:grid;grid-template-columns:150px repeat(10,minmax(48px,1fr)) 64px;gap:4px;align-items:center">
+          <span role="rowheader" style="display:inline-flex;align-items:center;gap:8px;font-size:14px"><span aria-hidden="true" style="width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:11px;background:{{ h.bg }}">{{ h.av }}</span>{{ h.name }}</span>
+          <sc-for list="{{ h.cells }}" as="c" hint-placeholder-count="10">
+            <button type="button" role="cell" onClick="{{ c.on }}" aria-label="{{ c.aria }}" style="font:inherit;height:44px;border-radius:8px;border:{{ c.border }};background:{{ c.fill }};color:{{ c.fg }};font-family:'Instrument Sans',sans-serif;font-weight:600;font-size:16px;cursor:pointer" style-hover="outline:2px solid #1a1815;outline-offset:1px">{{ c.v }}</button>
+          </sc-for>
+          <span role="cell" style="text-align:center;font-family:'Instrument Sans',sans-serif;font-weight:600;font-size:15px">{{ h.mean }}</span>
+        </div>
+      </sc-for>
+      <div role="row" style="display:grid;grid-template-columns:150px repeat(10,minmax(48px,1fr)) 64px;gap:4px;align-items:center;border-top:1px solid #e2ddd1;padding-top:8px;margin-top:4px">
+        <span role="rowheader" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5d564b;text-transform:uppercase;letter-spacing:.06em">Journey mean</span>
+        <sc-for list="{{ jMeans }}" as="m" hint-placeholder-count="10">
+          <span role="cell" style="text-align:center;font-weight:600;font-size:15px">{{ m.v }}</span>
+        </sc-for>
+        <span role="cell" style="text-align:center;font-weight:600;font-size:15px">{{ grandMean }}</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-top:16px;font-size:13px;color:#3d3830">
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:4px;background:oklch(0.95 0.015 150);border:1px solid #e2ddd1"></span>1 calm</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:4px;background:oklch(0.91 0.045 110)"></span>2 fine</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:4px;background:oklch(0.85 0.085 80)"></span>3 struggling</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:4px;background:oklch(0.74 0.12 55)"></span>4 stressed</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:4px;background:oklch(0.5 0.14 35)"></span>5 would quit</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:4px;border:1px dashed #cfc8b8"></span>not tested</span>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d564b">J2 today, from opening the app</div>
+      <p style="margin:8px 0 0;font-size:15px;line-height:1.5"><span style="font-family:Newsreader,serif;font-size:30px;line-height:1">3–4 taps</span><br>plus typing a topic, plus up to 34 s of AI generation before the first question. Target: <strong style="font-weight:600">2 taps or fewer</strong>, with the first question on screen immediately.</p>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d564b">Time to first useful thing (J1)</div>
+      <p style="margin:8px 0 0;font-size:15px;line-height:1.5"><span style="font-family:Newsreader,serif;font-size:30px;line-height:1">15–40 s</span><br>Type a topic (or tap an example), tap Start, then wait while the AI writes the whole lesson. Target: the first question on screen within 5 s of Start.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 05 TOP 10 -->
+<section id="top10" data-screen-label="05 Top 10" style="max-width:1240px;margin:0 auto;padding:88px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">05 · Top 10 across the panel</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-0.01em;margin:8px 0 12px;text-wrap:balance">Ranked by severity × how many people it hits</h2>
+  <p style="font-size:17px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 28px;text-wrap:pretty">Score = severity weight (blocker 3, major 2, minor 1) × personas affected. The design phase starts at the top of this list. That's why the rollout order is Today, then the question flow, then the mistake loop.</p>
+
+  <ol style="list-style:none;margin:0;padding:0;display:grid;gap:10px">
+    <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:start">
+      <span style="font-family:Newsreader,serif;font-size:36px;line-height:1">1</span>
+      <div style="display:grid;gap:6px"><strong style="font-weight:600;font-size:18px">The retest never comes to you</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">A due retest is a quiet row on Today, only on the day it's due. The repair screen never says when it's coming back, and nothing ever gets a "fixed" moment. Result: 0 of 33 marked fixed.</p><p style="margin:0;font-size:15px;line-height:1.5"><span style="color:#0f766e;font-weight:600">Direction →</span> When a retest is due, it <em>is</em> the next step: one new question, about a minute. The repair ends with a date ("We'll check this on Thursday"). Passing gets a calm "fixed" moment that goes in the trophy case.</p></div>
+      <div style="text-align:right"><div style="font-family:'Instrument Sans';font-weight:600;font-size:22px">27</div><div style="font-size:12px;color:#5d564b;white-space:nowrap">Blocker × 9</div></div>
+    </li>
+    <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:start">
+      <span style="font-family:Newsreader,serif;font-size:36px;line-height:1">2</span>
+      <div style="display:grid;gap:6px"><strong style="font-weight:600;font-size:18px">Practice isn't one tap away</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Today asks for notes or starts a 25-minute timer. Study needs a topic and a mode choice.</p><p style="margin:0;font-size:15px;line-height:1.5"><span style="color:#0f766e;font-weight:600">Direction →</span> Today's button opens the first question. The Practise tab starts with one tap. Bank questions come first; your own material is optional.</p></div>
+      <div style="text-align:right"><div style="font-family:'Instrument Sans';font-weight:600;font-size:22px">18</div><div style="font-size:12px;color:#5d564b;white-space:nowrap">Blocker × 6</div></div>
+    </li>
+    <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:start">
+      <span style="font-family:Newsreader,serif;font-size:36px;line-height:1">3</span>
+      <div style="display:grid;gap:6px"><strong style="font-weight:600;font-size:18px">Waiting with nothing to do</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Quiz generation averages 24 s (34 s at p90). The first-run lesson and hints wait on AI too.</p><p style="margin:0;font-size:15px;line-height:1.5"><span style="color:#0f766e;font-weight:600">Direction →</span> The first question shows straight away. Generated questions slot in behind it. Honest progress ("about 20 seconds"), plus a due card to do meanwhile.</p></div>
+      <div style="text-align:right"><div style="font-family:'Instrument Sans';font-weight:600;font-size:22px">15</div><div style="font-size:12px;color:#5d564b;white-space:nowrap">Blocker × 5</div></div>
+    </li>
+    <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:start">
+      <span style="font-family:Newsreader,serif;font-size:36px;line-height:1">4</span>
+      <div style="display:grid;gap:6px"><strong style="font-weight:600;font-size:18px">The advice contradicts itself</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Six deciders and two forecasts. Today, Study and the exam page can each name a different topic.</p><p style="margin:0;font-size:15px;line-height:1.5"><span style="color:#0f766e;font-weight:600">Direction →</span> One next-step engine, shown as the same card everywhere (agreed, backend).</p></div>
+      <div style="text-align:right"><div style="font-family:'Instrument Sans';font-weight:600;font-size:22px">15</div><div style="font-size:12px;color:#5d564b;white-space:nowrap">Blocker × 5</div></div>
+    </li>
+    <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:start">
+      <span style="font-family:Newsreader,serif;font-size:36px;line-height:1">5</span>
+      <div style="display:grid;gap:6px"><strong style="font-weight:600;font-size:18px">Coming back feels like a bill</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Due-card counts, "behind on this week's plan", a session from nine days ago.</p><p style="margin:0;font-size:15px;line-height:1.5"><span style="color:#0f766e;font-weight:600">Direction →</span> "Welcome back." A quiet re-plan with undo, and a 5-minute restart. No counts on screen.</p></div>
+      <div style="text-align:right"><div style="font-family:'Instrument Sans';font-weight:600;font-size:22px">12</div><div style="font-size:12px;color:#5d564b;white-space:nowrap">Blocker × 4</div></div>
+    </li>
+    <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:start">
+      <span style="font-family:Newsreader,serif;font-size:36px;line-height:1">6</span>
+      <div style="display:grid;gap:6px"><strong style="font-weight:600;font-size:18px">Limits ambush you</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">You only find out about the limit after pressing the button. The meter is hidden in Settings ▸ Billing, and the upgrade message appears inside the chat.</p><p style="margin:0;font-size:15px;line-height:1.5"><span style="color:#0f766e;font-weight:600">Direction →</span> Show "3 tutor goes left today" before you start. Notices only appear between tasks. Free options come first, upgrade last.</p></div>
+      <div style="text-align:right"><div style="font-family:'Instrument Sans';font-weight:600;font-size:22px">12</div><div style="font-size:12px;color:#5d564b;white-space:nowrap">Blocker × 4</div></div>
+    </li>
+    <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:start">
+      <span style="font-family:Newsreader,serif;font-size:36px;line-height:1">7</span>
+      <div style="display:grid;gap:6px"><strong style="font-weight:600;font-size:18px">Jargon</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Socratic, Recall, deck, misconception, allowance, "Syllabus built in". Even the first-run win says "Recall will bring it back".</p><p style="margin:0;font-size:15px;line-height:1.5"><span style="color:#0f766e;font-weight:600">Direction →</span> Name what happens, not the method. The word list is in section 06.</p></div>
+      <div style="text-align:right"><div style="font-family:'Instrument Sans';font-weight:600;font-size:22px">12</div><div style="font-size:12px;color:#5d564b;white-space:nowrap">Major × 6</div></div>
+    </li>
+    <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:start">
+      <span style="font-family:Newsreader,serif;font-size:36px;line-height:1">8</span>
+      <div style="display:grid;gap:6px"><strong style="font-weight:600;font-size:18px">Numbers that over-claim, or scare</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">"Adds about 6 points (out of 100)". "Applied" after five multiple-choice answers. A rung earned after one check.</p><p style="margin:0;font-size:15px;line-height:1.5"><span style="color:#0f766e;font-weight:600">Direction →</span> A range, what it's based on, and what to do about it. Rungs tied to the kind of evidence behind them (agreed, <code style="font-family:'JetBrains Mono',monospace;font-size:12px">lib/mastery</code>).</p></div>
+      <div style="text-align:right"><div style="font-family:'Instrument Sans';font-weight:600;font-size:22px">10</div><div style="font-size:12px;color:#5d564b;white-space:nowrap">Major × 5</div></div>
+    </li>
+    <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:start">
+      <span style="font-family:Newsreader,serif;font-size:36px;line-height:1">9</span>
+      <div style="display:grid;gap:6px"><strong style="font-weight:600;font-size:18px">Planning is five screens</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Plan, My week (the long Life Sync form), Tasks, Exams and Timer.</p><p style="margin:0;font-size:15px;line-height:1.5"><span style="color:#0f766e;font-weight:600">Direction →</span> One week view. Tap your free slots for this week. Exams and tasks sit on their days. A list view for screen readers.</p></div>
+      <div style="text-align:right"><div style="font-family:'Instrument Sans';font-weight:600;font-size:22px">10</div><div style="font-size:12px;color:#5d564b;white-space:nowrap">Major × 5</div></div>
+    </li>
+    <li style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:start">
+      <span style="font-family:Newsreader,serif;font-size:36px;line-height:1">10</span>
+      <div style="display:grid;gap:6px"><strong style="font-weight:600;font-size:18px">The first lesson is long and ends in the wrong exam</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">The first run has the right shape, but the teaching step is paragraphs, the win uses jargon, and the exam gets named after the topic ("Osmosis exam").</p><p style="margin:0;font-size:15px;line-height:1.5"><span style="color:#0f766e;font-weight:600">Direction →</span> Keep the shape. Teach in short steps, add a 2-minute check across the subject, and ask which exam it is (subject + paper).</p></div>
+      <div style="text-align:right"><div style="font-family:'Instrument Sans';font-weight:600;font-size:22px">10</div><div style="font-size:12px;color:#5d564b;white-space:nowrap">Major × 5</div></div>
+    </li>
+  </ol>
+  <div style="margin-top:12px;background:#f2efe8;border:1px dashed #cfc8b8;border-radius:16px;padding:16px 20px;font-size:15px;line-height:1.5">
+    <strong style="font-weight:600">Just below the line, but treated as top-10 anyway:</strong> board support isn't honest (blocker × 3 = 9: Aarav, Priya, Sam), and it's Aarav's named quit trigger. Reading aids are buried (major × 4 = 8: Liam, Jordan, Ben, Aarav). Both are cheap to fix in the design.
+  </div>
+</section>
+
+<!-- 06 PRINCIPLES -->
+<section id="principles" data-screen-label="06 Principles" style="max-width:1240px;margin:0 auto;padding:88px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">06 · Principles</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-0.01em;margin:8px 0 12px;text-wrap:balance">Ten rules every screen has to pass</h2>
+  <p style="font-size:17px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 28px;text-wrap:pretty">These are the acceptance criteria. Each screen in the final package will list the ones it serves. The examples are real copy, in the voice we'll use.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">P1</span><strong style="font-weight:600;font-size:17px">One obvious next step</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">At most one primary action per screen. Today is one sentence, one button and a time cost.</p>
+      <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><div><span style="font-weight:600;color:#0f766e">Do</span> · “Practise osmosis · 8 min”</div><div><span style="font-weight:600;color:#5d564b">Don’t</span> · Three equal “Start” buttons stacked down the page</div></div>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">P2</span><strong style="font-weight:600;font-size:17px">Every activity has an end</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">You know how long something takes before you start, and you can stop at any point without losing anything.</p>
+      <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><div><span style="font-weight:600;color:#0f766e">Do</span> · “Save and stop. You did 4 of 6, that counts.”</div><div><span style="font-weight:600;color:#5d564b">Don’t</span> · A 25-minute timer as the default answer to “what now?”</div></div>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">P3</span><strong style="font-weight:600;font-size:17px">No guilt</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">No streaks to break, no overdue piles, no “behind”. A missed week is something we quietly plan around.</p>
+      <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><div><span style="font-weight:600;color:#0f766e">Do</span> · “Welcome back. Here’s a 5-minute restart.”</div><div><span style="font-weight:600;color:#5d564b">Don’t</span> · “84 cards due · 3 h behind plan”</div></div>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">P4</span><strong style="font-weight:600;font-size:17px">Honest, not flattering, not scary</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Every prediction comes with a range, the reason behind it and what to do next. Untested is neutral. Thin data is said out loud.</p>
+      <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><div><span style="font-weight:600;color:#0f766e">Do</span> · “Likely a 5 or 6. Based on 12 questions, so it’s rough for now.”</div><div><span style="font-weight:600;color:#5d564b">Don’t</span> · “62% ready” · red “Weak” on a topic you’ve never tried</div></div>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">P5</span><strong style="font-weight:600;font-size:17px">Mistakes are useful</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Wrong answers get feedback that's warm, specific and short. The ledger is a trophy case of fixed mix-ups, not a list of failures.</p>
+      <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><div><span style="font-weight:600;color:#0f766e">Do</span> · “Common mix-up: heavier things fall faster. We’ll check it again on Thursday.”</div><div><span style="font-weight:600;color:#5d564b">Don’t</span> · A red cross, a score and a paragraph</div></div>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">P6</span><strong style="font-weight:600;font-size:17px">Calm density</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Lots of space and one accent. Colour only where it means something. Red only for real errors.</p>
+      <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><div><span style="font-weight:600;color:#0f766e">Do</span> · One card, one colour of emphasis</div><div><span style="font-weight:600;color:#5d564b">Don’t</span> · Badges, notification dots, counts added for decoration</div></div>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">P7</span><strong style="font-weight:600;font-size:17px">Tools appear when they’re useful</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Beginners see the core loop: Today, practise, fix, keep it fresh. Advanced tools show up when they're relevant, or when someone asks.</p>
+      <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><div><span style="font-weight:600;color:#0f766e">Do</span> · “Full mock exam” shows up four weeks before the exam</div><div><span style="font-weight:600;color:#5d564b">Don’t</span> · Notebooks, rooms and the forecast all on day one</div></div>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">P8</span><strong style="font-weight:600;font-size:17px">Waiting is productive</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">While the AI works: honest progress, a rough time, and something useful to do. If it fails, there's a calm fallback that always works.</p>
+      <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><div><span style="font-weight:600;color:#0f766e">Do</span> · “Writing 4 new questions, about 20 seconds. Try this one first.”</div><div><span style="font-weight:600;color:#5d564b">Don’t</span> · A spinner on an empty screen</div></div>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">P9</span><strong style="font-weight:600;font-size:17px">Readable for everyone</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Short sentences in words a 13-year-old knows. Read-aloud and a reading mode. Every chart starts with a sentence saying what it shows.</p>
+      <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><div><span style="font-weight:600;color:#0f766e">Do</span> · “Ask me questions” · a speaker button on each question</div><div><span style="font-weight:600;color:#5d564b">Don’t</span> · “Socratic mode” · a chart with no words</div></div>
+    </article>
+    <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f766e">P10</span><strong style="font-weight:600;font-size:17px">Respect the wallet and the data</strong></div>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">You can see your limits before you reach them, never in the middle of a task. The free tier is complete. You agree to AI once, in plain words.</p>
+      <div style="display:grid;gap:6px;font-size:14px;line-height:1.45"><div><span style="font-weight:600;color:#0f766e">Do</span> · “Uses 1 of today’s 5 tutor goes”, shown before you start</div><div><span style="font-weight:600;color:#5d564b">Don’t</span> · An upgrade prompt halfway through a question</div></div>
+    </article>
+  </div>
+
+  <h3 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:26px;margin:40px 0 6px">Words we’ll use instead</h3>
+  <p style="font-size:15px;line-height:1.5;color:#3d3830;max-width:66ch;margin:0 0 16px">These are the names students see. Engineering names (modes, tables) stay the same in code.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1px;background:#e2ddd1;border:1px solid #e2ddd1;border-radius:16px;overflow:hidden;font-size:15px">
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Misconception</span><span style="font-weight:600">Mix-up</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Retest</span><span style="font-weight:600">Check-back</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Resolved</span><span style="font-weight:600">Fixed</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Flashcard deck</span><span style="font-weight:600">Cards</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Recall / spaced repetition</span><span style="font-weight:600">Keep it fresh</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Socratic</span><span style="font-weight:600">Ask me questions</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Teach / Feynman</span><span style="font-weight:600">Explain it back</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">AI allowance</span><span style="font-weight:600">Tutor goes</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Syllabus built in</span><span style="font-weight:600">Ready for your board</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Life Sync / Availability</span><span style="font-weight:600">When I’m free</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Trajectory</span><span style="font-weight:600">Exam forecast</span></div>
+    <div style="background:#fffefb;padding:12px 16px;display:flex;justify-content:space-between;gap:12px"><span style="color:#5d564b;text-decoration:line-through">Folder</span><span style="font-weight:600">Subject</span></div>
+  </div>
+</section>
+
+<!-- 07 IA -->
+<section id="ia" data-screen-label="07 Information architecture" style="max-width:1240px;margin:0 auto;padding:88px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">07 · Information architecture</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-0.01em;margin:8px 0 12px;text-wrap:balance">Keep five tabs. Change what they lead with.</h2>
+  <p style="font-size:17px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 12px;text-wrap:pretty">I tested the starting hypothesis and mostly kept it. Two changes came out of the walkthrough. <strong style="font-weight:600">Mix-ups don't get a tab.</strong> They live on Progress and come to you on Today when a check-back is due, because a destination you have to remember is the reason the loop fails. <strong style="font-weight:600">Practise stays a tab</strong> and isn't folded into Today, because Maya and Jordan need a place that always starts something, even when Today's suggestion doesn't fit.</p>
+
+  <div style="margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-top:3px solid #0f766e;border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start">
+      <div><div style="font-family:Newsreader,serif;font-size:24px">Today</div><code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#5d564b">/</code></div>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;line-height:1.4">
+        <li>The next step: one sentence, one button, time cost</li>
+        <li>Time choice: 5 · 10 · 20 min <span style="font-size:11px;font-weight:600;color:#0f766e">NEW</span></li>
+        <li>Today’s short plan (3 rows at most)</li>
+        <li>Fixing: due check-backs become the next step</li>
+        <li>Welcome-back state <span style="font-size:11px;font-weight:600;color:#0f766e">NEW</span></li>
+      </ul>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-top:3px solid #0f766e;border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start">
+      <div><div style="font-family:Newsreader,serif;font-size:24px">Practise</div><code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#5d564b">/study</code></div>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;line-height:1.4">
+        <li>“How are you feeling about it?” — four choices</li>
+        <li>Session <code style="font-family:'JetBrains Mono',monospace;font-size:11px">/study/:id</code> (focus mode, no nav)</li>
+        <li>Session summary and every question</li>
+        <li>Keep it fresh: cards, works offline</li>
+        <li style="color:#5d564b">When relevant: exam traps, full mock, explain it back</li>
+      </ul>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-top:3px solid #0f766e;border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start">
+      <div><div style="font-family:Newsreader,serif;font-size:24px">Library</div><code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#5d564b">/library</code></div>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;line-height:1.4">
+        <li>Subjects (with how ready each board is)</li>
+        <li>Subject page: notes, cards, questions</li>
+        <li>Add material: paste, snap a page, upload</li>
+        <li>Notes, with reading mode <span style="font-size:11px;font-weight:600;color:#0f766e">NEW</span></li>
+        <li style="color:#5d564b">When used: notebooks and web sources</li>
+      </ul>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-top:3px solid #0f766e;border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start">
+      <div><div style="font-family:Newsreader,serif;font-size:24px">Plan</div><code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#5d564b">/plan</code></div>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;line-height:1.4">
+        <li>One week view: study blocks, exams and tasks on their days</li>
+        <li>When I’m free (tap slots for this week)</li>
+        <li>Exams sheet: date, board, tier</li>
+        <li>“I missed some days” auto-replan <span style="font-size:11px;font-weight:600;color:#0f766e">NEW</span></li>
+        <li>Focus timer</li>
+      </ul>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-top:3px solid #0f766e;border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start">
+      <div><div style="font-family:Newsreader,serif;font-size:24px">Progress</div><code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#5d564b">/progress</code></div>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;line-height:1.4">
+        <li>This week in three lines (readable by a parent)</li>
+        <li>Readiness per exam: range, reason, next action</li>
+        <li>Mix-ups: fixed and fixing <code style="font-family:'JetBrains Mono',monospace;font-size:11px">/progress/fixes</code></li>
+        <li>What’s fading</li>
+        <li style="color:#5d564b">Deeper: exam forecast (Pro)</li>
+      </ul>
+    </div>
+    <div style="background:#f2efe8;border:1px dashed #cfc8b8;border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start">
+      <div><div style="font-family:Newsreader,serif;font-size:24px">Out of the nav</div><span style="font-size:12px;color:#5d564b">Profile menu · ⌘K</span></div>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;line-height:1.4">
+        <li>More: friends, study rooms, milestones</li>
+        <li>Settings: 6 sections, down from 8</li>
+        <li>Help centre</li>
+        <li>Plans and usage <code style="font-family:'JetBrains Mono',monospace;font-size:11px">/upgrade</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px">
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:22px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h3 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:24px;margin:0">One next-step engine</h3><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#0f766e;color:#fff">NEW · backend</span></div>
+      <p style="margin:8px 0 14px;font-size:15px;line-height:1.5;color:#3d3830">Consolidates the six current deciders. Today, the top of Practise, today's block on Plan and "what to do about it" on Progress all read from it. Every step is sized to the time you picked. The first rule that matches wins:</p>
+      <ol style="margin:0;padding:0;list-style:none;display:grid;gap:1px;background:#ece7dc;border-radius:10px;overflow:hidden;font-size:14px;line-height:1.4">
+        <li style="background:#fbfaf7;padding:10px 12px;display:grid;grid-template-columns:24px 1fr auto;gap:8px"><span style="font-family:'JetBrains Mono',monospace;color:#0f766e">0</span><span>Back after 7+ days → welcome back, 5-minute restart</span><span style="color:#5d564b">5 min</span></li>
+        <li style="background:#fbfaf7;padding:10px 12px;display:grid;grid-template-columns:24px 1fr auto;gap:8px"><span style="font-family:'JetBrains Mono',monospace;color:#0f766e">1</span><span>A check-back is due → prove a mix-up is fixed</span><span style="color:#5d564b">1–2 min</span></li>
+        <li style="background:#fbfaf7;padding:10px 12px;display:grid;grid-template-columns:24px 1fr auto;gap:8px"><span style="font-family:'JetBrains Mono',monospace;color:#0f766e">2</span><span>Exam in 3 days or fewer → mixed check on the topics worth the most marks</span><span style="color:#5d564b">10 min</span></li>
+        <li style="background:#fbfaf7;padding:10px 12px;display:grid;grid-template-columns:24px 1fr auto;gap:8px"><span style="font-family:'JetBrains Mono',monospace;color:#0f766e">3</span><span>Unfinished session from the last 3 days → pick up where you left off</span><span style="color:#5d564b">left</span></li>
+        <li style="background:#fbfaf7;padding:10px 12px;display:grid;grid-template-columns:24px 1fr auto;gap:8px"><span style="font-family:'JetBrains Mono',monospace;color:#0f766e">4</span><span>A new mix-up from the last session → fix it</span><span style="color:#5d564b">5–8 min</span></li>
+        <li style="background:#fbfaf7;padding:10px 12px;display:grid;grid-template-columns:24px 1fr auto;gap:8px"><span style="font-family:'JetBrains Mono',monospace;color:#0f766e">5</span><span>Highest marks × fading or untested topic → practise, bank questions first</span><span style="color:#5d564b">5–10 min</span></li>
+        <li style="background:#fbfaf7;padding:10px 12px;display:grid;grid-template-columns:24px 1fr auto;gap:8px"><span style="font-family:'JetBrains Mono',monospace;color:#0f766e">6</span><span>Cards are due → keep it fresh</span><span style="color:#5d564b">~10 min</span></li>
+        <li style="background:#fbfaf7;padding:10px 12px;display:grid;grid-template-columns:24px 1fr auto;gap:8px"><span style="font-family:'JetBrains Mono',monospace;color:#0f766e">7</span><span>Nothing else → “You’re clear”, plus an optional stretch</span><span style="color:#5d564b">—</span></li>
+      </ol>
+      <p style="margin:12px 0 0;font-size:13px;line-height:1.45;color:#5d564b">With no exam and no data, rule 5 still works. It picks a starter set of bank questions from the chosen subject. "Add material" is never the only step.</p>
+    </div>
+
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:22px">
+      <h3 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:24px;margin:0">Practise: four feelings, not ten tools</h3>
+      <p style="margin:8px 0 14px;font-size:15px;line-height:1.5;color:#3d3830">The student picks a feeling and Learnora picks the mode. The five old diagnostic tools become variants inside a session, so they're no longer destinations.</p>
+      <div style="display:grid;gap:1px;background:#ece7dc;border-radius:10px;overflow:hidden;font-size:14px;line-height:1.4">
+        <div style="background:#fbfaf7;padding:12px;display:grid;gap:4px"><strong style="font-weight:600">“I don’t get it yet”</strong><span style="color:#3d3830">Explain mode: step by step, a check after each step.</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5d564b">absorbs Solver</span></div>
+        <div style="background:#fbfaf7;padding:12px;display:grid;gap:4px"><strong style="font-weight:600">“Test me”</strong><span style="color:#3d3830">Practice mode: bank first, generated questions join when they're ready, quick confidence tap. Timed traps and the full mock appear when the exam is close.</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5d564b">absorbs quiz runner, Exam Detective, Pre-mortem, mock exam</span></div>
+        <div style="background:#fbfaf7;padding:12px;display:grid;gap:4px"><strong style="font-weight:600">“I keep getting this wrong”</strong><span style="color:#3d3830">Fix: Socratic questions starting from a logged mix-up, with hints. Voice is optional.</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5d564b">absorbs Debugger, Sparring, Viva</span></div>
+        <div style="background:#fbfaf7;padding:12px;display:grid;gap:4px"><strong style="font-weight:600">“Keep it fresh”</strong><span style="color:#3d3830">Recall: due cards, mixed, works offline.</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5d564b">absorbs /review/:deckId</span></div>
+        <div style="background:#f2efe8;padding:12px;display:grid;gap:4px"><strong style="font-weight:600;color:#3d3830">“Let me explain it back”</strong><span style="color:#3d3830">Teach mode. Only shown once a topic has a passed check. Ends in the debrief.</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5d564b">absorbs Feynman studio + debrief</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:26px;margin:40px 0 16px">Navigation model</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px">
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d564b">Mobile · 390</div>
+      <div aria-hidden="true" style="border:1px solid #d6d0c2;border-radius:14px;background:#f7f5f0;padding:10px;display:grid;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#5d564b"><span style="display:inline-flex;gap:6px;align-items:center"><span style="width:14px;height:14px;border-radius:4px;background:#0f766e"></span>Learnora</span><span style="width:18px;height:18px;border-radius:50%;background:#dcd6ca"></span></div>
+        <div style="height:64px;border-radius:8px;background:#fffefb;border:1px solid #e2ddd1"></div>
+        <div style="display:flex;justify-content:flex-end"><span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;background:#1a1815;color:#fff">Ask</span></div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;border-top:1px solid #e2ddd1;padding-top:6px;font-size:10px;text-align:center"><span style="color:#0f766e;font-weight:600">Today</span><span>Practise</span><span>Library</span><span>Plan</span><span>Progress</span></div>
+      </div>
+      <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.45;display:grid;gap:4px"><li>Five tabs, always labelled.</li><li>"Ask" is a labelled pill, not a bare sparkle icon. It's hidden in sessions, sheets and when the keyboard is up.</li><li>The profile menu holds More and Settings.</li></ul>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d564b">Desktop · 1440</div>
+      <div aria-hidden="true" style="border:1px solid #d6d0c2;border-radius:14px;background:#f7f5f0;padding:10px;display:grid;grid-template-columns:96px 1fr;gap:8px;min-height:150px">
+        <div style="display:grid;gap:5px;align-content:start;font-size:11px"><span style="display:inline-flex;gap:6px;align-items:center;margin-bottom:4px"><span style="width:14px;height:14px;border-radius:4px;background:#0f766e"></span>Learnora</span><span style="color:#0f766e;font-weight:600">Today</span><span>Practise</span><span>Library</span><span>Plan</span><span>Progress</span><span style="margin-top:10px;color:#5d564b">Ask ⌘J</span><span style="color:#5d564b">Search ⌘K</span></div>
+        <div style="border-radius:8px;background:#fffefb;border:1px solid #e2ddd1"></div>
+      </div>
+      <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.45;display:grid;gap:4px"><li>Children only appear under the active tab (this is how it already works).</li><li>Free tier: one quiet line at the foot, "Tutor goes today: 3 of 5".</li><li>Tutor opens as a 420 px drawer on the right.</li></ul>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d564b">Command palette · ⌘K</div>
+      <div aria-hidden="true" style="border:1px solid #d6d0c2;border-radius:14px;background:#fffefb;padding:10px;display:grid;gap:6px;font-size:12px">
+        <div style="border:1px solid #e2ddd1;border-radius:8px;padding:6px 8px;color:#5d564b">osmo</div>
+        <div style="padding:4px 8px;background:#eef3f1;border-radius:6px">Practise osmosis</div>
+        <div style="padding:4px 8px">Ask about osmosis</div>
+        <div style="padding:4px 8px">Biology › Osmosis notes</div>
+        <div style="padding:4px 8px;color:#5d564b">Turn on reading mode</div>
+      </div>
+      <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.45;display:grid;gap:4px"><li>Verbs first: Practise, Ask, Add material.</li><li>The toggles people actually use: dark mode, reading mode, text size.</li><li>Replaces the hidden <code style="font-family:'JetBrains Mono',monospace;font-size:12px">ai:</code> prefix, which persona test 06 found was the only way into chat on a new account.</li></ul>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:14px;align-content:start">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d564b">Tutor + sessions</div>
+      <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.45;display:grid;gap:6px"><li>Sessions stay in focus mode with no nav. The top bar shows time left, "Save and stop" and reading tools.</li><li>Inside a question, the tutor is "Ask about this question", at the bottom of the hint ladder. Never a floating button over the answers.</li><li>Every tutor reply shows its sources from your notes.</li><li>Consent comes once, the first time you use AI, in plain words: which companies, and what they see.</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- 08 ROUTES -->
+<section id="routes" data-screen-label="08 Route mapping" style="max-width:1240px;margin:0 auto;padding:88px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">08 · Every route, and where it goes</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-0.01em;margin:8px 0 12px;text-wrap:balance">Every route in routes.tsx, mapped to its new home</h2>
+  <p style="font-size:17px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 20px;text-wrap:pretty">No URL breaks. Old paths redirect, the same way the September redesign handled the old tools. <em>Hidden</em> means it still exists but only appears when it's relevant, or through ⌘K.</p>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;font-size:13px">
+    <sc-for list="{{ statusCounts }}" as="sc" hint-placeholder-count="6">
+      <span style="display:inline-flex;gap:4px;align-items:center;white-space:nowrap;padding:4px 10px;border-radius:999px;border:1px solid #d6d0c2;background:#fffefb">{{ sc.label }} · <strong style="font-weight:600">{{ sc.n }}</strong></span>
+    </sc-for>
+  </div>
+  <div style="overflow-x:auto;border:1px solid #e2ddd1;border-radius:16px;background:#fffefb">
+    <table style="width:100%;min-width:900px;border-collapse:collapse;font-size:14px;line-height:1.45">
+      <thead>
+        <tr style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">
+          <th scope="col" style="padding:14px 14px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:230px">Current route</th>
+          <th scope="col" style="padding:14px 10px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:200px">Today it is</th>
+          <th scope="col" style="padding:14px 10px 10px;border-bottom:1px solid #e2ddd1;font-weight:500;width:96px">Status</th>
+          <th scope="col" style="padding:14px 14px 10px 10px;border-bottom:1px solid #e2ddd1;font-weight:500">New home</th>
+        </tr>
+      </thead>
+      <tbody>
+        <sc-for list="{{ routes }}" as="rt" hint-placeholder-count="10">
+          <tr style="vertical-align:top">
+            <td style="padding:11px 14px;border-bottom:1px solid #ece7dc;font-family:'JetBrains Mono',monospace;font-size:12px">{{ rt.path }}</td>
+            <td style="padding:11px 10px;border-bottom:1px solid #ece7dc;color:#3d3830">{{ rt.now }}</td>
+            <td style="padding:11px 10px;border-bottom:1px solid #ece7dc">
+              <sc-if value="{{ rt.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:#0f766e;color:#fff;white-space:nowrap">{{ rt.status }}</span></sc-if>
+              <sc-if value="{{ rt.notNew }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:500;padding:2px 9px;border-radius:999px;border:1px solid #cfc8b8;white-space:nowrap">{{ rt.status }}</span></sc-if>
+            </td>
+            <td style="padding:11px 14px 11px 10px;border-bottom:1px solid #ece7dc">{{ rt.home }}</td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 09 NEXT -->
+<section id="next" data-screen-label="09 Decisions" style="max-width:1240px;margin:0 auto;padding:88px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">09 · Decided at checkpoint 1</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-0.01em;margin:8px 0 12px;text-wrap:balance">What we agreed</h2>
+  <p style="font-size:17px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 24px;text-wrap:pretty">Recorded here so every later screen can point back to it. Next: the <a href="Design System.dc.html">design system</a>.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px">
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px;display:grid;gap:6px;align-content:start"><strong style="font-weight:600;font-size:16px">CBSE and ICSE stay</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Both are labelled "partly ready" at the moment you pick them. ICSE is added to the first-run chips. Bank questions are off and AI questions are marked as general.</p></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px;display:grid;gap:6px;align-content:start"><strong style="font-weight:600;font-size:16px">Mastery rungs renamed and tied to evidence</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Started → Remembered → Remembered later → Used in a new question → Explained. Multiple choice alone can't go past "Remembered later". This needs a change to <code style="font-family:'JetBrains Mono',monospace;font-size:12px">lib/mastery</code>.</p></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px;display:grid;gap:6px;align-content:start"><strong style="font-weight:600;font-size:16px">One next-step engine</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">The designs assume it gets built. Today, Practise, Plan and Progress all read the same step.</p></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px;display:grid;gap:6px;align-content:start"><strong style="font-weight:600;font-size:16px">First run = FirstRunView</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">J1 has been redone against it. The wizard is setup replay only, and moves into Settings ▸ Study.</p></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px;display:grid;gap:6px;align-content:start"><strong style="font-weight:600;font-size:16px">Today: two directions</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">A "one card" against B "time first". Built after the design system.</p></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px;display:grid;gap:6px;align-content:start"><strong style="font-weight:600;font-size:16px">IA</strong><p style="margin:0;font-size:15px;line-height:1.5;color:#3d3830">Practise is the tab label and the <code style="font-family:'JetBrains Mono',monospace;font-size:12px">/study</code> URL stays. No mix-ups tab. A labelled "Ask" pill. Settings in six sections.</p></div>
+  </div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { p: 'all', j: 'all', s: 'all' };
+
+  P = [
+    { id: 'Aa', name: 'Aarav', hue: 60 },
+    { id: 'Ma', name: 'Maya', hue: 230 },
+    { id: 'Jo', name: 'Jordan', hue: 300 },
+    { id: 'So', name: 'Sofia', hue: 0 },
+    { id: 'Li', name: 'Liam', hue: 150 },
+    { id: 'Pr', name: 'Priya', hue: 25 },
+    { id: 'Sa', name: 'Sam', hue: 270 },
+    { id: 'No', name: 'Noor', hue: 110 },
+    { id: 'Be', name: 'Ben', hue: 195 },
+    { id: 'Pa', name: 'Parent', hue: null }
+  ];
+
+  J = [
+    ['J1', 'First run'], ['J2', '10-min gap'], ['J3', 'Got it wrong'], ['J4', 'Stuck'], ['J5', 'Am I ready?'],
+    ['J6', 'Back after a break'], ['J7', 'Add material'], ['J8', 'Hit a limit'], ['J9', 'Plan my week'], ['J10', 'Make it mine']
+  ];
+
+  // persona x journey baseline stress, 0 = not tested
+  H = {
+    Aa: [4, 5, 4, 3, 4, 3, 4, 4, 3, 2],
+    Ma: [2, 4, 4, 2, 3, 2, 3, 3, 3, 1],
+    Jo: [3, 4, 4, 3, 4, 3, 3, 3, 5, 2],
+    So: [2, 2, 3, 3, 5, 3, 2, 3, 2, 1],
+    Li: [3, 3, 4, 3, 3, 2, 4, 2, 3, 3],
+    Pr: [3, 2, 3, 2, 4, 5, 2, 2, 4, 1],
+    Sa: [3, 3, 3, 2, 3, 4, 3, 5, 4, 2],
+    No: [2, 3, 3, 2, 4, 2, 3, 2, 4, 2],
+    Be: [3, 4, 4, 3, 4, 2, 4, 3, 3, 2],
+    Pa: [0, 0, 0, 0, 4, 0, 0, 0, 0, 0]
+  };
+
+  // [persona, journey, step, sees, feels, severity B/M/m, principles, fix]
+  F = [
+    ['Aa','J1','Start: ‘Studying for’ chips','He picks CBSE. Nothing changes on screen, no board list appears later, and nothing says CBSE chapters aren’t built in.','It took CBSE, so my NCERT chapters must be in there.','B','P4','When the chip is picked, say it plainly: “Partly ready. You can study any topic, but CBSE chapters and marks aren’t built in yet.”'],
+    ['Pr','J1','Start: ‘Studying for’ chips','GCSE, A-Level, IB, CBSE, AP, University. No ICSE.','Is ICSE not allowed? I’ll pick CBSE, I guess.','M','P4','List ICSE with the same honest “partly ready” line.'],
+    ['Sa','J1','Start: ‘Studying for’ chips','A-Level is offered, but it has no syllabus behind it, so no board question follows. Nothing says so.','Is this my OCR spec or is it just guessing?','M','P4','Same honest line as CBSE. Don’t present a level as fully ready when it isn’t.'],
+    ['Be','J1','Start: ‘Studying for’ chips','No option fits Year 8.','I’m not doing GCSEs yet. Is this not for me?','M','P9','Add “Not doing exams yet (Year 7–9)”, which uses the GCSE level without exam pressure.'],
+    ['Ma','J1','Start: example chips','‘Or try: Quadratic equations, Causes of WW1, Supply & demand’. None of them are her subjects.','I’ll have to type it. Fine.','m','P1','Examples follow the chosen level and board: “Osmosis”, “Electrolysis”, “Ratio”.'],
+    ['Aa','J1','Lesson: waiting','‘Writing a short lesson on Ohm’s law…’ with a streaming cursor. The whole lesson is AI-written: 10–30 s on 4G, and ‘Skip to my plan’ if it fails.','Is it stuck? My data is going.','B','P8','Open on the guess question at once (from the bank, or a small cached set per subject). The AI writes the teaching while he answers.'],
+    ['Jo','J1','Lesson: the idea','After the guess, the teaching step is several paragraphs, then ‘Got it, check me →’.','too long. just gimme the question','M','P6 P9','Teach in up to three short steps, 60 words or fewer each, with an image slot. Swipe on to the check.'],
+    ['Li','J1','Lesson: the idea','The same paragraphs, with no read-aloud and no reading mode.','I lost my place halfway down.','M','P9','A speaker button on every step; reading mode offered right here.'],
+    ['No','J1','Lesson: guess result','Results begin with ‘✓’ or ‘✕’ glyphs inside the text.','‘Multiplication x, your guess…’ What?','m','P9','Say it in words (“Right.” / “Not quite.”) and hide the icons from screen readers.'],
+    ['So','J1','Win screen','The mastery ladder shows a rung earned after one correct check.','One question and I’ve ‘recalled’ it? Then I can’t trust any of this.','m','P4','After one check, the first rung is “Started”. Rungs need the right kind of evidence.'],
+    ['Be','J1','Win screen','‘We saved the lesson as flashcards. Recall will bring it back before it starts to fade.’','What’s Recall? Where did the flashcards go?','M','P9','“We’ll ask you this again in a few days so it sticks.”'],
+    ['Ma','J1','Plan card','‘When is your exam?’ creates an exam named after the topic. Today then says ‘Osmosis exam in 40 days’.','My exam’s Combined Science Paper 1, not ‘Osmosis exam’.','M','P4 P1','Ask “Which exam is this for?” (subject + paper from the board list) and name it that.'],
+    ['Ma','J1','Several subjects','The first run covers one topic. ‘Set up all my subjects instead’ opens the 7-step wizard.','I do Science and Maths. Do I have to do the long thing?','m','P7','On the plan card, add another subject in one line. The wizard stays in Settings.'],
+
+    ['Ma','J2','Today, exam added, no notes','Hero: ‘Add material for Combined Science to get a next step.’ There are 228 AQA bank questions.','I don’t have notes on my phone. I just want questions.','B','P1','Bank questions are always a valid next step for a supported board. Material is optional.'],
+    ['Ma','J2','Today, active user','On a flashcard topic, the primary button starts a 25-minute focus timer and opens /timer.','I wanted questions, not a clock. I’ve got ten minutes.','M','P1 P2','The next step opens the activity itself, sized to the time she has.'],
+    ['Ma','J2','Today','‘Only have 10 minutes?’ is a text link under the card.','Didn’t even see that.','m','P2','Time choice up top: 5 · 10 · 20 min. The step resizes to fit.'],
+    ['Jo','J2','Study','A text box plus five cards (prompt, mode name, description each), plus ‘Oral practice, mic on →’ and ‘Exam traps, timed →’.','too many boxes. which one is the quiz one','M','P1 P6 P7','Four big choices, one line each. Variants live inside the session.'],
+    ['Be','J2','Study','Mode names: Explain, Socratic, Practice, Teach, Recall.','Socratic? Is that a person?','M','P9','Name what happens, not the method.'],
+    ['Aa','J2','Practice session','No CBSE bank, so Practice waits on AI generation (~24 s average, 34 s p90).','Half my ten minutes is gone and I’ve done nothing.','B','P8','A question on screen immediately (bank or cached); generated ones slot in behind.'],
+    ['Ma','J2','Today vs Study','Today’s hero comes from the forecast; Study’s ‘Based on your work’ comes from the mistake ranking. Different topics.','Which one do I actually do?','M','P1','One next-step engine. The same card everywhere.'],
+    ['No','J2','Today','Hero, ‘Mistakes to fix’ rows and ‘Also worth doing’ rows: several equal Start / Fix it / Retest links.','I swiped through six buttons. Which is the main one?','m','P1','One primary action, announced first. Everything else under one heading.'],
+    ['Sa','J2','Today, nothing due','‘You’re clear for today’, with a stretch link into an AI session.','That’ll use up my free goes.','m','P10','Show the cost on anything that uses AI: “Uses 1 of today’s 5”.'],
+
+    ['Ma','J3','Wrong answer','Wrong-answer note, then a repair (‘Try it this way… Side by side…’), then ‘Got it’.','OK. But is it going to come back?','M','P5','End with a date: “We’ll check this on Thursday with a new question.” It moves into Fixing.'],
+    ['Ma','J3','Two days later','The retest is a row, ‘Check: [mistake]’, under the hero, only if due. No reminder.','I forgot this even existed.','B','P5 P1','A due check-back becomes the next step: one question, about a minute, framed as proving it’s fixed.'],
+    ['Jo','J3','Repair','Two to three paragraphs of re-teach text.','skipped it lol','M','P6 P9','One sentence on the mix-up, one side-by-side, one check.'],
+    ['Be','J3','Repair','‘It looks like you might think: …’ and the word ‘misconception’ in places.','Am I in trouble? What’s a misconception?','M','P9 P5','Call it a mix-up. Warm, specific, short.'],
+    ['So','J3','Progress','The ledger sits on Progress as a list of open mistakes.','Another list of what I’m bad at.','M','P5','Lead with Fixed (proof), then Fixing.'],
+    ['Aa','J3','Repair, outside the catalogue','The 45-belief catalogue is UK-framed, so his mix-up gets ‘Suggested by AI, not yet verified’.','Not verified? Then why should I learn it?','M','P4','Explain “not checked by a teacher yet” in one line. Report-a-problem right there.'],
+    ['Li','J3','Feedback','Text only. No read-aloud on the question, the feedback or the repair.','I read it twice and still lost the middle bit.','M','P9','Speaker button on question, feedback and repair; reading mode applies here too.'],
+    ['No','J3','Retest answer','All options become disabled after she picks, so they drop out of the focus order.','Where did the options go? I wanted to hear which was right.','m','P9','Keep options focusable (aria-disabled); announce right and wrong per option.'],
+
+    ['So','J4','Hint ladder','Nudge → step → worked solution. The credit rule isn’t said before she taps.','If I press it, does it count against me? I’d rather guess.','M','P4 P5','Say the rule once, kindly, before the first hint.'],
+    ['Be','J4','Worked solution','Reaching the worked solution counts as wrong.','So asking for help means I got it wrong??','M','P5','“Show me how, then give me another one like it.” The fresh question is where credit comes from.'],
+    ['Jo','J4','Nudge','Hints are paragraphs.','just tell me the first step','m','P9','Hints under 25 words. Steps one line each.'],
+    ['Ma','J4','Hint wait','Ladders are generated per student and cached only on the device, so each hint waits on AI.','Bus is nearly at my stop.','m','P8','Bank questions ship with pre-written ladders (backend).'],
+
+    ['So','J5','Am I ready?','Readiness is spread across Progress, the exam page and Trajectory. Deck and quiz forecasts can disagree.','Today says one thing, the exam page another. Which do I believe?','B','P4 P1','One readiness card per exam, from one source, led by one sentence.'],
+    ['So','J5','Why this topic?','‘An hour on Osmosis adds about 6 points (out of 100) to your predicted score.’','Predicted score of what? Six points means I’m failing?','M','P4','Ranges and actions: “Likely 5–6 now. Two short sessions on osmosis is the best use of time.”'],
+    ['So','J5','Mastery ladder','‘Applied’ after five multiple-choice answers in a row.','I’ve never applied it. I clicked A five times.','M','P4','Rung names tied to evidence type. Multiple choice alone can’t go past ‘Remembered later’.'],
+    ['Pa','J5','Progress, over a shoulder','Study heatmap, retention insights, fading topics.','Is she doing OK? I can’t read this.','M','P4 P9','A three-line plain summary at the top: time spent, mix-ups fixed, what’s next.'],
+    ['No','J5','Charts','Heatmap and trajectory chart; no sentence or table alternative in the flow.','It says ‘chart’. That’s all I get.','M','P9','Every chart starts with the sentence it proves. Table view on request.'],
+    ['Aa','J5','Exam readiness','No CBSE topic weights, so priorities are generic.','It doesn’t know what the board gives marks for.','M','P4','Say so: “We can’t weight by marks for CBSE yet.” Rank by evidence only.'],
+    ['Pr','J5','Fading topics','After 9 days, most topics show as fading.','Everything is falling apart.','M','P3','Show the one to refresh first. Collapse the rest to a neutral count.'],
+    ['Jo','J5','‘Why?’ expander','Three bullet paragraphs under ‘Why Osmosis?’.','nah','m','P6','One line of why; more on tap.'],
+
+    ['Pr','J6','Today after 9 days','Resume a 9-day-old session, or ‘things to fix’; rows show a big due-card count and ‘behind on this week’s plan · Rebalance’.','Everything I missed is piled up. I feel worse than before I opened it.','B','P3','Welcome back, quietly re-plan, offer a 5-minute restart. No counts.'],
+    ['Pr','J6','Plan','Missed blocks stay put. Rebalance is a preview she has to find and apply.','I have to fix my own plan as well?','M','P3','Auto re-plan on return, with undo.'],
+    ['Sa','J6','Plan after an irregular week','Blocks from his weekly pattern pile up as missed.','It thinks I’m lazy. I was at work.','M','P3','Missed blocks dissolve. The plan rebuilds from today.'],
+    ['Jo','J6','Resume card','‘You stopped at step 3, Ionic bonding.’','I don’t remember any of that.','m','P1','After 3+ days, offer a fresh 5-minute start first and resume second.'],
+
+    ['Aa','J7','Add material','‘Drop notes, slides or a worksheet. PDF, images or docs, up to 200 pages.’ No size or data estimate; processing is AI.','That’ll eat my data and I’ll wait forever.','M','P8 P10','Paste text or snap one page. Show size and rough time before uploading.'],
+    ['Be','J7','Library tabs','Folders, materials, flashcard decks, quizzes, notebooks.','What’s the difference between a folder and a notebook and a deck?','M','P9 P7','Subjects first. Inside each: notes, cards, questions.'],
+    ['Ma','J7','Create sheet','Pick outputs (flashcards, notes, quiz) before seeing anything.','I don’t know, whatever’s useful.','m','P7','Make practice by default. Offer the rest afterwards.'],
+    ['Li','J7','Reading notes','Dense notes, no reading mode. Atkinson font buried in Appearance.','Wall of text.','M','P9','A reading mode switch on every long text.'],
+    ['Jo','J7','Notebook studio','Web-source import, sources panel, studio tools.','what is this','m','P7','Hidden until asked for (“Research a topic”).'],
+
+    ['Sa','J8','Out of AI','A daily allowance for each tool. He only sees the limit after pressing the button; the meter is in Settings ▸ Billing.','It just stopped. Was that my last one? When does it come back?','B','P10','Show what’s left before he starts. Never stop a session halfway.'],
+    ['Sa','J8','Chat at the limit','Upgrade wording appears in the chat reply when the allowance runs out.','So it’s a paywall in the middle of my question.','M','P10','Limit notices only between tasks. Free options first, upgrade last.'],
+    ['Ma','J8','AI stalls','Streaming cursor, a Stop button and a caption. Nothing else to do.','Do I just sit here?','M','P8','Offer a due card or a bank question while it works. Say roughly how long.'],
+    ['Aa','J8','Provider fallback','A long wait, then ‘The tutor didn’t answer that one. The AI service is busy.’','Is it my phone or them?','M','P8 P4','Say whose problem it is, and what still works offline.'],
+    ['Be','J8','Limit copy','Words like ‘allowance’ and ‘AI provider’.','?','m','P9','“You’ve used today’s 5 tutor goes. They come back at midnight.”'],
+
+    ['Jo','J9','My week (Life Sync)','A long form: when you’re free each day, and when you’re sharpest.','nope.','B','P7','Tap free slots on this week. Learn ‘sharpest’ from use instead of asking.'],
+    ['Ma','J9','Plan','Plan, My week, Tasks, Exams and Focus timer are five separate screens.','Where do I put my mock date?','M','P1 P7','One week view. Exams and tasks sit on their days.'],
+    ['Sa','J9','Availability','A repeating weekly pattern.','My shifts change every week.','M','P3','“This week only” is the default edit.'],
+    ['No','J9','Week grid','A calendar grid of blocks.','Hard to tell which day I’m on.','M','P9','A day list is the screen-reader view; each block is one labelled row.'],
+
+    ['Li','J10','Settings ▸ Appearance','Atkinson Hyperlegible, font scaling and reduced motion, among 15 accent presets and a theme studio.','Didn’t know that was there.','M','P9 P7','One ‘Reading mode’ switch, offered the first time a long text appears.'],
+    ['Ma','J10','Settings ▸ Run setup again','The recap points into four menus, including ‘Dashboard ▸ Customize’, which no longer exists (/dashboard redirects to Today).','So there’s four more things to set up? Later.','m','P1 P7','No menu paths. The replay ends on a real first step; dead links removed.'],
+    ['Be','J10','Settings','Eight sections: account, appearance, preferences, notifications, privacy, security, billing, danger zone.','I just wanted dark mode.','m','P7','Six sections. Dark mode and reading mode in ⌘K and the profile menu too.']
+  ];
+
+  R = [
+    ['/login · /signup · /forgot-password','Auth forms','Kept','Restyled in the new system. Sign-up asks for name, email and password only.'],
+    ['/reset-password · /verify','Email landing pages','Kept','Restyled. Verify lands straight in the first run.'],
+    ['/terms · /privacy','Legal','Kept','Restyled; privacy links to the plain-words AI disclosure.'],
+    ['/landing · /about · /contact · /developers','Marketing','Kept','Landing hero rebuilt in the new system.'],
+    ['/welcome','First run (FirstRunView)','Kept','Same shape: topic → short lesson → win → plan. Adds a 2-minute check, bank questions first, honest board labels and a proper exam name.'],
+    ['(new) placement in first run','—','NEW','Up to 12 questions, ends with “here’s where you’re starting”, not a score. Reuses PlacementView.'],
+    ['/setup/profile · ?replay=1','Study profile wizard (setup replay)','Moved','Settings ▸ Study (“All my subjects”). Its recap no longer points into menus.'],
+    ['/','Today','Kept','Today: one next step, time choice, short plan, due check-backs.'],
+    ['/dashboard','Redirect to /','Kept','Still redirects.'],
+    ['/study','Study hub (5 mode cards)','Kept','Same URL; the tab label becomes Practise. The “how are you feeling?” chooser, with four choices.'],
+    ['/study-lab','Redirect to /study','Redirect','→ /study (unchanged)'],
+    ['/study/:sessionId','Session (5 modes)','Kept','Same URL and focus mode. Labelled Practise in the UI.'],
+    ['/ai-tutor · /ai-tutor/:mode','Redirect to /study','Redirect','→ /study, with the tutor drawer open.'],
+    ['/solver','→ Explain mode','Redirect','→ Practise “I don’t get it yet”.'],
+    ['/debugger','→ Explain mode','Redirect','→ Practise “I keep getting this wrong” (Fix).'],
+    ['/exam-detective','→ Practice, traps preset','Redirect','→ Practise “Test me”, timed traps. Shown when an exam is close.'],
+    ['/feynman · /feynman/studio/:id','→ Teach mode','Redirect','→ Practise “Let me explain it back” (once the topic has a passed check).'],
+    ['/feynman/debrief/:id','Feynman debrief','Merged','Session summary, explain-it-back variant.'],
+    ['/viva · /viva/:id · /sparring · /sparring/:id','→ Socratic + voice','Redirect','→ Fix, with “Use my voice” switched on.'],
+    ['/quiz/:quizId','Quiz runner','Merged','Practice session runner (same question card). URL kept for saved quizzes.'],
+    ['/quiz/:quizId/mock-exam','Strict mock exam','Hidden','Offered from 4 weeks before the exam, or from the exam’s readiness card.'],
+    ['/quiz/:quizId/review','Quiz review','Merged','Session summary ▸ “See every question”.'],
+    ['/review/:deckId','Flashcard review','Kept','Keep it fresh session. Works offline.'],
+    ['/decks/:deckId','Deck editor','Moved','Library ▸ Subject ▸ Cards.'],
+    ['/library · /library/:tab','Library, 5 tabs','Kept','Subjects + “All material”: two tabs instead of five. Quizzes and cards live on subject pages.'],
+    ['/folders/:folderId','Subject detail','Kept','Subject page (renamed from folder).'],
+    ['/notes/:materialId','Notes editor','Kept','Plus reading mode and read-aloud (NEW).'],
+    ['/notebooks','Redirect to /library/notebooks','Redirect','→ /library'],
+    ['/notebooks/:notebookId','Notebook studio','Hidden','Shows in Library once you’ve made one. Reached via Add material ▸ “Research a topic”.'],
+    ['/plan','Study plan','Kept','The one week view.'],
+    ['/my-week','Life Sync form','Merged','Plan ▸ “When I’m free” sheet. Tap slots, this week by default.'],
+    ['/tasks','Tasks list','Merged','Tasks sit on their day in Plan. Redirects.'],
+    ['/exams','Exams list','Merged','Plan ▸ Exams sheet. Redirects.'],
+    ['/exams/:examId','Exam detail: forecast, calibration, mistakes','Merged','Progress ▸ exam readiness (/progress/:examId). Date and board edited in Plan.'],
+    ['/exams/:examId/placement','Placement check','Moved','First run, plus “Take a 2-minute check” on any readiness card.'],
+    ['/timer','Focus timer','Kept','Plan child and an option inside sessions. No longer where Today’s button lands.'],
+    ['/analytics','Progress','Moved','/progress. Redirects.'],
+    ['(new) /progress/fixes','Ledger card on Progress','NEW','Mix-ups: fixed (trophy case) and fixing, with check-back dates.'],
+    ['/trajectory','Trajectory (Pro)','Hidden','“See the full forecast” from a readiness card.'],
+    ['/friends · /friends/add/:code','Friends, invites','Moved','Profile menu ▸ More. Invite links still work.'],
+    ['/room · /room/:roomId','Study rooms','Moved','Profile menu ▸ More.'],
+    ['Achievements (panel)','Achievements','Hidden','More ▸ Milestones. No badges on main screens.'],
+    ['/settings','8 sections','Kept','6 sections: You · Look and reading · Study · Reminders · Privacy and data · Plan and usage.'],
+    ['(new) /upgrade','PaywallModal','NEW','Plan comparison as a page you choose to visit. Never opens as a modal mid-task.'],
+    ['Help centre (overlay)','Help','Kept','⌘K and Settings.'],
+    ['/welcome-pro','After upgrading','Kept','Restyled. Points to the one Pro thing worth trying first.'],
+    ['*','Not found','Kept','Restyled, with a button back to Today.']
+  ];
+
+  setF(k, v) { this.setState({ [k]: this.state[k] === v && v !== 'all' ? 'all' : v }); }
+
+  pickCell(p, j) {
+    this.setState({ p, j, s: 'all' });
+    const el = document.getElementById('log');
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 70, behavior: 'smooth' });
+  }
+
+  bgFor(p) { return p.hue === null ? '#dcd6ca' : `oklch(0.87 0.07 ${p.hue})`; }
+
+  renderVals() {
+    const { p, j, s } = this.state;
+    const byId = Object.fromEntries(this.P.map(x => [x.id, x]));
+    const chip = (k, v, label, title) => ({ label, title: title || label, active: this.state[k] === v, inactive: this.state[k] !== v, on: () => this.setF(k, v) });
+
+    const pChips = [chip('p', 'all', 'Everyone'), ...this.P.map(x => chip('p', x.id, x.name))];
+    const jChips = [chip('j', 'all', 'All'), ...this.J.map(([id, t]) => chip('j', id, id, t))];
+    const sChips = [chip('s', 'all', 'All'), chip('s', 'B', 'Blocker'), chip('s', 'M', 'Major'), chip('s', 'm', 'Minor')];
+
+    const filtered = this.F.filter(r => (p === 'all' || r[0] === p) && (j === 'all' || r[1] === j) && (s === 'all' || r[5] === s));
+    const rows = filtered.map(r => {
+      const per = byId[r[0]];
+      return { av: per.id, name: per.name, bg: this.bgFor(per), j: r[1], step: r[2], sees: r[3], feels: r[4], isB: r[5] === 'B', isM: r[5] === 'M', ism: r[5] === 'm', pr: r[6], fix: r[7] };
+    });
+
+    const fill = ['transparent', 'oklch(0.95 0.015 150)', 'oklch(0.91 0.045 110)', 'oklch(0.85 0.085 80)', 'oklch(0.74 0.12 55)', 'oklch(0.5 0.14 35)'];
+    let over2 = 0, tested = 0, sum = 0;
+    const colSum = Array(10).fill(0), colN = Array(10).fill(0);
+    const heat = this.P.map(per => {
+      const vals = this.H[per.id];
+      const t = vals.filter(v => v > 0);
+      const cells = vals.map((v, i) => {
+        if (v > 0) { tested++; sum += v; colSum[i] += v; colN[i]++; if (v > 2) over2++; }
+        return {
+          v: v > 0 ? String(v) : '—',
+          fill: fill[v],
+          fg: v === 5 ? '#ffffff' : (v === 0 ? '#8a8275' : '#1a1815'),
+          border: v === 0 ? '1px dashed #cfc8b8' : '1px solid transparent',
+          aria: `${per.name}, ${this.J[i][0]} ${this.J[i][1]}: ${v > 0 ? 'stress ' + v + ' of 5' : 'not tested'}. Show friction rows.`,
+          on: () => this.pickCell(per.id, this.J[i][0])
+        };
+      });
+      const mean = t.length ? (t.reduce((a, b) => a + b, 0) / t.length).toFixed(1) : '—';
+      return { av: per.id, name: per.name, bg: this.bgFor(per), cells, mean };
+    });
+    const jMeans = colSum.map((v, i) => ({ v: colN[i] ? (v / colN[i]).toFixed(1) : '—' }));
+
+    const routes = this.R.map(r => ({ path: r[0], now: r[1], status: r[2], home: r[3], isNew: r[2] === 'NEW', notNew: r[2] !== 'NEW' }));
+    const order = ['Kept', 'Merged', 'Moved', 'Hidden', 'Redirect', 'NEW'];
+    const statusCounts = order.map(l => ({ label: l, n: routes.filter(r => r.status === l).length }));
+
+    return {
+      pChips, jChips, sChips, rows,
+      shown: rows.length, total: this.F.length, shownBlockers: rows.filter(r => r.isB).length,
+      clear: () => this.setState({ p: 'all', j: 'all', s: 'all' }),
+      journeys: this.J.map(([id, t]) => ({ id, short: t, title: t })),
+      heat, jMeans, over2, cellsTested: tested, grandMean: (sum / tested).toFixed(1),
+      routes, statusCounts, routeCount: this.R.length
+    };
+  }
+}
+</script>
+</body>
+</html>

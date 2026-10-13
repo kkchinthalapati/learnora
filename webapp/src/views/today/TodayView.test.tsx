@@ -8,7 +8,7 @@ import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { localDateStr } from "../../lib/date";
 import { clearStudySnapshot, recordStudySession } from "../../lib/continuity";
-import { TodayView } from "./TodayView";
+import { greetingFor, TodayView } from "./TodayView";
 const timer = vi.hoisted(() => ({ prepareFocus: vi.fn(), start: vi.fn(), state: { isRunning: false }, completedFocus: null as null | { id: number; timestamp: string; task: string; minutes: number; deckId: string }, dismissCompletedFocus: vi.fn() }));
 vi.mock("../../context/timer", () => ({ useTimer: () => timer, useOptionalTimer: () => timer }));
 vi.mock("../../hooks/useTrajectory", () => ({ useTrajectory: () => ({
@@ -26,10 +26,12 @@ it("leads with one decision, lists due tasks as rows, and passes the deck and it
     { id: 3, text: "Undated task", is_done: false, due_date: null },
   ])));
   renderWithAuth(<TodayView />, { session: fakeSession() }, { withRouter: true });
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Study Enzymes next.");
-  /* The meta line: date and the exam countdown. */
+  /* Today 1c: a greeting, then one card whose title is the step. */
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^(Morning|Afternoon|Evening)\.$/);
+  expect(screen.getByRole("heading", { name: "Study Enzymes next." })).toBeInTheDocument();
+  /* The exam pill. */
   expect(screen.getByText(/Biology in 6 days/)).toBeInTheDocument();
-  expect(await screen.findByRole("heading", { name: "Also worth doing today" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Later today" })).toBeInTheDocument();
   expect(await screen.findByText("Due task")).toBeInTheDocument();
   expect(screen.queryByText("Future task")).toBeNull();
   expect(screen.queryByText("Undated task")).toBeNull();
@@ -43,16 +45,19 @@ it("leads with one decision, lists due tasks as rows, and passes the deck and it
 
 it("switches to a ten-minute recall session for a student with less time", async () => {
   renderWithAuth(<TodayView />, { session: fakeSession() }, { withRouter: true });
-  await userEvent.click(screen.getByRole("button", { name: "Only have 10 minutes?" }));
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Ten minutes is enough");
-  await userEvent.click(screen.getByRole("button", { name: "I have longer" }));
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Study Enzymes next.");
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: "How long have you got?" }), "10 min");
+  expect(screen.getByRole("heading", { name: /Ten minutes is enough/ })).toBeInTheDocument();
+  /* One chip re-sizes the step; it never adds a second primary. */
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: "How long have you got?" }), "45 min");
+  expect(screen.getByRole("heading", { name: "Study Enzymes next." })).toBeInTheDocument();
 });
 
 it("resumes an unfinished session ahead of the forecast", () => {
   recordStudySession({ id: "s1", objective: "Cellular respiration", mode: "explain", stepIndex: 2, totalSteps: 5, minutesLeft: 12, status: "paused" });
   renderWithAuth(<TodayView />, { session: fakeSession({ user_metadata: { full_name: "Maya Chen" } }) }, { withRouter: true });
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Pick up where you left off, Maya.");
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^(Morning|Afternoon|Evening), Maya\.$/);
+  expect(screen.getByText("Pick up where you left off")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Cellular respiration" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Resume · 12 min left" })).toHaveAttribute("href", "/study/s1?mode=explain");
 });
 
@@ -106,4 +111,18 @@ it("asks for a topic only when nothing at all identifies the session", async () 
 
   expect(screen.queryByRole("button", { name: "Start quick check" })).toBeNull();
   expect(screen.getByText(/Choose a topic or add a session note/)).toBeInTheDocument();
+});
+
+it("greets by time of day, and greets back without any catching up", () => {
+  expect(greetingFor(new Date("2026-10-13T08:00:00"), "Maya")).toBe("Morning, Maya.");
+  expect(greetingFor(new Date("2026-10-13T14:00:00"), "Maya")).toBe("Afternoon, Maya.");
+  expect(greetingFor(new Date("2026-10-13T21:00:00"))).toBe("Evening.");
+  expect(greetingFor(new Date("2026-10-13T08:00:00"), "Priya", true)).toBe("Welcome back, Priya.");
+});
+
+it("says calmly that there is nothing to fix yet when the ledger is empty", async () => {
+  renderWithAuth(<TodayView />, { session: fakeSession() }, { withRouter: true });
+  expect(await screen.findByText("Nothing to fix yet")).toBeInTheDocument();
+  /* Readiness lives on Progress, not Today. */
+  expect(screen.getByRole("link", { name: "Progress" })).toHaveAttribute("href", "/analytics");
 });

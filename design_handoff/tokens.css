@@ -1,0 +1,175 @@
+/* Learnora design tokens — generated from Design System.dc.html. Drop into webapp/src/styles/tokens.css */
+
+:root, [data-theme="light"] {
+  /* default teal preset; other presets override only the --accent* group */
+  --bg: #f7f5f0;
+  --surface: #ffffff;
+  --surface-sunk: #f2efe8;
+  --surface-raised: #ffffff;
+  --line: #e2ddd1;
+  --line-strong: #8f8778;
+  --text: #1a1815;
+  --text-secondary: #3d3830;
+  --text-muted: #625c50;
+  --accent: #0f766e;
+  --accent-hover: #0b5f58;
+  --accent-text: #0f766e;
+  --accent-soft: #e2efec;
+  --on-accent: #ffffff;
+  --focus-ring: #0f766e;
+  --shadow-1: 0 1px 2px rgba(24,20,14,.06);
+  --shadow-2: 0 4px 12px -2px rgba(24,20,14,.10);
+  --shadow-3: 0 16px 40px -12px rgba(24,20,14,.18);
+  --success: #17805f;
+  --success-text: #15634b;
+  --success-soft: #e3f1ea;
+  --on-success: #ffffff;
+  --warning: #b7791f;
+  --warning-text: #76511b;
+  --warning-soft: #f7ecd8;
+  --on-warning: #1a1815;
+  --danger: #c2453a;
+  --danger-text: #96352d;
+  --danger-soft: #f8e5e2;
+  --on-danger: #ffffff;
+  --info: #3d6aa8;
+  --info-text: #2f5286;
+  --info-soft: #e6edf6;
+  --on-info: #ffffff;
+}
+
+[data-accent="hacker"] {
+  --accent: #15803d; --accent-hover: #116a32; --accent-text: #166534;
+  --accent-soft: #e3f1e6; --on-accent: #ffffff; --focus-ring: #15803d;
+}
+[data-accent="lavender"] {
+  --accent: #6d43e0; --accent-hover: #5a33c4; --accent-text: #6a3fdc;
+  --accent-soft: #ece6fb; --on-accent: #ffffff; --focus-ring: #6d43e0;
+}
+[data-accent="mono"] {
+  --accent: #1a1815; --accent-hover: #3d3830; --accent-text: #1a1815;
+  --accent-soft: #ebe8e1; --on-accent: #fbfaf7; --focus-ring: #1a1815;
+}
+
+[data-theme="dark"] {
+  /* default teal preset; other presets override only the --accent* group */
+  --bg: #0d0c0a;
+  --surface: #161511;
+  --surface-sunk: #1e1c18;
+  --surface-raised: #211f1a;
+  --line: #2c2924;
+  --line-strong: #6b655a;
+  --text: #f0ece4;
+  --text-secondary: #cbc4b8;
+  --text-muted: #a8a094;
+  --accent: #5fb3a3;
+  --accent-hover: #7cc6b8;
+  --accent-text: #6fc2b2;
+  --accent-soft: #16302b;
+  --on-accent: #0d0c0a;
+  --focus-ring: #5fb3a3;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.35);
+  --shadow-2: 0 4px 12px -2px rgba(0,0,0,.5);
+  --shadow-3: 0 16px 40px -12px rgba(0,0,0,.7);
+  --success: #6fb98a;
+  --success-text: #86c9a0;
+  --success-soft: #15291e;
+  --on-success: #0d0c0a;
+  --warning: #d9a557;
+  --warning-text: #e3b46c;
+  --warning-soft: #2e2412;
+  --on-warning: #0d0c0a;
+  --danger: #d9705f;
+  --danger-text: #e88a7b;
+  --danger-soft: #33191a;
+  --on-danger: #0d0c0a;
+  --info: #85a7dc;
+  --info-text: #9cb8e6;
+  --info-soft: #172235;
+  --on-info: #0d0c0a;
+}
+
+[data-theme="dark"][data-accent="hacker"] {
+  --accent: #22c55e; --accent-hover: #4ade80; --accent-text: #4ade80;
+  --accent-soft: #10291a; --on-accent: #0d0c0a; --focus-ring: #22c55e;
+}
+[data-theme="dark"][data-accent="lavender"] {
+  --accent: #a78bfa; --accent-hover: #c0acfc; --accent-text: #b9a2fb;
+  --accent-soft: #241c3a; --on-accent: #0d0c0a; --focus-ring: #a78bfa;
+}
+[data-theme="dark"][data-accent="mono"] {
+  --accent: #f0ece4; --accent-hover: #ffffff; --accent-text: #f0ece4;
+  --accent-soft: #2a2722; --on-accent: #0d0c0a; --focus-ring: #f0ece4;
+}
+
+:root {
+  /* type */
+  --font-display: "Newsreader", Georgia, serif;
+  --font-body: "Instrument Sans", system-ui, sans-serif;
+  --font-numeric: var(--font-body); /* + font-variant-numeric: tabular-nums */
+  --font-read: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --text-display: 44px;  --leading-display: 1.05;
+  --text-h1: 32px;  --leading-h1: 1.15;
+  --text-h2: 24px;  --leading-h2: 1.25;
+  --text-h3: 19px;  --leading-h3: 1.35;
+  --text-question: 19px;  --leading-question: 1.45;
+  --text-body-lg: 18px;  --leading-body-lg: 1.55;
+  --text-body: 16px;  --leading-body: 1.55;
+  --text-small: 14px;  --leading-small: 1.45;
+  --text-caption: 13px;  --leading-caption: 1.4;
+  --text-num-xl: 40px;  --leading-num-xl: 1;
+  --measure: 65ch;
+
+  /* space (4px base) */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* radius */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+
+  /* motion */
+  --dur-fast: 140ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* layers */
+  --z-base: 0;
+  --z-raised: 1;
+  --z-sticky: 100;
+  --z-nav: 200;
+  --z-ask: 300;
+  --z-drawer: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+  --z-tooltip: 700;
+  --tap-min: 44px;
+}
+
+[data-reading="on"] {
+  --font-display: var(--font-read);
+  --font-body: var(--font-read);
+  --text-body: 19px;  --leading-body: 1.75;
+  --tracking-body: 0.01em;  --word-spacing-body: 0.08em;
+  --measure: 60ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur-base: 80ms; --dur-slow: 80ms; --ease-out: linear; }
+}

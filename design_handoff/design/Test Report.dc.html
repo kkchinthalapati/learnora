@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Learnora · Persona test report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#f7f5f0;color:#1a1815;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0f766e;text-underline-offset:3px}
+a:hover{color:#0b5f58}
+*:focus-visible{outline:2px solid #0f766e;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height:100vh;padding-bottom:120px">
+<header style="max-width:1240px;margin:0 auto;padding:56px 24px 24px">
+  <div style="display:flex;flex-wrap:wrap;gap:12px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5d564b"><span style="color:#1a1815">Learnora revamp</span><span>·</span><span>Step 6 · Persona test rounds</span><span>·</span><a href="Research Report.dc.html">Research</a><a href="Screens.dc.html">Screens</a><a href="Prototype.dc.html">Prototype</a></div>
+  <h1 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(40px,6vw,64px);line-height:1.02;letter-spacing:-0.015em;margin:20px 0 14px;max-width:18ch">From {{ base.over }} stressed cells to {{ r2.over }}</h1>
+  <p style="font-size:18px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0">The same ten personas and ten journeys were run on the new designs twice. Round 1 tested the first full set of screens. Round 2 tested them after the twelve changes listed below. Written detail is only given for cells that scored 3 or more, as agreed. Every other cell is in the heatmaps and the J2 table.</p>
+  <div style="margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:16px 18px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Mean stress</div><div style="font-family:Newsreader,serif;font-size:34px;line-height:1.1;margin-top:6px">{{ base.mean }} → {{ r1.mean }} → {{ r2.mean }}</div><div style="font-size:13px;color:#3d3830">Baseline → R1 → R2, out of 5</div></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:16px 18px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Cells above 2</div><div style="font-family:Newsreader,serif;font-size:34px;line-height:1.1;margin-top:6px">{{ base.over }} → {{ r1.over }} → {{ r2.over }}</div><div style="font-size:13px;color:#3d3830">of {{ base.n }} tested. Target met: none above 2.</div></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:16px 18px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">J2 taps from open</div><div style="font-family:Newsreader,serif;font-size:34px;line-height:1.1;margin-top:6px">3–4 → 1–2</div><div style="font-size:13px;color:#3d3830">Every persona at 2 taps or fewer to a question</div></div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:16px 18px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b">Comprehension</div><div style="font-family:Newsreader,serif;font-size:34px;line-height:1.1;margin-top:6px">71 → 84 → 89</div><div style="font-size:13px;color:#3d3830">of 91 cells where the persona could say what the screen wanted, in their own words</div></div>
+  </div>
+  <p style="margin:18px 0 0;font-size:13px;line-height:1.5;color:#5d564b;max-width:90ch"><b style="font-weight:600">Method and honesty note:</b> these are adversarial role-played walkthroughs of the designs and the prototype by the designer, not sessions with real students. They're good for finding friction, but they're not proof. Before the mistake-loop work ships, plan five real sessions: Aarav-like and Noor-like students first.</p>
+</header>
+
+<section id="heatmaps" data-screen-label="Heatmaps" style="max-width:1240px;margin:0 auto;padding:48px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">01 · Stress heatmaps, side by side</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,40px);line-height:1.1;margin:8px 0 20px">Baseline · Round 1 · Round 2</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px">
+    <sc-for list="{{ maps }}" as="m" hint-placeholder-count="3">
+      <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:16px;display:grid;gap:10px;align-content:start">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><strong style="font-family:Newsreader,serif;font-weight:400;font-size:24px">{{ m.title }}</strong><span style="font-size:13px;color:#3d3830">mean {{ m.mean }} · {{ m.over }} above 2</span></div>
+        <div role="table" aria-label="{{ m.aria }}" style="display:grid;gap:3px">
+          <div role="row" style="display:grid;grid-template-columns:62px repeat(10,1fr);gap:3px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#5d564b;text-align:center"><span></span><sc-for list="{{ jIds }}" as="j" hint-placeholder-count="10"><span role="columnheader">{{ j }}</span></sc-for></div>
+          <sc-for list="{{ m.rows }}" as="r" hint-placeholder-count="10">
+            <div role="row" style="display:grid;grid-template-columns:62px repeat(10,1fr);gap:3px;align-items:center">
+              <span role="rowheader" style="font-size:12px;display:flex;gap:6px;align-items:center"><span aria-hidden="true" style="width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:9px;background:{{ r.bg }}">{{ r.av }}</span>{{ r.short }}</span>
+              <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="10"><span role="cell" aria-label="{{ c.aria }}" style="height:30px;border-radius:5px;display:grid;place-items:center;font-size:13px;font-weight:600;background:{{ c.fill }};color:{{ c.fg }};border:{{ c.border }}">{{ c.v }}</span></sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-top:12px;font-size:13px;color:#3d3830">
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:4px;background:oklch(0.95 0.015 150);border:1px solid #e2ddd1"></span>1 calm</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:4px;background:oklch(0.91 0.045 110)"></span>2 fine</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:4px;background:oklch(0.85 0.085 80)"></span>3 struggling</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:4px;background:oklch(0.74 0.12 55)"></span>4 stressed</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:4px;background:oklch(0.5 0.14 35)"></span>5 would quit</span><span>J1 first run · J2 10-min gap · J3 got it wrong · J4 stuck · J5 am I ready · J6 back after a break · J7 add material · J8 hit a limit · J9 plan my week · J10 make it mine</span>
+  </div>
+</section>
+
+<section id="j2" data-screen-label="J2 table" style="max-width:1240px;margin:0 auto;padding:72px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">02 · The 10-minute gap, per persona</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,40px);line-height:1.1;margin:8px 0 8px">Every persona reaches a question in 2 taps or fewer</h2>
+  <p style="font-size:16px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 20px">Taps are counted from opening the app to the first question on screen. Time is how long until something useful starts.</p>
+  <div style="overflow-x:auto;border:1px solid #e2ddd1;border-radius:16px;background:#fffefb">
+    <table style="width:100%;min-width:900px;border-collapse:collapse;font-size:14px;line-height:1.45">
+      <thead><tr style="text-align:left;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5d564b"><th style="padding:12px 14px;border-bottom:1px solid #e2ddd1;font-weight:500">Persona</th><th style="padding:12px 10px;border-bottom:1px solid #e2ddd1;font-weight:500">Baseline</th><th style="padding:12px 10px;border-bottom:1px solid #e2ddd1;font-weight:500">R2 taps</th><th style="padding:12px 10px;border-bottom:1px solid #e2ddd1;font-weight:500">R2 time</th><th style="padding:12px 10px;border-bottom:1px solid #e2ddd1;font-weight:500">Result</th><th style="padding:12px 14px;border-bottom:1px solid #e2ddd1;font-weight:500">Path</th></tr></thead>
+      <tbody>
+        <sc-for list="{{ j2 }}" as="r" hint-placeholder-count="9">
+          <tr><td style="padding:11px 14px;border-bottom:1px solid #ece7dc"><span style="display:inline-flex;gap:8px;align-items:center"><span aria-hidden="true" style="width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:10px;background:{{ r.bg }}">{{ r.av }}</span>{{ r.name }}</span></td><td style="padding:11px 10px;border-bottom:1px solid #ece7dc;color:#5d564b">{{ r.base }}</td><td style="padding:11px 10px;border-bottom:1px solid #ece7dc;font-weight:600">{{ r.taps }}</td><td style="padding:11px 10px;border-bottom:1px solid #ece7dc">{{ r.time }}</td><td style="padding:11px 10px;border-bottom:1px solid #ece7dc">{{ r.result }}</td><td style="padding:11px 14px;border-bottom:1px solid #ece7dc;color:#3d3830">{{ r.path }}</td></tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="r1" data-screen-label="Round 1 detail" style="max-width:1240px;margin:0 auto;padding:72px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">03 · Round 1: every cell that scored 3 or more</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,40px);line-height:1.1;margin:8px 0 8px">Where the first designs still hurt</h2>
+  <p style="font-size:16px;line-height:1.55;color:#3d3830;max-width:66ch;margin:0 0 20px">{{ r1.over }} cells, all at 3 and none at 4 or 5. Each one shows what was observed, what changed and the Round 2 result.</p>
+  <div style="display:grid;gap:10px">
+    <sc-for list="{{ details }}" as="d" hint-placeholder-count="12">
+      <article style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px">
+        <div style="display:grid;gap:8px;align-content:start">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span aria-hidden="true" style="width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:11px;background:{{ d.bg }}">{{ d.av }}</span><strong style="font-weight:600">{{ d.name }} · {{ d.j }}</strong><span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:oklch(0.85 0.085 80)">R1 stress 3</span><span style="font-size:12px;color:#5d564b">{{ d.success }} · {{ d.taps }} · {{ d.ttfua }}</span></div>
+          <p style="margin:0;font-family:Newsreader,serif;font-size:18px;line-height:1.4">“{{ d.quote }}”</p>
+          <p style="margin:0;font-size:14px;line-height:1.5;color:#3d3830"><b style="font-weight:600">Seen:</b> {{ d.seen }}</p>
+          <p style="margin:0;font-size:14px;line-height:1.5;color:#3d3830"><b style="font-weight:600">Could they explain it?</b> {{ d.comp }}</p>
+        </div>
+        <div style="display:grid;gap:8px;align-content:start;padding-left:20px;border-left:1px solid #ece7dc">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#0f766e">{{ d.change }}</span>
+          <p style="margin:0;font-size:14px;line-height:1.5"><b style="font-weight:600">Changed for R2:</b> {{ d.fix }}</p>
+          <p style="margin:0;font-size:14px;line-height:1.5;color:#3d3830"><b style="font-weight:600">R2 → {{ d.r2 }}.</b> <span style="font-family:Newsreader,serif;font-size:16px">“{{ d.r2quote }}”</span></p>
+        </div>
+      </article>
+    </sc-for>
+  </div>
+</section>
+
+<section id="changes" data-screen-label="Changes" style="max-width:1240px;margin:0 auto;padding:72px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">04 · What changed, and why</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,40px);line-height:1.1;margin:8px 0 20px">Baseline → Round 1, then Round 1 → Round 2</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px">
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <strong style="font-family:Newsreader,serif;font-weight:400;font-size:24px">The redesign (→ R1)</strong>
+      <p style="margin:0;font-size:14px;line-height:1.5;color:#3d3830">These came straight from the top-10 baseline issues. They're what took the mean from {{ base.mean }} to {{ r1.mean }}.</p>
+      <ol style="margin:0;padding-left:20px;display:grid;gap:8px;font-size:14px;line-height:1.5">
+        <li>A due check-back becomes Today’s next step. The repair ends with a date, and there's a "Fixed" moment. <span style="color:#5d564b">#1 · J3 −1.3</span></li>
+        <li>Bank questions first, with generated ones joining behind. The first question appears in 0 s. <span style="color:#5d564b">#2, #3 · J2 −1.7</span></li>
+        <li>One next-step engine, one card shape everywhere (1c). <span style="color:#5d564b">#4</span></li>
+        <li>Welcome back: automatic re-plan with undo, no counts, a 5-minute restart. <span style="color:#5d564b">#5 · J6 −1.2</span></li>
+        <li>The cost is shown before starting. Limits are only checked at session start. Free options come first. <span style="color:#5d564b">#6 · J8 −1.2</span></li>
+        <li>Plain words throughout ("mix-up", "Keep it fresh", "tutor goes"). <span style="color:#5d564b">#7</span></li>
+        <li>Readiness as a range, plus the basis, plus a best move. Evidence-based rungs. <span style="color:#5d564b">#8 · J5 −1.6</span></li>
+        <li>One week view with tap-your-free-slots. <span style="color:#5d564b">#9 · J9 −1.3</span></li>
+        <li>First run: honest board labels, a 2-minute check, a proper exam name. <span style="color:#5d564b">#10 · J1 −0.9</span></li>
+      </ol>
+    </div>
+    <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:20px;display:grid;gap:10px;align-content:start">
+      <strong style="font-family:Newsreader,serif;font-weight:400;font-size:24px">The iteration (R1 → R2)</strong>
+      <p style="margin:0;font-size:14px;line-height:1.5;color:#3d3830">Twelve smaller changes, each one fixing a Round 1 cell that scored 3. Frames marked <b style="font-weight:600">R2</b> on the screens canvas show the result.</p>
+      <ol style="margin:0;padding-left:20px;display:grid;gap:8px;font-size:14px;line-height:1.5">
+        <sc-for list="{{ changeList }}" as="c" hint-placeholder-count="12"><li>{{ c.text }} <span style="color:#5d564b">{{ c.who }}</span></li></sc-for>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section id="tradeoffs" data-screen-label="Trade-offs" style="max-width:1240px;margin:0 auto;padding:72px 24px 0">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e">05 · Open trade-offs</div>
+  <h2 style="font-family:Newsreader,Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,40px);line-height:1.1;margin:8px 0 20px">Where personas pulled in opposite directions</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px">
+    <sc-for list="{{ tradeoffs }}" as="t" hint-placeholder-count="6">
+      <div style="background:#fffefb;border:1px solid #e2ddd1;border-radius:16px;padding:18px 20px;display:grid;gap:8px;align-content:start">
+        <strong style="font-weight:600;font-size:16px">{{ t.title }}</strong>
+        <p style="margin:0;font-size:14px;line-height:1.5;color:#3d3830"><b style="font-weight:600">Tension:</b> {{ t.tension }}</p>
+        <p style="margin:0;font-size:14px;line-height:1.5;color:#3d3830"><b style="font-weight:600">Resolved by:</b> {{ t.resolve }}</p>
+        <p style="margin:0;font-size:14px;line-height:1.5;color:#5d564b"><b style="font-weight:600;color:#1a1815">Cost:</b> {{ t.cost }}</p>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  P = [['Aa','Aarav',60],['Ma','Maya',230],['Jo','Jordan',300],['So','Sofia',0],['Li','Liam',150],['Pr','Priya',25],['Sa','Sam',270],['No','Noor',110],['Be','Ben',195],['Pa','Parent',null]];
+  B = { Aa:[4,5,4,3,4,3,4,4,3,2], Ma:[2,4,4,2,3,2,3,3,3,1], Jo:[3,4,4,3,4,3,3,3,5,2], So:[2,2,3,3,5,3,2,3,2,1], Li:[3,3,4,3,3,2,4,2,3,3], Pr:[3,2,3,2,4,5,2,2,4,1], Sa:[3,3,3,2,3,4,3,5,4,2], No:[2,3,3,2,4,2,3,2,4,2], Be:[3,4,4,3,4,2,4,3,3,2], Pa:[0,0,0,0,4,0,0,0,0,0] };
+  R1 = { Aa:[3,2,3,2,2,2,3,2,2,1], Ma:[1,1,2,1,2,1,2,1,2,1], Jo:[2,2,2,2,2,2,2,2,3,1], So:[1,1,2,2,3,1,1,2,1,1], Li:[2,2,3,2,2,1,2,1,2,2], Pr:[2,1,2,1,2,3,1,1,2,1], Sa:[2,2,2,1,2,2,2,3,2,1], No:[2,2,2,2,2,2,2,2,3,2], Be:[2,2,2,2,2,1,3,2,2,1], Pa:[0,0,0,0,3,0,0,0,0,0] };
+  R2 = { Aa:[2,2,2,2,2,2,2,2,2,1], Ma:[1,1,1,1,2,1,2,1,1,1], Jo:[2,1,2,1,2,1,2,2,2,1], So:[1,1,1,2,2,1,1,1,1,1], Li:[2,1,2,2,2,1,2,1,2,1], Pr:[1,1,2,1,2,2,1,1,2,1], Sa:[2,1,2,1,2,2,2,2,2,1], No:[2,2,2,2,2,2,2,2,2,2], Be:[1,1,2,1,2,1,2,2,2,1], Pa:[0,0,0,0,1,0,0,0,0,0] };
+
+  D = [
+    ['Aa','J1','Completed with struggle','6 taps','~45 s','CBSE check took ages. It was making the questions while I waited.','For a partly-ready board, the placement check still waited on AI-written questions over 4G.','Yes: "it checks what I know".','R2-1','The partly-ready check uses 6 cached general questions plus a per-chapter "How sure are you?". No AI wait.',2,'Quick. It said the questions are general, which is fair.'],
+    ['Aa','J3','Completed with struggle','3 taps','~5 s','The Got it button was below the screen. I had to scroll to find it.','On a 5.5" screen, the repair sheet (mix-up, side-by-side, diagram, date) pushed the primary button below the fold.','Yes.','R2-2','The diagram moved behind "See a picture". The sheet now fits 640 px tall with the button visible.',2,'Short. I got it.'],
+    ['Aa','J7','Completed with struggle','4 taps','~30 s','Upload a file. How big? My data…','"Upload a file" didn’t say the size until after you picked one.','Yes.','R2-3','Each option shows a data estimate. "Snap a page" (~300 KB) is the suggested route on mobile data.',2,'Photo is small. OK.'],
+    ['Jo','J9','Completed with struggle','5 taps','~20 s','why is there a grid. I just want to know what’s next','The R1 week view was a 7-day grid with blocks. Jordan scanned it and couldn’t find "now".','Partly: "it’s my week?"','R2-4','The day list is the default, the current block is outlined with Start on it, and the grid is optional on desktop.',2,'oh it just tells me. cool'],
+    ['So','J5','Completed','2 taps','~3 s','Is this from today, or last week? It didn’t move after my session.','The readiness card had no "as of", so Sofia couldn’t tell whether it was fresh.','Yes, in detail.','R2-5','Added "Updated after Tuesday’s session", plus a basis line on each exam.',2,'Now I know it’s current. The range is annoying but honest.'],
+    ['Li','J3','Completed with struggle','3 taps','~8 s','I didn’t know the speaker thing was for reading out loud.','The read-aloud button was icon-only. Liam missed it, so he read the repair without help.','Partly.','R2-6','The speaker gets a visible "Listen" label on questions, repairs and cards. Reading mode is offered on first long text.',2,'Pressed Listen. Easier.'],
+    ['Pr','J6','Completed','1 tap','~4 s','“We spread this week’s topics over three weeks”: so I’m three weeks behind?','The welcome-back card’s "what changed" paragraph read like a list of debts.','Yes, but anxious.','R2-7','Collapsed to one line, "Plan moved to start today. Nothing’s overdue.", with Details and Undo. The detail lives on its own screen (P3).',2,'Nothing’s overdue. OK. I can do five minutes.'],
+    ['Sa','J8','Completed','2 taps','~3 s','Every card says it costs a go. It’s like a meter running.','In R1 the tutor-go cost was shown on every AI option, even with 4 of 5 goes left.','Yes.','R2-8','The cost is only shown on a card when 2 or fewer goes are left. The meter always lives in the sidebar and Settings.',2,'Only told me when it mattered.'],
+    ['No','J9','Completed with struggle','14 swipes','~40 s','I’m in a grid. Which day is this?','VoiceOver read the week grid cell by cell with no day context.','Partly.','R2-4','Same change as Jordan’s: a day list with role=list, and each block read as one row: "12:30, Check-back and cards, lunch, 6 minutes, Start".',2,'Each row makes sense on its own now.'],
+    ['Be','J7','Completed with struggle','4 taps','~25 s','Web source? Is that the internet?','The Add material sheet offered "Web source" next to paste, photo and upload.','No.','R2-9','Renamed to "research a topic from websites" and moved behind More. The three everyday choices come first.',2,'I just took a photo of my book.'],
+    ['Pa','J5','—','—','~10 s','What’s a mix-up? Is that bad?','The R1 parent strip said "2 mix-ups fixed".','No.','R2-10','Reworded to "2 mistakes corrected, and proved right days later". Time and next step are in plain numbers.',1,'So she’s working, and fixing things. Good.']
+  ];
+
+  C = [
+    ['Partly-ready boards: placement check from cached general questions plus a self-rating, with no AI wait.','Aarav J1'],
+    ['Mobile repair sheet fits a 5.5" screen: diagram behind "See a picture".','Aarav J3'],
+    ['Add material shows data size per option before you pick.','Aarav J7'],
+    ['Plan defaults to a day list with "now" outlined. The grid is optional.','Jordan, Noor J9'],
+    ['Readiness says when it was last updated.','Sofia J5'],
+    ['Read-aloud gets a visible "Listen" label.','Liam J3'],
+    ['Welcome back: one line, "Nothing’s overdue", with details on tap.','Priya J6'],
+    ['Tutor-go cost is shown only when 2 or fewer goes are left.','Sam J8'],
+    ['"Web source" → "research a topic from websites", behind More.','Ben J7'],
+    ['Parent strip: "mistakes corrected, and proved right days later".','Parent J5'],
+    ['Check-back exit is the words "Not now", not ×. Maya thought × would lose it.','Maya J3 (scored 2, cheap fix)'],
+    ['A hint-assisted answer adds a dashed extra question to the progress bar, so it’s honest about the extra length.','Maya J4 (scored 1, a clarity fix)']
+  ];
+
+  T = [
+    ['Detail vs none (Sofia vs Jordan)','Sofia wants every reason and the data behind it. Jordan leaves at the second sentence.','One line of "why" by default, with "Why, and what it’s based on" and "Explain more" on tap. Depth is always there but never in the way.','Sofia has to tap once more for the full reasoning. She accepted it in R2 because the one-liner always says what the estimate is based on.'],
+    ['No score on the session summary','Sofia wants "4 of 6 right". Priya, Ben and Jordan feel judged by it.','The score lives inside "See every question". The summary shows effort, mix-ups found and what’s scheduled.','High achievers need one more tap. We could add a "show my score on summaries" preference later if Sofia-like users ask for it.'],
+    ['Showing cost vs causing anxiety (Sam)','P10 says to show limits before you hit them. R1 showed the cost everywhere, and Sam felt watched.','Cost is shown on cards only when 2 or fewer goes are left. The meter is always in the sidebar and Settings.','A user with 3 left might start an AI session without noticing it costs a go. That’s acceptable, because a session is never cut off once started.'],
+    ['Honest board labels vs sign-ups','"Partly ready" for CBSE, ICSE and A-level may put some students off.','Keep it honest (agreed at checkpoint 1). "Tell me when CBSE is ready" captures demand, and "Not on my syllabus" reports measure the gap.','Possibly fewer CBSE sign-ups in the short term, against Aarav’s quit trigger. Honesty wins under P4.'],
+    ['No hints on check-backs','Ben would like hints everywhere. A check-back needs to be clean evidence.','Check-backs have no hint ladder, and say why ("That’s what makes it proof"). If one fails, a 3-minute walk-through and a new date follow, with no red.','A small number of students will fail a check-back they would have passed with a nudge. They get another one in 2–4 days.'],
+    ['Time chip vs one obvious step (1a vs 1b)','Maya and Sofia liked choosing the time. Priya and Jordan wanted one thing only.','1c: one card, with a time chip already set to the engine’s choice.','Changing the time is an extra tap for students who always want 20 minutes. The engine learns their usual choice after about 3 sessions (needs backend).']
+  ];
+
+  stats(M) { let n=0,s=0,o=0; Object.values(M).forEach(a=>a.forEach(v=>{ if(v>0){n++;s+=v;if(v>2)o++;} })); return { n, mean:(s/n).toFixed(1), over:o }; }
+
+  renderVals() {
+    const fill = ['transparent','oklch(0.95 0.015 150)','oklch(0.91 0.045 110)','oklch(0.85 0.085 80)','oklch(0.74 0.12 55)','oklch(0.5 0.14 35)'];
+    const J = ['J1','J2','J3','J4','J5','J6','J7','J8','J9','J10'];
+    const bg = h => h===null ? '#dcd6ca' : `oklch(0.87 0.07 ${h})`;
+    const byId = Object.fromEntries(this.P.map(p=>[p[0],p]));
+    const map = (title, M) => { const st=this.stats(M); return { title, mean:st.mean, over:st.over, aria:`${title} stress by persona and journey`, rows:this.P.map(([id,name,h])=>({ av:id, short:name.length>6?name.slice(0,6):name, bg:bg(h), cells:M[id].map((v,i)=>({ v:v>0?String(v):'·', fill:fill[v], fg:v===5?'#fff':(v===0?'#8a8275':'#1a1815'), border:v===0?'1px dashed #d6d0c2':'1px solid transparent', aria:`${name} ${J[i]}: ${v>0?v+' of 5':'not tested'}` })) })) }; };
+    const j2 = [
+      ['Aa','3 taps + typing + ~34 s','1','~2 s on 4G','Completed','Today → Start · 5 min (cached bank questions, general CBSE)'],
+      ['Ma','3–4 taps','1','~1 s','Completed','Today → Start · 8 min'],
+      ['Jo','4 taps','1','~1 s','Completed','Today → Start'],
+      ['So','3 taps','1','~1 s','Completed','Today (desktop) → Start · 12 min'],
+      ['Li','3 taps','1','~1 s','Completed','Today → Start (reading mode on)'],
+      ['Pr','3 taps','1','~2 s','Completed','Welcome back → Start · 5 min'],
+      ['Sa','3 taps','2','~2 s','Completed','Today → Start → (≤2 goes left) Start on the sheet'],
+      ['No','4 taps + typing','1 (3 swipes)','~6 s','Completed','Heading → card → Start, announced as the first button'],
+      ['Be','3–4 taps','1','~1 s','Completed','Today → Start · 5 min']
+    ].map(r=>({ av:r[0], name:byId[r[0]][1], bg:bg(byId[r[0]][2]), base:r[1], taps:r[2], time:r[3], result:r[4], path:r[5] }));
+    const details = this.D.map(d=>({ av:d[0], name:byId[d[0]][1], bg:bg(byId[d[0]][2]), j:d[1], success:d[2], taps:d[3], ttfua:d[4], quote:d[5], seen:d[6], comp:d[7], change:d[8], fix:d[9], r2:'stress '+d[10], r2quote:d[11] }));
+    return {
+      base:this.stats(this.B), r1:this.stats(this.R1), r2:this.stats(this.R2),
+      jIds:J, maps:[map('Baseline',this.B), map('Round 1',this.R1), map('Round 2',this.R2)],
+      j2, details,
+      changeList:this.C.map(c=>({ text:c[0], who:c[1] })),
+      tradeoffs:this.T.map(t=>({ title:t[0], tension:t[1], resolve:t[2], cost:t[3] }))
+    };
+  }
+}
+</script>
+</body>
+</html>
