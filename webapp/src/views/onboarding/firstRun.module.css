@@ -466,3 +466,229 @@
     transition: none;
   }
 }
+
+/* ---- 2026-10 revamp: board picker, 2-minute check, starting point ---- */
+
+.flow {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6) var(--space-5) var(--space-16);
+}
+
+.flowColumn {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.flowHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-h1);
+  font-weight: 400;
+  line-height: var(--leading-h1);
+  outline: none;
+}
+
+.boardGroup,
+.chapter {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.boardLegend,
+.chapterTitle {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.boardRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  min-height: 54px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.boardRow:hover {
+  border-color: var(--text);
+}
+
+.boardRow[data-picked] {
+  padding: calc(var(--space-2) - 1px) calc(var(--space-4) - 1px);
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+/* The radio covers the row, so the whole row is the target and the native
+   control keeps its keyboard behaviour (arrow keys within a group). */
+.boardRadio {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.boardRow:has(.boardRadio:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.boardLabel {
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.ready {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--success-text);
+}
+
+.partly {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.honesty {
+  grid-column: 1 / -1;
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  color: var(--text-secondary);
+}
+
+.checkHead {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.checkSegments {
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checkSegments > li {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.checkSegments > li[data-done] {
+  background: var(--accent);
+}
+
+.checkSegments > li[data-current] {
+  background: var(--line-strong);
+}
+
+.checkTopic {
+  margin: 0;
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+}
+
+/* Questions are sans only. */
+.checkQuestion {
+  margin: 0;
+  font-size: var(--text-question);
+  font-weight: 500;
+  line-height: var(--leading-question);
+  outline: none;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Chips: 40px tall (44px target), selected = tick + fill, not colour alone. */
+.chip {
+  min-height: var(--tap-min);
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.spGroups {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.spGroup {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.spGroup[data-tone="know"] {
+  background: var(--success-soft);
+  border-color: transparent;
+}
+
+/* Not learnt is untested, so dashed and neutral — never red. */
+.spGroup[data-tone="not"] {
+  background: transparent;
+  border: 1.5px dashed var(--line-strong);
+}
+
+.spTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.spGroup[data-tone="know"] .spTitle {
+  color: var(--success-text);
+}
+
+.spList {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
+  font-size: var(--fs-base);
+  color: var(--text-secondary);
+}
