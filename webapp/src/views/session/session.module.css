@@ -254,77 +254,151 @@
 
 .option {
   width: 100%;
-  min-height: 40px;
+  min-height: 54px;
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-columns: 28px minmax(0, 1fr);
   align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-2) var(--s-3);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--r-md);
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: var(--fs-base);
+  font-size: var(--text-body);
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--t-fast) var(--ease);
+  transition: border-color var(--dur-fast) var(--ease-out);
 }
 
-.option:hover:not(:disabled) {
-  border-color: var(--accent);
+.option:hover:not([aria-disabled="true"]) {
+  border-color: var(--text);
 }
 
-.option:disabled {
+.option:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.option[aria-disabled="true"] {
   cursor: default;
 }
 
+/* Selected: a 2px accent edge (padding trimmed by 1px so the box does not
+   grow), the soft wash, and a filled key. */
 .option[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent-wash);
+  padding: calc(var(--space-2) - 1px) calc(var(--space-4) - 1px);
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
 }
 
+/* After Check. The right answer is green; the chosen wrong one is neutral —
+   no red and no cross, a wrong answer is information (P5). */
 .option[data-result="right"] {
   border-color: var(--success);
   background: var(--success-soft);
 }
 
 .option[data-result="wrong"] {
-  border-color: var(--danger);
-  background: var(--danger-soft);
+  background: var(--surface-sunk);
 }
 
 .key {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--r-sm);
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .option[aria-pressed="true"] .key {
   border-color: var(--accent);
   background: var(--accent);
-  color: var(--accent-on);
+  color: var(--on-accent);
+}
+
+.option[data-result="right"] .key {
+  border-color: var(--success);
+  background: var(--success);
+  color: var(--on-success);
+}
+
+/* Feedback: right is --success-soft; not-quite is a neutral sunk surface. */
+.feedback {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+}
+
+.feedback[data-result="right"] {
+  background: var(--success-soft);
 }
 
 .verdict {
   margin: 0;
-  font-size: var(--fs-base);
-  line-height: var(--lh-snug);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  line-height: var(--leading-h3);
+  color: var(--text);
 }
 
-.verdict[data-result="right"] {
+.feedback[data-result="right"] .verdict {
   color: var(--success-text);
 }
 
-.verdict[data-result="wrong"] {
-  color: var(--danger-text);
+.feedbackText {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--text-secondary);
+}
+
+.feedbackText:empty {
+  display: none;
+}
+
+/* "I’m stuck" on the left, Check on the right (52px). */
+.checkBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.nudge {
+  min-height: var(--leading-caption);
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--text-secondary);
+}
+
+/* Session progress in the top bar: one segment per question. */
+.segments {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.segments > span {
+  flex: 0 1 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.segments > span[data-done] {
+  background: var(--accent);
+}
+
+.segments > span[data-current] {
+  background: var(--line-strong);
 }
 
 .actions {
@@ -806,7 +880,8 @@ button[data-rank="primary"] .ratingKey {
   }
 
   .composerInner {
-    padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom, 0px));
+    padding: var(--s-3) var(--s-4)
+      calc(var(--s-3) + env(safe-area-inset-bottom, 0px));
   }
 
   .stepsGrid {

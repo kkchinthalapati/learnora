@@ -49,7 +49,7 @@ const TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
 /* /study/:sessionId?mode=… — one screen for every way of studying. Focus
  * mode: no sidebar, a top bar with the objective and the mode control, the
  * plan on the left and the mode's own content in the centre. Everything
- * autosaves; "Save & leave" never asks. */
+ * autosaves; "Save and stop" never asks and is the only way out. */
 export function SessionView() {
   const { sessionId = "new" } = useParams<{ sessionId: string }>();
   const [params] = useSearchParams();
@@ -191,10 +191,10 @@ export function SessionView() {
           className={styles.leave}
           onClick={leave}
           /* The visible label is hidden on phones; the X alone has no name. */
-          aria-label="Save & leave"
+          aria-label="Save and stop"
         >
           <Icon name="x" size={18} />
-          <span className={styles.leaveLabel}>Save & leave</span>
+          <span className={styles.leaveLabel}>Save and stop</span>
         </button>
         <div className={styles.titleBlock}>
           <h1 className={styles.title}>{session.objective}</h1>
@@ -203,6 +203,23 @@ export function SessionView() {
             {stepLabel ? ` · now: ${stepLabel}` : ""}
             {source ? ` · from ${source.title}` : ""}
           </span>
+          {session.plan.length > 0 ? (
+            /* Counted in questions, and nothing to lose by stopping:
+               what's done counts. */
+            <div
+              className={styles.segments}
+              role="img"
+              aria-label={`${Math.min(session.currentStep, session.plan.length)} of ${session.plan.length} done`}
+            >
+              {session.plan.map((step, i) => (
+                <span
+                  key={step.id}
+                  data-done={i < session.currentStep || undefined}
+                  data-current={i === session.currentStep || undefined}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className={styles.topRight}>
           <Button

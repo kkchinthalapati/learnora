@@ -222,11 +222,11 @@ describe("SessionView", () => {
     expect(screen.getByText("Nothing is due right now.")).toBeInTheDocument();
   });
 
-  it("Save & leave pauses without asking, and Today can resume it", async () => {
+  it("Save and stop pauses without asking, and Today can resume it", async () => {
     mocks.diagnose.mockResolvedValue(trace);
     renderSession("/study/new?mode=explain&topic=ATP%20synthesis");
     await screen.findByRole("heading", { level: 2, name: "Gradients store energy" });
-    await userEvent.click(screen.getByRole("button", { name: "Save & leave" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save and stop" }));
 
     expect(await screen.findByRole("heading", { name: "Today" })).toBeInTheDocument();
     const pointer = getStudySnapshot().lastStudySession;
