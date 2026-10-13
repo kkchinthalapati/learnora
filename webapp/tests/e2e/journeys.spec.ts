@@ -51,15 +51,22 @@ test("a mock exam can be sat to its score", async ({ page, backend }) => {
   await page.getByRole("button", { name: /Begin Mock Exam/ }).click();
   await expect(page.getByText(/Question 1 of \d+/)).toBeVisible();
 
-  /* The fixture's two questions, answered right then wrong. The runner is
-     navigable now: pick, Next, pick, Submit. */
+  /* The fixture's three questions: right, wrong, then a typed-in number
+     (its key must never be offered as an option). The runner is navigable:
+     pick, Next, pick, Next, type, Submit. */
   await page.getByRole("button", { name: "Catalysts" }).click();
   await page.getByRole("button", { name: "Next →" }).click();
-  await expect(page.getByText("Question 2 of 2")).toBeVisible();
+  await expect(page.getByText("Question 2 of 3")).toBeVisible();
   await page.getByRole("button", { name: "Speed it up forever" }).click();
+  await page.getByRole("button", { name: "Next →" }).click();
+  await expect(page.getByText("Question 3 of 3")).toBeVisible();
+  await expect(page.getByRole("button", { name: /30 mg\/min/ })).toHaveCount(0);
+  await page.getByRole("textbox").fill("30");
+  await page.getByRole("button", { name: "Save answer" }).click();
+  await expect(page.getByText("Saved: 30")).toBeVisible();
   await page.getByRole("button", { name: "Submit test", exact: true }).click();
 
-  await expect(page.getByText(/· 1 of 2$/)).toBeVisible();
+  await expect(page.getByText(/· 2 of 3$/)).toBeVisible();
 });
 
 test("coming back after five days, old tasks read as overdue, not due today", async ({

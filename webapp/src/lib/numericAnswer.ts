@@ -171,7 +171,11 @@ export function numericFeedback(verdict: NumericVerdict, key: NumericKey): strin
     case "wrong-unit":
       return `Check the unit: the answer is in ${key.unit}.`;
     case "rounding":
-      return "Close — check your rounding or an intermediate step.";
+      /* A whole-number key with no tolerance is exact: nothing was rounded,
+         so pointing at rounding sends the student to the wrong place. */
+      return Number.isInteger(key.value) && key.tolerance === undefined && key.relTolerance === undefined
+        ? "Close, but this answer is exact — check your working."
+        : "Close — check your rounding or an intermediate step.";
     default:
       return "Not quite.";
   }

@@ -4,7 +4,9 @@
  * dashboard's day-boundary logic (streaks, sparkline, "due today") has
  * something realistic to chew on however long after writing this it runs. */
 
-import cbseMaths from "../lib/questionBank/seed/cbse-10-maths.json";
+/* The attribute is for Playwright: tests/e2e import this file through Node,
+   which refuses a JSON import without it (Vite doesn't mind either way). */
+import cbseMaths from "../lib/questionBank/seed/cbse-10-maths.json" with { type: "json" };
 
 export const USER_ID = "00000000-0000-4000-8000-000000000001";
 export const USER_EMAIL = "harness@learnora.dev";

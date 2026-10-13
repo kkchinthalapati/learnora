@@ -153,4 +153,24 @@ describe("Practice interleaving", () => {
     expect(args.sourceText).not.toMatch(/Interleave|Photosynthesis/);
     expect(screen.queryByText(/mixed with/i)).toBeNull();
   });
+
+  it("still mixes in mistakes from the subject the student named", async () => {
+    mocks.ranked = [
+      { concept: "Diffusion direction", subject: "Biology" },
+      { concept: "Sign of the common difference", subject: "Maths" },
+    ];
+    mocks.generate.mockResolvedValue(BANK);
+    renderWithAuth(
+      <Routes>
+        <Route path="/study/:sessionId" element={<SessionView />} />
+      </Routes>,
+      { session: fakeSession() },
+      { initialEntries: ["/study/new?mode=practice&topic=GCSE%20Biology%3A%20osmosis"] },
+    );
+    expect(await screen.findByText("Bank question 0?")).toBeInTheDocument();
+    const [args] = mocks.generate.mock.calls[0] as [{ sourceText: string }];
+    expect(args.sourceText).toMatch(/Interleave[^\n]*Diffusion direction/);
+    expect(args.sourceText).not.toMatch(/common difference/);
+    expect(screen.getByText(/mixed with Diffusion direction/i)).toBeInTheDocument();
+  });
 });
