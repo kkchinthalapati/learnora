@@ -115,6 +115,39 @@ function bareTexAt(text: string, index: number): string | null {
   return match && match.index === 0 ? match[0] : null;
 }
 
+/* ---------- spelled-out Greek with a subscript, a second safety net ----------
+ *
+ * Quiz and flashcard JSON used to reach the model with no maths rule at all,
+ * so it wrote notation the way it would in a plain-text email: "tau_xz",
+ * "sigma_y", "lambda_max". Those questions are already stored, and a student
+ * reading "tau_xz" in a stem is reading a bug report, not a question.
+ *
+ * Narrow on purpose, for the same reason BARE_TEX is: only a Greek letter's
+ * name, an underscore, and a short alphanumeric subscript, standing alone as
+ * a word. "tau_xz" and "sigma_1" match; "my_tau_xz", "tau_xz_old" and a
+ * snake_case identifier like "max_value" do not. Rewritten to `\tau_{xz}`. */
+const GREEK_NAMES = [
+  "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta",
+  "kappa", "lambda", "mu", "nu", "xi", "rho", "sigma", "tau", "phi", "chi",
+  "psi", "omega", "Gamma", "Delta", "Theta", "Lambda", "Sigma", "Phi", "Psi",
+  "Omega",
+];
+
+const GREEK_SUBSCRIPT = new RegExp(
+  `^(${GREEK_NAMES.join("|")})_([A-Za-z0-9]{1,3})(?![A-Za-z0-9_])`,
+);
+
+/* The unanchored form, for the cheap "is there anything to scan" check. */
+const GREEK_IN_TEXT = new RegExp(`\\b(?:${GREEK_NAMES.join("|")})_[A-Za-z0-9]`);
+
+/** `tau_xz` at `index` → `\tau_{xz}`, only when it starts a word. */
+function greekSubscriptAt(text: string, index: number): { tex: string; length: number } | null {
+  if (index > 0 && /[A-Za-z0-9_\\]/.test(text[index - 1])) return null;
+  const match = GREEK_SUBSCRIPT.exec(text.slice(index));
+  if (!match) return null;
+  return { tex: `\\${match[1]}_{${match[2]}}`, length: match[0].length };
+}
+
 export function splitMath(text: string): MathPart[] {
   const parts: MathPart[] = [];
   let buffer = "";
@@ -177,6 +210,13 @@ export function splitMath(text: string): MathPart[] {
       continue;
     }
 
+    const greek = greekSubscriptAt(text, i);
+    if (greek) {
+      pushMath(greek.tex, false);
+      i += greek.length;
+      continue;
+    }
+
     if (text[i] === "$") {
       /* Nearest unescaped `$` that still leaves a plausible body. */
       let end = text.indexOf("$", i + 1);
@@ -207,6 +247,8 @@ export function hasMathDelimiter(text: string): boolean {
   if (text.includes("$") || text.includes("\\(") || text.includes("\\[")) {
     return true;
   }
-  /* A bare command still needs the scanner — see BARE_TEX above. */
-  return text.includes("\\") && BARE_TEX.test(text);
+  /* A bare command still needs the scanner — see BARE_TEX above — and so
+     does a spelled-out Greek subscript (GREEK_SUBSCRIPT). */
+  if (text.includes("\\") && BARE_TEX.test(text)) return true;
+  return text.includes("_") && GREEK_IN_TEXT.test(text);
 }
