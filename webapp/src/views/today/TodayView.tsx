@@ -13,6 +13,7 @@ import { useRemoteSessionResume } from "../../hooks/useRemoteSessionResume";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { MistakeLoopSection } from "./MistakeLoopSection";
 import { nextCheckBack } from "../../lib/checkBack";
+import { useAiUsage } from "../../hooks/useAiUsage";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { useSessionsSince } from "../../hooks/useSessions";
 import { useTasks } from "../../hooks/useTasks";
@@ -78,6 +79,10 @@ export function TodayView() {
   /* Behind on this week's plan → a "Rebalance" row (read-only; the plan
      page previews and applies). */
   const planDeficit = useThisWeekDeficit();
+  /* Limits are checked before a step starts, never during one. Nothing is
+     said until the allowance has loaded: "0 used" and "unknown" look the
+     same, and only one is true. */
+  const aiUsage = useAiUsage();
   const [shortOnTime, setShortOnTime] = useState(false);
 
   const now = useMemo(() => new Date(), []);
@@ -197,6 +202,7 @@ export function TodayView() {
           totalDue={totalDue}
           session={session}
           checkBack={checkBack}
+          usageFor={aiUsage.isPending || aiUsage.isError ? null : aiUsage.usageFor}
           rough={rough}
           shortOnTime={shortOnTime}
           onShortOnTime={setShortOnTime}

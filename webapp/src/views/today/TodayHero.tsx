@@ -27,6 +27,9 @@ import {
 import type { Misconception } from "../../lib/misconceptions";
 import { isNamedPattern, mistakeTitle } from "../../lib/mistakeLoop";
 import { checkBackHref, onDay } from "../../lib/checkBack";
+import { LimitNotice } from "../../components/LimitNotice";
+import { AI_TOOLS, type AiToolId, type QuotaUsage } from "../../lib/entitlements";
+import { MODE_TOOL } from "../../lib/readiness";
 import styles from "./today.module.css";
 
 /** How long "short on time" means. */
@@ -168,6 +171,9 @@ interface TodayHeroProps {
    *  becomes the next step: one minute, and the loop only closes here. */
   checkBack?: Misconception | null;
   rough?: RoughTest | null;
+  /** Today's allowance per AI tool (hooks/useAiUsage), or null while it
+   *  loads. Only used to warn before a step starts, never during one. */
+  usageFor?: ((tool: AiToolId) => QuotaUsage) | null;
   shortOnTime?: boolean;
   onShortOnTime?: (short: boolean) => void;
   onStart: (deckId: string, label: string, minutes?: number) => void;
@@ -187,6 +193,7 @@ export function TodayHero({
   session = null,
   checkBack = null,
   rough = null,
+  usageFor = null,
   shortOnTime = false,
   onShortOnTime,
   onStart,
@@ -545,6 +552,9 @@ export function TodayHero({
       : null,
   });
   const rough_ = forecast.confidence.evidence < 0.5;
+  /* Which allowance this step's session draws on, from its URL's mode. */
+  const stepMode = step.to ? new URL(step.to, "https://x").searchParams.get("mode") : null;
+  const stepTool = isSessionMode(stepMode) ? MODE_TOOL[stepMode] : undefined;
   const runnerUp = forecast.interventions[1];
   return (
     <section className={styles.lead} aria-labelledby="today-step">
@@ -558,6 +568,9 @@ export function TodayHero({
           {top.atRisk ? `You're starting to forget ${top.label}. ` : ""}
           {step.why}
         </p>
+        {stepTool && usageFor ? (
+          <LimitNotice usage={usageFor(stepTool)} toolName={AI_TOOLS[stepTool].name} />
+        ) : null}
         <div className={styles.actions}>
           {step.to ? (
             <Link to={step.to} className={styles.primary}>

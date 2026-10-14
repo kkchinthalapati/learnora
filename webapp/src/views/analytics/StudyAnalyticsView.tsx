@@ -22,6 +22,7 @@ import { ProgressSectionNav } from "./ProgressSectionNav";
 import { RetentionInsights } from "./RetentionInsights";
 import { MisconceptionLedgerCard } from "../dashboard/MisconceptionLedgerCard";
 import { FadingTopicsCard } from "./FadingTopicsCard";
+import { ReadinessCard, ThisWeekStrip } from "./ProgressSummary";
 import styles from "./analytics.module.css";
 import { plural } from "../../lib/plural";
 
@@ -160,6 +161,10 @@ export function StudyAnalyticsView() {
   return (
     <div className={styles.container}>
       <ProgressSectionNav />
+      {/* 2026-10 revamp: the plain "This week" strip first (a parent can read
+          it over a shoulder), then readiness as a range with a basis. */}
+      <ThisWeekStrip />
+      <ReadinessCard />
       {/* The misconception ledger moved here from the retired Dashboard
           (/dashboard now redirects to Today): what you keep getting wrong is
           progress, not a daily to-do. */}
