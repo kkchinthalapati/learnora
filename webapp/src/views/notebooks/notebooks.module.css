@@ -364,6 +364,10 @@
   display: flex;
   flex-direction: column;
   height: calc(100vh - 84px);
+  /* On a short screen (a phone held sideways, a laptop at 200% zoom) the
+     columns were crushed until the tutor's replies had 24px and nothing
+     scrolled. Below this height the page scrolls instead. */
+  min-height: 560px;
   margin: calc(-1 * clamp(20px, 3vw, 32px)) calc(-1 * clamp(20px, 4vw, 48px))
     calc(-1 * var(--s-8));
   overflow: hidden;
@@ -633,6 +637,8 @@
 
 .chatMessages {
   flex: 1;
+  /* Room for at least a reply's opening lines, however short the screen. */
+  min-height: 180px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

@@ -337,7 +337,7 @@ ${DIAGRAM_CHAT_HINT}`;
     if (studioUsage.exceeded) {
       showToast("You've reached today's limit for Studio AI tools.", {
         actionLabel: "View plan",
-        onAction: () => void navigate("/settings?tab=subscription"),
+        onAction: () => void navigate("/settings?tab=billing"),
       });
       return;
     }
@@ -393,7 +393,7 @@ Use British English throughout.`;
     if (studioUsage.exceeded) {
       showToast("You've reached today's limit for Studio AI tools.", {
         actionLabel: "View plan",
-        onAction: () => void navigate("/settings?tab=subscription"),
+        onAction: () => void navigate("/settings?tab=billing"),
       });
       return;
     }
@@ -453,7 +453,7 @@ Use British English throughout.`;
     if (studioUsage.exceeded) {
       showToast("You've reached today's limit for Studio AI tools.", {
         actionLabel: "View plan",
-        onAction: () => void navigate("/settings?tab=subscription"),
+        onAction: () => void navigate("/settings?tab=billing"),
       });
       return;
     }
@@ -513,7 +513,7 @@ Use British English throughout.`;
     if (flashcardsUsage.exceeded) {
       showToast("You've reached today's limit for flashcard decks.", {
         actionLabel: "View plan",
-        onAction: () => void navigate("/settings?tab=subscription"),
+        onAction: () => void navigate("/settings?tab=billing"),
       });
       return;
     }
@@ -550,7 +550,7 @@ Use British English throughout.`;
     if (quizUsage.exceeded) {
       showToast("You've reached today's limit for practice quizzes.", {
         actionLabel: "View plan",
-        onAction: () => void navigate("/settings?tab=subscription"),
+        onAction: () => void navigate("/settings?tab=billing"),
       });
       return;
     }
