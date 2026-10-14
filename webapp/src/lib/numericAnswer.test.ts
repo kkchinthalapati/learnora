@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatNumericKey, gradeNumeric, parseNumeric } from "./numericAnswer";
+import { formatNumericKey, gradeNumeric, numericFeedback, parseNumeric } from "./numericAnswer";
 
 describe("parseNumeric", () => {
   it.each([
@@ -78,6 +78,13 @@ describe("gradeNumeric", () => {
     expect(gradeNumeric("624", { value: 625 }).correct).toBe(false);
     expect(gradeNumeric("628", { value: 625 }).correct).toBe(false);
     expect(gradeNumeric("624", { value: 625 }).reason).toBe("rounding");
+  });
+
+  it("doesn't blame rounding on a near miss of an exact answer", () => {
+    const exact = { value: 625 };
+    expect(numericFeedback(gradeNumeric("624", exact), exact)).toMatch(/exact/);
+    const rounded = { value: 17.32, tolerance: 0.06 };
+    expect(numericFeedback(gradeNumeric("17.4", rounded), rounded)).toMatch(/rounding/);
   });
 
   it("treats a set tolerance as the whole rule", () => {

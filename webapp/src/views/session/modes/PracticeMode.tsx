@@ -90,15 +90,22 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
   const generate = () => {
     /* Interleave only mistakes from this subject. The ledger spans every
        subject, so without the filter an Arithmetic Progressions session was
-       asked to mix in photosynthesis. No subject named, nothing mixed. */
+       asked to mix in photosynthesis. A typed-in session has no subject, so
+       there a mistake qualifies when its subject is named in what the
+       student typed ("GCSE Biology: enzymes" mixes Biology rows). */
     const subject = session.subject?.trim().toLowerCase() ?? "";
-    const mixedWith = subject
-      ? ranked
-          .filter((m) => m.subject.trim().toLowerCase() === subject)
-          .map((m) => m.concept)
-          .filter((c) => c.toLowerCase() !== session.objective.toLowerCase())
-          .slice(0, 2)
-      : [];
+    const objective = session.objective.toLowerCase();
+    const sameSubject = (rowSubject: string) => {
+      const s = rowSubject.trim().toLowerCase();
+      if (!s) return false;
+      if (subject) return s === subject;
+      return new RegExp(`(^|[^\\p{L}\\p{N}])${s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}\\p{N}])`, "u").test(objective);
+    };
+    const mixedWith = ranked
+      .filter((m) => sameSubject(m.subject))
+      .map((m) => m.concept)
+      .filter((c) => c.toLowerCase() !== objective)
+      .slice(0, 2);
     /* Set only when the AI was asked to mix them in: bank problems are on the
        objective alone, and the meta line must not claim otherwise. */
     let mixed: string[] = [];

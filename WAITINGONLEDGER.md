@@ -33,8 +33,7 @@ row is UNVERIFIED until you run `supabase secrets list`).
 
 | # | What | Status | Who | Command / where | Why it matters |
 |---|------|--------|-----|-----------------|----------------|
-| 3 | Smoke test AI after the deploy | READY | you | Signed in, generate one quiz in a seeded subject (e.g. GCSE Biology), then `select mode, provider, model, latency_ms, status, input_tokens, output_tokens from ai_request_log order by created_at desc limit 10;` Expect rows with `mode='verify'` and token counts. Then check `question_review_log` and the "unverified" label in an unseeded subject. | Proves the checker, caps and fallback chain work end to end. Needs a signed-in student; an agent may not create a production account. |
-| 4 | Remove the dead Cerebras key | READY | you | `supabase secrets unset CEREBRAS_API_KEY` | It answered 402 to every request (checked 2026-09-24); the provider chain skips it but the secret should go. |
+| - | Nothing open. Mail (4.2) waits on the domain. | | | | |
 
 ## 2. Migrations
 
@@ -153,12 +152,14 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 | 6.3 | Dump the real production schema (`supabase db dump --schema public`) and replace the reconstructed baseline, so a fresh database can be built for local dev or CI. Only needed if you want that. | DECISION |
 | 6.4 | Human review of the question bank (now incl. 132 CBSE Class 10 questions) and the 59-item misconception catalogue (14 added for CBSE, 2026-10-09) by a teacher, ideally one who teaches CBSE for those. Question reports land in `question_review_log` / `question_reports`; hand-run queries are in `docs/question_review.sql`. Nobody is reviewing them yet. | BLOCKED, needs a person |
 | 6.5 | Peer benchmarking (plan item 2.6) needs a privacy review before any build | DECISION |
+| 6.7 | **The quiz checker can be the model that wrote the quiz.** `secondaryCall` (learnora-ai) tries Gemini, then the first keyed provider in the chain, which today is Groq, the same model that usually generates. Smoke test 2026-10-13: all 6 questions `verified`, `by: groq`, written by Groq. Excluding the generator makes the check independent, but the next keyed provider (GitHub Models) returns empty replies and only one fallback is tried, so most checks would fail: seeded subjects would fall back to bank questions, others would show "unverified". Options: accept self-checks; exclude the generator and let OpenRouter (paid) check; or fix Gemini (503) as the checker. | DECISION |
 | 6.6 | Exam boards beyond the current set (AP/SAT, other GCSE science boards); past papers can only be linked, not hosted (AQA refuses apps) | DECISION |
 
 ## 7. Known gaps in what shipped (code, not waiting on you)
 
-- Hint ladder and verification have only run under tests and fixtures, never
-  against a live model. Row 1.3 is what changes that.
+- Verification ran against a live model on 2026-10-13 (see Done), but the
+  checker was the generating model (6.7). The hint ladder has still only run
+  under tests and fixtures.
 - Seeded-subject quizzes fall back to the practice bank when every generated
   question is rejected. If a seeded subject has a thin bank, students see
   fewer questions rather than unverified ones.
@@ -169,6 +170,9 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 
 | Date | What |
 |------|------|
+| 2026-10-13 | AI smoke test (was row 1.3), as learnoratesting@gmail.com: a GCSE Biology practice quiz came from Groq `openai/gpt-oss-120b` in 34 s, 6,092 in / 4,456 out tokens (the checker's tokens are counted in the quiz row; the `verify` row is only the daily-cap counter, with no provider or tokens). 6 of 6 questions `verified` (see 6.7), nothing rejected in `question_review_log`. |
+| 2026-10-13 | `CEREBRAS_API_KEY` (was row 1.4): already absent from `supabase secrets list`; no code references it. |
+| 2026-10-13 | PR #138 merged (numeric marking, Practice hints, Mock Exam numeric questions, retest/flashcard key leaks); applied `drop_legacy_leaderboard_overload` |
 | 2026-10-10 | Oak import applied: 1,050 GCSE Maths questions (OGL v3.0), bank now 1,435; OGL credit added to Terms §6 |
 | 2026-10-10 | PR #134 (`learning-engine`) merged; Vercel production deploy succeeded; `learnora-ai` v70 deployed from `main`. CI (`tests` workflow) green. |
 | 2026-10-10 | Applied `question_bank_numeric`; inserted 25 numeric CBSE questions (bank 385) |
