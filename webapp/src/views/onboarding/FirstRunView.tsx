@@ -36,6 +36,16 @@ import {
   type OnboardingAnswers,
 } from "../../lib/onboarding";
 import { useAiTask } from "../session/useAiTask";
+import { newSessionHref } from "../../lib/sessionModes";
+import type { BoardOption } from "./boards";
+import { firstPractice, type PlacementQuestion, type StartingPoint } from "./placement";
+import {
+  BoardPicker,
+  ChapterCheck,
+  PlacementCheck,
+  StartingPointView,
+  type StartChoice,
+} from "./PlacementFlow";
 import text from "../../styles/text.module.css";
 import styles from "./firstRun.module.css";
 
@@ -70,15 +80,32 @@ export const SESSION_LENGTHS = [
   { id: "long", label: "1 hr+", minBlockMins: 30, maxBlockMins: 90 },
 ] as const;
 
-type Step = "start" | "lesson" | "win";
-const STEPS: Step[] = ["start", "lesson", "win"];
+/* Two paths, three steps each. The 2026-10 revamp leads with the board:
+   board → 2-minute check → "Here's where you're starting" → practice. A
+   board with no syllabus, or "Start from one topic instead", takes the
+   value-first path: topic → three-minute lesson → win. */
+type Step = "board" | "check" | "starting" | "start" | "lesson" | "win";
+const PLACEMENT_STEPS: Step[] = ["board", "check", "starting"];
+const TOPIC_STEPS: Step[] = ["start", "lesson", "win"];
+
+/** Today's minutes → Life Sync's block sizes, which the planner uses. */
+const BLOCKS: Record<StartChoice["minutes"], { minBlockMins: number; maxBlockMins: number }> = {
+  10: { minBlockMins: 10, maxBlockMins: 15 },
+  20: { minBlockMins: 20, maxBlockMins: 30 },
+  30: { minBlockMins: 30, maxBlockMins: 45 },
+};
 
 const KEYS = ["A", "B", "C", "D", "E"];
 
-/* /welcome, first run (2026-09 redesign): value first. One question — what
- * are you studying? — then a three-minute lesson built on it, a small win,
- * and only then two planning questions. No account or preference questions
- * before the first lesson; the full setup wizard is still in Settings. */
+/* /welcome, first run. 2026-10 revamp (design_handoff → Prototype J1):
+ * the board first, labelled honestly; a 2-minute check from the question
+ * bank (or a per-chapter "How sure are you?" where there's no bank); "Here's
+ * where you're starting" instead of a score; then the paper, today's time,
+ * and straight into practice. The 2026-09 value-first path (one topic → a
+ * three-minute lesson → a small win → two planning questions) is kept for
+ * boards with no syllabus and for "Start from one topic instead". No
+ * account or preference questions before the first question; the full setup
+ * wizard is still in Settings. */
 export function FirstRunView() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -89,7 +116,9 @@ export function FirstRunView() {
   const updateProfile = useUpdateProfile();
   const task = useAiTask();
 
-  const [step, setStep] = useState<Step>("start");
+  const [step, setStep] = useState<Step>("board");
+  const [board, setBoard] = useState<BoardOption | null>(null);
+  const [startingPoint, setStartingPoint] = useState<StartingPoint | null>(null);
   const [topic, setTopic] = useState("");
   const [lesson, setLesson] = useState<FirstLesson | null>(null);
   const [levelId, setLevelId] = useState<string | null>(null);
@@ -124,7 +153,7 @@ export function FirstRunView() {
       await updateProfile.mutateAsync({
         [ONBOARDING_METADATA_KEY]: {
           ...EMPTY_ANSWERS,
-          examType: chosenLevel?.examType ?? null,
+          examType: board?.examType ?? chosenLevel?.examType ?? null,
           goal: chosenLevel?.university ? "university" : null,
           version: ONBOARDING_VERSION,
           completedAt: new Date().toISOString(),
@@ -154,7 +183,10 @@ export function FirstRunView() {
         ? getSpec(specChoice)
         : (suggestSpecs(topic, specQualification)[0] ?? null);
   const levelLabel = async () =>
-    chosenLevel?.board
+    /* A board with no syllabus still names the level ("ICSE Class 10"). */
+    board && !board.spec && (board.levelLabel || board.support === "partly")
+      ? (board.levelLabel ?? board.label)
+      : chosenLevel?.board
       ? chosenLevel.board
       : chosenLevel?.examType
       ? examBoardLabel(chosenLevel.examType)
@@ -310,7 +342,54 @@ export function FirstRunView() {
     navigate("/", { replace: true });
   };
 
-  const stepIndex = STEPS.indexOf(step);
+  const steps = PLACEMENT_STEPS.includes(step) ? PLACEMENT_STEPS : TOPIC_STEPS;
+  const stepIndex = steps.indexOf(step);
+
+  const pickBoard = (b: BoardOption) => {
+    setBoard(b);
+    if (b.spec) setStep("check");
+    else setStep("start");
+  };
+
+  /* A real answer is real evidence: Today and Progress read it like any
+     other quick check. "I haven't learnt this yet" writes nothing. */
+  const recordPlacement = (q: PlacementQuestion, correct: boolean) => {
+    void learningEventsApi
+      .record({
+        source: "quick_check",
+        topicKey: normaliseTopicKey(q.topicTitle),
+        score: correct ? 1 : 0,
+        clientId: `placement:${user?.id ?? "anon"}:${q.topicRef}`,
+        payload: { mode: "placement", specId: board?.spec?.id, topicRef: q.topicRef },
+      })
+      .catch(() => {
+        /* Best-effort, like every other evidence write. */
+      });
+  };
+
+  const startPractice = async (choice: StartChoice) => {
+    if (saving) return;
+    setSaving(true);
+    const spec = board?.spec ?? null;
+    updateLifeContext(BLOCKS[choice.minutes]);
+    if (spec && choice.examDate && choice.examDate >= localDateStr()) {
+      try {
+        await saveExam.mutateAsync({
+          payload: {
+            exam_name: [spec.subject, choice.paperName].filter(Boolean).join(" "),
+            exam_date: choice.examDate,
+            syllabus_id: spec.id,
+            syllabus_tier: defaultTier(spec),
+          },
+        });
+      } catch {
+        /* Addable from Plan ▸ Exams; not a reason to hold them here. */
+      }
+    }
+    await markDone(false);
+    const first = firstPractice(startingPoint ?? { know: [], look: [], notLearnt: [] }, spec?.subject ?? topic);
+    navigate(newSessionHref("practice", { topic: first, minutes: choice.minutes }), { replace: true });
+  };
 
   return (
     <div className={styles.shell}>
@@ -322,7 +401,7 @@ export function FirstRunView() {
           Learnora
         </span>
         <ol className={styles.progress} aria-label={`Step ${stepIndex + 1} of 3`}>
-          {STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <li key={s} data-done={i <= stepIndex || undefined} />
           ))}
         </ol>
@@ -330,6 +409,48 @@ export function FirstRunView() {
           Skip for now
         </button>
       </header>
+
+      {step === "board" ? (
+        <BoardPicker
+          headingRef={headingRef}
+          firstName={firstName}
+          onPick={pickBoard}
+          onTopicInstead={() => setStep("start")}
+        />
+      ) : null}
+
+      {step === "check" && board?.spec ? (
+        board.support === "ready" ? (
+          <PlacementCheck
+            spec={board.spec}
+            headingRef={headingRef}
+            onAnswer={recordPlacement}
+            onDone={(sp) => {
+              setStartingPoint(sp);
+              setStep("starting");
+            }}
+          />
+        ) : (
+          <ChapterCheck
+            spec={board.spec}
+            headingRef={headingRef}
+            onDone={(sp) => {
+              setStartingPoint(sp);
+              setStep("starting");
+            }}
+          />
+        )
+      ) : null}
+
+      {step === "starting" && startingPoint ? (
+        <StartingPointView
+          spec={board?.spec ?? null}
+          sp={startingPoint}
+          headingRef={headingRef}
+          busy={saving}
+          onStart={(c) => void startPractice(c)}
+        />
+      ) : null}
 
       {step === "start" ? (
         <main className={styles.startGrid}>
