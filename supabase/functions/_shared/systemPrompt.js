@@ -96,6 +96,13 @@ export const PROSE_STYLE = `
 export const JSON_FIELD_STYLE = `
 Write every human-readable string in plain, everyday English aimed at a student aged 13 or over: second person, no jargon left unexplained, and no markdown syntax inside JSON string values.`;
 
+/* Quiz strings (stem, choices, feedback) go through renderMathText on every
+   quiz screen, so quiz mode — and only quiz mode — is told to write TeX.
+   Flashcard and plan strings are rendered as plain text; asking for dollars
+   there would put raw "$x^{2}$" on a card. Without this rule the model wrote
+   notation as plain characters ("tau_xz") and students saw it verbatim. */
+export const JSON_MATH_RULE = `Maths and scientific notation: the app typesets TeX inside the question, choices and feedback, so wrap every symbol, subscript, power, fraction or equation in single dollars — "$\\\\tau_{xz}$", "$x^{2}$", "$\\\\frac{3}{4}$" — never a typed approximation like tau_xz, x^2 or 3/4. This is JSON, so every TeX backslash must be doubled in the raw output: write \\\\tau, never \\tau (\\t is a tab escape and would eat the command).`;
+
 /* Modes whose body is parsed as JSON by the client. Keep this as the single
    source of truth: `flashcards` used to be sent with no mode at all, so deck
    generation silently ran on the 20s chat budget with no fence-stripping —
@@ -167,7 +174,7 @@ ${context.slice(0, MAX_APP_CONTEXT_CHARS)}
         // Wrapped in an object rather than a bare array so the request can
         // use response_format:json_object, which only permits an object at
         // the top level. The client accepts either shape.
-        ? `\nYou are generating a high-quality multiple-choice quiz. Ensure every question covers a completely unique concept, logical sub-step, or angle with NO back-to-back repetitive questions. Match the requested difficulty level precisely (Hard = multi-step deduction, error spotting, edge cases, subtle fallacies; Easy = direct recall; Medium = conceptual understanding). Output ONLY raw JSON (no prose, no code fences) matching this shape: {"questions":[{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label","feedback":"string"}]}. "correctIndex" is REQUIRED on every question and must be the 0-based index of the correct entry in that question's "choices" array. Before writing each question, solve it yourself and check that exactly one choice is correct and that the key points at it. Every question must be answerable from its own text: never refer to a diagram, figure, table or passage that is not written out in the question. "feedback" is shown to EVERY student regardless of what they answered, so it must be a neutral explanation of the question: never congratulate ("Nice work!", "Correct!", "Exactly right!") and never state or imply which choice the student picked.`
+        ? `\nYou are generating a high-quality multiple-choice quiz. Ensure every question covers a completely unique concept, logical sub-step, or angle with NO back-to-back repetitive questions. Match the requested difficulty level precisely (Hard = multi-step deduction, error spotting, edge cases, subtle fallacies; Easy = direct recall; Medium = conceptual understanding). Output ONLY raw JSON (no prose, no code fences) matching this shape: {"questions":[{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label","feedback":"string"}]}. "correctIndex" is REQUIRED on every question and must be the 0-based index of the correct entry in that question's "choices" array. Before writing each question, solve it yourself and check that exactly one choice is correct and that the key points at it. Every question must be answerable from its own text: never refer to a diagram, figure, table or passage that is not written out in the question. "feedback" is shown to EVERY student regardless of what they answered, so it must be a neutral explanation of the question: never congratulate ("Nice work!", "Correct!", "Exactly right!") and never state or imply which choice the student picked. ${JSON_MATH_RULE}`
         : mode === "flashcards"
         // Object-wrapped for the same response_format:json_object reason as
         // quiz above. The client unwraps {"cards":[...]} or a bare array.

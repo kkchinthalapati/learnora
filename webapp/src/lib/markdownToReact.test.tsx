@@ -267,6 +267,25 @@ describe("splitMath", () => {
     ]);
   });
 
+  it("typesets a spelled-out Greek letter with a subscript", () => {
+    expect(splitMath("notation like tau_xz, what do")).toEqual([
+      { kind: "text", value: "notation like " },
+      { kind: "math", value: "\\tau_{xz}", display: false },
+      { kind: "text", value: ", what do" },
+    ]);
+    expect(splitMath("sigma_1 > sigma_2")[0]).toEqual({
+      kind: "math",
+      value: "\\sigma_{1}",
+      display: false,
+    });
+  });
+
+  it("leaves identifiers and longer words with underscores alone", () => {
+    for (const text of ["my_tau_xz", "tau_xz_old", "max_value", "taus_x", "tau_long"]) {
+      expect(splitMath(text)).toEqual([{ kind: "text", value: text }]);
+    }
+  });
+
   it("leaves an unclosed delimiter as plain text", () => {
     expect(mathIn("$$x=1")).toEqual([]);
     expect(mathIn("\\[x=1")).toEqual([]);
