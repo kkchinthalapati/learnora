@@ -118,7 +118,7 @@ describe("planRebalancer", () => {
       expect(result.deficitBySubject["Chemistry"]).toBe(30); // 30m Mon
       expect(result.deficitBySubject["Math"]).toBe(60); // 60m Tue
       expect(result.remainingDaysCount).toBe(5); // Wed, Thu, Fri, Sat, Sun
-      expect(result.recommendation).toContain("behind. We can spread that out");
+      expect(result.recommendation).toContain("and that's fine. We can spread that out");
     });
 
     it("accounts for partial study sessions matched by folder ID or task name", () => {
@@ -339,7 +339,7 @@ describe("planRebalancer", () => {
       expect(p.shortfallMinutes).toBe(0);
       expect(p.moves.every((m) => m.toDate >= "2026-08-26")).toBe(true);
       expect(p.moves.every((m) => m.fromDate < "2026-08-26")).toBe(true);
-      expect(p.headline).toBe("You're 2h 45m behind this week's plan.");
+      expect(p.headline).toBe("2h 45m of this week's plan didn't happen. It can move to the days you have left.");
       expect(p.detail).toMatch(/^All of it fits into \d days? without going over/);
       expect(p.detail).toContain("No upcoming exam is set");
     });

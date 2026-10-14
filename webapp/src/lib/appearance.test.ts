@@ -161,6 +161,7 @@ describe("applyAppearanceToDom", () => {
         bg: "mesh",
         font: "mono",
         size: "lg",
+        reading: true,
       },
       defaultCustomTheme(),
     );
@@ -170,6 +171,8 @@ describe("applyAppearanceToDom", () => {
     expect(document.body.getAttribute("data-bg-texture")).toBe("mesh");
     expect(document.body.getAttribute("data-font-family")).toBe("mono");
     expect(document.body.getAttribute("data-font-size")).toBe("lg");
+    /* Reading mode (2026-10 revamp) rides on the same body. */
+    expect(document.body.getAttribute("data-reading")).toBe("on");
   });
 
   it("sets the --custom-* variables only while the custom accent is selected", () => {
@@ -213,6 +216,7 @@ describe("persistAppearance", () => {
       bg: "noise",
       font: "inter",
       size: "sm",
+      reading: true,
     } as const;
     persistAppearance(state, defaultCustomTheme());
     expect(readStoredAppearance()).toEqual(state);

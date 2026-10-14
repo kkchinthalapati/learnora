@@ -294,6 +294,36 @@ body[data-font-family="dyslexic"] {
   --font-mono: var(--font);
 }
 
+/* Reading mode (2026-10 revamp, Settings ▸ Appearance). Atkinson for body
+   and headings — the display serif steps aside — with larger, more open
+   text. Applies on top of any picked font and scale. */
+body[data-reading="on"] {
+  --font:
+    "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-head: var(--font);
+  --font-read: var(--font);
+  --font-display: var(--font);
+  --font-body: var(--font);
+  --measure: 60ch;
+  --measure-read: 60ch;
+  font-size: 19px;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+  word-spacing: 0.08em;
+}
+
+body[data-reading="on"] p,
+body[data-reading="on"] li {
+  text-align: start;
+}
+
+body[data-reading="on"] em,
+body[data-reading="on"] i,
+body[data-reading="on"] cite {
+  font-style: normal;
+  font-weight: 700;
+}
+
 /* ------------------------------------------------------------------------
  * Interface font scaling. Same story as the font-family override above:
  * Settings → Appearance's "Interface Font Scaling" picker has always set

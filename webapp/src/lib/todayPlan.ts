@@ -148,7 +148,8 @@ export function alsoWorthDoing({
     rows.push({
       id: "plan-behind",
       kind: "task",
-      label: `You're ${formatDuration(planBehindMins)} behind this week's plan`,
+      /* What didn't happen, not "behind" (P3, no guilt). */
+      label: `${formatDuration(planBehindMins)} of this week's plan to move`,
       estimate: "Plan",
       action: "Rebalance",
       to: "/plan?rebalance=1",

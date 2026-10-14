@@ -756,3 +756,38 @@
   font-size: var(--fs-sm);
   line-height: 1.5;
 }
+
+/* "All material" kinds (2026-10 revamp): a filter row of 40px chips under
+   the tab, selected = tick + fill, not colour alone. Links, because each
+   kind keeps its own URL. */
+.kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.kind {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-small);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.kind[aria-current="page"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.kind:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

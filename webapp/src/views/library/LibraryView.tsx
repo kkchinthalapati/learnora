@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { Navigate, useNavigate, useParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { useCreateModal } from "../../context/createModal";
 import { FoldersPanel } from "./FoldersPanel";
@@ -10,9 +10,12 @@ import { QuizzesPanel } from "./QuizzesPanel";
 import { LibrarySearch } from "./LibrarySearch";
 import { NotebooksHubView } from "../notebooks/NotebooksHubView";
 import {
+  LIBRARY_SECTIONS,
   LIBRARY_TABS,
+  MATERIAL_KINDS,
   isLibraryTab,
   pathForTab,
+  sectionOf,
   type LibraryTabId,
 } from "./libraryMeta";
 import styles from "./library.module.css";
@@ -36,9 +39,10 @@ export function LibraryView() {
     return <Navigate to="/library" replace />;
   }
   const active: LibraryTabId = tab ?? "folders";
+  const section = sectionOf(active);
 
   function onTabKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number) {
-    const count = LIBRARY_TABS.length;
+    const count = LIBRARY_SECTIONS.length;
     let next: number | null = null;
     if (e.key === "ArrowRight" || e.key === "ArrowDown")
       next = (index + 1) % count;
@@ -48,9 +52,9 @@ export function LibraryView() {
     else if (e.key === "End") next = count - 1;
     if (next === null) return;
     e.preventDefault();
-    const id = LIBRARY_TABS[next].id;
-    void navigate(pathForTab(id));
-    tabRefs.current[id]?.focus();
+    const target = LIBRARY_SECTIONS[next];
+    void navigate(pathForTab(target.tab));
+    tabRefs.current[target.id]?.focus();
   }
 
   const Panel = PANELS[active];
@@ -78,20 +82,20 @@ export function LibraryView() {
             aria-label="Library sections"
             className={styles.tabs}
           >
-            {LIBRARY_TABS.map((t, i) => (
+            {LIBRARY_SECTIONS.map((t, i) => (
               <button
                 key={t.id}
                 type="button"
                 role="tab"
                 id={`library-tab-${t.id}`}
-                aria-selected={active === t.id}
+                aria-selected={section === t.id}
                 aria-controls={`library-panel-${t.id}`}
-                tabIndex={active === t.id ? 0 : -1}
+                tabIndex={section === t.id ? 0 : -1}
                 ref={(el) => {
                   tabRefs.current[t.id] = el;
                 }}
-                className={`${styles.tab}${active === t.id ? ` ${styles.tabActive}` : ""}`}
-                onClick={() => void navigate(pathForTab(t.id))}
+                className={`${styles.tab}${section === t.id ? ` ${styles.tabActive}` : ""}`}
+                onClick={() => void navigate(pathForTab(t.tab))}
                 onKeyDown={(e) => onTabKeyDown(e, i)}
               >
                 {t.label}
@@ -101,11 +105,26 @@ export function LibraryView() {
 
           <div
             role="tabpanel"
-            id={`library-panel-${active}`}
-            aria-labelledby={`library-tab-${active}`}
+            id={`library-panel-${section}`}
+            aria-labelledby={`library-tab-${section}`}
             tabIndex={0}
             className={styles.panel}
           >
+            {section === "material" ? (
+              <nav className={styles.kinds} aria-label="Kind of material">
+                {MATERIAL_KINDS.map((k) => (
+                  <Link
+                    key={k.id}
+                    to={pathForTab(k.id)}
+                    className={styles.kind}
+                    aria-current={active === k.id ? "page" : undefined}
+                  >
+                    {active === k.id ? <span aria-hidden="true">✓ </span> : null}
+                    {k.label}
+                  </Link>
+                ))}
+              </nav>
+            ) : null}
             <p className={styles.tabBlurb}>
               {LIBRARY_TABS.find((t) => t.id === active)?.blurb}
             </p>

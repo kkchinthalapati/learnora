@@ -4,6 +4,7 @@ import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
 import { ProGate } from "../../components/ProGate";
 import { useAppearance } from "../../context/appearance";
+import { ToggleSwitch } from "../../components/ToggleSwitch";
 import { useToast } from "../../context/toast";
 import {
   THEME_PRESETS,
@@ -242,6 +243,24 @@ export function AppearanceTab() {
               />
             ))}
           </div>
+        </div>
+
+        <div className={settings.field}>
+          <div className={settings.fieldLabel}>
+            <span id="reading-mode-label" className={settings.labelText}>
+              Reading mode
+            </span>
+            <p className={settings.fieldDesc}>
+              Larger, more open text in Atkinson Hyperlegible, with no
+              italics and shorter lines. Helps if long paragraphs are hard
+              going.
+            </p>
+          </div>
+          <ToggleSwitch
+            checked={appearance.reading}
+            onChange={(reading) => setAppearance({ reading })}
+            labelledBy="reading-mode-label"
+          />
         </div>
 
         <div className={`${settings.field} ${settings.fieldStack}`}>

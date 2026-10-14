@@ -45,6 +45,11 @@ export interface AppearanceState {
   bg: BgTexture;
   font: FontFamily;
   size: FontSize;
+  /** Reading mode (2026-10 revamp): Atkinson Hyperlegible for body and
+   *  headings, 19px / 1.75, wider letter and word spacing, a 60ch measure,
+   *  never justified, no italics. Separate from `font` so a student can keep
+   *  their chosen UI face and still switch reading on for long text days. */
+  reading: boolean;
 }
 
 export interface CustomTheme {
@@ -60,6 +65,7 @@ export const APPEARANCE_DEFAULTS: AppearanceState = Object.freeze({
   bg: "none",
   font: "jakarta",
   size: "md",
+  reading: false,
 });
 
 /* The 13 curated presets, in the order the vanilla renders them
@@ -145,6 +151,7 @@ export function readStoredAppearance(): AppearanceState {
       ["sm", "md", "lg"],
       APPEARANCE_DEFAULTS.size,
     ),
+    reading: Storage.get<boolean>("learnora_reading") === true,
   };
 }
 
@@ -242,6 +249,7 @@ export function applyAppearanceToDom(
   body.setAttribute("data-bg-texture", state.bg);
   body.setAttribute("data-font-family", state.font);
   body.setAttribute("data-font-size", state.size);
+  body.setAttribute("data-reading", state.reading ? "on" : "off");
 
   if (state.accent === "custom") {
     const vars = deriveCustomThemeVars(customTheme);
@@ -292,6 +300,7 @@ export function persistAppearance(
   Storage.set("learnora_bg", state.bg);
   Storage.set("learnora_font", state.font);
   Storage.set("learnora_size", state.size);
+  Storage.set("learnora_reading", state.reading);
   Storage.set(CUSTOM_THEME_KEY, {
     colors: customTheme.colors,
     intensity: customTheme.intensity,
@@ -307,6 +316,7 @@ export function persistAppearanceDefaults(): void {
   Storage.set("learnora_bg", APPEARANCE_DEFAULTS.bg);
   Storage.set("learnora_font", APPEARANCE_DEFAULTS.font);
   Storage.set("learnora_size", APPEARANCE_DEFAULTS.size);
+  Storage.set("learnora_reading", APPEARANCE_DEFAULTS.reading);
 }
 
 /* Clear all appearance settings from localStorage (used on logout/user switch). */
