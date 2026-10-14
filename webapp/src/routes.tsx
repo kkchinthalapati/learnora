@@ -40,6 +40,9 @@ const LazyTasksView = lazy(async () => ({
 const LazyExamsView = lazy(async () => ({
   default: (await import("./views/exams/ExamsView")).ExamsView,
 }));
+const LazyExamDetectiveHubView = lazy(async () => ({
+  default: (await import("./views/exam-detective/ExamDetectiveHubView")).ExamDetectiveHubView,
+}));
 const LazyPlacementView = lazy(async () => ({
   default: (await import("./views/exams/PlacementView")).PlacementView,
 }));
@@ -455,9 +458,17 @@ export function AppRoutes() {
                 Teach mode links to it when a session finishes. */}
             <Route path="/solver" element={<LegacyToolRedirect mode="explain" />} />
             <Route path="/debugger" element={<LegacyToolRedirect mode="explain" />} />
+            {/* Exam Detective is a page again, not a Session mode: analysing a
+                paper for trap patterns, the playbook, walkthroughs and the
+                immunity radar have no Session equivalent. "Exam traps,
+                timed" stays a Practice preset. */}
             <Route
               path="/exam-detective"
-              element={<LegacyToolRedirect mode="practice" preset="traps" />}
+              element={
+                <DeferredView>
+                  <LazyExamDetectiveHubView />
+                </DeferredView>
+              }
             />
             <Route path="/feynman" element={<LegacyToolRedirect mode="teach" />} />
             <Route

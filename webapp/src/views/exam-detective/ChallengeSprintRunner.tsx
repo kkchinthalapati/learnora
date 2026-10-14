@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { learningEventsApi } from "../../api/learningEvents";
 import { normaliseTopicKey } from "../../lib/topicKey";
 import type { SprintQuestion } from "../../api/aiExamDeconstructor";
-import { markTrapDisarmed } from "../../api/aiExamDeconstructor";
+import { markTrapArmed, markTrapDisarmed } from "../../api/aiExamDeconstructor";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { AhaWalkthroughModal } from "./AhaWalkthroughModal";
@@ -77,6 +77,7 @@ export function ChallengeSprintRunner({
          * `detective:${runId}:${index}` learning events recorded above, so
          * the two systems stay traceable to the same sprint. */
         { subject, sprintId: runId.current },
+        questionResults.map((r) => r.confidence === "guessed"),
       ),
     );
   }, [isFinished, questionResults, subject, recordMisconceptions]);
@@ -108,8 +109,13 @@ export function ChallengeSprintRunner({
     if (topic) void learningEventsApi.record({ source: "detective", topicKey: normaliseTopicKey(topic), score: isCorrect ? 1 : 0,
       clientId: `detective:${runId.current}:${currentIndex}`, payload: { trapId: currentQ.trapArchetypeId } }).catch(err => console.warn("[detective] evidence:", err));
 
-    if (isCorrect) {
+    /* "Disarmed" is a claim about the student, so it follows the latest
+       evidence: a confident right answer earns it, a guess doesn't, and
+       falling for the trap again takes it away. */
+    if (isCorrect && confidence !== "guessed") {
       markTrapDisarmed(currentQ.trapArchetypeId);
+    } else if (!isCorrect) {
+      markTrapArmed(currentQ.trapArchetypeId);
     }
 
     setQuestionResults((prev) => [
@@ -192,7 +198,7 @@ export function ChallengeSprintRunner({
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    setActiveWalkthroughTrapId(res.question.trapArchetypeId)
+                    setActiveWalkthroughTrapId(res.question.misconceptionId ?? res.question.trapArchetypeId)
                   }
                 >
                   Inspect 4-Step Breakdown
@@ -408,7 +414,7 @@ export function ChallengeSprintRunner({
               variant="secondary"
               size="sm"
               onClick={() =>
-                setActiveWalkthroughTrapId(currentQ.trapArchetypeId)
+                setActiveWalkthroughTrapId(currentQ.misconceptionId ?? currentQ.trapArchetypeId)
               }
             >
               Explore 4-Step Aha! Breakdown

@@ -163,7 +163,8 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "run_premortem",
     });
-    void navigate(newSessionHref("practice", { preset: "traps" }));
+    /* The hub's subject picker reads this payload and opens on the folder. */
+    void navigate("/exam-detective");
   };
 
   if (folders.isPending) {

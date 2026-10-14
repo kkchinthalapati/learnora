@@ -1,23 +1,49 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import {
   CANONICAL_TRAP_ARCHETYPES,
   deconstructExamPaper,
   generateChallengeSprint,
   getAhaDisarmWalkthrough,
   getStoredDisarmedTraps,
+  markTrapArmed,
   markTrapDisarmed,
   getStoredRadarHistory,
   saveRadarRecord,
+  sprintFromBank,
 } from "./aiExamDeconstructor";
+import { callEdge } from "./ai";
+import { fetchMisconceptionMappedQuestions } from "./questionBank";
+import type { BankQuestion } from "../lib/questionBank";
+import type { Settings } from "../lib/settings";
+
+vi.mock("./ai", () => ({ callEdge: vi.fn() }));
+vi.mock("./questionBank", () => ({
+  fetchMisconceptionMappedQuestions: vi.fn(async () => []),
+  bankTopicTitle: () => "Acids, Bases and Salts",
+}));
+
+const PH_ROW = {
+  id: "row-ph",
+  spec_key: "cbse-10-science-086",
+  topic_ref: "2",
+  question: "Which of these solutions is the most acidic?",
+  choices: ["pH 8", "pH 13", "pH 1", "pH 6"],
+  correct_index: 2,
+  explanation: "The lower the pH, the more acidic.",
+  distractor_misconceptions: [null, "chem-higher-ph-more-acidic", null, null],
+} as unknown as BankQuestion;
 
 describe("aiExamDeconstructor", () => {
   beforeEach(() => {
     localStorage.clear();
+    vi.mocked(callEdge).mockReset();
+    vi.mocked(fetchMisconceptionMappedQuestions).mockResolvedValue([]);
   });
 
   describe("deconstructExamPaper", () => {
-    it("returns canonical trap archetypes with offline fallback", async () => {
-      const archetypes = await deconstructExamPaper("Midterm syllabus", "Calculus 2");
+    it("returns canonical trap archetypes with offline fallback, and says they are the stock list", async () => {
+      const { archetypes, fromMaterial } = await deconstructExamPaper("Midterm syllabus", "Calculus 2");
+      expect(fromMaterial).toBe(false);
       expect(archetypes.length).toBeGreaterThanOrEqual(6);
       expect(archetypes[0]).toHaveProperty("id");
       expect(archetypes[0]).toHaveProperty("name");
@@ -59,6 +85,93 @@ describe("aiExamDeconstructor", () => {
 
       const scienceQuestions = await generateChallengeSprint("Physics Mechanics", CANONICAL_TRAP_ARCHETYPES, 2);
       expect(scienceQuestions.some((q) => q.question.includes("accelerates") || q.question.includes("Enzyme"))).toBe(true);
+    });
+
+    it("never pads a subject with another subject's questions", async () => {
+      vi.mocked(callEdge).mockRejectedValueOnce(new Error("offline"));
+      await expect(generateChallengeSprint("History", [], 4, {} as Settings)).rejects.toThrow(
+        /Couldn't put together a sprint for History/,
+      );
+      const maths = await generateChallengeSprint("Maths", [], 4);
+      expect(maths.every((q) => q.id.startsWith("math-sprint"))).toBe(true);
+    });
+
+    it("never repeats a question, so one bait can't look like a recurring mistake", async () => {
+      const qs = await generateChallengeSprint("Physics", [], 6);
+      expect(new Set(qs.map((q) => q.question)).size).toBe(qs.length);
+      expect(qs).toHaveLength(2);
+    });
+
+    it("shuffles options so the bait is not always option A", async () => {
+      const qs = await generateChallengeSprint("Maths", [], 4, undefined, () => 0);
+      for (const q of qs) expect(q.correctAnswerIndex).not.toBe(q.baitOptionIndex);
+      expect(qs.some((q) => q.baitOptionIndex !== 0)).toBe(true);
+    });
+
+    it("puts the practice bank's mapped questions first, in the student's subject only", async () => {
+      vi.mocked(fetchMisconceptionMappedQuestions).mockResolvedValue([PH_ROW]);
+      const [first] = await generateChallengeSprint("Chemistry", [], 3, undefined, () => 0.99);
+      expect(first.source).toBe("bank");
+      expect(first.misconceptionId).toBe("chem-higher-ph-more-acidic");
+      expect(first.options[first.baitOptionIndex]).toBe("pH 13");
+      expect(first.options[first.correctAnswerIndex]).toBe("pH 1");
+
+      expect(sprintFromBank([PH_ROW], "Biology")).toEqual([]);
+      expect(sprintFromBank([PH_ROW], "Science")).toHaveLength(1);
+    });
+
+    it("asks the AI only when the subject's sources are short, and drops questions it can't mark", async () => {
+      const ai = (n: number, extra: Record<string, unknown> = {}) => ({
+        id: `h${n}`,
+        question: `History question ${n}?`,
+        options: ["Bait", "Right", "Other", "Another"],
+        correctAnswerIndex: 1,
+        baitOptionIndex: 0,
+        trapArchetypeId: "hidden-assumptions",
+        trapName: "Hidden assumptions",
+        baitExplanation: "Looks right because…",
+        trapExplanation: "The trap is…",
+        hint: "Read the dates.",
+        ...extra,
+      });
+      vi.mocked(callEdge).mockResolvedValueOnce({
+        text: JSON.stringify([
+          ai(1),
+          ai(2, { baitOptionIndex: 1 }),
+          ai(3, { options: ["A", "B"] }),
+          ai(4, { correctAnswerIndex: 7 }),
+          ai(5, { trapArchetypeId: "made-up" }),
+          ai(1),
+        ]),
+      } as never);
+      const qs = await generateChallengeSprint("History", [], 4, {} as Settings, () => 0);
+      expect(qs).toHaveLength(1);
+      expect(qs[0].source).toBe("ai");
+      expect(qs[0].options[qs[0].correctAnswerIndex]).toBe("Right");
+      expect(qs[0].options[qs[0].baitOptionIndex]).toBe("Bait");
+    });
+  });
+
+  describe("disarmed traps follow the latest evidence", () => {
+    it("re-arms a trap the student falls for again", () => {
+      markTrapDisarmed("edge-case-hazards");
+      expect(getStoredDisarmedTraps()).toContain("edge-case-hazards");
+      markTrapArmed("edge-case-hazards");
+      expect(getStoredDisarmedTraps()).not.toContain("edge-case-hazards");
+    });
+  });
+
+  describe("walkthroughs", () => {
+    it("builds a bank trap's walkthrough from its catalogue entry, ending in its check question", async () => {
+      const w = await getAhaDisarmWalkthrough("chem-higher-ph-more-acidic");
+      expect(w.trapId).toBe("chem-higher-ph-more-acidic");
+      expect(w.step1Bait.baitExample).toMatch(/pH/i);
+      expect(w.step4DisarmChallenge.options.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("gives a paper-analysis card its category's walkthrough, not the edge-case one under its name", async () => {
+      const w = await getAhaDisarmWalkthrough("negative-wording-maze-3");
+      expect(w.trapId).toBe("negative-wording-maze");
     });
   });
 

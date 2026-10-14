@@ -190,7 +190,8 @@ export function StudyLabView() {
 
       <p className={styles.footnote}>
         Or take a saved quiz from the{" "}
-        <Link to="/library/quizzes">Library</Link>.
+        <Link to="/library/quizzes">Library</Link>, or find the traps in past
+        papers with <Link to="/exam-detective">Exam Detective</Link>.
       </p>
     </div>
   );

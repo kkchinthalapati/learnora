@@ -89,6 +89,8 @@ describe("route skeleton", () => {
     ["/friends", "Friends"],
     ["/analytics", "Progress"],
     ["/study", "What do you need help with?"],
+    /* A page again (it was a redirect into Practice for a while). */
+    ["/exam-detective", "Exam traps"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", async (path, heading) => {
     renderAt(path);
@@ -122,7 +124,6 @@ describe("route skeleton", () => {
     ["/solver?topic=Osmosis", "Osmosis"],
     ["/feynman?topic=Osmosis", "Osmosis"],
     ["/viva?topic=Osmosis", "Osmosis"],
-    ["/exam-detective", "What are you working on?"],
     ["/feynman", "What are you working on?"],
     ["/debugger", "What are you working on?"],
     ["/sparring/abc", "What are you working on?"],

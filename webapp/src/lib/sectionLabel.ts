@@ -69,9 +69,9 @@ export function isStudyLabSection(pathname: string): boolean {
   /* Canonical routes only. /debugger, /sparring, /premortem, /exam-traps and
      /ai-tutor are <Navigate> redirects, so the router replaces them before any
      of this runs — matching on them here could never fire. */
-  /* /solver, /feynman, /viva and /exam-detective redirect into a Session
-     now; only the debrief page survives under /feynman. */
-  return ["/study", "/feynman/debrief"].some((routePrefix) =>
+  /* /solver, /feynman and /viva redirect into a Session now; only the
+     debrief page survives under /feynman. Exam Detective is a page again. */
+  return ["/study", "/feynman/debrief", "/exam-detective"].some((routePrefix) =>
     pathname.startsWith(routePrefix),
   );
 }
@@ -107,6 +107,7 @@ export function sectionLabel(
   if (pathname.startsWith("/trajectory")) return "Trajectory";
   if (pathname.startsWith("/study")) return "Study";
   if (pathname.startsWith("/feynman/debrief")) return "Teach debrief";
+  if (pathname.startsWith("/exam-detective")) return "Exam traps";
   if (pathname.startsWith("/my-week")) return "Availability";
   if (pathname.startsWith("/plan")) return "Plan";
   if (pathname.startsWith("/exams")) return "Exams";
@@ -137,6 +138,7 @@ const HERO_ROUTES = [
   "/library",
   "/study",
   "/feynman",
+  "/exam-detective",
   "/room",
 ];
 

@@ -59,6 +59,24 @@ export async function fetchBankQuestions(
 }
 
 /** Quiz-runner questions from bank rows, each carrying its attribution. */
+/** Every bank question with a wrong option mapped to a catalogue
+ *  misconception, for Exam Detective sprints: the mapped option is the bait
+ *  and the catalogue already says what belief makes it look right. */
+export async function fetchMisconceptionMappedQuestions(): Promise<BankQuestion[]> {
+  const build = () =>
+    supabase.from("question_bank").select(COLUMNS).not("distractor_misconceptions", "is", null).limit(300);
+  let { data, error } = await build().eq("review_status", "active");
+  if (error && /review_status/.test(error.message)) ({ data, error } = await build());
+  if (error) throw new Error(error.message);
+  return (data ?? []) as BankQuestion[];
+}
+
+/** A bank topic's title, for labelling a question outside its quiz. */
+export function bankTopicTitle(specKey: string, topicRef: string): string | null {
+  const spec = SYLLABUS_SPECS.find((s) => bankKey(s) === specKey);
+  return spec?.topics.find((t) => t.ref === topicRef)?.title ?? null;
+}
+
 export function bankToQuiz(spec: SyllabusSpec, rows: BankQuestion[]): QuizQuestion[] {
   const titles = new Map(spec.topics.map((t) => [t.ref, t.title]));
   const quiz = toQuizQuestions(rows, (ref) => titles.get(ref) ?? ref);

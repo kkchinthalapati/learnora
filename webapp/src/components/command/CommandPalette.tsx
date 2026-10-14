@@ -392,7 +392,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       badge: "Exam practice",
       keywords: ["exam", "past paper", "traps", "practice", "detective", "stress test", "timed"],
       onSelect: () => {
-        navigate(newSessionHref("practice", { preset: "traps" }));
+        navigate("/exam-detective");
         handleClose();
       },
     });

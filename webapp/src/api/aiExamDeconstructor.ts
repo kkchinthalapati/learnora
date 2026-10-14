@@ -2,6 +2,10 @@ import { callEdge } from "./ai";
 import { extractJSON } from "../lib/aiJson";
 import { collection } from "../lib/storage";
 import type { Settings } from "../lib/settings";
+import { fenceUntrusted } from "../lib/actionTags";
+import { getKnownMisconception, type KnownMisconception } from "../lib/misconceptionCatalogue";
+import type { BankQuestion } from "../lib/questionBank";
+import { bankTopicTitle, fetchMisconceptionMappedQuestions } from "./questionBank";
 
 export interface TrapArchetype {
   id: string;
@@ -33,6 +37,12 @@ export interface SprintQuestion {
   hint: string;
   topic?: string;
   difficulty?: "standard" | "tricky" | "mastery";
+  /** Where it came from. Built-in and bank questions were written and
+   *  checked by people; an AI one was not, and its bait is weaker evidence. */
+  source?: "builtin" | "bank" | "ai";
+  /** The catalogue misconception the bait option is mapped to (bank
+   *  questions), so the ledger files it under the app's shared concept. */
+  misconceptionId?: string;
 }
 
 export interface AhaDisarmWalkthrough {
@@ -150,6 +160,18 @@ export const CANONICAL_TRAP_ARCHETYPES: TrapArchetype[] = [
     disarmRule:
       "If an answer came too easily, spend ten seconds checking it against an example.",
   },
+  {
+    id: "common-misconceptions",
+    name: "Common misconceptions",
+    category: "misconceptions",
+    description:
+      "A wrong option written to match a belief many students hold, so it feels right before you think it through.",
+    examplePattern:
+      "Offering \"higher pH means more acidic\" next to the right answer.",
+    frequency: "Pervasive",
+    disarmRule:
+      "Before you choose, ask whether the option is what is true or what most people think is true.",
+  },
 ];
 
 const QUESTION_BANK: Record<string, SprintQuestion[]> = {
@@ -191,9 +213,9 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
       trapName: "NOT and EXCEPT questions",
       baitOptionIndex: 0,
       baitExplanation:
-        "Extreme Value Theorem guarantees max and min on closed intervals, so option 1 looks familiar and tempting to select immediately.",
+        "The Extreme Value Theorem guarantees a maximum and minimum on a closed interval, so that familiar statement jumps out and gets picked before the NOT is read.",
       trapExplanation:
-        "The question asked which is NOT necessarily true. Differentiability (f'(x) exists) requires smoothness, which is not guaranteed by continuity alone (e.g. absolute value function at a corner).",
+        "The question asked which is NOT necessarily true. Continuity does not give a derivative anywhere: the Weierstrass function is continuous everywhere and differentiable nowhere. (|x| only shows a single corner; it is differentiable everywhere else.) The other three are the Extreme Value Theorem, the Intermediate Value Theorem and boundedness, all guaranteed.",
       hint: "Notice 'NOT necessarily true'. Look for an assumption requiring differentiability rather than mere continuity.",
       topic: "Real Analysis & Calculus",
       difficulty: "standard",
@@ -276,7 +298,7 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
       trapName: "NOT and EXCEPT questions",
       baitOptionIndex: 0,
       baitExplanation:
-        "Option 1 is the canonical textbook property of Dijkstra, prompting an eager click.",
+        "\"Finds shortest paths with non-negative weights\" is the textbook description of Dijkstra, so it gets an eager click, but it is true, and the question asks for the false one.",
       trapExplanation:
         "Dijkstra's algorithm does NOT handle or detect negative cycles; it can enter infinite loops or produce wrong paths on negative weights. Bellman-Ford is needed for negative cycle detection.",
       hint: "Spot the negative prompt 'NOT true'. What happens when edge weights are negative?",
@@ -523,26 +545,37 @@ const AHA_WALKTHROUGHS: Record<string, AhaDisarmWalkthrough> = {
   },
 };
 
+const TRAP_FOR_CATEGORY: Record<string, string> = {
+  edge_cases: "edge-case-hazards",
+  negative_wording: "negative-wording-maze",
+  hidden_assumptions: "hidden-assumptions",
+  lookalike_terms: "lookalike-terms",
+  units_scale: "units-and-scale-drift",
+  shortcuts: "premature-shortcut-traps",
+};
+
 const STORAGE_KEY_RADAR_HISTORY = "learnora_trap_immunity_radar_v1";
 const STORAGE_KEY_DISARMED_TRAPS = "learnora_disarmed_traps_v1";
 
 /**
  * Deconstruct exam paper or syllabus excerpt into professor trap archetypes.
+ *
+ * `fromMaterial` is false when the standard patterns came back instead (too
+ * little text to read, or the AI call failed). The hub must say so: a stock
+ * list is not a finding about the student's paper.
  */
 export async function deconstructExamPaper(
   textPayload?: string,
   subject?: string,
   settings?: Settings,
-): Promise<TrapArchetype[]> {
+): Promise<{ archetypes: TrapArchetype[]; fromMaterial: boolean }> {
   const safeSubject = subject?.trim() || "General Science & Engineering";
   const cleanPayload = textPayload?.trim() || "";
 
   if (settings && cleanPayload.length > 20) {
     try {
-      const prompt = `You are an expert exam detective analyzing this exam/syllabus text for the subject "${safeSubject}":
-"""
-${cleanPayload.slice(0, 3000)}
-"""
+      const prompt = `You are an expert exam detective analyzing this exam/syllabus text for the subject ${fenceUntrusted(safeSubject)}:
+${fenceUntrusted(cleanPayload.slice(0, 3000))}
 Extract 6 distinct Professor Trap Archetypes (such as edge cases, negative wording, hidden assumptions, lookalike terms, unit drift, premature shortcuts) that are most dangerous for students.
 Return a valid JSON array of objects with:
 - "id": string (kebab-case)
@@ -563,8 +596,18 @@ Return a valid JSON array of objects with:
       if (response.text) {
         const parsed = extractJSON<any[]>(response.text);
         if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].name) {
-          return parsed.map((item, idx) => ({
-            id: item.id || `trap-${idx + 1}`,
+          /* Each card takes its category's trap id (suffixed when two share
+             one), so "See how to spot it" opens that category's walkthrough
+             and sprint progress shows on the card. A free-form id matched
+             nothing and showed the edge-case walkthrough under its name. */
+          const used = new Set<string>();
+          const archetypes = parsed.map((item, idx) => ({
+            id: (() => {
+              const base = TRAP_FOR_CATEGORY[String(item.category)] ?? "edge-case-hazards";
+              const id = used.has(base) ? `${base}-${idx + 1}` : base;
+              used.add(id);
+              return id;
+            })(),
             name: String(item.name || `Trap ${idx + 1}`),
             category: String(item.category || "edge_cases"),
             description: String(item.description || ""),
@@ -575,6 +618,7 @@ Return a valid JSON array of objects with:
               item.disarmRule || "Check boundary conditions carefully.",
             ),
           }));
+          return { archetypes, fromMaterial: true };
         }
       }
     } catch (err) {
@@ -585,67 +629,195 @@ Return a valid JSON array of objects with:
     }
   }
 
-  // Offline heuristic customization
-  return CANONICAL_TRAP_ARCHETYPES.map((arch) => ({
-    ...arch,
-    description: arch.description.replace(
-      /principles/g,
-      `${safeSubject} principles`,
-    ),
-  }));
+  // The standard patterns, labelled as such by the caller.
+  return {
+    archetypes: CANONICAL_TRAP_ARCHETYPES.map((arch) => ({
+      ...arch,
+      description: arch.description.replace(
+        /principles/g,
+        `${safeSubject} principles`,
+      ),
+    })),
+    fromMaterial: false,
+  };
+}
+
+/** The built-in pool for a subject, or null when it has none. Only the
+ *  subject's own questions: a History or Maths sprint padded with CS and
+ *  physics questions tests the wrong thing, and every bait answer in it was
+ *  filed in the ledger under the student's subject. */
+function builtinPoolFor(subject: string): SprintQuestion[] | null {
+  const s = subject.toLowerCase();
+  if (/\bcs\b/.test(s) || /comput|coding|algorithm|program|software/.test(s)) return QUESTION_BANK.cs;
+  if (/bio|chem|phys|science/.test(s)) return QUESTION_BANK.science;
+  if (/math|algebra|calcul|geometr|statistic|probab|trig|arithmetic|combinator/.test(s)) return QUESTION_BANK.math;
+  return null;
+}
+
+/** Which catalogue subjects a student's subject covers. */
+function catalogueSubjectsFor(subject: string): Set<KnownMisconception["subject"]> {
+  const s = subject.toLowerCase();
+  const out = new Set<KnownMisconception["subject"]>();
+  if (/bio/.test(s)) out.add("Biology");
+  if (/chem/.test(s)) out.add("Chemistry");
+  if (/phys/.test(s)) out.add("Physics");
+  if (/math|algebra|calcul|geometr|statistic|probab|trig|arithmetic/.test(s)) out.add("Mathematics");
+  if (/science/.test(s) && out.size === 0) {
+    out.add("Biology");
+    out.add("Chemistry");
+    out.add("Physics");
+  }
+  return out;
+}
+
+/** Bank questions as sprint questions: the option mapped to a catalogue
+ *  misconception is the bait, and the catalogue says why it looks right and
+ *  why it is wrong. Only misconceptions in the student's subject. Pure. */
+export function sprintFromBank(rows: readonly BankQuestion[], subject: string): SprintQuestion[] {
+  const subjects = catalogueSubjectsFor(subject);
+  if (subjects.size === 0) return [];
+  const out: SprintQuestion[] = [];
+  for (const row of rows) {
+    if (row.answer_type === "numeric" || row.choices.length < 3) continue;
+    const mapped = row.distractor_misconceptions ?? [];
+    const bait = mapped.findIndex((id, i) => !!id && i !== row.correct_index);
+    if (bait < 0) continue;
+    const entry = getKnownMisconception(mapped[bait]!);
+    if (!entry || !subjects.has(entry.subject)) continue;
+    out.push({
+      id: `bank-${row.id}`,
+      question: row.question,
+      options: [...row.choices],
+      correctAnswerIndex: row.correct_index,
+      trapArchetypeId: "common-misconceptions",
+      trapName: entry.concept,
+      baitOptionIndex: bait,
+      baitExplanation: `It matches a belief many students hold: ${entry.belief}`,
+      trapExplanation: [entry.whyWrong, row.explanation].filter(Boolean).join(" "),
+      hint: "One option says what a lot of people think. Check it against what you know is true.",
+      topic: bankTopicTitle(row.spec_key, row.topic_ref) ?? entry.concept,
+      source: "bank",
+      misconceptionId: entry.id,
+    });
+  }
+  return out;
+}
+
+const KNOWN_TRAPS = new Set(CANONICAL_TRAP_ARCHETYPES.map((t) => t.id));
+
+/** An AI-written sprint question, or null when it can't be marked: options
+ *  missing or repeated, an index out of range, a bait that is the answer, or
+ *  a trap type the playbook doesn't know. */
+function validSprintQuestion(raw: unknown, i: number): SprintQuestion | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const question = str(r.question);
+  const options = Array.isArray(r.options) ? r.options.map(str) : [];
+  const correct = Number(r.correctAnswerIndex);
+  const bait = Number(r.baitOptionIndex);
+  const trapId = str(r.trapArchetypeId);
+  if (!question || options.length < 3 || options.some((o) => !o)) return null;
+  if (new Set(options.map((o) => o.toLowerCase())).size !== options.length) return null;
+  const inRange = (n: number) => Number.isInteger(n) && n >= 0 && n < options.length;
+  if (!inRange(correct) || !inRange(bait) || correct === bait) return null;
+  if (!KNOWN_TRAPS.has(trapId) || trapId === "common-misconceptions") return null;
+  return {
+    id: str(r.id) || `ai-sprint-${i + 1}`,
+    question,
+    options,
+    correctAnswerIndex: correct,
+    trapArchetypeId: trapId,
+    trapName: str(r.trapName) || CANONICAL_TRAP_ARCHETYPES.find((t) => t.id === trapId)!.name,
+    baitOptionIndex: bait,
+    baitExplanation: str(r.baitExplanation),
+    trapExplanation: str(r.trapExplanation),
+    hint: str(r.hint),
+    ...(str(r.topic) ? { topic: str(r.topic) } : {}),
+    source: "ai",
+  };
+}
+
+/** The options in a random order, with both indices following them. Every
+ *  built-in question was written with the bait first, so unshuffled the trap
+ *  was always option A. */
+function shuffleOptions(q: SprintQuestion, random: () => number): SprintQuestion {
+  const order = shuffled(
+    q.options.map((_, i) => i),
+    random,
+  );
+  return {
+    ...q,
+    options: order.map((i) => q.options[i]),
+    correctAnswerIndex: order.indexOf(q.correctAnswerIndex),
+    baitOptionIndex: order.indexOf(q.baitOptionIndex),
+  };
+}
+
+function shuffled<T>(items: readonly T[], random: () => number): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
 
 /**
- * Generate a challenge sprint of tricky practice questions with bait explanations and detective hints.
+ * A challenge sprint: tricky questions whose wrong options are built around
+ * named traps, each with the belief that makes the bait look right.
+ *
+ * Sources, best first, never mixing in another subject:
+ *   1. the practice bank's questions with a wrong option mapped to a
+ *      catalogue misconception (written and checked by people);
+ *   2. the built-in pool for the subject;
+ *   3. AI-written questions, checked for shape before use, when 1 and 2 are
+ *      short.
+ * Never the same question twice (a repeat would file one bait answer as a
+ * recurring misconception). A shorter sprint beats padding; none at all
+ * throws, and the hub says so.
  */
 export async function generateChallengeSprint(
   subject?: string,
   _trapArchetypes?: TrapArchetype[],
   count = 4,
   settings?: Settings,
+  random: () => number = Math.random,
 ): Promise<SprintQuestion[]> {
-  const normSubject = (subject || "").toLowerCase();
-  let pool: SprintQuestion[] = [];
+  const label = subject?.trim() ?? "";
+  const picked: SprintQuestion[] = [];
+  const add = (q: SprintQuestion) => {
+    if (picked.length < count && !picked.some((p) => p.question === q.question)) picked.push(q);
+  };
 
-  if (
-    /\bcs\b/i.test(normSubject) ||
-    normSubject.includes("computer") ||
-    normSubject.includes("code") ||
-    normSubject.includes("algo") ||
-    normSubject.includes("program") ||
-    normSubject.includes("software")
-  ) {
-    pool = [...QUESTION_BANK.cs, ...QUESTION_BANK.math];
-  } else if (
-    normSubject.includes("bio") ||
-    normSubject.includes("chem") ||
-    normSubject.includes("phys") ||
-    normSubject.includes("science")
-  ) {
-    pool = [...QUESTION_BANK.science, ...QUESTION_BANK.math];
-  } else {
-    pool = [
-      ...QUESTION_BANK.math,
-      ...QUESTION_BANK.cs,
-      ...QUESTION_BANK.science,
-    ];
+  let bank: SprintQuestion[] = [];
+  try {
+    bank = sprintFromBank(await fetchMisconceptionMappedQuestions(), label);
+  } catch (err) {
+    console.warn("[detective] practice bank unavailable:", err);
   }
+  shuffled(bank, random).forEach(add);
+  (builtinPoolFor(label) ?? []).forEach((q) => add({ ...q, source: "builtin" }));
 
-  // If settings provided and online, could enhance with AI
-  if (settings && count > pool.length) {
+  if (settings && picked.length < count) {
     try {
-      const prompt = `Generate ${count} tricky multiple choice exam questions for subject "${subject || "STEM"}" specifically designed around professor traps.
+      const wanted = count - picked.length;
+      const trapIds = CANONICAL_TRAP_ARCHETYPES.filter((t) => t.id !== "common-misconceptions")
+        .map((t) => `"${t.id}"`)
+        .join(", ");
+      const prompt = `Generate ${wanted} tricky multiple choice exam questions for the subject below, each built around one professor trap.
+Subject: ${fenceUntrusted(label || "STEM")}
 For each question, provide:
 - "id": string
 - "question": string
-- "options": array of 4 string options
+- "options": array of 4 different string options
 - "correctAnswerIndex": number (0-3)
-- "trapArchetypeId": string
+- "trapArchetypeId": one of ${trapIds}
 - "trapName": string
-- "baitOptionIndex": number
-- "baitExplanation": string
-- "trapExplanation": string
-- "hint": string
+- "baitOptionIndex": number (0-3), the option the trap makes look right; never the correct one
+- "baitExplanation": string, why the bait looks right (never refer to option letters or positions)
+- "trapExplanation": string, why the right answer is right
+- "hint": string that does not give the answer away
 - "topic": string
 Return JSON array only.`;
 
@@ -655,28 +827,22 @@ Return JSON array only.`;
         tool: "examDeconstructor",
         settings,
       });
-
-      if (response.text) {
-        const parsed = extractJSON<any[]>(response.text);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.slice(0, count);
-        }
+      const parsed = response.text ? extractJSON<unknown[]>(response.text) : null;
+      if (Array.isArray(parsed)) {
+        parsed.forEach((raw, i) => {
+          const q = validSprintQuestion(raw, i);
+          if (q) add(q);
+        });
       }
-    } catch {
-      // Fallback to pool
+    } catch (err) {
+      console.warn("[detective] AI sprint unavailable:", err);
     }
   }
 
-  // Ensure requested count
-  const result: SprintQuestion[] = [];
-  for (let i = 0; i < count; i++) {
-    const q = pool[i % pool.length];
-    result.push({
-      ...q,
-      id: `${q.id}-${i + 1}`,
-    });
+  if (picked.length === 0) {
+    throw new Error(`Couldn't put together a sprint for ${label || "that subject"} just now. Try again in a minute.`);
   }
-  return result;
+  return picked.map((q, i) => shuffleOptions({ ...q, id: `${q.id}-${i + 1}` }, random));
 }
 
 /**
@@ -687,9 +853,20 @@ export async function getAhaDisarmWalkthrough(
   _subject?: string,
   _settings?: Settings,
 ): Promise<AhaDisarmWalkthrough> {
-  const existing = AHA_WALKTHROUGHS[trapId];
+  /* A playbook card from a paper analysis carries its category's trap id,
+     with a suffix when two cards share a category. */
+  const existing = AHA_WALKTHROUGHS[trapId] ?? AHA_WALKTHROUGHS[trapId.replace(/-\d+$/, "")];
   if (existing) {
     return existing;
+  }
+
+  /* A bank question's bait is a catalogue misconception: the catalogue has
+     the belief, why it is wrong, the re-teach and a check question. */
+  const entry = getKnownMisconception(trapId);
+  if (entry) return walkthroughFromCatalogue(entry);
+  if (trapId === "common-misconceptions") {
+    const example = getKnownMisconception("chem-higher-ph-more-acidic");
+    if (example) return { ...walkthroughFromCatalogue(example), trapId, trapName: "Common misconceptions" };
   }
 
   // Find canonical or fallback
@@ -702,6 +879,42 @@ export async function getAhaDisarmWalkthrough(
     trapName: trapId
       .replace(/-/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase()),
+  };
+}
+
+function walkthroughFromCatalogue(entry: KnownMisconception): AhaDisarmWalkthrough {
+  return {
+    trapId: entry.id,
+    trapName: entry.concept,
+    step1Bait: {
+      title: "The bait",
+      description: "One option is written to match what many students already believe.",
+      baitExample: entry.belief,
+      whyItTricksStudents: "It feels familiar, because it is how a lot of people first picture the idea.",
+    },
+    step2SneakyTrick: {
+      title: "Why it's wrong",
+      mechanism: entry.whyWrong,
+      distractorDesign: `Examiners offer this belief as an option because it is so common (${entry.category.toLowerCase()}).`,
+    },
+    step3DetectiveRule: {
+      title: "The right idea",
+      ruleStatement: entry.remediation,
+      checklist: [
+        "Name the idea the question is really testing.",
+        "Ask whether the tempting option is what is true, or what people think is true.",
+        "Check it against one fact you are sure of.",
+      ],
+      motto: "Familiar isn't the same as right.",
+    },
+    step4DisarmChallenge: {
+      title: "Check yourself",
+      scenario: entry.check.question,
+      options: [...entry.check.choices],
+      correctAnswerIndex: entry.check.correctIndex,
+      explanation: entry.check.explanation,
+      celebrationNote: "That's the right idea, not just the familiar one.",
+    },
   };
 }
 
@@ -726,6 +939,17 @@ export function markTrapDisarmed(trapId: string): string[] {
     return current;
   } catch {
     return [trapId];
+  }
+}
+
+/** A trap the student fell for again is not disarmed any more. */
+export function markTrapArmed(trapId: string): string[] {
+  try {
+    const updated = getStoredDisarmedTraps().filter((id) => id !== trapId);
+    localStorage.setItem(STORAGE_KEY_DISARMED_TRAPS, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
   }
 }
 

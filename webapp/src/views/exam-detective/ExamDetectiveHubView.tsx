@@ -32,6 +32,14 @@ const FREQUENCY_LABEL: Record<string, string> = {
   Common: "Comes up",
 };
 
+/* The playbook's heading counts what it shows: the standard list, or however
+   many patterns a paper analysis found. It said "Six" whatever was below. */
+const NUMBER_WORDS = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
+function trapsHeading(count: number): string {
+  const n = NUMBER_WORDS[count] ?? String(count);
+  return `${n} ${count === 1 ? "trap" : "traps"} worth recognising`;
+}
+
 export function ExamDetectiveHubView() {
   const { showToast } = useToast();
   const { settings } = useSettings();
@@ -74,13 +82,21 @@ export function ExamDetectiveHubView() {
     }
     setIsDeconstructing(true);
     try {
-      const results = await deconstructExamPaper(
+      const { archetypes: results, fromMaterial } = await deconstructExamPaper(
         rawTextPayload,
         subject,
         settings,
       );
       setArchetypes(results);
-      showToast(`Found ${results.length} trap patterns in your material.`);
+      /* The stock list is not a finding about this paper, so it never wears
+         "found in your material". */
+      showToast(
+        fromMaterial
+          ? `Found ${results.length} trap patterns in your material.`
+          : rawTextPayload.trim().length > 20
+            ? "Couldn't analyse that material just now. Showing the common trap patterns instead."
+            : "Paste a few lines of a paper or syllabus to analyse it. Showing the common trap patterns for now.",
+      );
       setActiveTab("playbook");
     } catch {
       showToast(
@@ -108,8 +124,13 @@ export function ExamDetectiveHubView() {
       );
       setSprintQuestions(questions);
       setIsSprintRunning(true);
-    } catch {
-      showToast("Unable to start sprint. Please try again.");
+    } catch (err) {
+      showToast(
+        err instanceof Error && err.message.startsWith("Couldn't put together a sprint")
+          ? err.message
+          : "Unable to start sprint. Please try again.",
+        { error: true },
+      );
     } finally {
       setIsLoadingSprint(false);
     }
@@ -241,7 +262,7 @@ export function ExamDetectiveHubView() {
           <div className={styles.sectionHeader}>
             <div>
               <h2 className={styles.sectionTitle}>
-                Six traps worth recognising
+                {trapsHeading(archetypes.length)}
               </h2>
               <p className={styles.sectionDesc}>
                 See how exam questions hide edge cases, reversed wording and

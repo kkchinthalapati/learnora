@@ -45,7 +45,7 @@ describe("ExamDetectiveHubView", () => {
     expect(
       screen.getByRole("heading", { name: "Exam traps" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Six traps worth recognising")).toBeInTheDocument();
+    expect(screen.getByText("Seven traps worth recognising")).toBeInTheDocument();
 
     // Tab buttons
     expect(
@@ -106,7 +106,7 @@ describe("ExamDetectiveHubView", () => {
     // After scanning, switches back to playbook with archetypes
     await waitFor(() => {
       expect(
-        screen.getByText("Six traps worth recognising"),
+        screen.getByText("One trap worth recognising"),
       ).toBeInTheDocument();
     });
   });
@@ -158,6 +158,30 @@ describe("ExamDetectiveHubView", () => {
   });
 
   it("launches Challenge Sprint and renders runner", async () => {
+    /* The picker opens on the "Midterm" exam: no built-in pool and no
+       mapped bank questions, so the AI writes the sprint (and it is never
+       padded with another subject's questions). */
+    server.use(
+      http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
+        HttpResponse.json({
+          text: JSON.stringify([
+            {
+              id: "mid-1",
+              question: "Which statement must be true?",
+              options: ["The tempting one", "The right one", "A third", "A fourth"],
+              correctAnswerIndex: 1,
+              baitOptionIndex: 0,
+              trapArchetypeId: "hidden-assumptions",
+              trapName: "Hidden assumptions",
+              baitExplanation: "It assumes something the question never said.",
+              trapExplanation: "Only what is stated can be used.",
+              hint: "What does the question actually give you?",
+              topic: "Midterm",
+            },
+          ]),
+        }),
+      ),
+    );
     const user = userEvent.setup();
     renderWithAuth(
       <ExamDetectiveHubView />,

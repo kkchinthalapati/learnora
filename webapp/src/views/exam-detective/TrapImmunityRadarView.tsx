@@ -46,6 +46,11 @@ const RADAR_AXES: RadarAxis[] = [
     key: "premature-shortcut-traps",
     badgeName: "Premature shortcuts",
   },
+  {
+    label: "Misconceptions",
+    key: "common-misconceptions",
+    badgeName: "Common misconceptions",
+  },
 ];
 
 export function TrapImmunityRadarView({
