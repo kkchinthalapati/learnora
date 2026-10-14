@@ -79,6 +79,10 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
     [session.data.practice],
   );
   const [chosen, setChosen] = useState<number | null>(null);
+  /* "Pick an answer first." — said when Check is pressed with nothing
+     picked. Check is aria-disabled, not disabled, so it stays in the focus
+     order and can explain itself. */
+  const [nudge, setNudge] = useState(false);
   const [confidence, setConfidence] = useState<Confidence | null>(null);
   const [now, setNow] = useState(() => Date.now());
   /* A question asked about the problem, and the tutor's hint back. Not
@@ -270,6 +274,7 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
   };
 
   const next = () => {
+    setNudge(false);
     setAside(null);
     setChosen(null);
     setConfidence(null);
@@ -295,6 +300,8 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
     });
   };
 
+  const hinted = struckHere.length > 0;
+  const lastQuestion = !!data.questions && index + 1 >= data.questions.length;
   const right = Object.values(data.answers).filter((a) => a.correct).length;
   const guessed = Object.values(data.answers).filter(
     (a) => a.correct && a.confidence === "guess",
@@ -345,6 +352,21 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                         type="button"
                         className={styles.option}
                         aria-pressed={(answer?.chosen ?? chosen) === i}
+                        /* After Check the options keep focus (aria-disabled,
+                           not disabled) and the result is in the name, so a
+                           screen reader hears "B: It goes down. Your answer ·
+                           right". */
+                        aria-label={
+                          answer && !struck
+                            ? `${KEYS[i]}: ${choice}${
+                                answer.chosen === i
+                                  ? `. Your answer · ${answer.correct ? "right" : "not quite"}`
+                                  : i === question.correctIndex
+                                    ? ". The right answer"
+                                    : ""
+                              }`
+                            : undefined
+                        }
                         data-result={
                           answer && i === question.correctIndex
                             ? "right"
@@ -352,8 +374,12 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                               ? "wrong"
                               : undefined
                         }
-                        disabled={Boolean(answer) || struck}
-                        onClick={() => setChosen(i)}
+                        aria-disabled={Boolean(answer) || struck || undefined}
+                        onClick={() => {
+                          if (answer || struck) return;
+                          setChosen(i);
+                          setNudge(false);
+                        }}
                       >
                         <span className={styles.key} aria-hidden="true">
                           {KEYS[i]}
@@ -368,16 +394,28 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
               )}
               {answer ? (
                 <>
-                  <p className={styles.verdict} data-result={answer.correct ? "right" : "wrong"}>
-                    {answer.correct
-                      ? answer.confidence === "guess"
-                        ? "✓ Right, but you guessed. It will come back sooner so it sticks. "
-                        : "✓ Right. "
-                      : question.answerType === "numeric"
-                        ? `✕ ${answer.feedback ?? "Not quite."} The answer is ${question.choices[0]}. `
-                        : "✕ Not this one."}
-                    {answer.correct ? (question.feedback ?? "") : ""}
-                  </p>
+                  <div
+                    className={styles.feedback}
+                    data-result={answer.correct ? "right" : "notyet"}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <p className={styles.verdict}>
+                      {answer.correct ? "Right" : "Not quite"}
+                    </p>
+                    <p className={styles.feedbackText}>
+                      {answer.correct
+                        ? answer.confidence === "guess"
+                          ? "Right, but you guessed. It will come back sooner so it sticks. "
+                          : hinted
+                            ? "Nicely worked out. You used a hint, so keep an eye on this one. "
+                            : ""
+                        : question.answerType === "numeric"
+                          ? `${answer.feedback ?? ""} The answer is ${question.choices[0]}. `
+                          : ""}
+                      {answer.correct ? (question.feedback ?? "") : ""}
+                    </p>
+                  </div>
                   {!answer.correct && answer.chosen >= 0 ? (
                     <WrongAnswerNote
                       question={question}
@@ -388,25 +426,31 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                   <ReportProblem questionRef={questionRef(question)} questionText={question.question} />
                   <div className={styles.actions}>
                     <Button variant="primary" onClick={next}>
-                      {data.questions && index + 1 >= data.questions.length ? "Finish" : "Next problem"}
+                      {lastQuestion ? "Finish" : "Next"}
                     </Button>
                   </div>
                 </>
               ) : (
                 <>
                   <ConfidencePicker value={confidence} onChange={setConfidence} />
-                  <div className={styles.actions}>
-                    {question.answerType === "numeric" ? null : (
-                      <>
-                        <Button variant="primary" onClick={() => check()} disabled={chosen === null}>
-                          Check my answer
-                        </Button>
-                        <Button variant="ghost" onClick={strike} disabled={!canStrike}>
-                          {canStrike ? "Hint (costs nothing)" : "No more hints: it's one of these two"}
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                  {question.answerType === "numeric" ? null : (
+                    <div className={styles.checkBar}>
+                      <Button variant="ghost" onClick={strike} aria-disabled={!canStrike || undefined}>
+                        {canStrike ? "I’m stuck" : "No more hints: it’s one of these two"}
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        aria-disabled={chosen === null || undefined}
+                        onClick={() => (chosen === null ? setNudge(true) : check())}
+                      >
+                        Check
+                      </Button>
+                    </div>
+                  )}
+                  <p className={styles.nudge} role="status">
+                    {nudge && chosen === null ? "Pick an answer first." : ""}
+                  </p>
                 </>
               )}
             </>

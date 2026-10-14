@@ -12,6 +12,7 @@ import { useContinuity } from "../../hooks/useContinuity";
 import { useRemoteSessionResume } from "../../hooks/useRemoteSessionResume";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { MistakeLoopSection } from "./MistakeLoopSection";
+import { nextCheckBack } from "../../lib/checkBack";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { useSessionsSince } from "../../hooks/useSessions";
 import { useTasks } from "../../hooks/useTasks";
@@ -146,6 +147,7 @@ export function TodayView() {
   }, [sessions.data, attempts.data]);
 
   const daysToExam = forecast?.daysRemaining;
+  const checkBack = useMemo(() => nextCheckBack(misconceptions, now), [misconceptions, now]);
 
   /* Back after a break: something studied before, nothing in the last week.
      Greets the student back with no catching up — never an overdue count. */
@@ -194,6 +196,7 @@ export function TodayView() {
           dueCards={topDeckDue}
           totalDue={totalDue}
           session={session}
+          checkBack={checkBack}
           rough={rough}
           shortOnTime={shortOnTime}
           onShortOnTime={setShortOnTime}
@@ -219,7 +222,11 @@ export function TodayView() {
             void navigate("/timer");
           }}
         />
-        <MistakeLoopSection misconceptions={misconceptions} now={now} />
+        <MistakeLoopSection
+          misconceptions={misconceptions}
+          now={now}
+          leadId={checkBack?.id}
+        />
         {completed ? (
           <SessionCompletePanel
             session={completed}
