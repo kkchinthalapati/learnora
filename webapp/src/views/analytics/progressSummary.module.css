@@ -1,0 +1,173 @@
+/* Progress summary (2026-10 revamp, design_handoff → Screens "Progress"). */
+
+.week,
+.card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.weekTitle {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.weekLines {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--text-secondary);
+}
+
+.weekLines strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.link {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.link:focus-visible,
+.tableToggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: 400;
+  line-height: var(--leading-h2);
+}
+
+.text,
+.caption {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: var(--fs-base);
+  line-height: var(--leading-body);
+  color: var(--text-secondary);
+}
+
+.caption {
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+}
+
+/* 20 segments; untested ones are dashed and neutral, never red. */
+.counter {
+  display: grid;
+  grid-template-columns: repeat(20, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.counter > span {
+  height: 8px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 2px;
+}
+
+.counter > span[data-done] {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+}
+
+/* The band: solid = likely, dashed = possible. */
+.band {
+  position: relative;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunk);
+}
+
+.possible,
+.likely {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--radius-full);
+}
+
+.possible {
+  border: 1.5px dashed var(--accent);
+}
+
+.likely {
+  top: 4px;
+  bottom: 4px;
+  background: var(--accent);
+}
+
+.scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+}
+
+.tableToggle {
+  justify-self: start;
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.table {
+  border-collapse: collapse;
+  font-size: var(--fs-base);
+}
+
+.table th,
+.table td {
+  padding: var(--space-1) var(--space-4) var(--space-1) 0;
+  text-align: left;
+}
+
+.best {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+  font-size: var(--fs-base);
+}
+
+.bestLabel {
+  margin-right: var(--space-2);
+  font-weight: 600;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

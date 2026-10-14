@@ -140,6 +140,9 @@ const LazyStudyAnalyticsView = lazy(async () => ({
 const LazySessionView = lazy(async () => ({
   default: (await import("./views/session/SessionView")).SessionView,
 }));
+const LazyUpgradeView = lazy(async () => ({
+  default: (await import("./views/upgrade/UpgradeView")).UpgradeView,
+}));
 const LazyCheckBackView = lazy(async () => ({
   default: (await import("./views/checkback/CheckBackView")).CheckBackView,
 }));
@@ -503,6 +506,15 @@ export function AppRoutes() {
               element={
                 <DeferredView>
                   <LazyFriendInviteLanding />
+                </DeferredView>
+              }
+            />
+            {/* Plan comparison is a page you open, never a modal. */}
+            <Route
+              path="/upgrade"
+              element={
+                <DeferredView>
+                  <LazyUpgradeView />
                 </DeferredView>
               }
             />
