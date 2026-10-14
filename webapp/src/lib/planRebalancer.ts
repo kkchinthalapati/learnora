@@ -200,7 +200,8 @@ export function detectPlanDeficit(
 
     if (remainingDaysCount > 0) {
       const avgExtra = Math.round(totalMissedMinutes / remainingDaysCount);
-      recommendation = `You're ${timeStr} behind. We can spread that out — about ${avgExtra} minutes extra on each of your remaining ${remainingDaysCount} day${remainingDaysCount > 1 ? "s" : ""}.`;
+      /* No "you're behind" (P3, no guilt): say what didn't happen, then the fix. */
+      recommendation = `${timeStr} of study didn't happen this week, and that's fine. We can spread that out — about ${avgExtra} minutes extra on each of your remaining ${remainingDaysCount} day${remainingDaysCount > 1 ? "s" : ""}.`;
     } else {
       recommendation = `You missed ${timeStr} this week. Make a new plan for next week and start fresh.`;
     }
@@ -619,7 +620,8 @@ export function proposeRebalance(
     shortfallMinutes === 0 ? "ready" : placedMinutes > 0 ? "partial" : "no-room";
 
   /* ── Words ── */
-  let headline = `You're ${formatDuration(deficit.totalMissedMinutes)} behind this week's plan.`;
+  /* Stated as what didn't happen, never as "behind" (P3, no guilt). */
+  let headline = `${formatDuration(deficit.totalMissedMinutes)} of this week's plan didn't happen. It can move to the days you have left.`;
   if (exam.state === "upcoming") {
     headline += ` ${exam.name} is ${whenLabel(exam.daysLeft)}.`;
   }

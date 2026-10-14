@@ -709,7 +709,7 @@ describe("PlanView", () => {
         { date: todayOffset(3), blocks: [] },
       ],
     };
-    const APPLY = /Apply changes|Apply what fits|Let it go/;
+    const APPLY = /^Looks good|Let it go/;
 
     type StoredBlock = {
       subject: string;
@@ -737,21 +737,21 @@ describe("PlanView", () => {
       renderPlan();
 
       expect(
-        await screen.findByText("You're behind. Rebalance?"),
+        await screen.findByText("Missed some days? That's fine."),
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/You're 2h 15m behind this week's plan\./),
+        screen.getByText(/2h 15m of this week's plan didn't happen\./),
       ).toBeInTheDocument();
 
       await userEvent.click(
-        screen.getByRole("button", { name: /Preview changes/ }),
+        screen.getByRole("button", { name: /Move it for me/ }),
       );
       const dialog = await screen.findByRole("dialog", {
-        name: "Rebalance your week",
+        name: "Move what you missed",
       });
       expect(within(dialog).getByText(/Missed blocks stay on their day/)).toBeInTheDocument();
 
-      await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      await userEvent.click(within(dialog).getByRole("button", { name: "Keep my old plan" }));
       await waitFor(() =>
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
       );
@@ -764,10 +764,10 @@ describe("PlanView", () => {
       renderPlan();
 
       await userEvent.click(
-        await screen.findByRole("button", { name: /Preview changes/ }),
+        await screen.findByRole("button", { name: /Move it for me/ }),
       );
       const dialog = await screen.findByRole("dialog", {
-        name: "Rebalance your week",
+        name: "Move what you missed",
       });
       await userEvent.click(within(dialog).getByRole("button", { name: APPLY }));
 
@@ -792,7 +792,7 @@ describe("PlanView", () => {
       // The banner is gone (nothing is owed twice) and Undo is offered.
       await waitFor(() =>
         expect(
-          screen.queryByText("You're behind. Rebalance?"),
+          screen.queryByText("Missed some days? That's fine."),
         ).not.toBeInTheDocument(),
       );
       const undoButtons = await screen.findAllByRole("button", { name: "Undo" });
@@ -800,7 +800,7 @@ describe("PlanView", () => {
 
       await waitFor(() => expect(patches).toHaveLength(2));
       expect(patches[1]).toEqual(planWithPastDeficit);
-      expect(await screen.findByText("Rebalance undone.")).toBeInTheDocument();
+      expect(await screen.findByText("Back to your old plan.")).toBeInTheDocument();
     });
 
     it("opens the preview straight from the dashboard's ?rebalance=1 link", async () => {
@@ -816,7 +816,7 @@ describe("PlanView", () => {
       );
 
       expect(
-        await screen.findByRole("dialog", { name: "Rebalance your week" }),
+        await screen.findByRole("dialog", { name: "Move what you missed" }),
       ).toBeInTheDocument();
     });
 
@@ -846,7 +846,7 @@ describe("PlanView", () => {
 
       await screen.findByText("Original full schedule");
       expect(
-        screen.queryByText("You're behind. Rebalance?"),
+        screen.queryByText("Missed some days? That's fine."),
       ).not.toBeInTheDocument();
     });
 
@@ -877,7 +877,7 @@ describe("PlanView", () => {
       expect(await screen.findByText(/60m · Rescheduled/)).toBeInTheDocument();
       expect(screen.getByText("Catch-up from yesterday")).toBeInTheDocument();
       expect(
-        screen.queryByText("You're behind. Rebalance?"),
+        screen.queryByText("Missed some days? That's fine."),
       ).not.toBeInTheDocument();
     });
   });

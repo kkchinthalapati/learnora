@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes, useLocation } from "react-router";
@@ -148,6 +148,9 @@ function renderLibrary(path = "/library/folders") {
 }
 
 const tab = (name: string) => screen.getByRole("tab", { name });
+/* "All material"'s filter row: the four kinds, as links with their own URLs. */
+const kind = (name: string) =>
+  screen.getByRole("link", { name: new RegExp(`^(✓ )?${name}$`) });
 
 describe("LibraryView shell", () => {
   beforeEach(() => {
@@ -160,18 +163,15 @@ describe("LibraryView shell", () => {
 
   /* Subjects first: "one folder per class" is how students already sort
      school. Each tab says what it holds. */
-  it("opens on Subjects, with Notebooks last, and says what the tab holds", async () => {
+  it("opens on Subjects, two tabs not five, and says what the tab holds", async () => {
     serveLibrary({ folders: [folder()] });
     renderLibrary("/library");
 
+    /* 2026-10 revamp: Subjects and All material; the kinds live under the
+       second (Ben's J7, "folder vs notebook vs deck"). */
     const tabs = await screen.findAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual([
-      "Subjects",
-      "Files & notes",
-      "Flashcards",
-      "Quizzes",
-      "Notebooks",
-    ]);
+    expect(tabs.map((t) => t.textContent)).toEqual(["Subjects", "All material"]);
+    expect(screen.queryByRole("navigation", { name: "Kind of material" })).toBeNull();
     expect(tab("Subjects")).toHaveAttribute("aria-selected", "true");
     expect(
       screen.getByRole("heading", { name: "Your learning" }),
@@ -250,8 +250,18 @@ describe("LibraryView shell", () => {
     renderLibrary("/library/quizzes");
 
     expect(await screen.findByText("Cell division quiz")).toBeInTheDocument();
-    expect(tab("Quizzes")).toHaveAttribute("aria-selected", "true");
+    expect(tab("All material")).toHaveAttribute("aria-selected", "true");
     expect(tab("Subjects")).toHaveAttribute("aria-selected", "false");
+    /* The kind is the filter, in the order the design lists them. */
+    const nav = screen.getByRole("navigation", { name: "Kind of material" });
+    expect(within(nav).getAllByRole("link").map((l) => l.textContent?.replace("✓ ", ""))).toEqual([
+      "Files & notes",
+      "Flashcards",
+      "Quizzes",
+      "Notebooks",
+    ]);
+    expect(kind("Quizzes")).toHaveAttribute("aria-current", "page");
+    expect(kind("Flashcards")).not.toHaveAttribute("aria-current");
   });
 
   it("shows each quiz's latest score, or that it has not been taken", async () => {
@@ -290,7 +300,7 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    await user.click(tab("Files & notes"));
+    await user.click(tab("All material"));
 
     expect(await screen.findByText("Cell division")).toBeInTheDocument();
     expect(screen.getByTestId("path")).toHaveTextContent("/library/materials");
@@ -305,28 +315,26 @@ describe("LibraryView shell", () => {
     await screen.findByText("Biology");
 
     expect(tab("Subjects")).toHaveAttribute("tabindex", "0");
-    expect(tab("Files & notes")).toHaveAttribute("tabindex", "-1");
+    expect(tab("All material")).toHaveAttribute("tabindex", "-1");
 
     tab("Subjects").focus();
     await user.keyboard("{ArrowRight}");
 
     expect(await screen.findByText("Cell division")).toBeInTheDocument();
-    expect(tab("Files & notes")).toHaveAttribute("aria-selected", "true");
-    expect(tab("Files & notes")).toHaveFocus();
+    expect(tab("All material")).toHaveAttribute("aria-selected", "true");
+    expect(tab("All material")).toHaveFocus();
   });
 
   it("wraps from the last tab back to the first with Home/End", async () => {
     const user = userEvent.setup();
-    serveLibrary({ folders: [folder()] });
+    serveLibrary({ folders: [folder()], materials: [material()] });
     renderLibrary();
     await screen.findByText("Biology");
 
     tab("Subjects").focus();
     await user.keyboard("{End}");
-    expect(
-      await screen.findByText("No study notebooks yet"),
-    ).toBeInTheDocument();
-    expect(tab("Notebooks")).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByText("Cell division")).toBeInTheDocument();
+    expect(tab("All material")).toHaveAttribute("aria-selected", "true");
 
     await user.keyboard("{Home}");
     expect(tab("Subjects")).toHaveAttribute("aria-selected", "true");
@@ -338,8 +346,8 @@ describe("LibraryView shell", () => {
     await screen.findByText("Biology");
 
     const panel = screen.getByRole("tabpanel");
-    expect(panel).toHaveAttribute("id", "library-panel-folders");
-    expect(panel).toHaveAttribute("aria-labelledby", "library-tab-folders");
+    expect(panel).toHaveAttribute("id", "library-panel-subjects");
+    expect(panel).toHaveAttribute("aria-labelledby", "library-tab-subjects");
   });
 
   it("opens the create dialog from the header button", async () => {

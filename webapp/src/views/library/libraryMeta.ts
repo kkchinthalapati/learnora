@@ -33,6 +33,29 @@ export const LIBRARY_TABS = [
 
 export type LibraryTabId = (typeof LIBRARY_TABS)[number]["id"];
 
+/* 2026-10 revamp: two tabs instead of five (Screens "Library", Ben's J7:
+   "folder vs notebook vs deck"). "All material" holds the four kinds, which
+   keep their own URLs (/library/materials, /flashcards, /quizzes,
+   /notebooks) and appear as a filter row under it. */
+export type LibrarySection = "subjects" | "material";
+
+export const LIBRARY_SECTIONS: ReadonlyArray<{
+  id: LibrarySection;
+  label: string;
+  /** Where the tab goes: the section's first kind. */
+  tab: LibraryTabId;
+}> = [
+  { id: "subjects", label: "Subjects", tab: "folders" },
+  { id: "material", label: "All material", tab: "materials" },
+];
+
+export function sectionOf(tab: LibraryTabId): LibrarySection {
+  return tab === "folders" ? "subjects" : "material";
+}
+
+/** The kinds inside "All material", in filter-row order. */
+export const MATERIAL_KINDS = LIBRARY_TABS.filter((t) => t.id !== "folders");
+
 export function isLibraryTab(value: string | undefined): value is LibraryTabId {
   return LIBRARY_TABS.some((t) => t.id === value);
 }

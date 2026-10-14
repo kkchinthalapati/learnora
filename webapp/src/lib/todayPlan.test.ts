@@ -146,7 +146,7 @@ describe("alsoWorthDoing", () => {
     expect(rows[0]).toEqual({
       id: "plan-behind",
       kind: "task",
-      label: "You're 1h 30m behind this week's plan",
+      label: "1h 30m of this week's plan to move",
       estimate: "Plan",
       action: "Rebalance",
       to: "/plan?rebalance=1",

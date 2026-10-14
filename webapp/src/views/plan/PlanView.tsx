@@ -438,22 +438,22 @@ function RebalancePreview({
   const shortfallId = useId();
   const applyLabel =
     proposal.status === "ready"
-      ? "Apply changes"
+      ? "Looks good"
       : proposal.status === "partial"
-        ? "Apply what fits"
+        ? "Looks good, move what fits"
         : "Let it go";
 
   return (
     <Modal
       open
       onClose={onClose}
-      title="Rebalance your week"
+      title="Move what you missed"
       subtitle={proposal.headline}
       contentClassName={styles.editorModal}
       footer={
         <>
-          <Button onClick={onClose} disabled={saving}>
-            Cancel
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
+            Keep my old plan
           </Button>
           <Button variant="primary" onClick={onApply} disabled={saving}>
             {saving ? "Saving…" : applyLabel}
@@ -508,8 +508,8 @@ function RebalancePreview({
         </section>
       ) : null}
       <p className={styles.previewNote}>
-        Missed blocks stay on their day, marked as rescheduled. You can undo
-        this afterwards.
+        Missed blocks stay on their day, marked as moved, so nothing shows as
+        overdue. You can undo this afterwards.
       </p>
     </Modal>
   );
@@ -702,7 +702,7 @@ export function PlanView() {
       {
         onSuccess: () => {
           setUndo(null);
-          showToast("Rebalance undone.");
+          showToast("Back to your old plan.");
         },
         onError: () =>
           showToast("Could not undo the rebalance. Please try again.", {
@@ -738,7 +738,7 @@ export function PlanView() {
           showToast(
             proposal.status === "no-room"
               ? "Missed blocks cleared. Focus on your priorities."
-              : "Your week is rebalanced.",
+              : "Plan moved to the days you have left.",
             { actionLabel: "Undo", onAction: undoRebalance, duration: 10000 },
           );
         },
@@ -965,7 +965,7 @@ export function PlanView() {
           padding="none"
           className={styles.rebalanceBanner}
           role="region"
-          aria-label="Fit your missed study time back into the week"
+          aria-label="I missed some days"
         >
           <div className={styles.rebalanceContent}>
             <div className={styles.rebalanceIcon} aria-hidden="true">
@@ -973,7 +973,7 @@ export function PlanView() {
             </div>
             <div>
               <div className={styles.rebalanceTitle}>
-                You&apos;re behind. Rebalance?
+                Missed some days? That&apos;s fine.
               </div>
               <p className={styles.rebalanceMessage}>{proposal.headline}</p>
             </div>
@@ -985,7 +985,7 @@ export function PlanView() {
             className={styles.rebalanceButton}
           >
             <Icon name="refresh-cw" size={14} />
-            Preview changes
+            Move it for me
           </Button>
         </Card>
       ) : null}
@@ -997,14 +997,14 @@ export function PlanView() {
           className={styles.rebalanceDone}
           role="status"
         >
-          <span>Your week was rebalanced.</span>
+          <span>Plan moved to start from today. Nothing’s overdue.</span>
           <Button
             size="sm"
             variant="ghost"
             onClick={undoRebalance}
             disabled={updatePlan.isPending}
           >
-            Undo
+            Undo, keep my old plan
           </Button>
         </Card>
       ) : null}

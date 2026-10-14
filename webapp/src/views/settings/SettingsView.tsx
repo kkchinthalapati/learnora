@@ -14,54 +14,46 @@ import { PrivacyTab } from "./PrivacyTab";
 import { DangerTab } from "./DangerTab";
 import styles from "./settings.module.css";
 
+/* Six sections (2026-10 revamp, design_handoff → Research Report IA): what
+ * students actually change, named the way they'd say it. Nothing was
+ * removed — Security now sits under "You" and data/account removal under
+ * "Privacy and data". The old ids keep working as deep links (TAB_ALIASES). */
 export const SETTINGS_TABS = [
   {
     id: "account",
-    label: "Account",
-    description: "Profile and exports",
+    label: "You",
+    description: "Profile, password and sign-in",
     icon: "user",
   },
   {
     id: "appearance",
-    label: "Appearance",
-    description: "Theme and display",
+    label: "Look and reading",
+    description: "Theme, text size and reading mode",
     icon: "palette",
   },
   {
-    id: "security",
-    label: "Security",
-    description: "Password and sessions",
-    icon: "lock",
-  },
-  {
     id: "preferences",
-    label: "Preferences",
-    description: "AI, language, and calendar",
+    label: "Study",
+    description: "Tutor, language and calendar",
     icon: "settings",
   },
   {
-    id: "billing",
-    label: "Plan",
-    description: "Subscription and billing",
-    icon: "sparkles",
-  },
-  {
-    id: "privacy",
-    label: "Privacy",
-    description: "Visibility and your data",
-    icon: "shield",
-  },
-  {
     id: "notifications",
-    label: "Notifications",
-    description: "Reminders and devices",
+    label: "Reminders",
+    description: "When and how we nudge you",
     icon: "bell",
   },
   {
-    id: "danger",
-    label: "Danger Zone",
-    description: "Data and account removal",
-    icon: "alert-triangle",
+    id: "privacy",
+    label: "Privacy and data",
+    description: "AI consent, exports and your account",
+    icon: "shield",
+  },
+  {
+    id: "billing",
+    label: "Plan and usage",
+    description: "Your plan and today's tutor goes",
+    icon: "sparkles",
   },
 ] as const satisfies ReadonlyArray<{
   id: string;
@@ -73,14 +65,31 @@ export const SETTINGS_TABS = [
 export type SettingsTabId = (typeof SETTINGS_TABS)[number]["id"];
 
 const PANELS: Record<SettingsTabId, () => React.ReactElement> = {
-  account: AccountTab,
+  account: () => (
+    <>
+      <AccountTab />
+      <SecurityTab />
+    </>
+  ),
   appearance: AppearanceTab,
-  security: SecurityTab,
   preferences: PreferencesTab,
   notifications: NotificationsTab,
   billing: BillingTab,
-  privacy: PrivacyTab,
-  danger: DangerTab,
+  privacy: () => (
+    <>
+      <PrivacyTab />
+      <DangerTab />
+    </>
+  ),
+};
+
+/* Deep links from before the six-section Settings, and "subscription",
+   which five upgrade prompts link to and which was never a tab id (they all
+   landed on Account). */
+const TAB_ALIASES: Record<string, SettingsTabId> = {
+  security: "account",
+  danger: "privacy",
+  subscription: "billing",
 };
 
 export function SettingsView() {
@@ -89,7 +98,8 @@ export function SettingsView() {
      first tab to hunt from there. */
   const [searchParams] = useSearchParams();
   const [active, setActive] = useState<SettingsTabId>(() => {
-    const wanted = searchParams.get("tab");
+    const raw = searchParams.get("tab") ?? "";
+    const wanted = TAB_ALIASES[raw] ?? raw;
     return SETTINGS_TABS.some((t) => t.id === wanted)
       ? (wanted as SettingsTabId)
       : "account";
@@ -138,9 +148,7 @@ export function SettingsView() {
                 ref={(el) => {
                   tabRefs.current[tab.id] = el;
                 }}
-                className={`${styles.tabBtn}${
-                  tab.id === "danger" ? ` ${styles.tabBtnDanger}` : ""
-                }`}
+                className={styles.tabBtn}
                 onClick={() => setActive(tab.id)}
                 onKeyDown={(e) => onTabKeyDown(e, i)}
               >

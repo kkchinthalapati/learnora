@@ -829,7 +829,7 @@ test.describe("Guardrails", () => {
   test("deleting an account demands the password first", async ({ page, backend }) => {
     await loginAs(page);
     await page.goto("settings");
-    await page.getByRole("tab", { name: /Danger Zone/ }).click();
+    await page.getByRole("tab", { name: /Privacy and data/ }).click();
 
     await page.getByRole("button", { name: /Delete Account/ }).click();
     await page
