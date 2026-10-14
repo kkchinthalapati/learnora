@@ -1,0 +1,301 @@
+/* Check-back (2026-10 revamp, design_handoff → Screens "Session end +
+ * mistake loop"). Focus mode: no nav, one column, one question. */
+
+.shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.notNow {
+  min-height: var(--tap-min);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notNow:hover {
+  background: var(--accent-soft);
+}
+
+.topTitle {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6) var(--space-5) var(--space-12);
+}
+
+.column {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-h1);
+  font-weight: 400;
+  line-height: var(--leading-h1);
+}
+
+.text {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--text-secondary);
+}
+
+.caption,
+.nudge {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  color: var(--text-muted);
+}
+
+.link {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+/* The old belief, word for word, in a sunk box. */
+.context {
+  margin: 0;
+  padding: var(--space-3) 14px;
+  border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+  font-size: var(--fs-base);
+  line-height: var(--leading-small);
+}
+
+.context strong {
+  font-weight: 600;
+}
+
+/* Questions are sans only. */
+.question {
+  margin: 0;
+  font-size: var(--text-question);
+  font-weight: 500;
+  line-height: var(--leading-question);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  width: 100%;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover:not([aria-disabled="true"]) {
+  border-color: var(--text);
+}
+
+.option:focus-visible,
+.notNow:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.option[aria-disabled="true"] {
+  cursor: default;
+}
+
+.option[aria-pressed="true"] {
+  padding: calc(var(--space-2) - 1px) calc(var(--space-4) - 1px);
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.option[data-result="right"] {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+.option[data-result="wrong"] {
+  background: var(--surface-sunk);
+}
+
+.key {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.option[aria-pressed="true"] .key {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Not yet / improving: neutral, never red. */
+.feedback {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+}
+
+.verdict {
+  margin: 0;
+  font-size: var(--text-h3);
+  font-weight: 600;
+  line-height: var(--leading-h3);
+}
+
+.bar {
+  display: flex;
+}
+
+.wide {
+  flex: 1;
+}
+
+/* ---- The Fixed moment ---- */
+
+.fixed {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--success-soft);
+  animation: fixed-in var(--dur-base) var(--ease-out);
+}
+
+.fixed .wide {
+  align-self: stretch;
+}
+
+.tick {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--success);
+  color: var(--on-success);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+}
+
+.fixedLabel {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--success-text);
+}
+
+.fixedTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-num-xl);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.timeline {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-base);
+}
+
+.timeline li {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.when {
+  min-width: 96px;
+  font-weight: 600;
+  color: var(--success-text);
+}
+
+@keyframes fixed-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fixed {
+    animation-duration: 80ms;
+  }
+}

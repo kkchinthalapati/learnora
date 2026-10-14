@@ -136,7 +136,7 @@ test.describe("Mobile", () => {
       backend.aiReply = () => "{}";
       await loginAs(page);
       await page.goto(`study/new?mode=${mode}&topic=enzymes`);
-      await expect(page.getByRole("button", { name: "Save & leave" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Save and stop" })).toBeVisible();
       expect(await hasHorizontalOverflow(page)).toBe(false);
 
       const viewport = page.viewportSize()!;

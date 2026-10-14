@@ -124,11 +124,64 @@ describe("Practice hints", () => {
     renderPractice();
     await screen.findByText("Which term of the AP 3, 8, 13, … is 78?");
     for (let i = 0; i < 3; i++) {
-      const hint = screen.getByRole("button", { name: /Hint \(costs nothing\)|No more hints/ });
-      if (!hint.hasAttribute("disabled")) await userEvent.click(hint);
+      const hint = screen.getByRole("button", { name: /I’m stuck|No more hints/ });
+      if (!hint.hasAttribute("aria-disabled")) await userEvent.click(hint);
     }
     expect(screen.getAllByText(/ruled out by a hint/)).toHaveLength(2);
-    expect(screen.getByRole("button", { name: /No more hints/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /No more hints/ })).toHaveAttribute("aria-disabled", "true");
+  });
+});
+
+describe("Practice question flow (revamp step 2)", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+    localStorage.clear();
+    clearStudySnapshot();
+    mocks.generate.mockReset();
+    mocks.first.mockReset();
+    mocks.first.mockResolvedValue(BANK);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("Check stays focusable but says 'Pick an answer first.' until an option is picked", async () => {
+    renderPractice();
+    await screen.findByText("Bank question 0?");
+    const check = screen.getByRole("button", { name: "Check" });
+    expect(check).toHaveAttribute("aria-disabled", "true");
+    expect(check).not.toBeDisabled();
+    await userEvent.click(check);
+    expect(screen.getByText("Pick an answer first.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Water/ }));
+    expect(screen.queryByText("Pick an answer first.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Check" })).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("a wrong answer is 'Not quite', neutral, and options stay focusable with the result in their name", async () => {
+    renderPractice();
+    await screen.findByText("Bank question 0?");
+    await userEvent.click(screen.getByRole("button", { name: /Salt/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Check" }));
+    expect(screen.getByText("Not quite")).toBeInTheDocument();
+    expect(screen.queryByText(/✕/)).toBeNull();
+    const chosen = screen.getByRole("button", { name: "B: Salt. Your answer · not quite" });
+    expect(chosen).toHaveAttribute("aria-disabled", "true");
+    expect(chosen).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "A: Water. The right answer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
+  });
+
+  it("a right answer after a hint says so, honestly", async () => {
+    mocks.first.mockResolvedValue([
+      { question: "Pick one?", choices: ["A1", "B1", "C1", "D1"], correctIndex: 0, topic: "T" },
+      ...BANK.slice(0, 2),
+    ]);
+    renderPractice();
+    await screen.findByText("Pick one?");
+    await userEvent.click(screen.getByRole("button", { name: "I’m stuck" }));
+    await userEvent.click(screen.getByRole("button", { name: /A1/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Check" }));
+    expect(screen.getByText("Right")).toBeInTheDocument();
+    expect(screen.getByText(/Nicely worked out. You used a hint/)).toBeInTheDocument();
   });
 });
 

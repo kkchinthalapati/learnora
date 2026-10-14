@@ -24,6 +24,9 @@ import {
   newSessionHref,
   sessionHref,
 } from "../../lib/sessionModes";
+import type { Misconception } from "../../lib/misconceptions";
+import { isNamedPattern, mistakeTitle } from "../../lib/mistakeLoop";
+import { checkBackHref, onDay } from "../../lib/checkBack";
 import styles from "./today.module.css";
 
 /** How long "short on time" means. */
@@ -112,7 +115,10 @@ function StepCard({
   title,
   children,
   as: As = "div",
+  tone,
 }: {
+  /** "checkback": the 2px accent edge and --shadow-2 of a due check-back. */
+  tone?: "checkback";
   eyebrow: string;
   chip?: ReactNode;
   meta?: ReactNode;
@@ -134,14 +140,14 @@ function StepCard({
   );
   if (As === "ol") {
     return (
-      <div className={styles.card}>
+      <div className={styles.card} data-tone={tone}>
         {head}
         <ol className={styles.fixList}>{children}</ol>
       </div>
     );
   }
   return (
-    <div className={styles.card}>
+    <div className={styles.card} data-tone={tone}>
       {head}
       {children}
     </div>
@@ -158,6 +164,9 @@ interface TodayHeroProps {
   /** Cards due across every deck. */
   totalDue?: number;
   session?: LastStudySession | null;
+  /** A repaired mix-up whose check-back date has come (lib/checkBack). It
+   *  becomes the next step: one minute, and the loop only closes here. */
+  checkBack?: Misconception | null;
   rough?: RoughTest | null;
   shortOnTime?: boolean;
   onShortOnTime?: (short: boolean) => void;
@@ -176,6 +185,7 @@ export function TodayHero({
   dueCards = 0,
   totalDue = dueCards,
   session = null,
+  checkBack = null,
   rough = null,
   shortOnTime = false,
   onShortOnTime,
@@ -229,6 +239,44 @@ export function TodayHero({
       onShortOnTime={onShortOnTime}
     />
   );
+
+  /* A due check-back leads unless the student has said they're short on
+     time — and even then it's one minute, so it still fits. */
+  if (checkBack && !shortOnTime) {
+    const belief =
+      isNamedPattern(checkBack) && checkBack.summary ? checkBack.summary : mistakeTitle(checkBack);
+    return (
+      <section className={styles.lead} aria-labelledby="today-step">
+        <StepCard
+          tone="checkback"
+          eyebrow="Check-back ready"
+          chip={<span className={styles.chipQuiet}>1 question</span>}
+          title="Prove you’ve fixed it"
+        >
+          <p className={styles.quote}>
+            <span className={styles.quoteLabel}>
+              {onDay(checkBack.repairedAt ?? checkBack.lastSeenAt, now)} you thought
+            </span>
+            <span>“{belief}”</span>
+          </p>
+          <p className={styles.reason}>Here’s a brand-new question to see if that’s changed.</p>
+          <div className={styles.actions}>
+            <Link to={checkBackHref(checkBack.id)} className={styles.primary}>
+              Try it · 1 min
+            </Link>
+          </div>
+        </StepCard>
+        {session ? (
+          <p className={styles.caption}>
+            Then:{" "}
+            <Link to={sessionHref(session.id, session.mode)} className={styles.inlineLink}>
+              pick up {session.objective}
+            </Link>
+          </p>
+        ) : null}
+      </section>
+    );
+  }
 
   if (scenario === "returning" && session) {
     const mode = isSessionMode(session.mode)

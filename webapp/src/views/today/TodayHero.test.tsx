@@ -162,3 +162,28 @@ describe("TodayHero — scenarios", () => {
     expect(screen.getByRole("status", { name: "Working out your next step…" })).toBeInTheDocument();
   });
 });
+
+describe("TodayHero — check-back due (mistake loop)", () => {
+  const checkBack = {
+    id: "m1", subject: "Biology", concept: "Osmosis", conceptKey: "osmosis",
+    summary: "Salt soaks into cells.", status: "improving", severity: "moderate",
+    originTool: "quiz", timesObserved: 2, timesCorrected: 0,
+    firstSeenAt: "2026-09-20T09:00:00", lastSeenAt: "2026-09-28T09:00:00", resolvedAt: null,
+    repairedAt: "2026-09-28T09:00:00", retestDueAt: "2026-09-30T09:00:00", excludedQuestionKeys: [],
+  } as Misconception;
+
+  it("becomes the next step: the old belief, word for word, and one primary", () => {
+    const { container } = renderHero({ checkBack });
+    expect(screen.getByText("Check-back ready")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Prove you’ve fixed it");
+    expect(screen.getByText("On Monday you thought")).toBeInTheDocument();
+    expect(screen.getByText("“Salt soaks into cells.”")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Try it · 1 min" })).toHaveAttribute("href", "/check-back/m1");
+    expect(container.querySelectorAll('[class*="primary"]')).toHaveLength(1);
+  });
+
+  it("steps aside when the student is short on time", () => {
+    renderHero({ checkBack, shortOnTime: true });
+    expect(screen.queryByText("Check-back ready")).toBeNull();
+  });
+});
