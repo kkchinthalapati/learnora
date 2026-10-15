@@ -1,5 +1,5 @@
-/* Study (2026-09 redesign): the Session mode picker. Hairline cards, no
- * shadows; one filled button (the ledger suggestion) at most. */
+/* Study: one adaptive session (lib/adaptiveSession), with the mode cards
+ * one link down. Hairline cards, no shadows; one filled button, Start. */
 
 .view {
   display: flex;
@@ -46,25 +46,90 @@
   box-shadow: var(--shadow-focus);
 }
 
-.suggestion {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: var(--s-6);
+.finished {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--text-muted);
+}
+
+.session {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
   padding: var(--s-6);
   border: 1px solid var(--hairline);
   border-radius: var(--r-lg);
   background: var(--surface);
 }
 
-.suggestion h2 {
-  margin: var(--s-2) 0;
+.session h2 {
+  margin: var(--s-2) 0 0;
 }
 
-.suggestion p {
+.caption {
   margin: 0;
   max-width: 60ch;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  column-gap: var(--s-3);
+  counter-increment: step;
+}
+
+.step::before {
+  content: counter(step);
+  grid-row: span 2;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-wash);
+  color: var(--accent-deep);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.stepTitle {
+  font-weight: 600;
+}
+
+.stepWhy {
+  max-width: 64ch;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--text-muted);
+}
+
+.chooseToggle {
+  align-self: flex-start;
+  min-height: var(--touch-target-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-deep);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chooseToggle:hover {
+  text-decoration: underline;
 }
 
 .primary {
@@ -79,8 +144,13 @@
   cursor: pointer;
 }
 
-.primary:hover {
+.primary:hover:not(:disabled) {
   background: var(--accent-hover);
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .modeGrid {
@@ -173,8 +243,8 @@
 }
 
 @media (max-width: 640px) {
-  .suggestion {
-    grid-template-columns: minmax(0, 1fr);
+  .session {
+    padding: var(--s-5);
   }
 
   .topicInput {

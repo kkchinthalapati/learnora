@@ -1,12 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOptionalAuth } from "../../context/auth";
 import { clearPendingTopic, readPendingTopic } from "../../lib/pendingTopic";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
+import { useExams } from "../../hooks/useExams";
+import { useFlashcardsDueCount } from "../../hooks/useFlashcards";
+import { useFolders } from "../../hooks/useFolders";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
-import { CognitiveBridge } from "../../lib/cognitiveBridge";
-import type { Misconception } from "../../lib/misconceptions";
+import {
+  activityHref,
+  examContext,
+  loadRun,
+  planSession,
+  resolveFocus,
+  startRun,
+} from "../../lib/adaptiveSession";
 import {
   MODE_LABELS,
   newSessionHref,
@@ -24,8 +33,8 @@ interface ModeCard {
   variant?: { label: string; voice?: boolean; preset?: "traps" };
 }
 
-/* Start with the problem you have, not the name of a tool. Each card opens a
-   Session in one mode; the student can switch mode inside it. */
+/* For a student who would rather choose: each card opens a Session in one
+   mode, and the mode can be switched inside it. */
 const MODE_CARDS: ModeCard[] = [
   {
     mode: "explain",
@@ -65,31 +74,15 @@ const MODE_CARDS: ModeCard[] = [
   },
 ];
 
-/* Which mode suits a diagnosis. A belief seen once is a hypothesis, so it
-   is explained from the root up; one that survived being corrected is an
-   explanation the student believes and can't yet defend, which teaching it
-   exposes. */
-function modeFor(m: Misconception): {
-  mode: SessionMode;
-  action: "debug_stack" | "teach_apprentice";
-  why: string;
-} {
-  return m.timesObserved > 1
-    ? {
-        mode: "teach",
-        action: "teach_apprentice",
-        why: "It has come back after being corrected, so the fastest way through is to try teaching it.",
-      }
-    : {
-        mode: "explain",
-        action: "debug_stack",
-        why: "Work back from it to the idea underneath.",
-      };
-}
-
+/* /study — one Start. The session picks each activity from the
+   misconception ledger and the next exam (lib/adaptiveSession); choosing a
+   mode by hand is one link down, not the default. */
 export function StudyLabView() {
   const navigate = useNavigate();
-  const { ranked } = useMisconceptions();
+  const { ranked, isPending } = useMisconceptions();
+  const exams = useExams();
+  const folders = useFolders();
+  const due = useFlashcardsDueCount();
   const [searchParams] = useSearchParams();
   const userId = useOptionalAuth()?.user?.id;
   /* A first-run topic that never got its lesson (the AI failed and they
@@ -102,27 +95,31 @@ export function StudyLabView() {
     // Only once the student has seen it here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const [choosing, setChoosing] = useState(() => searchParams.get("modes") === "1");
+  const finished = useMemo(() => {
+    const id = searchParams.get("finished");
+    return id ? loadRun(id) : null;
+  }, [searchParams]);
+
   const activeTopic = topic.trim();
+  const loading = isPending || exams.isPending || due.isPending;
+  const exam = useMemo(() => examContext(exams.data, folders.data), [exams.data, folders.data]);
+  const focus = useMemo(
+    () => resolveFocus({ topic: activeTopic, ranked, exam }),
+    [activeTopic, ranked, exam],
+  );
+  const plan = useMemo(
+    () =>
+      focus
+        ? planSession({ focus, ranked, dueCards: due.data ?? 0, exam })
+        : [],
+    [focus, ranked, due.data, exam],
+  );
 
-  /* The one row worth interrupting the menu for; absent on a new account. */
-  const top = ranked[0];
-  const suggested = top ? modeFor(top) : null;
-
-  const startSuggested = () => {
-    if (!top || !suggested) return;
-    CognitiveBridge.setPayload({
-      subject: top.subject,
-      topic: top.concept,
-      concept: top.concept,
-      sourceTool: "notes",
-      evidencePrompt: top.summary,
-      misconceptions: [top.summary].filter(Boolean),
-      severity: top.severity,
-      suggestedAction: suggested.action,
-    });
-    void navigate(
-      newSessionHref(suggested.mode, { topic: top.concept, misconception: top.id }),
-    );
+  const start = () => {
+    if (!focus || !plan[0]) return;
+    const run = startRun(focus, plan[0]);
+    void navigate(activityHref(plan[0], run.id));
   };
 
   const href = (mode: SessionMode, extra: { voice?: boolean; preset?: "traps" } = {}) =>
@@ -132,9 +129,17 @@ export function StudyLabView() {
     <div className={styles.view}>
       <header className={styles.hero}>
         <span className={text.meta}>Study</span>
-        <h1 className={text.display}>What do you need help with?</h1>
+        <h1 className={text.display}>One session, picked from your mistakes</h1>
+        {finished ? (
+          <p className={styles.finished} role="status">
+            Session done: {finished.done.length}{" "}
+            {finished.done.length === 1 ? "activity" : "activities"} on{" "}
+            {finished.focus.topic}. Anything you got wrong is in your ledger, and
+            the next session starts from it.
+          </p>
+        ) : null}
         <label className={styles.topicField}>
-          <span className={styles.topicLabel}>What are you working on?</span>
+          <span className={styles.topicLabel}>Working on something specific?</span>
           <input
             className={styles.topicInput}
             value={topic}
@@ -144,49 +149,96 @@ export function StudyLabView() {
         </label>
       </header>
 
-      {top && suggested ? (
-        <aside className={styles.suggestion} aria-labelledby="lab-suggestion">
-          <div>
-            <span className={text.meta}>
-              Based on your work{top.subject ? ` in ${top.subject}` : ""}
-            </span>
-            <h2 id="lab-suggestion" className={text.claim}>
-              {top.concept}
-            </h2>
-            <p>
-              {top.summary || "This keeps coming up in your work."}{" "}
-              {suggested.why}
-              {top.timesObserved > 1 ? ` Seen ${top.timesObserved} times so far.` : ""}
-            </p>
-          </div>
-          <button type="button" className={styles.primary} onClick={startSuggested}>
-            Start on this
-          </button>
-        </aside>
-      ) : null}
-
-      <section className={styles.modeGrid} aria-label="Choose how to study">
-        {MODE_CARDS.map((card) => (
-          <div key={card.mode} className={styles.modeCard}>
-            <Link to={href(card.mode)} className={styles.modeLink}>
-              <span className={styles.icon} aria-hidden="true">
-                <Icon name={card.icon} size={20} />
+      <section className={styles.session} aria-labelledby="lab-session">
+        {loading && !activeTopic ? (
+          <p className={styles.caption} role="status">
+            Reading your mistakes and exam dates…
+          </p>
+        ) : focus && plan.length ? (
+          <>
+            <div>
+              <span className={text.meta}>
+                {focus.misconceptionId
+                  ? `From your work${focus.subject ? ` in ${focus.subject}` : ""}`
+                  : exam && !activeTopic
+                    ? `For ${exam.name}`
+                    : "Your session"}
               </span>
-              <span className={styles.prompt}>{card.prompt}</span>
-              <span className={styles.modeTitle}>{MODE_LABELS[card.mode]}</span>
-              <span className={styles.modeText}>{card.description}</span>
-            </Link>
-            {card.variant ? (
-              <Link
-                to={href(card.mode, { voice: card.variant.voice, preset: card.variant.preset })}
-                className={styles.variant}
-              >
-                {card.variant.label} →
-              </Link>
-            ) : null}
-          </div>
-        ))}
+              <h2 id="lab-session" className={text.claim}>
+                {focus.topic}
+              </h2>
+            </div>
+            <ol className={styles.steps}>
+              {plan.map((activity) => (
+                <li key={activity.kind} className={styles.step}>
+                  <span className={styles.stepTitle}>{activity.title}</span>
+                  <span className={styles.stepWhy}>{activity.why}</span>
+                </li>
+              ))}
+            </ol>
+            <p className={styles.caption}>
+              Each step is picked when you reach it, from what the one before
+              found. Stop whenever you like; what's done counts.
+            </p>
+            <div>
+              <button type="button" className={styles.primary} onClick={start}>
+                Start
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 id="lab-session" className={text.claim}>
+              What are you working on?
+            </h2>
+            <p className={styles.caption}>
+              Type a topic above and the session is built around it. Once you
+              have an exam date or a few mistakes on record, it picks the topic
+              itself.
+            </p>
+            <div>
+              <button type="button" className={styles.primary} disabled>
+                Start
+              </button>
+            </div>
+          </>
+        )}
       </section>
+
+      <button
+        type="button"
+        className={styles.chooseToggle}
+        aria-expanded={choosing}
+        aria-controls="lab-modes"
+        onClick={() => setChoosing((c) => !c)}
+      >
+        {choosing ? "Hide the modes" : "Or choose a mode yourself"}
+      </button>
+
+      {choosing ? (
+        <section id="lab-modes" className={styles.modeGrid} aria-label="Choose how to study">
+          {MODE_CARDS.map((card) => (
+            <div key={card.mode} className={styles.modeCard}>
+              <Link to={href(card.mode)} className={styles.modeLink}>
+                <span className={styles.icon} aria-hidden="true">
+                  <Icon name={card.icon} size={20} />
+                </span>
+                <span className={styles.prompt}>{card.prompt}</span>
+                <span className={styles.modeTitle}>{MODE_LABELS[card.mode]}</span>
+                <span className={styles.modeText}>{card.description}</span>
+              </Link>
+              {card.variant ? (
+                <Link
+                  to={href(card.mode, { voice: card.variant.voice, preset: card.variant.preset })}
+                  className={styles.variant}
+                >
+                  {card.variant.label} →
+                </Link>
+              ) : null}
+            </div>
+          ))}
+        </section>
+      ) : null}
 
       <p className={styles.footnote}>
         Or take a saved quiz from the{" "}

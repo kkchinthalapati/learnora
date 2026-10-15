@@ -6,6 +6,8 @@ import { fakeSession, renderWithAuth } from "../../test/auth";
 import { mockAuthSession } from "../../test/mockSession";
 import { clearStudySnapshot, getStudySnapshot } from "../../lib/continuity";
 import { listStudySessions, loadStudySession } from "../../lib/studySessions";
+import { loadRun, saveRun, type SessionRun } from "../../lib/adaptiveSession";
+import type { Misconception } from "../../lib/misconceptions";
 import { SessionView } from "./SessionView";
 
 const mocks = vi.hoisted(() => ({
@@ -15,6 +17,23 @@ const mocks = vi.hoisted(() => ({
   record: vi.fn(),
   event: vi.fn(async () => true),
   due: [] as Array<Record<string, unknown>>,
+  ranked: [] as Misconception[],
+  /* Teach's apprentice never answers here: the run tests only need the
+     screen it opens on. */
+  draft: vi.fn(() => new Promise(() => {})),
+}));
+
+vi.mock("../../api/aiFeynman", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../api/aiFeynman")>()),
+  generateApprenticeDraft: mocks.draft,
+}));
+
+vi.mock("../../hooks/useExams", () => ({
+  useExams: () => ({ data: [], isPending: false }),
+}));
+
+vi.mock("../../hooks/useFolders", () => ({
+  useFolders: () => ({ data: [], isPending: false }),
 }));
 
 vi.mock("../../api/aiDebugger", () => ({
@@ -32,12 +51,18 @@ vi.mock("../../api/learningEvents", () => ({
 }));
 
 vi.mock("../../hooks/useMisconceptions", () => ({
-  useMisconceptions: () => ({ all: [], ranked: [], forSubject: () => [] }),
+  useMisconceptions: () => ({
+    all: mocks.ranked,
+    ranked: mocks.ranked,
+    forSubject: () => [],
+    isPending: false,
+  }),
   useRecordMisconceptions: () => mocks.record,
 }));
 
 vi.mock("../../hooks/useFlashcards", () => ({
   useAllDueFlashcards: () => ({ data: mocks.due, isPending: false }),
+  useFlashcardsDueCount: () => ({ data: mocks.due.length, isPending: false }),
   useUpdateFlashcardReview: () => ({ mutate: mocks.mutate }),
 }));
 
@@ -90,6 +115,7 @@ beforeEach(() => {
   mocks.record.mockReset();
   mocks.event.mockClear();
   mocks.due = [];
+  mocks.ranked = [];
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -251,5 +277,85 @@ describe("SessionView", () => {
     renderSession("/study/s-laptop01?mode=explain");
     expect(await screen.findByRole("heading", { level: 1, name: "Titration" })).toBeInTheDocument();
     expect(loadStudySession("s-laptop01")).not.toBeNull();
+  });
+
+  describe("as one activity of Study's adaptive session", () => {
+    const hydrolysis: Misconception = {
+      id: "m1",
+      subject: "Chemistry",
+      concept: "Hydrolysis",
+      conceptKey: "hydrolysis",
+      summary: "Believes water is consumed rather than added.",
+      status: "open",
+      severity: "critical",
+      originTool: "quiz",
+      timesObserved: 2,
+      timesCorrected: 1,
+      firstSeenAt: "2026-09-01T00:00:00Z",
+      lastSeenAt: "2026-09-05T00:00:00Z",
+      resolvedAt: null,
+    };
+
+    function seedRun(patch: Partial<SessionRun> = {}): void {
+      saveRun({
+        id: "r1",
+        focus: { topic: "Hydrolysis", subject: "Chemistry", misconceptionId: "m1" },
+        startedAt: "2026-10-15T10:00:00Z",
+        done: ["check"],
+        taught: [],
+        current: {
+          kind: "flashcards",
+          mode: "recall",
+          title: "Flashcards",
+          topic: "Hydrolysis",
+          why: "3 cards are due.",
+        },
+        ...patch,
+      });
+    }
+
+    it("says where the student is, and opens the next activity as a new Session", async () => {
+      mocks.ranked = [hydrolysis];
+      seedRun();
+      renderSession("/study/new?mode=recall&topic=Hydrolysis&run=r1");
+
+      const bar = await screen.findByRole("region", { name: "Your session" });
+      expect(bar).toHaveTextContent("Step 2 Flashcards");
+      const recallId = loadRun("r1")?.current?.sessionId;
+      expect(recallId).toBeTruthy();
+
+      await userEvent.click(within(bar).getByRole("button", { name: "Skip to: Teach it back" }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("where").textContent).toMatch(/^\/study\/s-.+\?mode=teach$/),
+      );
+      /* Moving on closes the activity it left. */
+      expect(loadStudySession(recallId!)?.status).toBe("done");
+      const run = loadRun("r1")!;
+      expect(run.done).toEqual(["check", "flashcards"]);
+      expect(run.current).toMatchObject({ kind: "teach", misconceptionId: "m1" });
+      const teach = loadStudySession(run.current!.sessionId!)!;
+      expect(teach).toMatchObject({ mode: "teach", objective: "Hydrolysis", runId: "r1" });
+      expect(teach.id).not.toBe(recallId);
+      expect(
+        await screen.findByRole("region", { name: "Your session" }),
+      ).toHaveTextContent("Step 3 Teach it back");
+      expect(screen.getByRole("button", { name: "Skip to: Exam traps" })).toBeInTheDocument();
+    });
+
+    it("finishes the run when nothing is left to pick", async () => {
+      seedRun({ focus: { topic: "Osmosis" } });
+      renderSession("/study/new?mode=recall&topic=Osmosis&run=r1");
+      await userEvent.click(await screen.findByRole("button", { name: "Finish session" }));
+      expect(await screen.findByRole("heading", { name: "Study hub" })).toBeInTheDocument();
+      expect(screen.getByTestId("where")).toHaveTextContent("/study?finished=r1");
+      expect(loadRun("r1")).toMatchObject({ current: null, done: ["check", "flashcards"] });
+    });
+
+    it("shows no run bar on an ordinary Session", async () => {
+      renderSession("/study/new?mode=recall&topic=Osmosis");
+      await screen.findByRole("heading", { level: 1, name: "Osmosis" });
+      expect(screen.queryByRole("region", { name: "Your session" })).not.toBeInTheDocument();
+    });
   });
 });

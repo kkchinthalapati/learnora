@@ -19,6 +19,7 @@ import { PracticeMode } from "./modes/PracticeMode";
 import { TeachMode } from "./modes/TeachMode";
 import { RecallMode } from "./modes/RecallMode";
 import { FlagAnswer } from "./FlagAnswer";
+import { SessionRunBar } from "./SessionRunBar";
 import type { ModeProps } from "./modeTypes";
 import text from "../../styles/text.module.css";
 import styles from "./session.module.css";
@@ -46,11 +47,27 @@ const TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
+/* The route keeps this view mounted when only :sessionId changes. That is
+ * right for /study/new becoming /study/<id> once the session exists, and
+ * wrong for every other change — the adaptive session's "Next" opens a new
+ * Session from inside one — so those start the screen afresh. */
+export function SessionView() {
+  const { sessionId = "new" } = useParams<{ sessionId: string }>();
+  const [shown, setShown] = useState({ id: sessionId, generation: 0 });
+  if (shown.id !== sessionId) {
+    setShown({
+      id: sessionId,
+      generation: shown.id === "new" ? shown.generation : shown.generation + 1,
+    });
+  }
+  return <SessionScreen key={shown.generation} />;
+}
+
 /* /study/:sessionId?mode=… — one screen for every way of studying. Focus
  * mode: no sidebar, a top bar with the objective and the mode control, the
  * plan on the left and the mode's own content in the centre. Everything
  * autosaves; "Save and stop" never asks and is the only way out. */
-export function SessionView() {
+function SessionScreen() {
   const { sessionId = "new" } = useParams<{ sessionId: string }>();
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -184,7 +201,7 @@ export function SessionView() {
   );
 
   return (
-    <main className={styles.shell}>
+    <main className={`${styles.shell} ${session.runId ? styles.shellRun : ""}`}>
       <header className={styles.topbar}>
         <button
           type="button"
@@ -247,6 +264,16 @@ export function SessionView() {
           </div>
         </div>
       </header>
+      {session.runId ? (
+        <SessionRunBar
+          runId={session.runId}
+          sessionId={session.id}
+          activityDone={session.status === "done"}
+          onBeforeNext={() => {
+            if (session.status !== "done") ctl.finish();
+          }}
+        />
+      ) : null}
       <div className={styles.body}>
         {planPanel}
         <div className={styles.centre}>

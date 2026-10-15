@@ -61,6 +61,7 @@ export function sessionFromParams(
     voice: params.get("voice") === "1" || undefined,
     preset: params.get("preset") === "traps" ? "traps" : undefined,
     minutes,
+    runId: params.get("run") || undefined,
   });
 }
 
