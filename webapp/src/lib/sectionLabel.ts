@@ -175,6 +175,8 @@ const HERO_ROUTES = [
   "/room",
   "/lessons",
   "/subjects",
+  "/analytics",
+  "/settings",
 ];
 
 export function viewOwnsPageTitle(pathname: string): boolean {

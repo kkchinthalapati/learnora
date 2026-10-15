@@ -132,7 +132,7 @@ describe("PreferencesTab", () => {
       { withRouter: true },
     );
 
-    await user.click(screen.getByRole("switch", { name: "Timer Alerts" }));
+    await user.click(screen.getByRole("switch", { name: "Timer alerts" }));
     expect(loadSettings().notifyTimerAlerts).toBe(false);
 
     await user.selectOptions(screen.getByLabelText("AI Persona"), "coach");
@@ -153,15 +153,15 @@ describe("PreferencesTab", () => {
     ).toBeInTheDocument();
 
     await user.selectOptions(
-      screen.getByLabelText("Depth Level"),
+      screen.getByLabelText("Depth level"),
       "4: Advanced Analysis",
     );
-    await user.selectOptions(screen.getByLabelText("Study Style"), "visual");
+    await user.selectOptions(screen.getByLabelText("Study style"), "visual");
     await user.click(
       screen.getByRole("switch", { name: "Auto-Adapt Persona" }),
     );
     await user.click(
-      screen.getByRole("switch", { name: "Live Web Intelligence" }),
+      screen.getByRole("switch", { name: "Live web intelligence" }),
     );
 
     await user.click(screen.getByRole("button", { name: "Save Changes" }));

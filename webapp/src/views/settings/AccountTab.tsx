@@ -171,7 +171,7 @@ export function AccountTab() {
   async function onExportCsv() {
     const ok = await confirm(
       "Download a CSV copy of all your study logs and tasks to your device?",
-      { title: "Export Data?", confirmText: "Export" },
+      { title: "Export data?", confirmText: "Export" },
     );
     if (ok)
       exportData.mutate({ format: "csv" }, { onError: reportExportFailure });
@@ -222,8 +222,8 @@ export function AccountTab() {
               {uploadAvatar.isPending
                 ? "Uploading..."
                 : avatarUrl
-                  ? "Change Photo"
-                  : "Upload Photo"}
+                  ? "Change photo"
+                  : "Upload photo"}
             </Button>
             {avatarUrl && (
               <Button
@@ -242,7 +242,7 @@ export function AccountTab() {
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <span className={styles.labelText} id="settings-name-label">
-              Display Name
+              Display name
             </span>
             <p className={styles.fieldDesc}>
               This is the name shown in your workspace
@@ -345,7 +345,7 @@ export function AccountTab() {
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <span className={styles.labelText} id="settings-email-label">
-              Email Address
+              Email address
             </span>
             <p className={styles.fieldDesc}>Used for login and notifications</p>
           </div>
@@ -403,14 +403,14 @@ export function AccountTab() {
             <Icon name="download" size={18} />
           </span>
           <div>
-            <h3 id="settings-export-heading">Export Data</h3>
+            <h3 id="settings-export-heading">Export data</h3>
             <p>Download a copy of your study data</p>
           </div>
         </div>
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <span className={styles.labelText}>Interactive Report</span>
+            <span className={styles.labelText}>Interactive report</span>
             <p className={styles.fieldDesc}>
               Download an HTML report with study stats, charts, and summaries
             </p>

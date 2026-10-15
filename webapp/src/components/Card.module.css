@@ -1,47 +1,41 @@
-/* 2026-10 revamp (design_handoff → Design System, Card): an opaque hairline
- * and --shadow-1, 14px corners (20px for the lead card). No glass, no lift.
- * Never nest a Card inside a Card. */
+/* webapp/DESIGN.md 0.5: flat. A hairline edge, no shadow, the one radius and
+ * spacing scale (--r-*, --s-*) — the same surface as ListRow, so a card and a
+ * list row next to each other read as one system. Only menus, modals and
+ * drawers cast shadows. Never nest a Card inside a Card. */
 
 .card {
-  border: var(--card-border, 1px solid var(--line));
+  border: 1px solid var(--hairline);
 }
 
 .elevated {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: var(--card-bg, var(--surface));
-  box-shadow: var(--card-shadow, var(--shadow-1));
+  background: var(--surface);
 }
 
 .panel {
-  background: var(--card-bg, var(--surface));
-  box-shadow: var(--card-shadow, var(--shadow-1));
+  background: var(--surface);
 }
 
-/* List rows and recessed wells stay flat: the hairline is enough. */
 .row {
-  background: var(--card-bg, var(--surface));
-  box-shadow: none;
+  background: var(--surface);
 }
 
 .subtle {
   background: var(--surface-sunk);
-  box-shadow: none;
 }
 
-/* Interactive cards answer hover with a --text edge. */
+/* Interactive cards answer hover the way ListRow does. */
 .interactive {
   cursor: pointer;
-  background: var(--card-bg, var(--surface));
-  border: var(--card-border, 1px solid var(--line));
-  border-radius: var(--card-radius, var(--radius-md));
-  box-shadow: var(--card-shadow, var(--shadow-1));
-  transition: border-color var(--dur-fast) var(--ease-out);
+  background: var(--surface);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
 }
 
 .interactive:hover {
-  border-color: var(--card-border-hover, var(--text));
+  border-color: var(--hairline-strong);
+  background: var(--surface-hover);
 }
 
 .interactive:focus-visible {
@@ -54,31 +48,31 @@
 }
 
 .padding-sm {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--s-3) var(--s-4);
 }
 
 .padding-md {
-  padding: var(--space-5);
+  padding: var(--s-5);
 }
 
 .padding-lg {
-  padding: clamp(20px, 2.5vw, 28px);
+  padding: var(--s-6);
 }
 
 .radius-lg {
-  border-radius: var(--card-radius, var(--radius-md));
+  border-radius: var(--r-lg);
 }
 
 .radius-xl {
-  border-radius: var(--card-radius-lg, var(--radius-lg));
+  border-radius: var(--r-xl);
 }
 
 .hoverElevation {
-  transition: border-color var(--dur-fast) var(--ease-out);
+  transition: border-color var(--t-fast) var(--ease);
 }
 
 .hoverElevation:hover {
-  border-color: var(--line-strong);
+  border-color: var(--hairline-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {

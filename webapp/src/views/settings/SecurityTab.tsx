@@ -68,7 +68,7 @@ export function SecurityTab() {
       "This will sign you out of all other browsers and devices.",
       {
         title: "Sign out other sessions?",
-        confirmText: "Sign Out Others",
+        confirmText: "Sign out others",
         danger: true,
       },
     );
@@ -99,7 +99,7 @@ export function SecurityTab() {
             <Icon name="key" size={18} />
           </span>
           <div>
-            <h3 id="settings-password-heading">Change Password</h3>
+            <h3 id="settings-password-heading">Change password</h3>
             <p>Confirm your current password, then set a new one.</p>
           </div>
         </div>
@@ -107,7 +107,7 @@ export function SecurityTab() {
         <div className={styles.passwordStack}>
           <PasswordField
             id={currentId}
-            label="Current Password"
+            label="Current password"
             value={currentPassword}
             onChange={setCurrentPassword}
             autoComplete="current-password"
@@ -119,7 +119,7 @@ export function SecurityTab() {
           <div>
             <PasswordField
               id={newId}
-              label="New Password"
+              label="New password"
               value={newPassword}
               onChange={setNewPassword}
               autoComplete="new-password"
@@ -129,7 +129,7 @@ export function SecurityTab() {
 
           <PasswordField
             id={confirmId}
-            label="Confirm New Password"
+            label="Confirm new password"
             value={confirmPassword}
             onChange={setConfirmPassword}
             autoComplete="new-password"
@@ -141,7 +141,7 @@ export function SecurityTab() {
           onClick={() => void onChangePassword()}
           disabled={changePassword.isPending}
         >
-          {changePassword.isPending ? "Updating..." : "Update Password"}
+          {changePassword.isPending ? "Updating..." : "Update password"}
         </Button>
         {passwordFeedback && <InlineFeedback {...passwordFeedback} />}
       </Card>
@@ -165,7 +165,7 @@ export function SecurityTab() {
         </div>
         <div className={settings.field}>
           <div className={settings.fieldLabel}>
-            <span className={settings.labelText}>Sign Out Other Sessions</span>
+            <span className={settings.labelText}>Sign out other sessions</span>
             <p className={settings.fieldDesc}>
               Sign out of all other browsers and devices
             </p>
@@ -177,7 +177,7 @@ export function SecurityTab() {
               onClick={() => void onSignOutOthers()}
               disabled={signOutOthers.isPending}
             >
-              Sign Out Others
+              Sign out others
             </Button>
           </div>
         </div>

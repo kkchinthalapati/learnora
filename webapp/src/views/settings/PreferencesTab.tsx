@@ -251,7 +251,7 @@ export function PreferencesTab() {
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <label htmlFor={aiDepthId}>Depth Level</label>
+            <label htmlFor={aiDepthId}>Depth level</label>
             <p className={styles.fieldDesc}>
               From a quick intuition to a deeper academic explanation.
             </p>
@@ -275,7 +275,7 @@ export function PreferencesTab() {
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <label htmlFor={aiStyleId}>Study Style</label>
+            <label htmlFor={aiStyleId}>Study style</label>
             <p className={styles.fieldDesc}>
               The kind of help Learnora AI prioritises in chat.
             </p>
@@ -320,7 +320,7 @@ export function PreferencesTab() {
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <span className={styles.labelText} id={webAccessId}>
-              Live Web Intelligence
+              Live web intelligence
             </span>
             <p className={styles.fieldDesc}>
               Allow live academic search when you choose web sources in chat.
@@ -329,7 +329,7 @@ export function PreferencesTab() {
           <div className={styles.fieldAction}>
             <ToggleSwitch
               labelledBy={webAccessId}
-              label="Live Web Intelligence"
+              label="Live web intelligence"
               checked={settings.webAccess}
               onChange={(checked) => setSettings({ webAccess: checked })}
             />
@@ -370,7 +370,7 @@ export function PreferencesTab() {
             <Icon name="graduation-cap" size={18} />
           </span>
           <div>
-            <h3 id="settings-study-focus-heading">Study Focus</h3>
+            <h3 id="settings-study-focus-heading">Study focus</h3>
             <p>
               What you're studying for. The weekly planner reads this — it never
               overrides measured quiz performance, only shapes how it paces the
@@ -398,7 +398,7 @@ export function PreferencesTab() {
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <label htmlFor={examTypeId}>Exam Board</label>
+            <label htmlFor={examTypeId}>Exam board</label>
             <p className={styles.fieldDesc}>
               Which qualification you're preparing for
             </p>
@@ -420,7 +420,7 @@ export function PreferencesTab() {
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <label htmlFor={targetGradeId}>Target Grade</label>
+            <label htmlFor={targetGradeId}>Target grade</label>
             <p className={styles.fieldDesc}>
               Whatever scale your syllabus uses (e.g. "A", "7", "85%")
             </p>
@@ -439,7 +439,7 @@ export function PreferencesTab() {
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <label htmlFor={studyPaceId}>Study Pace</label>
+            <label htmlFor={studyPaceId}>Study pace</label>
             <p className={styles.fieldDesc}>
               How much the weekly plan should ask of you
             </p>
@@ -465,7 +465,7 @@ export function PreferencesTab() {
             onClick={saveStudyProfile}
             disabled={updateStudyProfile.isPending}
           >
-            {updateStudyProfile.isPending ? "Saving..." : "Save Study Focus"}
+            {updateStudyProfile.isPending ? "Saving..." : "Save study focus"}
           </Button>
         </div>
       </Card>
@@ -661,7 +661,7 @@ export function PreferencesTab() {
             <Icon name="calendar" size={18} />
           </span>
           <div>
-            <h3 id="settings-data-heading">Calendar Export</h3>
+            <h3 id="settings-data-heading">Calendar export</h3>
             <p>Add upcoming exams and study plans to another calendar.</p>
           </div>
         </div>

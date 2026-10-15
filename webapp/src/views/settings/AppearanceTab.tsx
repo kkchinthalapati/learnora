@@ -17,9 +17,9 @@ import settings from "./settings.module.css";
 import styles from "./appearance.module.css";
 
 const MODES: ReadonlyArray<{ id: Mode; title: string; icon: IconName }> = [
-  { id: "dark", title: "Dark Mode", icon: "moon" },
-  { id: "light", title: "Light Mode", icon: "sun" },
-  { id: "system", title: "System Sync", icon: "monitor" },
+  { id: "dark", title: "Dark mode", icon: "moon" },
+  { id: "light", title: "Light mode", icon: "sun" },
+  { id: "system", title: "System sync", icon: "monitor" },
 ];
 
 const FONTS: ReadonlyArray<{
@@ -57,9 +57,9 @@ const SIZES: ReadonlyArray<{
 ];
 
 const BACKGROUNDS: ReadonlyArray<{ id: BgTexture; title: string }> = [
-  { id: "none", title: "Clean Canvas" },
-  { id: "noise", title: "Grain Noise" },
-  { id: "mesh", title: "Liquid Mesh" },
+  { id: "none", title: "Clean canvas" },
+  { id: "noise", title: "Grain noise" },
+  { id: "mesh", title: "Liquid mesh" },
 ];
 
 function OptionCard({
@@ -97,7 +97,7 @@ export function AppearanceTab() {
 
   const activePresetName =
     appearance.accent === "custom"
-      ? "Custom Colours"
+      ? "Custom colours"
       : (THEME_PRESETS.find((p) => p.id === appearance.accent)?.name ??
         appearance.accent);
 
@@ -116,14 +116,14 @@ export function AppearanceTab() {
             <Icon name="palette" size={18} />
           </span>
           <div>
-            <h3 id="settings-appearance-heading">Workspace Appearance</h3>
+            <h3 id="settings-appearance-heading">Workspace appearance</h3>
             <p>Set the colour, typography, and workspace surfaces.</p>
           </div>
         </div>
 
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>
-            <span className={settings.labelText}>Interface Mode</span>
+            <span className={settings.labelText}>Interface mode</span>
             <p className={settings.fieldDesc}>
               Follow your device theme or choose light or dark.
             </p>
@@ -148,7 +148,7 @@ export function AppearanceTab() {
         <ProGate feature="customAppearance" loadingHeight={340}>
           <div className={`${settings.field} ${settings.fieldStack}`}>
             <div className={settings.fieldLabel}>
-              <span className={settings.labelText}>Accent Colour</span>
+              <span className={settings.labelText}>Accent colour</span>
               <p className={settings.fieldDesc}>Choose an accent preset.</p>
             </div>
             <div
@@ -185,7 +185,7 @@ export function AppearanceTab() {
           <div className={`${settings.field} ${settings.fieldStack}`}>
             <div className={`${settings.fieldLabel} ${styles.studioHeading}`}>
               <div>
-                <span className={settings.labelText}>Custom Colours</span>
+                <span className={settings.labelText}>Custom colours</span>
                 <p className={settings.fieldDesc}>
                   Build an accent from up to three colours.
                 </p>
@@ -206,7 +206,7 @@ export function AppearanceTab() {
 
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>
-            <span className={settings.labelText}>Font Family</span>
+            <span className={settings.labelText}>Font family</span>
             <p className={settings.fieldDesc}>
               Choose a typeface style for the entire workspace. Atkinson
               Hyperlegible is designed for low-vision and dyslexic readers.
@@ -239,7 +239,7 @@ export function AppearanceTab() {
 
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>
-            <span className={settings.labelText}>Interface Scale</span>
+            <span className={settings.labelText}>Interface scale</span>
             <p className={settings.fieldDesc}>Change text and control size.</p>
           </div>
           <div
@@ -274,7 +274,7 @@ export function AppearanceTab() {
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>
             <span className={settings.labelText}>
-              Atmospheric Background Effect
+              Atmospheric background effect
             </span>
             <p className={settings.fieldDesc}>
               Add texture or animated glowing mesh to background
@@ -307,7 +307,7 @@ export function AppearanceTab() {
           <div className={styles.livePreview}>
             <div className={styles.livePreviewHeader}>
               <div className={styles.livePreviewTitle}>
-                <span>Live Interface Preview</span>
+                <span>Live interface preview</span>
               </div>
               <span className={styles.livePreviewBadge}>
                 {activePresetName}
@@ -315,7 +315,7 @@ export function AppearanceTab() {
             </div>
             <div className={styles.livePreviewBody}>
               <div className={styles.livePreviewCard}>
-                <h5>Focus Block Complete</h5>
+                <h5>Focus block complete</h5>
                 <p>45 mins of Deep Study logged automatically.</p>
               </div>
               <span className={styles.livePreviewBtn} aria-hidden="true">
@@ -333,7 +333,7 @@ export function AppearanceTab() {
             showToast("Appearance settings reset to defaults.");
           }}
         >
-          Reset Defaults
+          Reset defaults
         </Button>
         <Button
           variant="primary"
@@ -342,7 +342,7 @@ export function AppearanceTab() {
             showToast("Appearance saved.");
           }}
         >
-          Save Appearance
+          Save appearance
         </Button>
       </div>
     </>

@@ -831,7 +831,7 @@ test.describe("Guardrails", () => {
     await page.goto("settings");
     await page.getByRole("tab", { name: /Danger Zone/ }).click();
 
-    await page.getByRole("button", { name: /Delete Account/ }).click();
+    await page.getByRole("button", { name: /Delete account/ }).click();
     await page
       .getByRole("alertdialog")
       .getByRole("button", { name: "Yes, delete my account" })

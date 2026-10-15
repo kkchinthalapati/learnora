@@ -21,6 +21,14 @@ Learnora is three nested things, and every screen belongs to one of them.
 | **Subject** | A course you're studying: Biology, Chemistry. Holds lessons, an exam date and its share of the week. | `folders` | `/subjects`, `/subjects/:folderId` (`/folders/:id` redirects) |
 | **Lesson** | One thing you're learning: an upload, a link, your notes or a topic. Holds its notes, cards, quiz, tutor and mistakes. | `materials` (notes, quizzes and cards point at it by `material_id`) | `/lessons/:materialId` |
 
+Two more pages sit beside those three and follow the same rules:
+
+- **Progress** (`/analytics`): one page with History, Mistakes and Exam
+  forecast tabs. `/trajectory` redirects to `?tab=forecast`.
+- **Settings** (`/settings`): five sections — Account (profile, security,
+  danger zone), Appearance, Study (preferences, reminders), Privacy and AI,
+  Plan and billing. Old `?tab=` names open the section that holds them now.
+
 Words in the UI follow the table: say **lesson**, not material, file or
 source; **subject**, not folder; **cards**, not flashcards or deck (a deck is
 an implementation detail); **mistakes**, not misconceptions.

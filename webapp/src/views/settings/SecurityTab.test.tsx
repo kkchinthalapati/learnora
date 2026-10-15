@@ -41,10 +41,10 @@ async function fillPasswordForm(
   }: { current?: string; next?: string; confirm?: string } = {},
 ) {
   if (current)
-    await user.type(screen.getByLabelText("Current Password"), current);
-  if (next) await user.type(screen.getByLabelText("New Password"), next);
+    await user.type(screen.getByLabelText("Current password"), current);
+  if (next) await user.type(screen.getByLabelText("New password"), next);
   if (confirm)
-    await user.type(screen.getByLabelText("Confirm New Password"), confirm);
+    await user.type(screen.getByLabelText("Confirm new password"), confirm);
 }
 
 function renderSecurity() {
@@ -61,7 +61,7 @@ describe("SecurityTab", () => {
     renderSecurity();
     expect(screen.queryByText(/Too Weak/)).toBeNull();
 
-    await user.type(screen.getByLabelText("New Password"), "a");
+    await user.type(screen.getByLabelText("New password"), "a");
 
     expect(
       screen.getByText("Too Weak (Need 8+ chars & mix)"),
@@ -71,7 +71,7 @@ describe("SecurityTab", () => {
   it("upgrades the strength label as the password improves", async () => {
     const user = userEvent.setup();
     renderSecurity();
-    const input = screen.getByLabelText("New Password");
+    const input = screen.getByLabelText("New password");
 
     await user.type(input, "aaaaAAAA");
     expect(
@@ -87,12 +87,12 @@ describe("SecurityTab", () => {
   it("toggles password visibility without leaving the tab order", async () => {
     const user = userEvent.setup();
     renderSecurity();
-    const input = screen.getByLabelText("New Password");
+    const input = screen.getByLabelText("New password");
     expect(input).toHaveAttribute("type", "password");
 
     /* Scoped to this field's own wrapper: all three password inputs carry an
        identically-labelled toggle, so an unscoped query would return the
-       Current Password one and leave this input untouched. */
+       Current password one and leave this input untouched. */
     const toggle = within(input.parentElement as HTMLElement).getByRole(
       "button",
       { name: "Show password" },
@@ -109,7 +109,7 @@ describe("SecurityTab", () => {
     renderSecurity();
 
     await fillPasswordForm(user, { next: "short", confirm: "" });
-    await user.click(screen.getByRole("button", { name: "Update Password" }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Password must be at least 8 characters long.",
@@ -123,7 +123,7 @@ describe("SecurityTab", () => {
     renderSecurity();
 
     await fillPasswordForm(user, { confirm: "Different1" });
-    await user.click(screen.getByRole("button", { name: "Update Password" }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Passwords do not match. Please re-enter them.",
@@ -139,7 +139,7 @@ describe("SecurityTab", () => {
     renderSecurity();
 
     await fillPasswordForm(user);
-    await user.click(screen.getByRole("button", { name: "Update Password" }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
     await waitFor(() =>
       expect(updateUser).toHaveBeenCalledWith({ password: "Longenough1" }),
@@ -153,9 +153,9 @@ describe("SecurityTab", () => {
         "Password updated. Other sessions have been signed out.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Current Password")).toHaveValue("");
-    expect(screen.getByLabelText("New Password")).toHaveValue("");
-    expect(screen.getByLabelText("Confirm New Password")).toHaveValue("");
+    expect(screen.getByLabelText("Current password")).toHaveValue("");
+    expect(screen.getByLabelText("New password")).toHaveValue("");
+    expect(screen.getByLabelText("Confirm new password")).toHaveValue("");
     expect(screen.queryByText(/Too Weak|Fair|Good|Strong/)).toBeNull();
   });
 
@@ -165,7 +165,7 @@ describe("SecurityTab", () => {
     renderSecurity();
 
     await fillPasswordForm(user, { current: "" });
-    await user.click(screen.getByRole("button", { name: "Update Password" }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Please enter your current password.",
@@ -180,7 +180,7 @@ describe("SecurityTab", () => {
     renderSecurity();
 
     await fillPasswordForm(user, { current: "not-my-password" });
-    await user.click(screen.getByRole("button", { name: "Update Password" }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Your current password is incorrect.",
@@ -195,7 +195,7 @@ describe("SecurityTab", () => {
     renderSecurity();
 
     await fillPasswordForm(user);
-    await user.click(screen.getByRole("button", { name: "Update Password" }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Too many attempts. Please wait a minute and try again.",
@@ -212,7 +212,7 @@ describe("SecurityTab", () => {
     renderSecurity();
 
     await fillPasswordForm(user);
-    await user.click(screen.getByRole("button", { name: "Update Password" }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "New password must be different from your current password.",
@@ -226,17 +226,17 @@ describe("SecurityTab", () => {
 
     /* The confirm button carries the same label as the trigger, so every
        dialog query is scoped to the dialog itself. */
-    await user.click(screen.getByRole("button", { name: "Sign Out Others" }));
+    await user.click(screen.getByRole("button", { name: "Sign out others" }));
     const dialog = await screen.findByRole("alertdialog");
     expect(dialog).toHaveTextContent("all other browsers and devices");
 
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(signOut).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Sign Out Others" }));
+    await user.click(screen.getByRole("button", { name: "Sign out others" }));
     await user.click(
       within(await screen.findByRole("alertdialog")).getByRole("button", {
-        name: "Sign Out Others",
+        name: "Sign out others",
       }),
     );
 

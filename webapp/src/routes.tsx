@@ -115,9 +115,6 @@ const LazyDeckCardsView = lazy(async () => ({
 const LazyMyWeekView = lazy(async () => ({
   default: (await import("./views/lifesync/MyWeekView")).MyWeekView,
 }));
-const LazyTrajectoryView = lazy(async () => ({
-  default: (await import("./views/trajectory/TrajectoryView")).TrajectoryView,
-}));
 const LazyStudyRoomView = lazy(async () => ({
   default: (await import("./views/room/StudyRoomView")).StudyRoomView,
 }));
@@ -148,9 +145,8 @@ const LazyFriendInviteLanding = lazy(async () => ({
   default: (await import("./views/friends/FriendInviteLanding"))
     .FriendInviteLanding,
 }));
-const LazyStudyAnalyticsView = lazy(async () => ({
-  default: (await import("./views/analytics/StudyAnalyticsView"))
-    .StudyAnalyticsView,
+const LazyProgressView = lazy(async () => ({
+  default: (await import("./views/analytics/ProgressView")).ProgressView,
 }));
 const LazySessionView = lazy(async () => ({
   default: (await import("./views/session/SessionView")).SessionView,
@@ -485,18 +481,12 @@ export function AppRoutes() {
               path="/analytics"
               element={
                 <DeferredView>
-                  <LazyStudyAnalyticsView />
+                  <LazyProgressView />
                 </DeferredView>
               }
             />
-            <Route
-              path="/trajectory"
-              element={
-                <DeferredView>
-                  <LazyTrajectoryView />
-                </DeferredView>
-              }
-            />
+            {/* The forecast is a tab of Progress (webapp/DESIGN.md 0.1). */}
+            <Route path="/trajectory" element={<Navigate to="/analytics?tab=forecast" replace />} />
             {/* /ai-tutor was a third way to reach tools that already had two
                 each: it rendered no UI of its own, only a tab strip that
                 mounted the Solver, Feynman and Viva views inline. The hub at

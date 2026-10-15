@@ -141,13 +141,13 @@ describe("StudyAnalyticsView", () => {
       name: "Progress date range",
     });
     const yearBtn = within(rangeGroup).getByRole("button", {
-      name: "52 Weeks (1Y)",
+      name: "1 year",
     });
     const ninetyDaysBtn = within(rangeGroup).getByRole("button", {
-      name: "90 Days",
+      name: "90 days",
     });
     const thirtyDaysBtn = within(rangeGroup).getByRole("button", {
-      name: "30 Days",
+      name: "30 days",
     });
 
     /* Default is 90 days: a year-long grid is mostly empty for most
@@ -202,7 +202,7 @@ describe("StudyAnalyticsView", () => {
       name: "Progress date range",
     });
     const thirtyDays = within(rangeGroup).getByRole("button", {
-      name: "30 Days",
+      name: "30 days",
     });
     await user.click(thirtyDays);
     expect(thirtyDays).toHaveAttribute("aria-pressed", "true");

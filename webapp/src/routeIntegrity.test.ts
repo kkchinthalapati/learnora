@@ -186,7 +186,8 @@ describe("route integrity", () => {
     for (const destination of ["/plan", "/my-week", "/tasks", "/exams"]) {
       expect([...plan]).toContain(destination);
     }
-    expect([...linksIn("views", "analytics", "ProgressSectionNav.tsx")]).toContain("/trajectory");
+    /* The exam forecast is a tab of Progress; /trajectory redirects there. */
+    expect(readFileSync(join(SRC, "views", "analytics", "ProgressView.tsx"), "utf8")).toContain('"forecast"');
     /* A study session starts from a lesson. */
     expect(readFileSync(join(SRC, "views", "lesson", "LessonView.tsx"), "utf8")).toContain("/study?topic=");
   });
