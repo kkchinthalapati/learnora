@@ -113,7 +113,7 @@ pushes has not been reviewed.
 | Mistral | `MISTRAL_API_KEY` | 429. **Privacy text no longer names Mistral**; remove or disclose (see 6.1). |
 | GitHub Models | | Empty replies, cause unknown |
 | OpenRouter | `OPENROUTER_API_KEY` | Paid last resort |
-| Radox AI | `RADOX_API_KEY` (optional `RADOX_MODEL`) | **BLOCKED on you.** Code added 2026-10-15: paid backup, before OpenAI, disclosed to students. Not yet called live. Set the secret, redeploy `learnora-ai`, then make one real call to confirm the default model slug and whether `response_format` is honoured. Under-16s are excluded in code (`radoxPermittedForAge`), so the route stays closed for them. |
+| Radox AI | `RADOX_API_KEY` (optional `RADOX_MODEL`) | **BLOCKED on you.** Code added 2026-10-15: paid backup, before OpenAI, disclosed to students. **Set and live-checked 2026-10-15**: key lists models, `claude-sonnet-5` answers, `response_format` is honoured (JSON mode on, `learnora-ai` v74+). Still unverified: the function's own Radox route inside a real student request. Under-16s are excluded in code (`radoxPermittedForAge`), so the route stays closed for them. |
 
 **Decision:** which providers you are willing to pay for. With Groq as the
 only live provider, one outage means no AI at all.
