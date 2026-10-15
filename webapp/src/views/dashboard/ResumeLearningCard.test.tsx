@@ -26,6 +26,7 @@ function renderCard(initialRoute = "/") {
         <Route path="/" element={<ResumeLearningCard />} />
         <Route path="/library" element={<h1>Library Page</h1>} />
         <Route path="/notes/:materialId" element={<h1>Notes Page</h1>} />
+        <Route path="/lessons/:materialId" element={<h1>Lesson Page</h1>} />
         <Route path="/review/:deckId" element={<h1>Review Page</h1>} />
         <Route path="/quiz/:quizId" element={<h1>Quiz Page</h1>} />
         <Route path="/timer" element={<h1>Timer Page</h1>} />
@@ -122,7 +123,7 @@ describe("ResumeLearningCard", () => {
     renderCard();
 
     expect(screen.getByText("Cellular Metabolism & ATP")).toBeInTheDocument();
-    expect(screen.getByText("Notes • 65% read")).toBeInTheDocument();
+    expect(screen.getByText("65% of the notes read")).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toHaveAttribute(
       "aria-valuenow",
       "65",
@@ -133,7 +134,7 @@ describe("ResumeLearningCard", () => {
     await user.click(resumeBtn);
 
     expect(
-      await screen.findByRole("heading", { name: "Notes Page" }),
+      await screen.findByRole("heading", { name: "Lesson Page" }),
     ).toBeInTheDocument();
   });
 
@@ -253,7 +254,7 @@ describe("ResumeLearningCard", () => {
     await user.click(trayLink);
 
     expect(
-      await screen.findByRole("heading", { name: "Notes Page" }),
+      await screen.findByRole("heading", { name: "Lesson Page" }),
     ).toBeInTheDocument();
   });
 });

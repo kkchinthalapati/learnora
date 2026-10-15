@@ -56,8 +56,10 @@ describe("AppearanceTab", () => {
     serveProfile(false);
     renderWithProviders(<AppearanceTab />);
 
+    /* The gate waits on the entitlements query; under a full parallel run
+       that took over the default 1s and the test flaked (2026-10-15). */
     expect(
-      await screen.findByRole("button", { name: /see what pro adds/i }),
+      await screen.findByRole("button", { name: /see what pro adds/i }, { timeout: 5000 }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Pacific Deep")).toBeNull();
   });
@@ -118,18 +120,16 @@ describe("AppearanceTab", () => {
     expect(group.querySelectorAll("button")).toHaveLength(13);
   });
 
-  it("applies font, scale, sidebar and background choices to the body", async () => {
+  it("applies font, scale and background choices to the body", async () => {
     const user = userEvent.setup();
     await renderTab();
 
     await user.click(screen.getByRole("button", { name: /JetBrains Mono/ }));
     await user.click(screen.getByRole("button", { name: /Compact/ }));
-    await user.click(screen.getByRole("button", { name: /Solid Canvas/ }));
     await user.click(screen.getByRole("button", { name: /Liquid Mesh/ }));
 
     expect(document.body.getAttribute("data-font-family")).toBe("mono");
     expect(document.body.getAttribute("data-font-size")).toBe("sm");
-    expect(document.body.getAttribute("data-sidebar-style")).toBe("solid");
     expect(document.body.getAttribute("data-bg-texture")).toBe("mesh");
   });
 

@@ -147,8 +147,8 @@ textarea:focus {
 
 @media (max-width: 768px) {
   :root {
-    --mobile-tabbar-clearance: calc(64px + env(safe-area-inset-bottom, 0px));
-    --ask-fab-clearance: 72px;
+    --mobile-tabbar-clearance: calc(56px + env(safe-area-inset-bottom, 0px));
+    --ask-fab-clearance: 0px; /* Ask moved into the TopBar; no floating button. */
   }
 }
 

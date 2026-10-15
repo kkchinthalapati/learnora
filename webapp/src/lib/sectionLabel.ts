@@ -65,6 +65,39 @@ export function primaryDestinationForPath(
   return null;
 }
 
+/* The top bar's three destinations (DESIGN.md rule 0.2). Home is where you
+   land and add things; Subjects holds every subject and lesson, and for now
+   the planner pages that will fold into a subject; Progress is history and
+   forecast. A study session, the timer and settings belong to none of them,
+   so no item lights up there. */
+export type TopDestination = "home" | "subjects" | "plan" | "progress";
+
+export function topDestinationForPath(pathname: string): TopDestination | null {
+  if (pathname === "/" || pathname.startsWith("/capture")) return "home";
+  if (pathname === "/study") return "home";
+  if (
+    pathname.startsWith("/lessons/") ||
+    isLibrarySection(pathname) ||
+    isNotebooksSection(pathname)
+  ) {
+    return "subjects";
+  }
+  /* Interim (webapp/DESIGN.md 0.2): the planner keeps a top-bar item until
+     the Subjects page holds each subject's exam and week. */
+  if (
+    pathname.startsWith("/plan") ||
+    pathname.startsWith("/my-week") ||
+    pathname.startsWith("/tasks") ||
+    pathname.startsWith("/exams")
+  ) {
+    return "plan";
+  }
+  if (pathname.startsWith("/analytics") || pathname.startsWith("/trajectory")) {
+    return "progress";
+  }
+  return null;
+}
+
 export function isStudyLabSection(pathname: string): boolean {
   /* Canonical routes only. /debugger, /sparring, /premortem, /exam-traps and
      /ai-tutor are <Navigate> redirects, so the router replaces them before any
@@ -84,7 +117,8 @@ export function sectionLabel(
   pathname: string,
   t: (key: TranslationKey) => string,
 ): string {
-  if (pathname === "/") return "Today";
+  if (pathname === "/") return "Home";
+  if (pathname.startsWith("/lessons/")) return "Lesson";
   if (pathname.startsWith("/dashboard")) return t("nav_dashboard");
   if (isNotebooksSection(pathname)) return "Notebooks";
   /* A quiz or a review session is an activity, not the Library page; the
@@ -140,6 +174,7 @@ const HERO_ROUTES = [
   "/feynman",
   "/exam-detective",
   "/room",
+  "/lessons",
 ];
 
 export function viewOwnsPageTitle(pathname: string): boolean {

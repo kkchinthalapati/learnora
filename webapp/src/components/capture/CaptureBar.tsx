@@ -21,6 +21,7 @@ import {
   summarizeStudyPackage,
   type StudySource,
 } from "../../api/studyPackage";
+import { lessonPath } from "../../lib/lessons";
 import { guessCapture } from "../../lib/captureInput";
 import {
   isImageFile,
@@ -47,6 +48,10 @@ export interface CaptureBarProps {
   folderId?: string | null;
   outputs?: { flashcards?: boolean; quiz?: boolean; notes?: boolean };
   autoFocus?: boolean;
+  /** "lg" is Home's version: a taller field and a bigger type size. */
+  size?: "md" | "lg";
+  /** Overrides the field's placeholder, e.g. Home's tip. */
+  placeholder?: string;
   onMoreOptions?: () => void;
   onDone?: () => void;
 }
@@ -73,6 +78,8 @@ export function CaptureBar({
   folderId = null,
   outputs,
   autoFocus = false,
+  size = "md",
+  placeholder = "Drop a file here, paste a link or your notes, or type a topic",
   onMoreOptions,
   onDone,
 }: CaptureBarProps) {
@@ -128,7 +135,10 @@ export function CaptureBar({
       setFile(null);
       setFileTitle(null);
       onDone?.();
-      const destination = studyPackageDestination(result);
+      /* What was made lives on its lesson page (DESIGN.md rule 0.1). */
+      const destination = result.material
+        ? lessonPath(result.material.id)
+        : studyPackageDestination(result);
       if (destination) void navigate(destination);
     } catch (caught) {
       setError(
@@ -286,7 +296,7 @@ export function CaptureBar({
 
   return (
     <form
-      className={styles.bar}
+      className={`${styles.bar} ${size === "lg" ? styles.lg : ""}`}
       data-dragging={dragging || undefined}
       onSubmit={handleSubmit}
       onDragOver={(event) => {
@@ -333,7 +343,7 @@ export function CaptureBar({
               }
             }}
             rows={guess.kind === "text" ? 5 : 2}
-            placeholder="Drop a file here, paste a link or your notes, or type a topic"
+            placeholder={placeholder}
             aria-label="What do you want to learn?"
             disabled={busy}
           />

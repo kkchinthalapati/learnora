@@ -580,25 +580,27 @@
   line-height: var(--leading-h2);
 }
 
+/* Matches ListRow (webapp/DESIGN.md 0.4): separate hairline rows, so Home's
+   "Fix these" reads as the same list as its lessons. */
 .rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
   margin: 0;
-  padding: 0 var(--space-5);
+  padding: 0;
   list-style: none;
-  border: 1px solid var(--line);
-  border-radius: var(--space-4);
-  background: var(--surface);
 }
 
 .row {
   display: grid;
   grid-template-columns: 10px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: var(--space-4);
-  min-height: 60px;
-}
-
-.row + .row {
-  border-top: 1px solid var(--line);
+  gap: var(--s-4);
+  min-height: 72px;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
 }
 
 .dot {
@@ -624,7 +626,7 @@
 
 .rowDetail {
   grid-column: 1 / -1;
-  padding-bottom: var(--space-4);
+  padding-bottom: var(--s-4);
 }
 
 /* ---- Kept for SessionCompletePanel ---- */

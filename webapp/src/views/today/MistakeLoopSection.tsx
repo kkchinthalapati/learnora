@@ -205,11 +205,19 @@ export function MistakeLoopSection({
   misconceptions,
   now,
   leadId,
+  title = "Mistakes to fix",
+  headingId = "today-mistakes",
+  bare = false,
 }: {
   misconceptions: Misconception[];
   now: Date;
   /** The check-back Today's card already leads with; not repeated here. */
   leadId?: string;
+  /** Home calls it "Fix these"; Today kept "Mistakes to fix". */
+  title?: string;
+  headingId?: string;
+  /** Rows only, for a caller that supplies its own section and heading. */
+  bare?: boolean;
 }) {
   /* Until the loop migration is applied nothing can be repaired or
      retested, so the section stays away rather than offering buttons that
@@ -224,19 +232,24 @@ export function MistakeLoopSection({
     .slice(0, MAX_ROWS);
   if (due.length === 0 && toRepair.length === 0) return null;
 
+  const rows = (
+    <ul className={styles.rows}>
+      {due.map((m) => (
+        <RetestRow key={`r:${m.id}`} m={m} />
+      ))}
+      {toRepair.map((m) => (
+        <RepairRow key={`f:${m.id}`} m={m} />
+      ))}
+    </ul>
+  );
+  if (bare) return rows;
+
   return (
-    <section aria-labelledby="today-mistakes">
-      <h2 id="today-mistakes" className={styles.sectionTitle}>
-        Mistakes to fix
+    <section aria-labelledby={headingId}>
+      <h2 id={headingId} className={styles.sectionTitle}>
+        {title}
       </h2>
-      <ul className={styles.rows}>
-        {due.map((m) => (
-          <RetestRow key={`r:${m.id}`} m={m} />
-        ))}
-        {toRepair.map((m) => (
-          <RepairRow key={`f:${m.id}`} m={m} />
-        ))}
-      </ul>
+      {rows}
     </section>
   );
 }

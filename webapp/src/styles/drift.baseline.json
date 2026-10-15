@@ -28,13 +28,6 @@
     "rawBlur": 0,
     "emerald": 0
   },
-  "components/Sidebar.module.css": {
-    "hex": 0,
-    "rawFontSize": 0,
-    "rawShadow": 0,
-    "rawBlur": 0,
-    "emerald": 0
-  },
   "components/ToggleSwitch.module.css": {
     "hex": 1,
     "rawFontSize": 0,

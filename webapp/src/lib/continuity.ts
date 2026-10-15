@@ -343,9 +343,11 @@ export function getResumeAction(snapshot: StudySnapshot): ResumeAction | null {
       time: new Date(m.lastVisitedAt || 0).getTime(),
       action: {
         type: "material",
-        title: m.title || "Untitled Document",
-        subtitle: progress > 0 ? `Notes • ${progress}% read` : "Notes • Just opened",
-        targetUrl: `/notes/${m.id}`,
+        title: m.title || "Untitled lesson",
+        subtitle: progress > 0 ? `${progress}% of the notes read` : "Lesson",
+        /* A material is a lesson now (webapp/DESIGN.md 0.1); its page holds
+           the notes and everything else made from it. */
+        targetUrl: `/lessons/${encodeURIComponent(m.id)}`,
         progressPercentage: progress,
         timestamp: m.lastVisitedAt,
         badgeLabel: "Reading",
@@ -438,7 +440,7 @@ export function getRecentContinuityItems(snapshot: StudySnapshot): ResumeAction[
         type: "material",
         title: m.title || "Untitled Document",
         subtitle: `Notes • ${progress}% read`,
-        targetUrl: `/notes/${m.id}`,
+        targetUrl: `/lessons/${encodeURIComponent(m.id)}`,
         progressPercentage: progress,
         timestamp: m.lastVisitedAt,
         badgeLabel: "Notes",

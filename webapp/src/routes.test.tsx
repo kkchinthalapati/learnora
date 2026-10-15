@@ -69,10 +69,10 @@ describe("route skeleton", () => {
 
   /* Today 1c's h1 is the greeting ("Morning, Maya."); the step is the
      card's h2 below it. */
-  const TODAY_GREETING = /^(Morning|Afternoon|Evening|Welcome back)\b/;
+  const HOME_TITLE = "What do you want to learn?";
 
   it.each([
-    ["/", TODAY_GREETING],
+    ["/", HOME_TITLE],
     /* The app shell's Header now supplies the page's <h1> (the redesign
        audit found Tasks' old page-only "Tasks" heading duplicating the
        shell's own nav-derived label right below it); the shell's label —
@@ -104,8 +104,8 @@ describe("route skeleton", () => {
   });
 
   /* Old URLs redirect, never 404 (2026-09 redesign route map). */
-  it.each([["/dashboard", TODAY_GREETING]])(
-    "%s redirects to Today",
+  it.each([["/dashboard", HOME_TITLE]])(
+    "%s redirects to Home",
     async (path, heading) => {
       renderAt(path);
       expect(

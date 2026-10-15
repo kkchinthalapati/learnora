@@ -137,6 +137,7 @@ export function HelpCenter() {
   return (
     <>
       <IconButton
+        variant="ghost"
         aria-label="Help and support"
         title="Help and support"
         onClick={() => setOpen(true)}

@@ -249,8 +249,8 @@ describe("continuity", () => {
       expect(action).toEqual({
         type: "material",
         title: "Enzyme Kinetics",
-        subtitle: "Notes • 85% read",
-        targetUrl: "/notes/m-100",
+        subtitle: "85% of the notes read",
+        targetUrl: "/lessons/m-100",
         progressPercentage: 85,
         timestamp: "2026-08-22T09:00:00.000Z",
         badgeLabel: "Reading",

@@ -163,34 +163,27 @@ describe("route integrity", () => {
      /my-week, /trajectory and /exam-detective could be reached only by typing
      a URL or opening the command palette — the section sub-navs that led to
      them are invisible until you are already on one of their pages. */
-  it("offers every primary destination in the sidebar", () => {
-    const sidebar = readFileSync(
-      join(SRC, "components", "Sidebar.tsx"),
-      "utf8",
-    );
-    const offered = new Set(
-      [...sidebar.matchAll(/\bto(?::\s*|=)"(\/[^"]*)"/g)].map((m) => m[1]),
-    );
-
-    /* The five destinations, the pages that hang off Plan and Progress, and
-       the footer's community + account links. The study tools are modes of
-       one Session now and are reached from Study, not the rail. */
-    for (const destination of [
-      "/",
-      "/library",
-      "/plan",
-      "/my-week",
-      "/tasks",
-      "/exams",
-      "/timer",
-      "/analytics",
-      "/trajectory",
-      "/study",
-      "/room",
-      "/settings",
-    ]) {
-      expect([...offered]).toContain(destination);
+  it("offers every primary destination in the top bar, and every planner page from Plan", () => {
+    const linksIn = (...parts: string[]) =>
+      new Set(
+        [...readFileSync(join(SRC, ...parts), "utf8").matchAll(/\b(?:to|path)(?::\s*|=)"(\/[^"]*)"/g)].map(
+          (m) => m[1],
+        ),
+      );
+    /* The top bar: Home · Subjects · Plan · Progress, the timer, and the
+       profile menu's Settings and community links (webapp/DESIGN.md 0.2). */
+    const topBar = linksIn("components", "TopBar.tsx");
+    for (const destination of ["/", "/library", "/plan", "/analytics", "/timer", "/settings", "/room"]) {
+      expect([...topBar]).toContain(destination);
     }
+    /* The planner's pages hang off Plan's own tabs; Trajectory off Progress's. */
+    const plan = linksIn("views", "plan", "PlanSectionNav.tsx");
+    for (const destination of ["/plan", "/my-week", "/tasks", "/exams"]) {
+      expect([...plan]).toContain(destination);
+    }
+    expect([...linksIn("views", "analytics", "ProgressSectionNav.tsx")]).toContain("/trajectory");
+    /* A study session starts from a lesson. */
+    expect(readFileSync(join(SRC, "views", "lesson", "LessonView.tsx"), "utf8")).toContain("/study?topic=");
   });
 
   it("every ?tab= link into Settings names a real tab", () => {

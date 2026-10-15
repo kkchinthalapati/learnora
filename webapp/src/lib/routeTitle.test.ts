@@ -3,7 +3,7 @@ import { titleForPath } from "./routeTitle";
 
 describe("titleForPath", () => {
   it("names every primary destination", () => {
-    expect(titleForPath("/")).toBe("Today · Learnora");
+    expect(titleForPath("/")).toBe("Home · Learnora");
     expect(titleForPath("/library")).toBe("Library · Learnora");
     expect(titleForPath("/study")).toBe("Study · Learnora");
     expect(titleForPath("/plan")).toBe("Study plan · Plan · Learnora");

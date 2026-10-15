@@ -1,7 +1,101 @@
 # Learnora webapp — design system
 
 The React app (`webapp/`) styles everything with **CSS Modules + CSS custom
-properties**. No Tailwind, no component library. This note is the map.
+properties**. No Tailwind, no component library.
+
+**Section 0 is the rulebook.** Every screen follows it, and a change that
+breaks a rule needs a reason written next to it. Sections 1 onwards are the
+reference map and the history of how the system got here.
+
+---
+
+## 0. The rules (2026-10 unified overhaul)
+
+### 0.1 The shape of the app
+
+Learnora is three nested things, and every screen belongs to one of them.
+
+| Thing | What it is | Data | Route |
+|---|---|---|---|
+| **Home** | Where you land. One box to add something, where you left off, what to fix, your lessons. | — | `/` |
+| **Subject** | A course you're studying: Biology, Chemistry. Holds lessons, an exam date and a plan. | `folders` | `/library` (Subjects page is the next step) |
+| **Lesson** | One thing you're learning: an upload, a link, your notes or a topic. Holds its notes, cards, quiz, tutor and mistakes. | `materials` (notes, quizzes and cards point at it by `material_id`) | `/lessons/:materialId` |
+
+Words in the UI follow the table: say **lesson**, not material, file or
+source; **subject**, not folder; **cards**, not flashcards or deck (a deck is
+an implementation detail); **mistakes**, not misconceptions.
+
+### 0.2 Navigation
+
+- **Interim:** a fourth item, **Plan**, stays in the bar until the Subjects
+  page holds each subject's exam date and week plan. Without it the planner
+  pages (Plan, Availability, Tasks, Exams) had no entry point. Remove it in
+  the same change that moves them into Subjects.
+- **Top bar, no sidebar.** Brand · Home · Subjects · Progress on the left;
+  search (⌘K), Ask (⌘J), focus timer and the profile menu on the right.
+  Friends, study room, settings, feedback and sign out live in the profile menu.
+- On phones the top bar keeps the brand and the profile menu, and the three
+  destinations move to a bottom bar.
+- No second level of navigation in a bar. A page that has parts uses `Tabs`
+  inside the page.
+
+### 0.3 Every page starts the same way
+
+- One `PageHeader`: a serif title (`--font-head`, `--fs-3xl`), at most one
+  plain sentence under it, and actions on the right. It renders the page's
+  one `<h1>`.
+- No eyebrow or kicker above a page title. Home is the only page that greets
+  you, and only Home asks "What do you want to learn?".
+- Sections inside a page use `SectionHeader`: a sans `--fs-lg` heading and at
+  most one quiet action on the right ("New subject").
+
+### 0.4 One way to do each thing
+
+| Need | Use | Not |
+|---|---|---|
+| Add something to study | The capture box (`CaptureBar`) | A second upload form, an "Add notes" button with its own dialog |
+| Find something | ⌘K search | A per-page search box, unless the page is a long list |
+| A list of lessons, subjects, decks | `ListRow` | Bespoke cards with their own borders |
+| How far along something is | `ProgressRing` | Bars, percentages in text, coloured top borders |
+| Switch between parts of one page | `Tabs` | Sidebar children, a row of buttons |
+| A small toggle or status | `Chip` | Hand-rolled pills |
+| The main action | `Button variant="primary"`, one per screen | Two primaries, gradient buttons |
+| Nothing here yet | `EmptyState` with one next action | A paragraph of explanation |
+
+### 0.5 Tokens: one scale each
+
+Two older scales still exist for legacy consumers. New and touched code uses
+only these:
+
+- **Space** `--s-*`. Not `--space-*`.
+- **Radius** `--r-*`. Cards `--r-lg`, controls `--r-md`, pills `--r-pill`.
+  Not `--radius-*`, not `--card-radius`.
+- **Type** `--fs-*` with `text.module.css` roles. Not `--text-*`.
+- **Colour** semantic only: `--text`, `--text-muted`, `--text-faint`,
+  `--surface`, `--surface-2`, `--hairline`, `--accent`, `--accent-text`,
+  `--success|warning|danger(-text)`, `--recall` for "due". No hex in a module.
+- **Elevation** flat: hairline borders, no shadows on cards. Only menus,
+  modals and drawers cast `--shadow-md` or larger.
+- **Motion** `--t-fast` / `--t`, with `--ease`, inside
+  `prefers-reduced-motion: no-preference` or reset under `reduce`.
+
+### 0.6 Writing
+
+- Sentence case everywhere, including buttons and tabs: "New subject", not
+  "+ New Folder".
+- Buttons start with a verb and say what happens: "Start session",
+  "Make my study set".
+- Second person, plain, short. No exclamation marks, no "Unlock",
+  "Supercharge", "Level up", no sparkle emoji, no "AI-powered".
+- Numbers say what they count: "12 of 30 cards practised", not "40%".
+- Never claim something the data doesn't support. If a figure is an
+  estimate, say so.
+
+### 0.7 Dark first
+
+Dark is the default (`lib/appearance.ts`). Design and check every screen in
+dark first, then light. Accent presets stay in Settings; everything reads
+`--accent` and its roles, so a preset can never break a screen.
 
 ---
 
@@ -93,7 +187,11 @@ import text from "../../styles/text.module.css";
 | `IconButton` | icon-only action, 44px hit area, needs `aria-label` |
 | `Chip` | compact pill — filter/toggle (`pressed`), quick action, or clickable status (`soft` + `tone`). `tone`: `neutral` / `accent` / `success` / `warning` / `danger` |
 | `Card` | `panel` (default) · `elevated` · `row` · `subtle`; `padding` + `radius` props |
-| `PageHeader` | title + `eyebrow` + `sub` + right-aligned `actions` slot (renders text, **not** an `<h1>` — the shell's `Header` owns the page's one `<h1>`) |
+| `PageHeader` | the page's one `<h1>` (serif) + one-sentence `sub` + right-aligned `actions`. Pages that render it are listed in `viewOwnsPageTitle()` so the shell doesn't add a second title. `eyebrow` is kept for old callers only; don't use it in new code (rule 0.3) |
+| `SectionHeader` | an `<h2>` inside a page + one quiet action (rule 0.3) |
+| `ListRow` | one row in a list of lessons, subjects or decks: leading icon, title, one meta line, trailing slot (a `ProgressRing`, a chevron, a menu). Renders as a link when given `to` |
+| `ProgressRing` | how far along something is, with a text label that says what it counts |
+| `Tabs` | parts of one page; arrow keys, Home/End, one tab stop; each tab can be a link (`to`) so the URL holds the tab |
 | `EmptyState` | zero-data view: icon + message + action |
 | `Skeleton` | loading placeholder (reserve layout, avoid CLS) |
 | `Modal` | focus-trapped dialog; `--blur-scrim` backdrop |

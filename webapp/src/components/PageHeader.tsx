@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
 import styles from "./PageHeader.module.css";
 
-/* PageHeader — the shared title+sub+actions row, extracted per the redesign
- * audit (archive/redesign/DESIGN_MOVES.md move #5, archive/redesign/PRIMITIVES.md).
+/* The way every page starts (DESIGN.md rule 0.3): a serif title, at most one
+ * sentence under it, and actions on the right.
  *
- * Built for the two views the shell's own <h1> can't cover: a subtitle and a
- * right-aligned action slot. Renders `title` as styled text, not a heading —
- * the shell's Header already supplies the page's one <h1> (move #2), so a
- * second one here would recreate the duplicate-heading bug that move fixed. */
+ * `as="h1"` makes it the page's one heading; the route must then be listed
+ * in viewOwnsPageTitle() (lib/sectionLabel.ts) so the shell doesn't print a
+ * second title above it. Older callers that sit under the shell's own title
+ * keep the default, which renders the same look as plain text. `eyebrow` is
+ * kept for those callers only — new pages don't use one. */
 
 interface PageHeaderProps {
   title: string;
@@ -15,6 +16,7 @@ interface PageHeaderProps {
   sub?: ReactNode;
   actions?: ReactNode;
   className?: string;
+  as?: "h1" | "p";
 }
 
 export function PageHeader({
@@ -23,16 +25,17 @@ export function PageHeader({
   sub,
   actions,
   className,
+  as: Title = "p",
 }: PageHeaderProps) {
   const classes = [styles.header, className].filter(Boolean).join(" ");
   return (
     <div className={classes}>
-      <div>
+      <div className={styles.text}>
         {eyebrow && <p className={styles.eyebrow}>{eyebrow}</p>}
-        <p className={styles.title}>{title}</p>
+        <Title className={styles.title}>{title}</Title>
         {sub && <p className={styles.sub}>{sub}</p>}
       </div>
-      {actions}
+      {actions ? <div className={styles.actions}>{actions}</div> : null}
     </div>
   );
 }

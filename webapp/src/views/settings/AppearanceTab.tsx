@@ -11,7 +11,6 @@ import {
   type FontFamily,
   type FontSize,
   type Mode,
-  type SidebarStyle,
 } from "../../lib/appearance";
 import { CustomThemeStudio } from "./CustomThemeStudio";
 import settings from "./settings.module.css";
@@ -55,12 +54,6 @@ const SIZES: ReadonlyArray<{
   { id: "sm", title: "Compact (13.5px)", glyph: "S", cls: styles.sizeSm },
   { id: "md", title: "Standard (15px)", glyph: "M", cls: styles.sizeMd },
   { id: "lg", title: "Large (16.5px)", glyph: "L", cls: styles.sizeLg },
-];
-
-const SIDEBARS: ReadonlyArray<{ id: SidebarStyle; title: string }> = [
-  { id: "glass", title: "Glassmorphism" },
-  { id: "solid", title: "Solid Canvas" },
-  { id: "transparent", title: "Minimal" },
 ];
 
 const BACKGROUNDS: ReadonlyArray<{ id: BgTexture; title: string }> = [
@@ -274,25 +267,8 @@ export function AppearanceTab() {
           </div>
         </div>
 
-        {/* 5. Sidebar framing */}
-        <div className={`${settings.field} ${settings.fieldStack}`}>
-          <div className={settings.fieldLabel}>
-            <span className={settings.labelText}>Sidebar Style</span>
-            <p className={settings.fieldDesc}>
-              Choose sidebar transparency and background blur
-            </p>
-          </div>
-          <div className={styles.grid} role="group" aria-label="Sidebar style">
-            {SIDEBARS.map((s) => (
-              <OptionCard
-                key={s.id}
-                selected={appearance.sidebar === s.id}
-                title={s.title}
-                onClick={() => setAppearance({ sidebar: s.id })}
-              />
-            ))}
-          </div>
-        </div>
+        {/* Sidebar style was removed with the sidebar (2026-10 overhaul,
+            webapp/DESIGN.md 0.2); the stored value is kept but unused. */}
 
         {/* 5b. Background texture */}
         <div className={`${settings.field} ${settings.fieldStack}`}>

@@ -188,7 +188,24 @@ function install(supabaseUrl: string) {
     /* tables */
     if (path.startsWith("/rest/v1/")) {
       const table = path.slice("/rest/v1/".length);
-      const rows = TABLES[table] ?? [];
+      const allRows = TABLES[table] ?? [];
+      /* Simple `col=eq.value` filters on reads, so a page that looks one row
+         up by id (`.eq("id", x).maybeSingle()`) gets that row and not the
+         whole table — supabase-js rejects a list of several there. user_id
+         is skipped: fixtures don't always carry it. Writes still echo. */
+      const eqFilters = [...new URL(url).searchParams.entries()].filter(
+        ([col, value]) => col !== "user_id" && value.startsWith("eq."),
+      );
+      const rows =
+        method === "GET" || method === "HEAD"
+          ? allRows.filter((row) =>
+              eqFilters.every(
+                ([col, value]) =>
+                  !(col in (row as object)) ||
+                  String((row as Record<string, unknown>)[col]) === decodeURIComponent(value.slice(3)),
+              ),
+            )
+          : allRows;
 
       /* Writes: echo the payload back so optimistic UI settles instead of
          rolling back with an error toast. */
@@ -229,8 +246,10 @@ function install(supabaseUrl: string) {
       /* `.single()`/`.maybeSingle()` ask PostgREST for an object rather than
          a list, via the Accept header. Answering with the array anyway is
          what left the notebook studio on "Notebook not found". */
+      /* supabase-js passes a Headers instance, not a plain object, so the
+         header is read through Headers either way. */
       const accept =
-        (init?.headers as Record<string, string>)?.Accept ??
+        new Headers(init?.headers).get("accept") ??
         (input instanceof Request ? (input.headers.get("accept") ?? "") : "");
       if (accept.includes("vnd.pgrst.object+json")) {
         return json(rows[0] ?? null);

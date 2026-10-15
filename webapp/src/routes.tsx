@@ -31,8 +31,11 @@ import styles from "./routes.module.css";
 const LazyAppShell = lazy(async () => ({
   default: (await import("./components/AppShell")).AppShell,
 }));
-const LazyTodayView = lazy(async () => ({
-  default: (await import("./views/today/TodayView")).TodayView,
+const LazyHomeView = lazy(async () => ({
+  default: (await import("./views/home/HomeView")).HomeView,
+}));
+const LazyLessonView = lazy(async () => ({
+  default: (await import("./views/lesson/LessonView")).LessonView,
 }));
 const LazyTasksView = lazy(async () => ({
   default: (await import("./views/tasks/TasksView")).TasksView,
@@ -286,11 +289,20 @@ export function AppRoutes() {
               </Suspense>
             }
           >
+            {/* 2026-10 overhaul: Home replaces Today (webapp/DESIGN.md 0.1). */}
             <Route path="/" element={
               <DeferredView>
-                <LazyTodayView />
+                <LazyHomeView />
               </DeferredView>
             } />
+            <Route
+              path="/lessons/:materialId"
+              element={
+                <DeferredView>
+                  <LazyLessonView />
+                </DeferredView>
+              }
+            />
             {/* 2026-09 redesign: Today is the home. The misconception ledger
                 that lived on the Dashboard is on Progress now. */}
             <Route path="/dashboard" element={<Navigate to="/" replace />} />

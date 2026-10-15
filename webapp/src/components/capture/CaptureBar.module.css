@@ -166,3 +166,15 @@
     animation: none;
   }
 }
+
+/* Home's box (size="lg"): roomier, and the field reads as the page's
+   question rather than a form control. */
+.lg {
+  gap: var(--s-4);
+  padding: var(--s-5);
+  border-radius: var(--r-2xl);
+}
+
+.lg .input {
+  font-size: var(--fs-lg);
+}
