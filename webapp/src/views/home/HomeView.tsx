@@ -15,18 +15,12 @@ import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { isLoopSupported } from "../../api/misconceptions";
-import { localDateStr, formatRelativeTime } from "../../lib/date";
-import {
-  lessonIcon,
-  lessonPath,
-  lessonTitle,
-  progressByLesson,
-  progressLabel,
-  progressValue,
-} from "../../lib/lessons";
+import { localDateStr } from "../../lib/date";
+import { progressByLesson } from "../../lib/lessons";
 import { needsRepair, retestsDue } from "../../lib/mistakeLoop";
 import { daysUntil } from "../../lib/quizForecast";
 import { MistakeLoopSection } from "../today/MistakeLoopSection";
+import { LessonRows } from "../lesson/LessonRows";
 import { SessionCompletePanel } from "../today/SessionCompletePanel";
 import styles from "./home.module.css";
 
@@ -49,14 +43,6 @@ export function HomeView() {
   const exams = useExams();
 
   const progress = useMemo(() => progressByLesson(cards.data ?? []), [cards.data]);
-  const folderName = useMemo(
-    () => new Map((folders.data ?? []).map((f) => [f.id, f.name])),
-    [folders.data],
-  );
-  const folderColor = useMemo(
-    () => new Map((folders.data ?? []).map((f) => [f.id, f.color])),
-    [folders.data],
-  );
 
   const today = localDateStr(now);
   const nextExam = useMemo(() => {
@@ -167,29 +153,7 @@ export function HomeView() {
             message="Add a file, a link, your notes or a topic above, and it becomes your first lesson."
           />
         ) : (
-          <ListRows label="Lessons">
-            {lessons.map((m) => {
-              const p = progress.get(m.id);
-              const subject = m.folder_id ? folderName.get(m.folder_id) : null;
-              return (
-                <ListRow
-                  key={m.id}
-                  icon={lessonIcon(m.type)}
-                  tint={m.folder_id ? folderColor.get(m.folder_id) : null}
-                  title={lessonTitle(m)}
-                  meta={`${subject ?? "No subject"} · added ${formatRelativeTime(m.created_at)}`}
-                  to={lessonPath(m.id)}
-                  trailing={
-                    <ProgressRing
-                      value={progressValue(p)}
-                      label={progressLabel(p)}
-                      center={p && p.total > 0 ? String(p.practised) : undefined}
-                    />
-                  }
-                />
-              );
-            })}
-          </ListRows>
+          <LessonRows lessons={lessons} progress={progress} folders={folders.data ?? []} />
         )}
       </section>
     </div>
