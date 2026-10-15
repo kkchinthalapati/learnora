@@ -42,7 +42,7 @@ const CALLER_SRC = slice('/* Response readers', 'function safetyRefusalResponse'
 const TS_STRIPS = [
   [/const BUILTIN_PROVIDERS: AIProvider\[\]/, 'const BUILTIN_PROVIDERS'],
   [/function parseExtraProviders\(\): AIProvider\[\]/, 'function parseExtraProviders()'],
-  [/function providerChain\(\): AIProvider\[\]/, 'function providerChain()'],
+  [/function providerChain\(radoxAllowed: boolean\): AIProvider\[\]/, 'function providerChain(radoxAllowed)'],
   [/function resolveProviderUrl\(provider: AIProvider\): string \| null/, 'function resolveProviderUrl(provider)'],
   [/let parsed: unknown;/, 'let parsed;'],
   [/const out: AIProvider\[\] = \[\];/, 'const out = [];'],
@@ -220,7 +220,7 @@ test('extra providers are appended after the built-ins, never ahead of them', ()
     ]),
   };
   const api = load(extra, { permitAll: true });
-  const chain = api.providerChain();
+  const chain = api.providerChain(true);
   assert.strictEqual(chain.length, api.BUILTIN_PROVIDERS.length + 1);
   assert.strictEqual(chain[chain.length - 1].id, 'together');
 });
@@ -231,10 +231,19 @@ test('the chain only calls providers students were told about', () => {
       { id: 'together', keyEnv: 'TOGETHER_API_KEY', defaultModel: 'x', url: 'https://api.together.xyz/v1/chat/completions' },
     ]),
   });
-  const ids = api.providerChain().map((p) => p.id);
+  const ids = api.providerChain(true).map((p) => p.id);
   assert.ok(!ids.includes('together'), 'an undisclosed extra provider must be dropped');
   assert.ok(!ids.includes('mistral'), 'mistral is not disclosed, so it is never called');
   assert.deepStrictEqual([...load({ AI_PROVIDER_ALLOWLIST: 'groq' }).providerChain().map((p) => p.id)], ['groq']);
+});
+
+test('Radox is only in the chain for accounts the age check allows', () => {
+  const api = load({ RADOX_API_KEY: 'k' });
+  const off = api.providerChain(false).map((p) => p.id);
+  const on = api.providerChain(true).map((p) => p.id);
+  assert.ok(!off.includes('radox'), 'an under-16 or unknown-age account never reaches Radox');
+  assert.ok(on.includes('radox'), 'an account the age check allows reaches Radox');
+  assert.ok(on.indexOf('radox') < on.indexOf('openai'), 'Radox sits before OpenAI');
 });
 
 test('an extra provider gets a derived model secret name when it omits one', () => {
@@ -250,7 +259,7 @@ test('malformed AI_EXTRA_PROVIDERS is ignored rather than taking the AI offline'
   for (const raw of ['not json', '{"id":"x"}', '[]', '   ']) {
     const api = load({ AI_EXTRA_PROVIDERS: raw });
     assert.deepStrictEqual(plain(api.parseExtraProviders()), [], `raw: ${raw}`);
-    assert.strictEqual(load({ AI_EXTRA_PROVIDERS: raw }, { permitAll: true }).providerChain().length, api.BUILTIN_PROVIDERS.length);
+    assert.strictEqual(load({ AI_EXTRA_PROVIDERS: raw }, { permitAll: true }).providerChain(true).length, api.BUILTIN_PROVIDERS.length);
   }
 });
 

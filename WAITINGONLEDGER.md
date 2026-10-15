@@ -113,6 +113,7 @@ pushes has not been reviewed.
 | Mistral | `MISTRAL_API_KEY` | 429. **Privacy text no longer names Mistral**; remove or disclose (see 6.1). |
 | GitHub Models | | Empty replies, cause unknown |
 | OpenRouter | `OPENROUTER_API_KEY` | Paid last resort |
+| Radox AI | `RADOX_API_KEY` (optional `RADOX_MODEL`) | **BLOCKED on you.** Code added 2026-10-15: paid backup, before OpenAI, disclosed to students. Not yet called live. Set the secret, redeploy `learnora-ai`, then make one real call to confirm the default model slug and whether `response_format` is honoured. Under-16s are excluded in code (`radoxPermittedForAge`), so the route stays closed for them. |
 
 **Decision:** which providers you are willing to pay for. With Groq as the
 only live provider, one outage means no AI at all.
@@ -122,6 +123,8 @@ Optional verification tuning (defaults are fine): `QUIZ_VERIFIER_MODEL`
 `QUIZ_VERIFY_GLOBAL_DAILY` (default 2000).
 
 ### 4.5 Other keys
+
+**6.9 (decided 2026-10-15): age and the Radox terms.** Learnora stays at 13+ for the product. Radox AI's terms say 16 or older, so the Radox route is closed to under-16s in code (`radoxPermittedForAge`), and an unreadable date of birth is closed too. Students aged 13–15 get the other providers only. Still open: whether a personal discounted plan may serve other users' requests at all, since Radox's terms prohibit reselling API access without a written agreement. Ask Radox before relying on it for every student.
 
 **Oak import, as reviewed 2026-10-07** (run in review mode, nothing written): 1,050 questions, all `gcse-maths` (Year 10 and 11, foundation and higher). Four sampled answers hand-checked and correct. 692 contain LaTeX (`$$…$$`); no explanations. **There is no GCSE science from Oak**: the API's science programmes stop at Year 9, so the sciences stay on the 228 Learnora-written questions. Run it yourself, from `webapp/`:
 

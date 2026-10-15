@@ -14,6 +14,7 @@ import {
   createDeadKeyRegistry,
   isDeadKeyError,
   permittedProviderIds,
+  radoxPermittedForAge,
 } from "../_shared/providerPolicy.js";
 import { addBodyUsage, addGeminiUsage, newUsage } from "../_shared/tokenUsage.js";
 import { cacheableRef, requestHash } from "../_shared/itemCache.js";
@@ -283,6 +284,22 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
 
   /* ---- Paid, and last on purpose ------------------------------------ */
   {
+    // Radox AI: one OpenAI-compatible gateway to many models (Claude, GPT,
+    // Gemini, DeepSeek, Qwen and others). It forwards each request to a host
+    // it does not name, and its terms require users to be 16 or older — see
+    // AI_PROVIDERS.md and WAITINGONLEDGER.md (6.9) before it serves students
+    // under 16. Its model slugs are listed on radoxai.com; RADOX_MODEL
+    // overrides this default without a redeploy. jsonMode is off until a live
+    // call confirms Radox honours response_format.
+    id: "radox",
+    keyEnv: "RADOX_API_KEY",
+    modelEnv: "RADOX_MODEL",
+    defaultModel: "claude-haiku-5-5",
+    url: "https://radoxai.com/v1/chat/completions",
+    jsonMode: false,
+    cost: "paid",
+  },
+  {
     id: "openai",
     keyEnv: "OPENAI_API_KEY",
     modelEnv: "OPENAI_MODEL",
@@ -368,14 +385,18 @@ function parseExtraProviders(): AIProvider[] {
 
 /* Built-ins first, operator additions after. Recomputed per request so a
    secret change takes effect without a redeploy. */
-function providerChain(): AIProvider[] {
+function providerChain(radoxAllowed: boolean): AIProvider[] {
   /* Only providers students were told about (see _shared/providerPolicy.js),
      narrowed further by AI_PROVIDER_ALLOWLIST, and minus any whose key was
      refused recently. An AI_EXTRA_PROVIDERS entry is dropped here unless it
-     has first been added to the disclosed list. */
+     has first been added to the disclosed list. Radox's terms need users to
+     be 16+, so its route is only offered when the caller's age allows it. */
   const permitted = permittedProviderIds(Deno.env.get("AI_PROVIDER_ALLOWLIST"));
   return [...BUILTIN_PROVIDERS, ...parseExtraProviders()].filter(
-    (p) => permitted.has(p.id) && !deadKeys.isDead(p.id),
+    (p) =>
+      permitted.has(p.id) &&
+      !deadKeys.isDead(p.id) &&
+      (p.id !== "radox" || radoxAllowed),
   );
 }
 
@@ -1384,6 +1405,9 @@ Deno.serve(async (req) => {
     // and keep the access they have always had. Mirrors webapp/src/lib/
     // aiConsent.ts, which asks the student before a request gets this far;
     // this is the half a hand-built request cannot skip.
+    /* Read from the account's own metadata, which signup sends from the
+       date-of-birth field. Missing or unreadable means not allowed. */
+    const radoxAllowed = radoxPermittedForAge(user.user_metadata?.dob);
     if (user.user_metadata?.consent_given === false) {
         return new Response(
             JSON.stringify({
@@ -1550,7 +1574,7 @@ Deno.serve(async (req) => {
                     console.warn(`[${label}] Gemini call failed`, err);
                 }
             }
-            for (const provider of providerChain()) {
+            for (const provider of providerChain(radoxAllowed)) {
                 if (!Deno.env.get(provider.keyEnv) || !resolveProviderUrl(provider)) continue;
                 if (budgetExhausted()) return null;
                 try {
@@ -1774,7 +1798,7 @@ Deno.serve(async (req) => {
         // Each is tried until one returns usable text; unconfigured ones are
         // skipped without being treated as failures.
         // =========================================================================
-        for (const provider of providerChain()) {
+        for (const provider of providerChain(radoxAllowed)) {
             if (!Deno.env.get(provider.keyEnv)) {
                 debugErrors[provider.id] = `${provider.keyEnv} is not set in Supabase.`;
                 continue;

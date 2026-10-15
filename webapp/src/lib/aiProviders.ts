@@ -18,6 +18,8 @@ export interface AiProviderDisclosure {
   /** Primary handles most requests; backup is only reached when a primary
    *  provider is down or out of capacity. */
   role: "primary" | "backup";
+  /** Anything a student must know that the company name alone does not say. */
+  note?: string;
 }
 
 export const AI_PROVIDERS: readonly AiProviderDisclosure[] = [
@@ -28,6 +30,13 @@ export const AI_PROVIDERS: readonly AiProviderDisclosure[] = [
   { id: "github-models", company: "GitHub (Microsoft)", service: "GitHub Models", role: "backup" },
   { id: "openrouter", company: "OpenRouter", service: "OpenRouter (open models)", role: "backup" },
   { id: "nvidia", company: "NVIDIA", service: "NVIDIA NIM (open models)", role: "backup" },
+  {
+    id: "radox",
+    company: "Radox AI",
+    service: "Radox AI gateway (Claude, GPT, Gemini, DeepSeek, Qwen and other models)",
+    role: "backup",
+    note: "Radox forwards each request to the company that hosts the model, and does not name that company in its policy. It says it does not store prompt or reply content or use it for training, though a fragment of a failed request can appear in its error logs. Radox's terms require users to be 16 or older, so Learnora does not send requests to Radox for anyone under 16.",
+  },
   { id: "openai", company: "OpenAI", service: "OpenAI API", role: "backup" },
 ];
 

@@ -106,6 +106,7 @@ export function PrivacyView() {
               {AI_PROVIDERS.filter((p) => p.role === "backup").map((p) => (
                 <li key={p.id}>
                   <strong>{p.company}</strong> — {p.service}
+                  {p.note ? <span> {p.note}</span> : null}
                 </li>
               ))}
             </ul>

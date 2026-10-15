@@ -54,13 +54,14 @@ uploaded photo of a worksheet still needs it.
 | 4 | **Mistral** | `MISTRAL_API_KEY` | [console.mistral.ai](https://console.mistral.ai/) | Free "Experiment" tier (see caveat below) |
 | 5 | **OpenRouter** | `OPENROUTER_API_KEY` | [openrouter.ai/keys](https://openrouter.ai/keys) | Free `:free` models, weakest here |
 | 6 | **NVIDIA NIM** | `NVIDIA_API_KEY` | [build.nvidia.com](https://build.nvidia.com/) | Free credits, then billed |
-| 7 | **OpenAI** | `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com/api-keys) | Paid from the first token |
-| 8 | **Anthropic** | `CLAUDE_API_KEY` | [console.anthropic.com](https://console.anthropic.com/) | Paid from the first token |
+| 7 | **Radox AI** | `RADOX_API_KEY` | [radoxai.com](https://radoxai.com) | Paid per token; a plan's monthly allowance covers it first |
+| 8 | **OpenAI** | `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com/api-keys) | Paid from the first token |
+| 9 | **Anthropic** | `CLAUDE_API_KEY` | [console.anthropic.com](https://console.anthropic.com/) | Paid from the first token |
 
 ### The order is deliberate: free, then credits, then paid
 
-Providers 1–6 have standing free tiers. 7 has free credits that eventually run
-out. 8 and 9 bill immediately.
+Providers 1–6 have standing free tiers. 6 (NVIDIA) has free credits that eventually
+run out. 7 (Radox), 8 (OpenAI) and 9 (Anthropic) bill from the first token.
 
 Because the chain stops at the first provider that answers, a deployment with
 every key set **spends nothing until the free tiers are exhausted** — the paid
@@ -96,12 +97,36 @@ value in the table below as the fallback:
 | `MISTRAL_MODEL` | `mistral-small-latest` |
 | `OPENROUTER_MODEL` | `openai/gpt-oss-20b:free` |
 | `NVIDIA_MODEL` | `meta/llama-3.3-70b-instruct` |
+| `RADOX_MODEL` | `claude-haiku-5-5` (a Radox slug; check the names on radoxai.com, since the default is a guess until a live call confirms it) |
 | `OPENAI_MODEL` | `gpt-4o-mini` |
 | `CLAUDE_MODEL` | `claude-haiku-5-5` (default updated 2026-10-09 from the retired `claude-3-5-haiku-20241022`) |
 
 If a provider starts returning "model not found", set the matching secret to a
 current model ID rather than editing the code. Two defaults in this file have
 already died that way.
+
+---
+
+### Radox AI: what it does with a request
+
+Radox is a gateway, not a model host. It forwards each request to the company
+that runs the model you pick, and that company is **not named** in Radox's
+privacy policy. Radox says it does not store prompt or reply content and does
+not use them for training, though a fragment of a failed request can
+appear in its error logs. The host's own retention and training terms still
+apply, and we have not checked them.
+
+Radox's terms also require users to be **16 or older**, which is above the
+13 that Learnora's privacy page and terms state. Learnora keeps
+Radox away from anyone under 16. The check is in code: `radoxPermittedForAge`
+in `supabase/functions/_shared/providerPolicy.js`, applied in the edge function
+to the account's date of birth from sign-up. A missing or unreadable date of
+birth counts as under 16. The date of birth is self-declared, so this is a
+gate, not verified age. The age policy itself is still open (WAITINGONLEDGER 6.9).
+
+Students are told all of this in the privacy policy and in the consent screen,
+through `webapp/src/lib/aiProviders.ts` (the `note` field). Adding the key
+without that disclosure would break `tests/provider-disclosure.test.js`.
 
 ---
 

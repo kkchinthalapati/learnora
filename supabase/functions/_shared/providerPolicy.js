@@ -29,6 +29,7 @@ export const DISCLOSED_PROVIDER_IDS = Object.freeze([
   "github-models",
   "openrouter",
   "nvidia",
+  "radox",
   "openai",
   "anthropic",
 ]);
@@ -97,4 +98,44 @@ export function createDeadKeyRegistry(now = () => Date.now()) {
       until.set(id, now() + DEAD_KEY_COOLDOWN_MS);
     },
   };
+}
+
+/* Radox AI's terms require users to be 16 or older (WAITINGONLEDGER 6.9).
+   Until that is decided, its route is closed for anyone under 16 — and for
+   anyone whose age cannot be read, since the date of birth is self-declared
+   at sign-up and a missing one is the case to fail closed on. */
+export const RADOX_MIN_AGE = 16;
+
+/**
+ * Whole years between a "YYYY-MM-DD" date of birth and `today`, or null when
+ * the value is missing or not a real date. Reads the fields out of the string
+ * rather than `new Date(dob)`, for the same reason as webapp/src/api/auth.ts:
+ * UTC midnight against a local `today` moves the birthday a day.
+ * @param {unknown} dob
+ * @param {Date} [today]
+ * @returns {number | null}
+ */
+export function ageFromDob(dob, today = new Date()) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dob ?? ""));
+  if (!match) return null;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const check = new Date(Date.UTC(year, month - 1, day));
+  if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) {
+    return null;
+  }
+  let age = today.getFullYear() - year;
+  const monthDiff = today.getMonth() + 1 - month;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < day)) age--;
+  return age;
+}
+
+/**
+ * Whether this account may be sent to the Radox route.
+ * @param {unknown} dob
+ * @param {Date} [today]
+ * @returns {boolean}
+ */
+export function radoxPermittedForAge(dob, today = new Date()) {
+  const age = ageFromDob(dob, today);
+  return age !== null && age >= RADOX_MIN_AGE;
 }
