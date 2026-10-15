@@ -62,7 +62,7 @@ not the filename. If you want `supabase migration list` to match, run
 
 | Function | Prod version | Waiting on |
 |----------|--------------|------------|
-| `learnora-ai` | v70 (2026-10-10) | **READY** once `claude/new-session-nch92w` merges: redeploy so quiz mode asks for TeX in question/choice/feedback strings (`_shared/systemPrompt.js`, `JSON_MATH_RULE`; fixes stems showing `tau_xz`). UNVERIFIED. Previously: deployed from `main` after PR #134 merged (verification, token/outage logging, bank-question item cache, Claude default `claude-haiku-5-5`). Smoke test is row 3. Rollback: Edge Functions > learnora-ai > versions. |
+| `learnora-ai` | **v73 (2026-10-15)**, deployed from `radox-provider` (commit `e70c076`) with `supabase functions deploy`. Carries the Radox backup and its under-16 gate. Not yet merged to `main`; merge the branch so `main` matches production. Smoke test: unauthenticated POST returns 401. Radox itself is inert until `RADOX_API_KEY` is set. Older note: **READY** once `claude/new-session-nch92w` merges: redeploy so quiz mode asks for TeX in question/choice/feedback strings (`_shared/systemPrompt.js`, `JSON_MATH_RULE`; fixes stems showing `tau_xz`). UNVERIFIED. Previously: deployed from `main` after PR #134 merged (verification, token/outage logging, bank-question item cache, Claude default `claude-haiku-5-5`). Smoke test is row 3. Rollback: Edge Functions > learnora-ai > versions. |
 | `stripe-billing` | v19 | Nothing known. Needs Stripe secrets (4.1). |
 | `stripe-webhook` | v17 | Nothing known. Needs `STRIPE_WEBHOOK_SECRET` (4.1). |
 | `delete-account` | v13 | Nothing. |
