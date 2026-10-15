@@ -88,7 +88,7 @@ describe("route skeleton", () => {
     ["/plan", "Plan"],
     ["/friends", "Friends"],
     ["/analytics", "Progress"],
-    ["/study", "What do you need help with?"],
+    ["/study", "One session, picked from your mistakes"],
     /* A page again (it was a redirect into Practice for a while). */
     ["/exam-detective", "Exam traps"],
     ["/settings", "Settings"],

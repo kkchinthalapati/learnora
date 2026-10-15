@@ -42,6 +42,8 @@ export interface StudySessionRecord {
   preset?: "traps";
   /** A time box the student chose ("Only have 10 minutes"). */
   minutes?: number;
+  /** The adaptive session this is one activity of (lib/adaptiveSession). */
+  runId?: string;
   createdAt: string;
   updatedAt: string;
   /** Each mode's own resume state (keyed by mode: its AI session, answers,
@@ -75,6 +77,7 @@ export function createStudySession(init: {
   voice?: boolean;
   preset?: "traps";
   minutes?: number;
+  runId?: string;
   id?: string;
 }): StudySessionRecord {
   const now = new Date().toISOString();
@@ -91,6 +94,7 @@ export function createStudySession(init: {
     voice: init.voice,
     preset: init.preset,
     minutes: init.minutes,
+    runId: init.runId,
     createdAt: now,
     updatedAt: now,
     data: {},

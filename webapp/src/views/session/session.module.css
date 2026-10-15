@@ -26,6 +26,43 @@
 
 /* ---- Top bar ---- */
 
+/* One activity of Study's adaptive session: a strip under the top bar. */
+.shellRun {
+  grid-template-rows: var(--topbar-height) auto minmax(0, 1fr);
+}
+
+.runBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-2) var(--s-6);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--surface);
+}
+
+.runNow {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runStep {
+  color: var(--text-muted);
+}
+
+.runWhy {
+  color: var(--text-muted);
+}
+
+.runBar > button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .topbar {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -830,6 +867,18 @@ button[data-rank="primary"] .ratingKey {
 @media (max-width: 767px) {
   .shell {
     grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .shellRun {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .runBar {
+    padding: var(--s-2) var(--s-4);
+  }
+
+  .runWhy {
+    display: none;
   }
 
   .topbar {

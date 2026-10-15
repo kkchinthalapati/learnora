@@ -39,6 +39,8 @@ export function newSessionHref(
     voice?: boolean;
     /** Exam traps: Practice with a clock. */
     preset?: "traps";
+    /** The adaptive session (lib/adaptiveSession) this activity is part of. */
+    run?: string;
   } = {},
 ): string {
   const q = new URLSearchParams({ mode });
@@ -47,6 +49,7 @@ export function newSessionHref(
   if (params.minutes) q.set("minutes", String(params.minutes));
   if (params.voice) q.set("voice", "1");
   if (params.preset) q.set("preset", params.preset);
+  if (params.run) q.set("run", params.run);
   return `/study/new?${q.toString()}`;
 }
 
