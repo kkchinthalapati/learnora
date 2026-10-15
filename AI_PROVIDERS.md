@@ -97,7 +97,7 @@ value in the table below as the fallback:
 | `MISTRAL_MODEL` | `mistral-small-latest` |
 | `OPENROUTER_MODEL` | `openai/gpt-oss-20b:free` |
 | `NVIDIA_MODEL` | `meta/llama-3.3-70b-instruct` |
-| `RADOX_MODEL` | `claude-haiku-5-5` (a Radox slug; check the names on radoxai.com, since the default is a guess until a live call confirms it) |
+| `RADOX_MODEL` | `claude-sonnet-5` (confirmed in Radox's `/v1/models` list on 2026-10-15) |
 | `OPENAI_MODEL` | `gpt-4o-mini` |
 | `CLAUDE_MODEL` | `claude-haiku-5-5` (default updated 2026-10-09 from the retired `claude-3-5-haiku-20241022`) |
 

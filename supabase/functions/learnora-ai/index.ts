@@ -294,7 +294,7 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
     id: "radox",
     keyEnv: "RADOX_API_KEY",
     modelEnv: "RADOX_MODEL",
-    defaultModel: "claude-haiku-5-5",
+    defaultModel: "claude-sonnet-5",
     url: "https://radoxai.com/v1/chat/completions",
     jsonMode: false,
     cost: "paid",
