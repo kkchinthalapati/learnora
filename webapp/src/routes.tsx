@@ -146,6 +146,9 @@ const LazySessionView = lazy(async () => ({
 const LazyCheckBackView = lazy(async () => ({
   default: (await import("./views/checkback/CheckBackView")).CheckBackView,
 }));
+const LazyCaptureView = lazy(async () => ({
+  default: (await import("./views/capture/CaptureView")).CaptureView,
+}));
 const LazyStudyLabView = lazy(async () => ({
   default: (await import("./views/study-lab/StudyLabView")).StudyLabView,
 }));
@@ -368,6 +371,14 @@ export function AppRoutes() {
               }
             />
             <Route path="/study-lab" element={<Navigate to="/study" replace />} />
+            <Route
+              path="/capture"
+              element={
+                <DeferredView>
+                  <LazyCaptureView />
+                </DeferredView>
+              }
+            />
             <Route
               path="/my-week"
               element={

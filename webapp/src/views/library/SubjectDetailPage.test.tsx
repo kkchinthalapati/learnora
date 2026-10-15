@@ -392,6 +392,9 @@ describe("SubjectDetailPage", () => {
     expect(
       await screen.findByRole("heading", { name: "What do you want to learn?" }),
     ).toBeInTheDocument();
+    /* The dialog opens on the capture bar, which files into this folder
+       without asking; the full panel shows the choice it made. */
+    await user.click(screen.getByRole("button", { name: /More options/ }));
 
     /* "Pre-selected" means the destination Subject select already holds this
        page's folder, so the student never re-picks the subject they are

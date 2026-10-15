@@ -77,8 +77,9 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MIN_NOTES_CHARS = 50;
 
 /* `createStudyPackage` decides audio-vs-document from this, and the notes
-   prompt spots a video link from the other. Both carried over verbatim. */
-const AUDIO_FILE = /\.(mp3|mp4|wav|m4a|aac|ogg)$/i;
+   prompt spots a video link from the other. WebM is what Chrome records a
+   lecture in (hooks/useLectureRecorder.ts). */
+const AUDIO_FILE = /\.(mp3|mp4|wav|m4a|aac|ogg|webm)$/i;
 const YOUTUBE_LINK = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//;
 
 /** Thrown when the model replied but the reply was too short to be a study

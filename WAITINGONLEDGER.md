@@ -156,6 +156,7 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 | 6.4 | Human review of the question bank (now incl. 132 CBSE Class 10 questions) and the 59-item misconception catalogue (14 added for CBSE, 2026-10-09) by a teacher, ideally one who teaches CBSE for those. Question reports land in `question_review_log` / `question_reports`; hand-run queries are in `docs/question_review.sql`. Nobody is reviewing them yet. | BLOCKED, needs a person |
 | 6.5 | Peer benchmarking (plan item 2.6) needs a privacy review before any build | DECISION |
 | 6.7 | **The quiz checker can be the model that wrote the quiz.** `secondaryCall` (learnora-ai) tries Gemini, then the first keyed provider in the chain, which today is Groq, the same model that usually generates. Smoke test 2026-10-13: all 6 questions `verified`, `by: groq`, written by Groq. Excluding the generator makes the check independent, but the next keyed provider (GitHub Models) returns empty replies and only one fallback is tried, so most checks would fail: seeded subjects would fall back to bank questions, others would show "unverified". Options: accept self-checks; exclude the generator and let OpenRouter (paid) check; or fix Gemini (503) as the checker. | DECISION |
+| 6.8 | **Integrations that need your accounts** (asked for 2026-10-15, not built): Google Drive/Classroom import and two-way Google Calendar sync need a Google Cloud OAuth client (consent screen, and Google verification for the Drive/Classroom scopes); Canvas needs a developer key per school. Live notes *during* a lecture need a streaming speech-to-text provider (key + new edge function). Until then: share-to-Learnora, the capture bar's record-then-notes, and the plan's existing `.ics` export cover these without any setup. | DECISION |
 | 6.6 | Exam boards beyond the current set (AP/SAT, other GCSE science boards); past papers can only be linked, not hosted (AQA refuses apps) | DECISION |
 
 ## 7. Known gaps in what shipped (code, not waiting on you)
@@ -168,6 +169,15 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
   fewer questions rather than unverified ones.
 - Report thresholds (3 reporters for bank, 1 for generated) are guesses; revisit
   after real reports exist.
+- **Lecture recording (capture bar, 2026-10-15) has not run against a real
+  model.** Only Gemini reads audio (4.4), and it was 503 on the last check.
+  Chrome records WebM/Opus, which Gemini does not list as a supported audio
+  type; Firefox (Ogg) and Safari (MP4) record formats it does list. Smoke
+  test after merge: record 30 s in Chrome on the deployed app and confirm
+  notes come back; if WebM is refused, convert to WAV/Ogg in the browser.
+- **Share to Learnora** (manifest `share_target`, `public/sw.js`) only shows
+  once the app is installed to a phone's home screen, and has not been tried
+  on a device. Android Chrome supports it; iOS Safari does not.
 
 ## Done
 

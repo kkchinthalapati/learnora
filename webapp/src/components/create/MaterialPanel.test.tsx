@@ -87,13 +87,21 @@ describe("MaterialPanel streamlined creation", () => {
     return checkbox as HTMLInputElement;
   }
 
+  /* The dialog opens on the capture bar; this panel is behind "More
+     options" (a caller naming a material or a quiz skips straight to it). */
+  async function openFullPanel(user: ReturnType<typeof userEvent.setup>) {
+    const more = screen.queryByRole("button", { name: /More options/ });
+    if (more) await user.click(more);
+    await screen.findByRole("heading", { name: "1. Provide Source" });
+  }
+
   async function openDialog(initial?: OpenCreateModalOptions) {
     const user = userEvent.setup();
     renderWithProviders(<Harness initial={initial} />, undefined, {
       withRouter: true,
     });
     await user.click(screen.getByRole("button", { name: "Open create" }));
-    await screen.findByRole("heading", { name: "1. Provide Source" });
+    await openFullPanel(user);
     return user;
   }
 
@@ -532,9 +540,7 @@ describe("MaterialPanel streamlined creation", () => {
       await user.keyboard("{Escape}");
 
       await user.click(screen.getByRole("button", { name: "Open create" }));
-      await screen.findByRole("heading", {
-        name: "1. Provide Source",
-      });
+      await openFullPanel(user);
 
       expect(screen.getByLabelText("Paste your notes or text")).toHaveValue(
         "Mitochondria are the powerhouse of the cell.",

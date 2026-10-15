@@ -31,7 +31,7 @@ describe("CreateModal", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens directly on the source-first study flow by default", async () => {
+  it("opens on the capture bar by default", async () => {
     const user = userEvent.setup();
     renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
@@ -39,8 +39,44 @@ describe("CreateModal", () => {
     expect(
       screen.getByRole("dialog", { name: "What do you want to learn?" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: "What do you want to learn?" }),
+    ).toHaveFocus();
+    expect(screen.getByRole("button", { name: /Record lecture/ })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Upload/ })).not.toBeInTheDocument();
+  });
+
+  it("keeps the full panel one click away", async () => {
+    const user = userEvent.setup();
+    renderModal(<Harness />);
+    await user.click(screen.getByRole("button", { name: "Open create" }));
+    await user.click(screen.getByRole("button", { name: /More options/ }));
+
     expect(screen.getByRole("tab", { name: /Upload/ })).toBeInTheDocument();
-    expect(screen.queryByText("Create something new")).not.toBeInTheDocument();
+  });
+
+  it("goes straight to the full panel for a quiz or a saved material", async () => {
+    const user = userEvent.setup();
+    renderModal(<Harness initial={{ type: "material", outputs: { quiz: true } }} />);
+    await user.click(screen.getByRole("button", { name: "Open create" }));
+
+    expect(screen.getByRole("tab", { name: /Upload/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Record lecture/ })).not.toBeInTheDocument();
+  });
+
+  it("names what it will do with what was typed", async () => {
+    const user = userEvent.setup();
+    renderModal(<Harness />);
+    await user.click(screen.getByRole("button", { name: "Open create" }));
+    const field = screen.getByRole("textbox", { name: "What do you want to learn?" });
+
+    await user.type(field, "Photosynthesis");
+    expect(screen.getByRole("button", { name: "Teach me this" })).toBeInTheDocument();
+
+    await user.clear(field);
+    await user.type(field, "https://youtu.be/abc123");
+    expect(screen.getByRole("button", { name: "Make my study set" })).toBeInTheDocument();
+    expect(screen.getByText(/read this page or video/)).toBeInTheDocument();
   });
 
   it("opens directly on the requested panel", async () => {
@@ -73,16 +109,18 @@ describe("CreateModal", () => {
     renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
-    // Open Subject and type a name, then cancel.
+    // Open the full panel and type a topic, then cancel.
+    await user.click(screen.getByRole("button", { name: /More options/ }));
     await user.click(screen.getByRole("tab", { name: "Topic" }));
     await user.type(screen.getByLabelText("Topic"), "Half-typed topic");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-    // Reopen — should be back on the hub, not Subject with stale text.
+    // Reopen — back on the capture bar, not the full panel.
     await user.click(screen.getByRole("button", { name: "Open create" }));
     expect(
       screen.getByRole("dialog", { name: "What do you want to learn?" }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Topic" })).not.toBeInTheDocument();
   });
 });
 
