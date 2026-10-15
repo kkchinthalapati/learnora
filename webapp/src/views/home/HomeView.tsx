@@ -142,7 +142,7 @@ export function HomeView() {
           title="Lessons"
           action={
             lessons.length > 0 ? (
-              <Link to="/library" className={styles.quietLink}>
+              <Link to="/subjects" className={styles.quietLink}>
                 All subjects
               </Link>
             ) : null

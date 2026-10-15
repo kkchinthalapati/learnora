@@ -67,13 +67,13 @@ describe("AppShell", () => {
     expect(document.getElementById("page-content")).toHaveFocus();
   });
 
-  it("has Home, Subjects, Plan and Progress", () => {
+  it("has three destinations: Home, Subjects and Progress", () => {
     serveDueCount(0);
     renderShell("/");
     const links = within(mainNav()).getAllByRole("link");
 
-    expect(links.map((l) => l.textContent)).toEqual(["Home", "Subjects", "Plan", "Progress"]);
-    expect(links.map((l) => l.getAttribute("href"))).toEqual(["/", "/library", "/plan", "/analytics"]);
+    expect(links.map((l) => l.textContent)).toEqual(["Home", "Subjects", "Progress"]);
+    expect(links.map((l) => l.getAttribute("href"))).toEqual(["/", "/subjects", "/analytics"]);
   });
 
   it("marks Home as the current page on the root route", () => {

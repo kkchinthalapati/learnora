@@ -163,20 +163,25 @@ describe("route integrity", () => {
      /my-week, /trajectory and /exam-detective could be reached only by typing
      a URL or opening the command palette — the section sub-navs that led to
      them are invisible until you are already on one of their pages. */
-  it("offers every primary destination in the top bar, and every planner page from Plan", () => {
+  it("offers every primary destination in the top bar, and the planner from Subjects", () => {
     const linksIn = (...parts: string[]) =>
       new Set(
         [...readFileSync(join(SRC, ...parts), "utf8").matchAll(/\b(?:to|path)(?::\s*|=)"(\/[^"]*)"/g)].map(
           (m) => m[1],
         ),
       );
-    /* The top bar: Home · Subjects · Plan · Progress, the timer, and the
-       profile menu's Settings and community links (webapp/DESIGN.md 0.2). */
+    /* The top bar: Home · Subjects · Progress, the timer, and the profile
+       menu's Settings and community links (webapp/DESIGN.md 0.2). */
     const topBar = linksIn("components", "TopBar.tsx");
-    for (const destination of ["/", "/library", "/plan", "/analytics", "/timer", "/settings", "/room"]) {
+    for (const destination of ["/", "/subjects", "/analytics", "/timer", "/settings", "/room"]) {
       expect([...topBar]).toContain(destination);
     }
-    /* The planner's pages hang off Plan's own tabs; Trajectory off Progress's. */
+    /* The planner lives in Subjects: the week plan, free time and tasks are
+       linked from it, and the plan's own tabs reach Exams. */
+    const subjects = linksIn("views", "subjects", "SubjectsView.tsx");
+    for (const destination of ["/plan", "/my-week", "/tasks", "/library/flashcards", "/library/notebooks"]) {
+      expect([...subjects]).toContain(destination);
+    }
     const plan = linksIn("views", "plan", "PlanSectionNav.tsx");
     for (const destination of ["/plan", "/my-week", "/tasks", "/exams"]) {
       expect([...plan]).toContain(destination);

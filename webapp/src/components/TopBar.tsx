@@ -34,9 +34,7 @@ export const TOP_DESTINATIONS: ReadonlyArray<{
   destination: TopDestination;
 }> = [
   { to: "/", label: "Home", icon: "dashboard", destination: "home" },
-  { to: "/library", label: "Subjects", icon: "layers", destination: "subjects" },
-  /* Interim: see DESIGN.md 0.2. Folds into Subjects with the planner. */
-  { to: "/plan", label: "Plan", icon: "calendar", destination: "plan" },
+  { to: "/subjects", label: "Subjects", icon: "layers", destination: "subjects" },
   { to: "/analytics", label: "Progress", icon: "activity", destination: "progress" },
 ];
 

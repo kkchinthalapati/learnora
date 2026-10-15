@@ -159,7 +159,7 @@ export function LessonView() {
         sub={
           <span className={styles.meta}>
             {subject ? (
-              <Link to={`/folders/${encodeURIComponent(subject.id)}`} className={styles.subjectLink}>
+              <Link to={`/subjects/${encodeURIComponent(subject.id)}`} className={styles.subjectLink}>
                 {subject.name}
               </Link>
             ) : (

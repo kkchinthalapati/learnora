@@ -18,7 +18,7 @@ Learnora is three nested things, and every screen belongs to one of them.
 | Thing | What it is | Data | Route |
 |---|---|---|---|
 | **Home** | Where you land. One box to add something, where you left off, what to fix, your lessons. | — | `/` |
-| **Subject** | A course you're studying: Biology, Chemistry. Holds lessons, an exam date and a plan. | `folders` | `/library` (Subjects page is the next step) |
+| **Subject** | A course you're studying: Biology, Chemistry. Holds lessons, an exam date and its share of the week. | `folders` | `/subjects`, `/subjects/:folderId` (`/folders/:id` redirects) |
 | **Lesson** | One thing you're learning: an upload, a link, your notes or a topic. Holds its notes, cards, quiz, tutor and mistakes. | `materials` (notes, quizzes and cards point at it by `material_id`) | `/lessons/:materialId` |
 
 Words in the UI follow the table: say **lesson**, not material, file or
@@ -27,10 +27,6 @@ an implementation detail); **mistakes**, not misconceptions.
 
 ### 0.2 Navigation
 
-- **Interim:** a fourth item, **Plan**, stays in the bar until the Subjects
-  page holds each subject's exam date and week plan. Without it the planner
-  pages (Plan, Availability, Tasks, Exams) had no entry point. Remove it in
-  the same change that moves them into Subjects.
 - **Top bar, no sidebar.** Brand · Home · Subjects · Progress on the left;
   search (⌘K), Ask (⌘J), focus timer and the profile menu on the right.
   Friends, study room, settings, feedback and sign out live in the profile menu.
@@ -38,6 +34,12 @@ an implementation detail); **mistakes**, not misconceptions.
   destinations move to a bottom bar.
 - No second level of navigation in a bar. A page that has parts uses `Tabs`
   inside the page.
+- **The planner lives in Subjects.** The Subjects page shows this week's
+  blocks and upcoming exams; a subject's page shows its own exam and share
+  of the week. The full week plan, free time and tasks are linked from
+  Subjects, and count as part of it for the top bar. The week shown is the
+  one the Plan page shows: the AI plan when one was made, otherwise the
+  schedule built from free time, tasks and exams (`useSubjectsData`).
 
 ### 0.3 Every page starts the same way
 

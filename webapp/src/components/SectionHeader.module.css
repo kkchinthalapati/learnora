@@ -8,6 +8,9 @@
 
 .title {
   margin: 0;
+  /* Sans on purpose (webapp/DESIGN.md 0.3): only page titles are serif, and
+     the global h2 rule would otherwise make every section heading one. */
+  font-family: var(--font);
   font-size: var(--fs-lg);
   font-weight: 600;
   color: var(--text);

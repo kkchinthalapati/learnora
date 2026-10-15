@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { Navigate, Route, Routes, useParams } from "react-router";
 import { LegacyToolRedirect } from "./views/session/LegacyToolRedirect";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import {
@@ -78,10 +78,19 @@ const LazyNotebookStudioView = lazy(async () => ({
   default: (await import("./views/notebooks/NotebookStudioView"))
     .NotebookStudioView,
 }));
-const LazySubjectDetailPage = lazy(async () => ({
-  default: (await import("./views/library/SubjectDetailPage"))
-    .SubjectDetailPage,
+const LazySubjectsView = lazy(async () => ({
+  default: (await import("./views/subjects/SubjectsView")).SubjectsView,
 }));
+const LazySubjectView = lazy(async () => ({
+  default: (await import("./views/subjects/SubjectView")).SubjectView,
+}));
+
+/* The folder workspace became the subject page (webapp/DESIGN.md 0.1); old
+   /folders/:id links land on /subjects/:id. */
+function FolderRedirect() {
+  const { folderId = "" } = useParams();
+  return <Navigate to={`/subjects/${encodeURIComponent(folderId)}`} replace />;
+}
 const LazyNotesView = lazy(async () => ({
   default: (await import("./views/notes/NotesView")).NotesView,
 }));
@@ -354,13 +363,22 @@ export function AppRoutes() {
               </DeferredView>
             } />
             <Route
-              path="/folders/:folderId"
+              path="/subjects"
               element={
                 <DeferredView>
-                  <LazySubjectDetailPage />
+                  <LazySubjectsView />
                 </DeferredView>
               }
             />
+            <Route
+              path="/subjects/:folderId"
+              element={
+                <DeferredView>
+                  <LazySubjectView />
+                </DeferredView>
+              }
+            />
+            <Route path="/folders/:folderId" element={<FolderRedirect />} />
             <Route
               path="/notes/:materialId"
               element={

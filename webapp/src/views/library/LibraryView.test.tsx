@@ -533,7 +533,7 @@ describe("Library — Folders tab", () => {
     );
     expect(
       screen.getByText(
-        /and everything inside it — notebooks, materials, notes, flashcards, and quizzes — will be permanently deleted/,
+        /and everything inside it — lessons, notes, cards, quizzes and notebooks — will be permanently deleted/,
       ),
     ).toBeInTheDocument();
 
@@ -586,7 +586,7 @@ describe("Library — Folders tab", () => {
     jumpPastUndoWindow();
 
     const toast = await screen.findByText(
-      "Couldn't delete that folder. Please try again.",
+      "Couldn't delete that subject. Please try again.",
     );
     expect(toast.closest("[role='alert']")).not.toBeNull();
     expect(screen.getByText("Biology")).toBeInTheDocument();

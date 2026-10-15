@@ -68,6 +68,6 @@ describe("TopBar", () => {
   it("offers a bottom bar with the same destinations for phones", () => {
     renderBar();
     const phone = screen.getByRole("navigation", { name: "Main navigation, phone" });
-    expect([...phone.querySelectorAll("a")].map((a) => a.textContent)).toEqual(["Home", "Subjects", "Plan", "Progress"]);
+    expect([...phone.querySelectorAll("a")].map((a) => a.textContent)).toEqual(["Home", "Subjects", "Progress"]);
   });
 });

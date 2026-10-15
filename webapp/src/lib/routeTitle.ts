@@ -11,6 +11,7 @@ import { useLocation } from "react-router";
 const TITLES: ReadonlyArray<readonly [prefix: string, title: string]> = [
   ["/welcome-pro", "Welcome to Pro"],
   ["/lessons/", "Lesson"],
+  ["/subjects", "Subjects"],
   ["/welcome", "Welcome"],
   ["/login", "Log in"],
   ["/signup", "Create your account"],

@@ -36,13 +36,14 @@ export function useLibraryActions() {
     [promptText, renameFolder, showToast],
   );
 
+  /* Resolves true once the subject is gone, so a page showing it can leave. */
   const removeFolder = useCallback(
-    async (id: string, name: string) => {
+    async (id: string, name: string): Promise<boolean> => {
       const ok = await confirm(
-        `"${name}" and everything inside it — notebooks, materials, notes, flashcards, and quizzes — will be permanently deleted. Your logged study time for this folder is kept.`,
-        { title: "Delete folder?", confirmText: "Delete", danger: true },
+        `"${name}" and everything inside it — lessons, notes, cards, quizzes and notebooks — will be permanently deleted. Your logged study time for this subject is kept.`,
+        { title: "Delete subject?", confirmText: "Delete", danger: true },
       );
-      if (!ok) return;
+      if (!ok) return false;
       try {
         const folderDeleteOutcome = await deleteFolder.mutateAsync(id);
         if (folderDeleteOutcome?.storageCleanupFailed) {
@@ -53,10 +54,12 @@ export function useLibraryActions() {
         } else {
           showToast(`Deleted "${name}".`);
         }
+        return true;
       } catch {
-        showToast("Couldn't delete that folder. Please try again.", {
+        showToast("Couldn't delete that subject. Please try again.", {
           error: true,
         });
+        return false;
       }
     },
     [confirm, deleteFolder, showToast],

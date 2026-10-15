@@ -70,27 +70,25 @@ export function primaryDestinationForPath(
    the planner pages that will fold into a subject; Progress is history and
    forecast. A study session, the timer and settings belong to none of them,
    so no item lights up there. */
-export type TopDestination = "home" | "subjects" | "plan" | "progress";
+export type TopDestination = "home" | "subjects" | "progress";
 
 export function topDestinationForPath(pathname: string): TopDestination | null {
   if (pathname === "/" || pathname.startsWith("/capture")) return "home";
   if (pathname === "/study") return "home";
+  /* The planner lives in Subjects (webapp/DESIGN.md 0.1): each subject shows
+     its exam and week, and the full plan, free time, tasks and exams pages
+     are reached from there. */
   if (
+    pathname.startsWith("/subjects") ||
     pathname.startsWith("/lessons/") ||
     isLibrarySection(pathname) ||
-    isNotebooksSection(pathname)
-  ) {
-    return "subjects";
-  }
-  /* Interim (webapp/DESIGN.md 0.2): the planner keeps a top-bar item until
-     the Subjects page holds each subject's exam and week. */
-  if (
+    isNotebooksSection(pathname) ||
     pathname.startsWith("/plan") ||
     pathname.startsWith("/my-week") ||
     pathname.startsWith("/tasks") ||
     pathname.startsWith("/exams")
   ) {
-    return "plan";
+    return "subjects";
   }
   if (pathname.startsWith("/analytics") || pathname.startsWith("/trajectory")) {
     return "progress";
@@ -119,6 +117,7 @@ export function sectionLabel(
 ): string {
   if (pathname === "/") return "Home";
   if (pathname.startsWith("/lessons/")) return "Lesson";
+  if (pathname.startsWith("/subjects")) return "Subjects";
   if (pathname.startsWith("/dashboard")) return t("nav_dashboard");
   if (isNotebooksSection(pathname)) return "Notebooks";
   /* A quiz or a review session is an activity, not the Library page; the
@@ -175,6 +174,7 @@ const HERO_ROUTES = [
   "/exam-detective",
   "/room",
   "/lessons",
+  "/subjects",
 ];
 
 export function viewOwnsPageTitle(pathname: string): boolean {
