@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Exam, Folder } from "../api/types";
+import type { ScheduledBlock } from "./autoSchedule";
 import {
   blocksForSubject,
   blocksFromSchedule,
@@ -46,14 +47,12 @@ describe("subjects", () => {
   });
 
   it("turns the computed schedule into the same blocks, and filters a subject by id first", () => {
-    const blocks = blocksFromSchedule(
-      [
-        { id: "a", demandId: "d", date: "2026-10-16", startMin: 600, endMin: 645, label: "Revise enzymes", kind: "exam", load: "high", subject: "Biology", folderId: "f1", energy: 1 },
-        { id: "b", demandId: "d", date: "2026-10-15", startMin: 540, endMin: 570, label: "Essay plan", kind: "task", load: "low", subject: null, folderId: null, energy: 1 },
-        { id: "c", demandId: "d", date: "2026-10-14", startMin: 540, endMin: 570, label: "Old", kind: "task", load: "low", subject: "Biology", folderId: "f1", energy: 1 },
-      ] as Parameters<typeof blocksFromSchedule>[0],
-      "2026-10-15",
-    );
+    const scheduled: ScheduledBlock[] = [
+      { id: "a", demandId: "d", date: "2026-10-16", startMin: 600, endMin: 645, label: "Revise enzymes", kind: "exam", load: 3, subject: "Biology", folderId: "f1", energy: 1 },
+      { id: "b", demandId: "d", date: "2026-10-15", startMin: 540, endMin: 570, label: "Essay plan", kind: "task", load: 1, subject: null, folderId: null, energy: 1 },
+      { id: "c", demandId: "d", date: "2026-10-14", startMin: 540, endMin: 570, label: "Old", kind: "task", load: 1, subject: "Biology", folderId: "f1", energy: 1 },
+    ];
+    const blocks = blocksFromSchedule(scheduled, "2026-10-15");
     expect(blocks.map((b) => b.date)).toEqual(["2026-10-15", "2026-10-16"]);
     expect(blocks[1].block).toMatchObject({ subject: "Biology", durationMins: 45, reason: "Revise enzymes" });
     expect(blocks[0].block.subject).toBe("Essay plan");
