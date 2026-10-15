@@ -193,7 +193,7 @@ export function WebSourceImportModal({
         ) : !isLoading ? (
           <div className={styles.emptyState}>
             <Icon name="globe" size={36} className={styles.emptyIcon} />
-            <h4 className={styles.emptyTitle}>Find material worth studying</h4>
+            <h4 className={styles.emptyTitle}>Find lesson worth studying</h4>
             <p className={styles.emptyDesc}>
               Search results come from the live web. Learnora reads the page
               only when you choose to import it.

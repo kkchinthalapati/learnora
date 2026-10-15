@@ -367,7 +367,7 @@ export function getResumeAction(snapshot: StudySnapshot): ResumeAction | null {
       action: {
         type: "deck",
         title: d.title || "Flashcards Deck",
-        subtitle: `Flashcards • Card ${d.cardIndex + 1} of ${d.totalCards}`,
+        subtitle: `Cards • Card ${d.cardIndex + 1} of ${d.totalCards}`,
         targetUrl: `/review/${d.id}`,
         progressPercentage: progress,
         timestamp: d.lastReviewedAt,
@@ -459,7 +459,7 @@ export function getRecentContinuityItems(snapshot: StudySnapshot): ResumeAction[
       action: {
         type: "deck",
         title: d.title || "Flashcards Deck",
-        subtitle: `Flashcards • Card ${d.cardIndex + 1}/${d.totalCards}`,
+        subtitle: `Cards • Card ${d.cardIndex + 1}/${d.totalCards}`,
         targetUrl: `/review/${d.id}`,
         progressPercentage: progress,
         timestamp: d.lastReviewedAt,

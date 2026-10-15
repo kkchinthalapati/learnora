@@ -26,10 +26,10 @@ describe("ForgotPasswordView", () => {
     renderForgot();
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Reset Password" }),
+      screen.getByRole("heading", { level: 1, name: "Reset password" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Log In" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/login",
     );
@@ -48,7 +48,7 @@ describe("ForgotPasswordView", () => {
     renderForgot();
 
     await user.type(screen.getByLabelText("Email"), " ada@example.com ");
-    await user.click(screen.getByRole("button", { name: "Send Reset Link →" }));
+    await user.click(screen.getByRole("button", { name: "Send reset link →" }));
 
     await waitFor(() => expect(body).not.toBeNull());
     expect(body).toMatchObject({ email: "ada@example.com" });
@@ -61,7 +61,7 @@ describe("ForgotPasswordView", () => {
     renderForgot();
 
     await user.type(screen.getByLabelText("Email"), "nobody@example.com");
-    await user.click(screen.getByRole("button", { name: "Send Reset Link →" }));
+    await user.click(screen.getByRole("button", { name: "Send reset link →" }));
 
     /* "If an account exists" — the wording matters, since a definite yes/no
        would make this form an account-enumeration oracle. Found by text rather
@@ -87,7 +87,7 @@ describe("ForgotPasswordView", () => {
     renderForgot();
 
     await user.type(screen.getByLabelText("Email"), "ada@example.com");
-    await user.click(screen.getByRole("button", { name: "Send Reset Link →" }));
+    await user.click(screen.getByRole("button", { name: "Send reset link →" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Too many requests",

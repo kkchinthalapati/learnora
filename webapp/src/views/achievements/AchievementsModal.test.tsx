@@ -27,11 +27,11 @@ describe("AchievementsModal", () => {
        queries, so the modal holds a skeleton until they land rather than
        telling a student with a live streak that every badge is locked. */
     expect(
-      await screen.findByRole("dialog", { name: "Trophy Cabinet & Goals" }),
+      await screen.findByRole("dialog", { name: "Trophy cabinet & Goals" }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Trophy Cabinet")).toBeInTheDocument();
-    expect(screen.getByText("Trophy Cabinet")).toBeInTheDocument();
-    expect(screen.getByText("Customize Daily Study Goals")).toBeInTheDocument();
+    expect(await screen.findByText("Trophy cabinet")).toBeInTheDocument();
+    expect(screen.getByText("Trophy cabinet")).toBeInTheDocument();
+    expect(screen.getByText("Customize daily study goals")).toBeInTheDocument();
     expect(
       screen.getByRole("tab", { name: /Consistency/i }),
     ).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe("AchievementsModal", () => {
     renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
 
     const cardsGoalInput = await screen.findByLabelText(
-      "Daily flashcards review goal",
+      "Daily cards review goal",
     );
 
     // "0" would hit the input's own `parseInt(...) || 15` fallback before

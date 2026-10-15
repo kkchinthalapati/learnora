@@ -549,7 +549,7 @@ export function getAdaptiveRecommendations(params: {
         description:
           "Your recent quiz scores have some room in them. Ten quick questions will help.",
         actionUrl: "/library/quizzes",
-        actionLabel: "Take Practice Quiz",
+        actionLabel: "Take Practice quiz",
         estimatedMinutes: 15,
       });
     }
@@ -588,7 +588,7 @@ export function getAdaptiveRecommendations(params: {
       description:
         "You've been at it hard lately. Take 15 minutes away from it.",
       actionUrl: "/timer",
-      actionLabel: "Take Short Break",
+      actionLabel: "Take a short break",
       estimatedMinutes: 15,
     });
   }

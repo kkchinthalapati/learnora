@@ -16,7 +16,7 @@ describe("GroupTimerBanner", () => {
       />,
     );
 
-    expect(screen.getByText("Group Focus Mode")).toBeInTheDocument();
+    expect(screen.getByText("Group focus mode")).toBeInTheDocument();
     const btn = screen.getByRole("button", {
       name: /Start 25m Group Pomodoro/i,
     });
@@ -51,7 +51,7 @@ describe("GroupTimerBanner", () => {
       />,
     );
 
-    expect(screen.getByText("Group Focus Room")).toBeInTheDocument();
+    expect(screen.getByText("Group focus room")).toBeInTheDocument();
     expect(screen.getByText(/Hosted by Alice/)).toBeInTheDocument();
     expect(screen.getByText(/Focus · Block #1/)).toBeInTheDocument();
 

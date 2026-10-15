@@ -134,7 +134,7 @@ describe("ExamsView", () => {
 
     const seen: string[] = [];
     for (let i = 0; i < 12; i++) {
-      await user.click(screen.getByRole("button", { name: "Next Month" }));
+      await user.click(screen.getByRole("button", { name: "Next month" }));
       seen.push(screen.getByRole("heading", { level: 2 }).textContent!);
     }
 
@@ -148,11 +148,11 @@ describe("ExamsView", () => {
     renderExams();
     await gridReady();
 
-    await user.click(screen.getByRole("button", { name: "Previous Month" }));
+    await user.click(screen.getByRole("button", { name: "Previous month" }));
     expect(screen.getByText(PREV_LABEL)).toBeInTheDocument();
 
     for (let i = 0; i < 11; i++) {
-      await user.click(screen.getByRole("button", { name: "Previous Month" }));
+      await user.click(screen.getByRole("button", { name: "Previous month" }));
     }
     expect(screen.getByText(`${MONTH_NAMES[M]} ${Y - 1}`)).toBeInTheDocument();
   });
@@ -230,7 +230,7 @@ describe("ExamsView", () => {
     ]);
     renderExams();
     await gridReady();
-    await user.click(screen.getByRole("button", { name: "Previous Month" }));
+    await user.click(screen.getByRole("button", { name: "Previous month" }));
 
     expect(screen.getByText("Missed it").className).not.toEqual(
       screen.getByText("Sat it").className,
@@ -255,7 +255,7 @@ describe("ExamsView", () => {
     serveExams([]);
     renderExams();
     await gridReady();
-    await user.click(screen.getByRole("button", { name: "Previous Month" }));
+    await user.click(screen.getByRole("button", { name: "Previous month" }));
 
     const day = screen.getByRole("button", {
       name: `${MONTH_NAMES[PREV.getMonth()]} 10, ${PREV.getFullYear()}`,
@@ -271,7 +271,7 @@ describe("ExamsView", () => {
     serveExams([exam({ exam_date: prevDayStr(10), exam_name: "Old Quiz" })]);
     renderExams();
     await gridReady();
-    await user.click(screen.getByRole("button", { name: "Previous Month" }));
+    await user.click(screen.getByRole("button", { name: "Previous month" }));
 
     await user.click(cellFor(10, PREV.getMonth(), PREV.getFullYear()));
 

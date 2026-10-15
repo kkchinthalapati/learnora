@@ -11,6 +11,7 @@ import {
   type ImmunityRadarRecord,
 } from "../../api/aiExamDeconstructor";
 import { Button } from "../../components/Button";
+import { PageHeader } from "../../components/PageHeader";
 import { Icon } from "../../components/Icon";
 import { useToast } from "../../context/toast";
 import { useSettings } from "../../context/settings";
@@ -94,13 +95,13 @@ export function ExamDetectiveHubView() {
         fromMaterial
           ? `Found ${results.length} trap patterns in your material.`
           : rawTextPayload.trim().length > 20
-            ? "Couldn't analyse that material just now. Showing the common trap patterns instead."
+            ? "Couldn't analyse that lesson just now. Showing the common trap patterns instead."
             : "Paste a few lines of a paper or syllabus to analyse it. Showing the common trap patterns for now.",
       );
       setActiveTab("playbook");
     } catch {
       showToast(
-        "Unable to analyse that material. Showing common trap patterns.",
+        "Unable to analyse that lesson. Showing common trap patterns.",
       );
     } finally {
       setIsDeconstructing(false);
@@ -202,18 +203,14 @@ export function ExamDetectiveHubView() {
 
   return (
     <div className={styles.container}>
-      {/* Hero Header */}
-      <div className={styles.hero}>
-        <span className={styles.heroEyebrow}>Study tools</span>
-        <h1 className={styles.heroTitle}>Exam traps</h1>
-        <p className={styles.heroSubtitle}>
-          Learn the common patterns, analyse a past paper, then practise the
-          ones most likely to cost you marks.
-        </p>
-      </div>
+      <PageHeader
+        as="h1"
+        title="Exam traps"
+        sub="Learn the common patterns, analyse a past paper, then practise the ones most likely to cost you marks."
+      />
 
       {/* Tabs */}
-      <nav className={styles.tabNav} aria-label="Exam Detective Navigation">
+      <nav className={styles.tabNav} aria-label="Exam Detective navigation">
         <button
           type="button"
           className={`${styles.tabBtn} ${
@@ -299,7 +296,7 @@ export function ExamDetectiveHubView() {
                   <p className={styles.trapDesc}>{trap.description}</p>
 
                   <div className={styles.exampleBox}>
-                    <span className={styles.exampleLabel}>Trap Pattern</span>
+                    <span className={styles.exampleLabel}>Trap pattern</span>
                     <p style={{ margin: 0 }}>{trap.examplePattern}</p>
                   </div>
 
@@ -334,12 +331,12 @@ export function ExamDetectiveHubView() {
         </section>
       )}
 
-      {/* Tab 2: Deconstruct Exam Paper */}
+      {/* Tab 2: Deconstruct exam paper */}
       {activeTab === "deconstruct" && (
-        <section className={styles.section} aria-label="Deconstruct Exam Paper">
+        <section className={styles.section} aria-label="Deconstruct exam paper">
           <div className={styles.sectionHeader}>
             <div>
-              <h2 className={styles.sectionTitle}>Analyse your own material</h2>
+              <h2 className={styles.sectionTitle}>Analyse your own lesson</h2>
               <p className={styles.sectionDesc}>
                 Paste past-paper questions, a syllabus or revision material.
                 Learnora will look for the trap patterns used in that text.
@@ -383,7 +380,7 @@ export function ExamDetectiveHubView() {
                   )
                 }
               >
-                Load Sample Problem
+                Load sample problem
               </Button>
             </div>
           </div>
@@ -394,7 +391,7 @@ export function ExamDetectiveHubView() {
       {activeTab === "sprint" && (
         <section
           className={styles.section}
-          aria-label="Challenge Sprint Launcher"
+          aria-label="Challenge sprint launcher"
         >
           <div className={styles.sectionHeader}>
             <div>
@@ -506,7 +503,7 @@ export function ExamDetectiveHubView() {
         </section>
       )}
 
-      {/* 4-Step Aha! Breakdown Modal */}
+      {/* Four-step breakdown modal */}
       {activeTrapId && (
         <AhaWalkthroughModal
           isOpen={true}

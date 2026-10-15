@@ -483,7 +483,7 @@ export function StudyAnalyticsView() {
                     Subject
                   </th>
                   <th scope="col" className={styles.th}>
-                    Study Time
+                    Study time
                   </th>
                   <th scope="col" className={styles.th}>
                     Vs. most-studied
@@ -492,7 +492,7 @@ export function StudyAnalyticsView() {
                     Upcoming Exam
                   </th>
                   <th scope="col" className={styles.th}>
-                    Days Left
+                    Days left
                   </th>
                   <th scope="col" className={styles.th}>
                     Time

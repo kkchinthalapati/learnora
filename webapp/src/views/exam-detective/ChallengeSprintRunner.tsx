@@ -149,9 +149,9 @@ export function ChallengeSprintRunner({
         <div className={styles.sectionHeader}>
           <div>
             <span className={styles.heroEyebrow}>
-              Challenge Sprint Completed
+              Challenge sprint completed
             </span>
-            <h2 className={styles.heroTitle}>Sprint Debrief</h2>
+            <h2 className={styles.heroTitle}>Sprint debrief</h2>
           </div>
           <span className={`${styles.badgePill} ${styles.badgePillSuccess}`}>
             {disarmedTotal} / {questions.length} traps spotted
@@ -265,7 +265,7 @@ export function ChallengeSprintRunner({
           <span className={styles.badgePill}>{currentQ.trapName}</span>
         </div>
         <Button variant="ghost" size="sm" onClick={onExit}>
-          Exit Sprint
+          Exit sprint
         </Button>
       </div>
 
@@ -288,7 +288,7 @@ export function ChallengeSprintRunner({
           >
             <Icon name="search" size={14} />
             <span>
-              {inspectBaitRevealed ? "Hide Bait Clue" : "Inspect Bait Clue"}
+              {inspectBaitRevealed ? "Hide bait clue" : "Inspect bait clue"}
             </span>
           </button>
           {inspectBaitRevealed && (
@@ -386,10 +386,10 @@ export function ChallengeSprintRunner({
         >
           <strong>
             {isSelectedCorrect
-              ? "✨ Trap Disarmed! You spotted the trick!"
+              ? "Trap spotted. You saw the trick."
               : isSelectedBait
                 ? "This distractor caught you. Here is why it looked plausible."
-                : "Not quite, but you're learning the pattern!"}
+                : "Not quite. You're learning the pattern."}
           </strong>
 
           {isSelectedBait && (
@@ -417,7 +417,7 @@ export function ChallengeSprintRunner({
                 setActiveWalkthroughTrapId(currentQ.misconceptionId ?? currentQ.trapArchetypeId)
               }
             >
-              Explore 4-Step Aha! Breakdown
+              See the four-step breakdown
             </Button>
           </div>
         </div>
@@ -437,13 +437,13 @@ export function ChallengeSprintRunner({
             onClick={handleConfirmAnswer}
             disabled={selectedOption === null}
           >
-            Confirm Disarm Answer
+            Confirm disarm answer
           </Button>
         ) : (
           <Button variant="primary" onClick={handleNext}>
             {currentIndex + 1 < questions.length
-              ? "Next Trap Challenge →"
-              : "Finish Sprint"}
+              ? "Next trap challenge →"
+              : "Finish sprint"}
           </Button>
         )}
       </div>

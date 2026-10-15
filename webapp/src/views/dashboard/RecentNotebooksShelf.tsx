@@ -27,7 +27,7 @@ export function RecentNotebooksShelf() {
               color: "var(--text)",
             }}
           >
-            Your Study Notebooks
+            Your study notebooks
           </span>
         </div>
         <Link
@@ -87,7 +87,7 @@ export function RecentNotebooksShelf() {
                       title="Cheat sheet available"
                     >
                       <Icon name="file-text" size={11} />
-                      Cheat Sheet
+                      Cheat sheet
                     </span>
                   )}
                   {feynmanCount > 0 && (

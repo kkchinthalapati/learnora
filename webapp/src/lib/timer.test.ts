@@ -472,8 +472,8 @@ describe("modeLabel", () => {
       "Flow Break",
     );
     expect(modeLabel(stateOf({ mode: "Focus" }))).toBe("Focus");
-    expect(modeLabel(stateOf({ mode: "ShortBreak" }))).toBe("Short Break");
-    expect(modeLabel(stateOf({ mode: "LongBreak" }))).toBe("Long Break");
+    expect(modeLabel(stateOf({ mode: "ShortBreak" }))).toBe("Short break");
+    expect(modeLabel(stateOf({ mode: "LongBreak" }))).toBe("Long break");
   });
 });
 

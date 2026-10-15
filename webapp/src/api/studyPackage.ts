@@ -533,7 +533,7 @@ export async function createStudyPackage(
     topic = baseTitle;
 
     // Always generated for new material — see the primitive's header.
-    step("Reading your material and writing notes…");
+    step("Reading your lesson and writing notes…");
     let generatedNotes: string;
     try {
       generatedNotes = await generateNotes({
@@ -577,7 +577,7 @@ export async function createStudyPackage(
           );
         }
         const file = new File([blob], material.title, { type: blob.type });
-        step("Reading your material and writing notes…");
+        step("Reading your lesson and writing notes…");
         try {
           result.notes = await generateNotes({
             material,
@@ -592,7 +592,7 @@ export async function createStudyPackage(
           result.notes.substring(0, MAX_SOURCE_CHARS),
         );
       } else if (material.raw_content) {
-        step("Reading your material and writing notes…");
+        step("Reading your lesson and writing notes…");
         try {
           result.notes = await generateNotes({
             material,
@@ -720,7 +720,7 @@ export function summarizeStudyPackage(
 ): string | null {
   const made: string[] = [];
   if (result.notes) made.push("notes");
-  if (result.deck) made.push("flashcards");
+  if (result.deck) made.push("cards");
   if (result.quiz) made.push("a quiz");
   if (made.length === 0) return null;
 

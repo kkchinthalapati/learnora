@@ -117,7 +117,7 @@ describe("NotesView", () => {
     renderNotes();
     expect(
       await screen.findByText(
-        "Summary notes were not selected for this material.",
+        "Summary notes were not selected for this lesson.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -163,14 +163,14 @@ describe("NotesView", () => {
       expect(editorEl()).toHaveAttribute("contenteditable", "false"),
     );
     expect(editorEl().textContent).toContain(
-      "No notes yet — Learnora is still processing this material.",
+      "No notes yet — Learnora is still processing this lesson.",
     );
     expect(
       screen.getByText("Notes aren't ready to edit yet"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "Retry Generation" }),
+      screen.getByRole("button", { name: "Retry generation" }),
     ).toBeInTheDocument();
   });
 
@@ -211,7 +211,7 @@ describe("NotesView", () => {
       screen.getAllByText(/Edge function failed to generate notes/)[0],
     ).toBeInTheDocument();
 
-    const retryBtn = screen.getByRole("button", { name: "Retry Generation" });
+    const retryBtn = screen.getByRole("button", { name: "Retry generation" });
     await user.click(retryBtn);
     clearMaterialProcessing("mat-1");
   });
@@ -381,7 +381,7 @@ describe("NotesView", () => {
       renderNotes();
       await waitFor(() => expect(editorEl().textContent).toBe("Original"));
 
-      const rewriteBtn = screen.getByRole("button", { name: "Rewrite Notes" });
+      const rewriteBtn = screen.getByRole("button", { name: "Rewrite notes" });
       await userEvent.click(rewriteBtn);
 
       await waitFor(() =>
@@ -389,14 +389,14 @@ describe("NotesView", () => {
       );
 
       const undoBtn = await screen.findByRole("button", {
-        name: "Undo Rewrite",
+        name: "Undo rewrite",
       });
       expect(undoBtn).toBeInTheDocument();
 
       await userEvent.click(undoBtn);
       await waitFor(() => expect(editorEl().textContent).toBe("Original"));
       expect(
-        screen.queryByRole("button", { name: "Undo Rewrite" }),
+        screen.queryByRole("button", { name: "Undo rewrite" }),
       ).not.toBeInTheDocument();
     });
   });

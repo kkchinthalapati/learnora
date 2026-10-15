@@ -57,7 +57,7 @@ export function FlashcardsPanel() {
   if (isPending) {
     return (
       <div aria-busy="true">
-        <Skeleton label="Loading your decks" height={180} />
+        <Skeleton label="Loading your card sets" height={180} />
       </div>
     );
   }
@@ -76,8 +76,8 @@ export function FlashcardsPanel() {
         {banner}
         <EmptyState
           icon="layers"
-          title="No flashcards yet."
-          message="Choose a material or topic and create a deck for review."
+          title="No cards yet."
+          message="Choose a lesson or topic and create a card set for review."
         >
           <Button
             variant="primary"
@@ -85,7 +85,7 @@ export function FlashcardsPanel() {
               openCreateModal({
                 type: "material",
                 outputs: { flashcards: true, quiz: false },
-                title: "Create flashcards",
+                title: "Create cards",
               })
             }
           >
@@ -143,7 +143,7 @@ export function FlashcardsPanel() {
                 type="button"
                 className={styles.iconBtn}
                 aria-label={`Delete ${deck.title}`}
-                title="Delete deck"
+                title="Delete card set"
                 onClick={() => void removeDeck(deck.id, deck.title)}
               >
                 <Icon name="trash" size={16} />

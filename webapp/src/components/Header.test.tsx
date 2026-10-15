@@ -32,12 +32,12 @@ describe("Header", () => {
   });
 
   it("renders the page title on routes that don't own one", () => {
-    renderHeader("/tasks");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tasks");
+    renderHeader("/timer");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Focus timer");
   });
 
   it("carries no navigation, search or sign-out of its own", () => {
-    renderHeader("/tasks");
+    renderHeader("/timer");
     expect(screen.queryByRole("button", { name: /search/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /toggle sidebar/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /log out|sign out/i })).toBeNull();

@@ -99,7 +99,7 @@ describe("StudyAnalyticsView", () => {
     ).not.toBeInTheDocument();
 
     // Summary cards (awaited: the view skeletons until all four queries land)
-    expect(await screen.findByText("Study time")).toBeInTheDocument();
+    expect((await screen.findAllByText("Study time")).length).toBeGreaterThan(0);
     expect(screen.getByText("Active days")).toBeInTheDocument();
     expect(screen.getByText("Peak study window")).toBeInTheDocument();
     expect(screen.getByText("Quiz average")).toBeInTheDocument();
@@ -279,10 +279,10 @@ describe("StudyAnalyticsView", () => {
     }
     expect(headers.map((h) => h.textContent)).toEqual([
       "Subject",
-      "Study Time",
+      "Study time",
       "Vs. most-studied",
       "Upcoming Exam",
-      "Days Left",
+      "Days left",
       "Time",
     ]);
   });

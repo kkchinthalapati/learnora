@@ -61,7 +61,7 @@ describe("executeActions", () => {
 
       expect(h.confirm).toHaveBeenCalledWith(
         expect.stringContaining("Read chapter 3"),
-        expect.objectContaining({ title: "AI Task Creation" }),
+        expect.objectContaining({ title: "Add a task?" }),
       );
       expect(h.addTask).toHaveBeenCalledWith("Read chapter 3");
       expect(widgets(parts)[0]).toMatchObject({

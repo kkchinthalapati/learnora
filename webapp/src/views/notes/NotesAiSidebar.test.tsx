@@ -310,29 +310,29 @@ describe("NotesAiSidebar", () => {
       screen.getByRole("checkbox", { name: /Practice quiz/i }),
     ).toBeChecked();
     expect(
-      screen.getByRole("checkbox", { name: /Flashcards/i }),
+      screen.getByRole("checkbox", { name: /Cards/i }),
     ).not.toBeChecked();
 
-    // Source tab is directly selected to Saved Material with mat-1 selected
-    expect(screen.getByRole("tab", { name: /Saved Material/ })).toHaveAttribute(
+    // Source tab is directly selected to Saved material with mat-1 selected
+    expect(screen.getByRole("tab", { name: /Saved lesson/ })).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    expect(screen.getByLabelText("Saved material")).toHaveValue("mat-1");
+    expect(screen.getByLabelText("Saved lesson")).toHaveValue("mat-1");
   });
 
   it("pre-ticks flashcards instead when that card is used", async () => {
     const user = userEvent.setup();
     renderNotes();
 
-    await user.click(await screen.findByRole("button", { name: /Flashcards/ }));
+    await user.click(await screen.findByRole("button", { name: /Cards/ }));
 
     expect(
       await screen.findByRole("heading", {
-        name: "Flashcards from this document",
+        name: "Cards from this document",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: /Flashcards/i })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /Cards/i })).toBeChecked();
     expect(
       screen.getByRole("checkbox", { name: /Practice quiz/i }),
     ).not.toBeChecked();

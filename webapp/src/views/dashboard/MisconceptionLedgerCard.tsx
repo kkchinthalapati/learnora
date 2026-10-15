@@ -95,7 +95,7 @@ export function MisconceptionLedgerCard() {
   return (
     <Card
       as="section"
-      aria-label="Mix-ups"
+      aria-label="Mistakes you're fixing"
       variant="elevated"
       className={styles.widget}
       aria-busy={isPending || undefined}
@@ -103,8 +103,7 @@ export function MisconceptionLedgerCard() {
       <div className={styles.header}>
         <div className={styles.headerTitleGroup}>
           <div>
-            <span className={styles.eyebrow}>Fixed and fixing</span>
-            <h2 className={styles.title}>Mix-ups</h2>
+            <h2 className={styles.title}>Mistakes you're fixing</h2>
           </div>
         </div>
       </div>

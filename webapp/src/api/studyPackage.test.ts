@@ -383,7 +383,7 @@ describe("createStudyPackage", () => {
     });
 
     expect(steps).toEqual([
-      "Reading your material and writing notes…",
+      "Reading your lesson and writing notes…",
       "Building 8 flashcards…",
       "Writing 5 quiz questions…",
     ]);
@@ -687,7 +687,7 @@ describe("summarizeStudyPackage", () => {
         deck: { id: "d" } as never,
         quiz: { id: "q" } as never,
       }),
-    ).toBe("Created notes, flashcards, a quiz.");
+    ).toBe("Created notes, cards, a quiz.");
   });
 
   it("reports a partial run as partial rather than as a plain success", () => {

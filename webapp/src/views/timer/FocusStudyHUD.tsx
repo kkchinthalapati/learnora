@@ -113,9 +113,9 @@ export function FocusStudyHUD() {
       className={`${styles.hudContainer}${state.isRunning ? ` ${styles.running}` : ""}`}
       role="status"
       aria-live="polite"
-      aria-label="Focus Study HUD"
+      aria-label="Focus study HUD"
     >
-      {/* Quick Distraction Scratchpad Popover */}
+      {/* Quick Distraction scratchpad Popover */}
       {isScratchpadOpen && (
         <div
           className={styles.scratchpadPopover}
@@ -131,7 +131,7 @@ export function FocusStudyHUD() {
           <div className={styles.scratchpadHeader}>
             <div className={styles.scratchpadTitle}>
               <Icon name="pencil" size={14} className={styles.scratchpadIcon} />
-              <span>Distraction Scratchpad</span>
+              <span>Distraction scratchpad</span>
               <kbd className={styles.kbdBadge}>Alt+N</kbd>
             </div>
             <div className={styles.scratchpadActions}>
@@ -214,13 +214,13 @@ export function FocusStudyHUD() {
             +5m
           </button>
 
-          {/* Distraction Scratchpad Toggle */}
+          {/* Distraction scratchpad Toggle */}
           <button
             type="button"
             className={`${styles.btn} ${isScratchpadOpen ? styles.btnActive : ""}`}
             aria-label="Distraction scratchpad"
             aria-expanded={isScratchpadOpen}
-            title="Quick Distraction Scratchpad (Alt+N)"
+            title="Quick Distraction scratchpad (Alt+N)"
             onClick={() => setIsScratchpadOpen((prev) => !prev)}
           >
             <Icon name="pencil" size={15} />

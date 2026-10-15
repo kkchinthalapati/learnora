@@ -102,7 +102,7 @@ export function LoginView() {
             className={styles.submit}
             disabled={login.isPending}
           >
-            {login.isPending ? "Signing in..." : "Log In →"}
+            {login.isPending ? "Signing in…" : "Sign in"}
           </Button>
 
           <p className={styles.toggleText}>

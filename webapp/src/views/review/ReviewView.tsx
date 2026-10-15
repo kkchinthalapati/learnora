@@ -72,7 +72,7 @@ export const FLASHCARDS_PATH = "/library/flashcards";
 function ExitLink() {
   return (
     <Link to={FLASHCARDS_PATH} className={styles.exit}>
-      ← Exit Review
+      ← Exit review
     </Link>
   );
 }
@@ -142,8 +142,8 @@ export function ReviewView() {
           <ExitLink />
           <EmptyState
             icon="layers"
-            title="This deck isn't saved for offline review"
-            message="You're offline. Learnora keeps your due cards on this device while you're connected — once you've been online with this deck, it will be here next time."
+            title="This card set isn't saved for offline review"
+            message="You're offline. Learnora keeps your due cards on this device while you're connected — once you've been online with this card set, it will be here next time."
           >
             {isDailyDrill ? null : (
               <Link to="/review/daily-drill">
@@ -158,7 +158,7 @@ export function ReviewView() {
     if (decks.isPending || cardsQuery.isPending) {
       return (
         <div className={styles.view} aria-busy="true">
-          <Skeleton label="Loading flashcards" height={320} />
+          <Skeleton label="Loading cards" height={320} />
         </div>
       );
     }
@@ -190,11 +190,11 @@ export function ReviewView() {
         <ExitLink />
         <EmptyState
           icon="layers"
-          title="This deck no longer exists."
+          title="This card set no longer exists."
           message="It may have been deleted from another tab or device."
         >
           <Link to={FLASHCARDS_PATH}>
-            <Button variant="primary">Back to Flashcards</Button>
+            <Button variant="primary">Back to Cards</Button>
           </Link>
         </EmptyState>
       </div>
@@ -223,8 +223,8 @@ export function ReviewView() {
           title="All caught up"
           message={
             isDailyDrill
-              ? "No cards due across any deck. Recall will bring them back when they start to fade."
-              : "No cards due for review in this deck right now."
+              ? "No cards due across any card set. Recall will bring them back when they start to fade."
+              : "No cards due for review in this card set right now."
           }
         >
           {!isDailyDrill && cardList.length > 0 ? (
@@ -518,7 +518,7 @@ export function extractSourceNoteContext(
     }
   }
 
-  // 4. Markdown links [Source Note](/notes/:id)
+  // 4. Markdown links [Source note](/notes/:id)
   const linkMatch = combined.match(
     /\[([^\]]*)\]\(\/notes\/([a-zA-Z0-9_-]+)\)/i,
   );
@@ -733,7 +733,7 @@ export function SocraticCoachDrawer({
         const msg =
           err instanceof Error
             ? err.message
-            : "Could not reach Socratic Coach. Please try again.";
+            : "Could not reach Socratic coach. Please try again.";
         setError(msg);
       } finally {
         setLoading(false);
@@ -804,20 +804,20 @@ export function SocraticCoachDrawer({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="Socratic Coach"
+        aria-label="Socratic coach"
       >
         <div className={styles.socraticHeader}>
           <div className={styles.socraticHeaderLeft}>
             <Icon name="brain" size={20} />
             <h2 className={styles.socraticTitle}>
-              Socratic Coach &amp; Interceptor
+              Socratic coach &amp; Interceptor
             </h2>
           </div>
           <button
             type="button"
             className={styles.socraticCloseBtn}
             onClick={onClose}
-            aria-label="Close Socratic Coach"
+            aria-label="Close Socratic coach"
           >
             <Icon name="x" size={18} />
           </button>
@@ -890,7 +890,7 @@ export function SocraticCoachDrawer({
             {loading ? (
               <div className={styles.socraticLoading} role="status">
                 <span className={styles.pulse} aria-hidden="true" />
-                <span>Socratic Coach is analyzing this concept...</span>
+                <span>Socratic coach is analyzing this concept...</span>
               </div>
             ) : error ? (
               <div className={styles.loadError}>
@@ -945,7 +945,7 @@ export function SocraticCoachDrawer({
               value={customNote}
               onChange={(e) => setCustomNote(e.target.value)}
               disabled={loading}
-              aria-label="Custom question for Socratic Coach"
+              aria-label="Custom question for Socratic coach"
             />
             <Button
               type="submit"
@@ -972,7 +972,7 @@ export function SocraticCoachDrawer({
             <span>Open in AI Tutor</span>
           </Button>
           <Button variant="secondary" onClick={onClose}>
-            Resume Review
+            Resume review
           </Button>
         </div>
       </div>
@@ -1389,10 +1389,10 @@ function ReviewSession({
             onClick={() => setSourceDrawerOpen((prev) => !prev)}
             aria-expanded={sourceDrawerOpen}
             aria-controls="source-note-drawer"
-            aria-label="Source Note Context"
+            aria-label="Source note context"
           >
             <Icon name="file-text" size={14} />
-            <span>Source Note Context</span>
+            <span>Source note context</span>
             <span className={styles.sourceContextChevron} aria-hidden="true">
               {sourceDrawerOpen ? "▲" : "▼"}
             </span>
@@ -1403,12 +1403,12 @@ function ReviewSession({
               id="source-note-drawer"
               className={styles.sourceContextDrawer}
               role="region"
-              aria-label="Source Note Context"
+              aria-label="Source note context"
             >
               <div className={styles.sourceDrawerHeader}>
                 <div className={styles.sourceDrawerTitle}>
                   <Icon name="file-text" size={14} />
-                  <span>{sourceContext.title || "Linked Study Note"}</span>
+                  <span>{sourceContext.title || "Linked study note"}</span>
                 </div>
                 <Link
                   to={`/notes/${sourceContext.materialId}`}
@@ -1417,7 +1417,7 @@ function ReviewSession({
                     sourceContext.title || sourceContext.materialId
                   }`}
                 >
-                  <span>Open Note</span>
+                  <span>Open note</span>
                   <Icon name="link" size={14} />
                 </Link>
               </div>
@@ -1468,7 +1468,7 @@ function ReviewSession({
               onClick={() => openSocratic("why_missed")}
             >
               <Icon name="brain" size={16} />
-              <span>Why did I miss this? (Socratic Coach)</span>
+              <span>Why did I miss this? (Socratic coach)</span>
             </Button>
             <Button
               variant="secondary"
@@ -1726,7 +1726,7 @@ function ReviewRecap({
         {recap.weakTopics.length > 0 ? (
           <div className={styles.weakTopicsSection}>
             <div className={styles.weakTopicsHeader}>
-              <h3 className={styles.weakTopicsTitle}>Weak Topics Identified</h3>
+              <h3 className={styles.weakTopicsTitle}>Weak topics identified</h3>
               <p className={styles.weakTopicsSubtext}>
                 Topics from cards marked Again or Hard. Click a topic to filter
                 cards:
@@ -1760,7 +1760,7 @@ function ReviewRecap({
 
         {/* Cards Graded Breakdown */}
         <div className={styles.breakdownSection}>
-          <h3 className={styles.breakdownTitle}>Cards Breakdown</h3>
+          <h3 className={styles.breakdownTitle}>Cards breakdown</h3>
           <div
             className={styles.gradeTabs}
             role="tablist"
@@ -1844,10 +1844,10 @@ function ReviewRecap({
                         <Link
                           to={`/notes/${cardSource.materialId}`}
                           className={styles.cardBreakdownSourceLink}
-                          title={cardSource.title || "Source Note"}
+                          title={cardSource.title || "Source note"}
                         >
                           <Icon name="file-text" size={12} />
-                          <span>Source Note</span>
+                          <span>Source note</span>
                         </Link>
                       ) : null}
                       <Button
@@ -1862,7 +1862,7 @@ function ReviewRecap({
                         }
                       >
                         <Icon name="brain" size={14} />
-                        <span>Socratic Coach</span>
+                        <span>Socratic coach</span>
                       </Button>
                     </div>
                     <div className={styles.cardFrontPreview}>
@@ -1901,7 +1901,7 @@ function ReviewRecap({
               <span>25 minutes on the tricky ones</span>
             </Button>
             {/* Not gated on weakTopics any more. `handleAddRevisionTask`
-                already names the task "Review cards again: <deck>" when there
+                already names the task "Review cards again: <card set>" when there
                 are no topics to name, and "put this deck in front of me again
                 tomorrow" is worth offering for every session — it used to
                 vanish precisely when the recap had least else to offer. */}
@@ -1939,7 +1939,7 @@ function ReviewRecap({
             >
               <Icon name={folderId ? "folder" : "layers"} size={16} />
               <span>
-                {folderId ? "Back to Subject Hub" : "Back to Flashcards"}
+                {folderId ? "Back to Subject Hub" : "Back to Cards"}
               </span>
             </Button>
           </div>

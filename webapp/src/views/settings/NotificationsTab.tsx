@@ -123,7 +123,7 @@ export function NotificationsTab() {
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <span className={styles.labelText} id={remindersId}>
-              Flashcard due reminders
+              Card due reminders
             </span>
             <p className={styles.fieldDesc}>
               Send one daily alert when flashcards are due.
@@ -217,7 +217,7 @@ export function NotificationsTab() {
           </span>
           <div>
             <h3 id="settings-push-heading">Push notifications</h3>
-            <p>Receive exam and flashcard reminders when Learnora is closed.</p>
+            <p>Receive exam and card reminders when Learnora is closed.</p>
           </div>
         </div>
 

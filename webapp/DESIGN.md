@@ -29,6 +29,18 @@ Two more pages sit beside those three and follow the same rules:
   danger zone), Appearance, Study (preferences, reminders), Privacy and AI,
   Plan and billing. Old `?tab=` names open the section that holds them now.
 
+- **Plan** (`/plan`, `/my-week`, `/tasks`, `/exams`): one "Plan" header
+  with Week plan, Free time, Tasks and Exams as link tabs
+  (`PlanSectionNav`), reached from Subjects.
+- **Library** (`/library/*`): everything saved, one list per kind, reached
+  from Subjects.
+
+Study tools are modes of one session (`/study/:id`: Explain, Socratic,
+Practice, Teach, Recall). The old standalone Feynman, viva/sparring and
+debugger pages could no longer be reached — their routes already redirected
+into the session — and were removed in the final sweep. `/feynman`, `/viva`
+and `/sparring` still redirect there.
+
 Words in the UI follow the table: say **lesson**, not material, file or
 source; **subject**, not folder; **cards**, not flashcards or deck (a deck is
 an implementation detail); **mistakes**, not misconceptions.

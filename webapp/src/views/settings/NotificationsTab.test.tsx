@@ -103,7 +103,7 @@ describe("NotificationsTab", () => {
     /* The vanilla wrapped each checkbox in an empty <label class="toggle-
        switch">, so none had an accessible name. */
     expect(
-      screen.getByRole("switch", { name: "Flashcard due reminders" }),
+      screen.getByRole("switch", { name: "Card due reminders" }),
     ).toBeChecked();
     expect(screen.getByRole("switch", { name: "Timer alerts" })).toBeChecked();
     expect(
@@ -117,7 +117,7 @@ describe("NotificationsTab", () => {
     renderWithProviders(<NotificationsTab />);
 
     await user.click(
-      screen.getByRole("switch", { name: "Flashcard due reminders" }),
+      screen.getByRole("switch", { name: "Card due reminders" }),
     );
 
     await waitFor(() =>
@@ -133,7 +133,7 @@ describe("NotificationsTab", () => {
     renderWithProviders(<NotificationsTab />);
 
     await user.click(
-      screen.getByRole("switch", { name: "Flashcard due reminders" }),
+      screen.getByRole("switch", { name: "Card due reminders" }),
     );
     await user.click(screen.getByRole("switch", { name: "Timer alerts" }));
     await user.click(

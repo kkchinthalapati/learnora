@@ -462,3 +462,9 @@
     gap: var(--s-4);
   }
 }
+
+/* Says what the Free time tab is for, under the Plan header. */
+.intro {
+  margin: 0 0 var(--s-5);
+  color: var(--text-muted);
+}

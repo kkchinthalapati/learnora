@@ -63,7 +63,7 @@ describe("ProGate", () => {
   it("closes once a subscription is cancelled", async () => {
     servePlan({ ...PRO_ROW, plan: "free", plan_status: "canceled" });
     render();
-    expect(await screen.findByText(/Exam Trajectory/)).toBeInTheDocument();
+    expect(await screen.findByText(/Exam forecast/)).toBeInTheDocument();
     expect(screen.queryByText("the paid thing")).toBeNull();
   });
 
@@ -120,7 +120,7 @@ describe("ProGate", () => {
     );
 
     const dialog = await screen.findByRole("dialog");
-    expect(dialog).toHaveTextContent(/Exam Trajectory is part of Pro/);
+    expect(dialog).toHaveTextContent(/Exam forecast is part of Pro/);
     expect(
       screen.getByRole("button", { name: /upgrade to pro/i }),
     ).toBeInTheDocument();

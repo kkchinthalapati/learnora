@@ -126,7 +126,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         return [
           {
             id: "action-prefix-task",
-            category: "Task Action",
+            category: "Task action",
             title: prefixMatch.text
               ? `Create task: "${prefixMatch.text}"`
               : "Type a task name...",
@@ -209,8 +209,8 @@ export function CommandPalette(props: CommandPaletteProps) {
        Library header). One entry per thing a student makes. */
     if (createModal) {
       const NEW_ENTRIES = [
-        { type: "material", title: "New… material", subtitle: "Upload or paste notes to learn from", icon: "upload-cloud", keywords: ["new", "create", "upload", "notes", "pdf", "material"] },
-        { type: "subject", title: "New… subject", subtitle: "A folder for one course", icon: "folder", keywords: ["new", "create", "subject", "folder", "course"] },
+        { type: "material", title: "New… lesson", subtitle: "Upload or paste notes to learn from", icon: "upload-cloud", keywords: ["new", "create", "upload", "notes", "pdf", "material"] },
+        { type: "subject", title: "New… subject", subtitle: "A subject for one course", icon: "folder", keywords: ["new", "create", "subject", "folder", "course"] },
         { type: "exam", title: "New… exam", subtitle: "Add a date to plan towards", icon: "calendar", keywords: ["new", "create", "exam", "test", "date"] },
         { type: "task", title: "New… task", subtitle: "Something to get done", icon: "check-square", keywords: ["new", "create", "task", "todo"] },
       ] as const;
@@ -233,7 +233,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     // --- Actions ---
     items.push({
       id: "action-timer-25",
-      category: "Quick Actions",
+      category: "Quick actions",
       title: "Start 25m Timer",
       subtitle: "25-minute Pomodoro study focus block",
       icon: "clock",
@@ -249,7 +249,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "action-timer-50",
-      category: "Quick Actions",
+      category: "Quick actions",
       title: "Start 50m Timer",
       subtitle: "50-minute Deep Work focus block",
       icon: "clock",
@@ -265,8 +265,8 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "action-timer-toggle",
-      category: "Quick Actions",
-      title: timerRunning ? "Pause Timer" : "Toggle / Start Timer",
+      category: "Quick actions",
+      title: timerRunning ? "Pause timer" : "Toggle / Start Timer",
       subtitle: timerRunning
         ? "Pause the active study timer"
         : "Start or resume study timer",
@@ -282,7 +282,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "action-toggle-theme",
-      category: "Quick Actions",
+      category: "Quick actions",
       title: isDark ? "Switch to Light Mode" : "Switch to Dark Mode",
       subtitle: `Toggle appearance theme (currently ${isDark ? "Dark" : "Light"})`,
       icon: isDark ? "sun" : "moon",
@@ -441,7 +441,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-timer",
       category: "Navigation",
-      title: "Focus Timer",
+      title: "Focus timer",
       subtitle: "Pomodoro, countdown, stopwatch, and flowtime",
       icon: "clock",
       keywords: ["timer", "pomodoro", "stopwatch", "clock", "focus"],
@@ -455,7 +455,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       id: "nav-library",
       category: "Navigation",
       title: "Library",
-      subtitle: "Browse all subjects, materials, and flashcards",
+      subtitle: "Browse all subjects, lessons, and cards",
       icon: "layers",
       keywords: ["library", "materials", "documents", "decks", "subjects"],
       onSelect: () => {
@@ -467,7 +467,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-plan",
       category: "Navigation",
-      title: "Study Plan",
+      title: "Study plan",
       subtitle: "Weekly schedule and scheduled focus blocks",
       icon: "calendar",
       keywords: ["plan", "schedule", "weekly", "timetable"],
@@ -480,7 +480,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-room",
       category: "Navigation",
-      title: "Study Room",
+      title: "Study room",
       subtitle: "Live synchronized group study session",
       icon: "users",
       keywords: ["room", "group", "social", "study room", "live"],
@@ -522,7 +522,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         id: `folder-${folder.id}`,
         category: "Subjects",
         title: folder.name,
-        subtitle: "Subject Folder",
+        subtitle: "Subject",
         icon: "folder",
         color: folder.color,
         badge: "Subject",
@@ -540,9 +540,9 @@ export function CommandPalette(props: CommandPaletteProps) {
         id: `material-${mat.id}`,
         category: "Notes & Documents",
         title: mat.title,
-        subtitle: mat.type === "youtube" ? "Video Material" : "Document / Note",
+        subtitle: mat.type === "youtube" ? "Video lesson" : "Document / Note",
         icon: "file-text",
-        badge: "Material",
+        badge: "Lesson",
         keywords: ["material", "document", "notes", "file", "pdf", mat.title],
         onSelect: () => {
           navigate(`/notes/${mat.id}`);
@@ -582,15 +582,15 @@ export function CommandPalette(props: CommandPaletteProps) {
       });
     });
 
-    // --- Dynamic: Flashcard Decks ---
+    // --- Dynamic: Flashcard decks ---
     decks.forEach((deck) => {
       items.push({
         id: `deck-${deck.id}`,
-        category: "Flashcard Decks",
+        category: "Card sets",
         title: deck.title,
-        subtitle: "Flashcard Deck Review",
+        subtitle: "Card set review",
         icon: "layers",
-        badge: "Deck",
+        badge: "Card set",
         keywords: ["flashcards", "deck", "cards", "review", deck.title],
         onSelect: () => {
           navigate(`/review/${deck.id}`);
@@ -729,7 +729,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         className={styles.palette}
         role="dialog"
         aria-modal="true"
-        aria-label="Command Palette"
+        aria-label="Command palette"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
       >

@@ -34,8 +34,8 @@ interface SearchGroup {
 const GROUP_LABELS: Record<SearchResultKind, string> = {
   notebooks: "Notebooks",
   folders: "Subjects",
-  materials: "Files & notes",
-  flashcards: "Flashcard decks",
+  materials: "Lessons",
+  flashcards: "Card sets",
   quizzes: "Quizzes",
 };
 
@@ -179,7 +179,7 @@ function buildGroups(
         icon: GROUP_ICONS.quizzes,
         actions: [
           { label: "Review", href: `/quiz/${quiz.id}/review` },
-          { label: "Mock Exam", href: `/quiz/${quiz.id}/mock-exam` },
+          { label: "Mock exam", href: `/quiz/${quiz.id}/mock-exam` },
         ],
       };
     });
@@ -313,7 +313,7 @@ function SearchResults({ query }: { query: string }) {
             ? "Some results could not load (" +
               failedSections.join(", ") +
               "). Retry or search again."
-            : "Try a notebook, subject, file, deck, or quiz title."}
+            : "Try a notebook, subject, file, card set, or quiz title."}
         </span>
         {failedSections.length ? (
           <button type="button" className={styles.retry} onClick={retry}>
@@ -455,7 +455,7 @@ export function LibrarySearch({
                 }
               }
             }}
-            placeholder="Search notebooks, subjects, files, decks and quizzes"
+            placeholder="Search notebooks, subjects, files, card sets and quizzes"
             aria-label="Search your library"
             aria-controls="library-search-results"
             autoComplete="off"

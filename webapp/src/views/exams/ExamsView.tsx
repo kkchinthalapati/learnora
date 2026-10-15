@@ -254,7 +254,7 @@ export function ExamsView() {
             <button
               type="button"
               className={styles.iconBtn}
-              aria-label="Previous Month"
+              aria-label="Previous month"
               onClick={() => shiftMonth(-1)}
             >
               ‹
@@ -267,7 +267,7 @@ export function ExamsView() {
             <button
               type="button"
               className={styles.iconBtn}
-              aria-label="Next Month"
+              aria-label="Next month"
               onClick={() => shiftMonth(1)}
             >
               ›

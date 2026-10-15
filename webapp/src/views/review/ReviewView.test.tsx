@@ -64,7 +64,7 @@ function renderReview(deckId = "d-1", autoStart = true) {
       <ChatProvider>
         <Routes>
           <Route path="/review/:deckId" element={<ReviewView />} />
-          <Route path="/library/flashcards" element={<h1>Flashcards tab</h1>} />
+          <Route path="/library/flashcards" element={<h1>Cards tab</h1>} />
           <Route path="/timer" element={<h1>Timer view</h1>} />
         </Routes>
       </ChatProvider>
@@ -529,7 +529,7 @@ describe("ReviewView", () => {
     expect(meter).toHaveAttribute("aria-valuenow", "58");
 
     // Weak Topics: "Photosynthesis" should appear in weak topics
-    expect(screen.getByText("Weak Topics Identified")).toBeInTheDocument();
+    expect(screen.getByText("Weak topics identified")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Photosynthesis/ }),
     ).toBeInTheDocument();
@@ -729,10 +729,10 @@ describe("ReviewView", () => {
     renderReview("gone");
 
     expect(
-      await screen.findByText("This deck no longer exists."),
+      await screen.findByText("This card set no longer exists."),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Back to Flashcards" }),
+      screen.getByRole("link", { name: "Back to Cards" }),
     ).toHaveAttribute("href", "/library/flashcards");
   });
 
@@ -742,10 +742,10 @@ describe("ReviewView", () => {
     await screen.findByText("What is a mitochondrion?");
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("link", { name: "← Exit Review" }));
+    await user.click(screen.getByRole("link", { name: "← Exit review" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Flashcards tab" }),
+      await screen.findByRole("heading", { name: "Cards tab" }),
     ).toBeInTheDocument();
   });
 
@@ -999,9 +999,9 @@ describe("ReviewView", () => {
         "mitochondria",
       );
       await user.click(screen.getByRole("button", { name: "Grade" }));
-      await user.click(screen.getByRole("link", { name: "← Exit Review" }));
+      await user.click(screen.getByRole("link", { name: "← Exit review" }));
       expect(
-        await screen.findByRole("heading", { name: "Flashcards tab" }),
+        await screen.findByRole("heading", { name: "Cards tab" }),
       ).toBeInTheDocument();
 
       resolveEdge(
@@ -1012,7 +1012,7 @@ describe("ReviewView", () => {
          resolved reply had no registered grader left to call. */
       await waitFor(() =>
         expect(
-          screen.getByRole("heading", { name: "Flashcards tab" }),
+          screen.getByRole("heading", { name: "Cards tab" }),
         ).toBeInTheDocument(),
       );
       expect(patchCalls).toBe(0);
@@ -1041,13 +1041,13 @@ describe("ReviewView", () => {
       );
 
       const coachBtn = screen.getByRole("button", {
-        name: "Why did I miss this? (Socratic Coach)",
+        name: "Why did I miss this? (Socratic coach)",
       });
       coachBtn.focus();
       await user.click(coachBtn);
 
       const drawer = await screen.findByRole("dialog", {
-        name: "Socratic Coach",
+        name: "Socratic coach",
       });
       // The dialog is the drawer itself, not the scrim wrapping the viewport.
       expect(drawer).toHaveClass(/socraticDrawer/);
@@ -1064,14 +1064,14 @@ describe("ReviewView", () => {
       await user.keyboard("{Escape}");
       await waitFor(() =>
         expect(
-          screen.queryByRole("dialog", { name: "Socratic Coach" }),
+          screen.queryByRole("dialog", { name: "Socratic coach" }),
         ).not.toBeInTheDocument(),
       );
       // Focus goes back to what opened it, not to <body>.
       expect(coachBtn).toHaveFocus();
     });
 
-    it("opens Socratic Coach drawer from flipped card and displays AI guidance", async () => {
+    it("opens Socratic coach drawer from flipped card and displays AI guidance", async () => {
       serve();
       let capturedPayload: unknown;
       server.use(
@@ -1092,7 +1092,7 @@ describe("ReviewView", () => {
       );
 
       const coachBtn = screen.getByRole("button", {
-        name: "Why did I miss this? (Socratic Coach)",
+        name: "Why did I miss this? (Socratic coach)",
       });
       expect(coachBtn).toBeInTheDocument();
 
@@ -1100,7 +1100,7 @@ describe("ReviewView", () => {
 
       expect(
         await screen.findByRole("heading", {
-          name: "Socratic Coach & Interceptor",
+          name: "Socratic coach & Interceptor",
         }),
       ).toBeInTheDocument();
       expect(
@@ -1117,11 +1117,11 @@ describe("ReviewView", () => {
       ).toBeInTheDocument();
 
       // Close the drawer
-      await user.click(screen.getByRole("button", { name: "Resume Review" }));
+      await user.click(screen.getByRole("button", { name: "Resume review" }));
       await waitFor(() =>
         expect(
           screen.queryByRole("heading", {
-            name: "Socratic Coach & Interceptor",
+            name: "Socratic coach & Interceptor",
           }),
         ).not.toBeInTheDocument(),
       );
@@ -1149,7 +1149,7 @@ describe("ReviewView", () => {
       );
       await user.click(
         screen.getByRole("button", {
-          name: "Why did I miss this? (Socratic Coach)",
+          name: "Why did I miss this? (Socratic coach)",
         }),
       );
 
@@ -1164,7 +1164,7 @@ describe("ReviewView", () => {
       expect(lastPromptText).toContain("mnemonic");
     });
 
-    it("submits a custom question/note to Socratic Coach and updates advice", async () => {
+    it("submits a custom question/note to Socratic coach and updates advice", async () => {
       serve();
       let lastPrompt = "";
       let callCount = 0;
@@ -1193,7 +1193,7 @@ describe("ReviewView", () => {
       );
       await user.click(
         screen.getByRole("button", {
-          name: "Why did I miss this? (Socratic Coach)",
+          name: "Why did I miss this? (Socratic coach)",
         }),
       );
 
@@ -1204,7 +1204,7 @@ describe("ReviewView", () => {
       ).toBeInTheDocument();
 
       const input = screen.getByRole("textbox", {
-        name: "Custom question for Socratic Coach",
+        name: "Custom question for Socratic coach",
       });
       await user.type(input, "How is ATP made here?");
       await user.click(screen.getByRole("button", { name: "Ask" }));
@@ -1244,7 +1244,7 @@ describe("ReviewView", () => {
       );
       await user.click(
         screen.getByRole("button", {
-          name: "Why did I miss this? (Socratic Coach)",
+          name: "Why did I miss this? (Socratic coach)",
         }),
       );
 
@@ -1287,7 +1287,7 @@ describe("ReviewView", () => {
       );
       await user.click(
         screen.getByRole("button", {
-          name: "Why did I miss this? (Socratic Coach)",
+          name: "Why did I miss this? (Socratic coach)",
         }),
       );
 
@@ -1300,12 +1300,12 @@ describe("ReviewView", () => {
       expect(await within(guidance).findByText("Point 40 about this concept."))
         .toBeInTheDocument();
       expect(
-        screen.getByRole("textbox", { name: "Custom question for Socratic Coach" }),
+        screen.getByRole("textbox", { name: "Custom question for Socratic coach" }),
       ).toBeVisible();
       expect(screen.getByRole("tab", { name: /Mnemonic Aid/i })).toBeVisible();
     });
 
-    it("allows opening Socratic Coach from the recap breakdown list for difficult cards", async () => {
+    it("allows opening Socratic coach from the recap breakdown list for difficult cards", async () => {
       serve({
         cards: [card({ id: "c-1", front: "Hard Concept Q", back: "Deep Answer A" })],
       });
@@ -1328,14 +1328,14 @@ describe("ReviewView", () => {
 
       expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
-      const coachBtns = screen.getAllByRole("button", { name: /Socratic Coach/i });
+      const coachBtns = screen.getAllByRole("button", { name: /Socratic coach/i });
       expect(coachBtns.length).toBeGreaterThan(0);
 
       await user.click(coachBtns[0]!);
 
       expect(
         await screen.findByRole("heading", {
-          name: "Socratic Coach & Interceptor",
+          name: "Socratic coach & Interceptor",
         }),
       ).toBeInTheDocument();
       expect(
@@ -1346,8 +1346,8 @@ describe("ReviewView", () => {
     });
   });
 
-  describe("Source Note Context deep linking", () => {
-    it("displays Source Note Context pill and expands drawer with quote and link to /notes/:materialId", async () => {
+  describe("Source note context deep linking", () => {
+    it("displays Source note context pill and expands drawer with quote and link to /notes/:materialId", async () => {
       const sourceMeta = {
         materialId: "mat-456",
         materialTitle: "Photosynthesis Notes",
@@ -1372,7 +1372,7 @@ describe("ReviewView", () => {
       ).not.toBeInTheDocument();
 
       // Pill button should be visible
-      const pill = screen.getByRole("button", { name: "Source Note Context" });
+      const pill = screen.getByRole("button", { name: "Source note context" });
       expect(pill).toBeInTheDocument();
       expect(pill).toHaveAttribute("aria-expanded", "false");
 
@@ -1421,7 +1421,7 @@ describe("ReviewView", () => {
       await screen.findByText("What is the citric acid cycle?");
 
       const user = userEvent.setup();
-      const pill = screen.getByRole("button", { name: "Source Note Context" });
+      const pill = screen.getByRole("button", { name: "Source note context" });
       await user.click(pill);
 
       expect(screen.getByText("Cellular Respiration")).toBeInTheDocument();
@@ -1437,7 +1437,7 @@ describe("ReviewView", () => {
       expect(noteLink).toHaveAttribute("href", "/notes/mat-789");
     });
 
-    it("hides Source Note Context pill when card has no source reference", async () => {
+    it("hides Source note context pill when card has no source reference", async () => {
       serve({
         cards: [
           card({
@@ -1452,7 +1452,7 @@ describe("ReviewView", () => {
       await screen.findByText("Plain question without source reference");
 
       expect(
-        screen.queryByRole("button", { name: "Source Note Context" }),
+        screen.queryByRole("button", { name: "Source note context" }),
       ).not.toBeInTheDocument();
     });
 
@@ -1483,7 +1483,7 @@ describe("ReviewView", () => {
 
       expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
-      const sourceLink = screen.getByRole("link", { name: "Source Note" });
+      const sourceLink = screen.getByRole("link", { name: "Source note" });
       expect(sourceLink).toHaveAttribute("href", "/notes/mat-101");
       expect(
         screen.getByText(/Helicase unwinds the double helix at the replication fork/),

@@ -20,6 +20,8 @@
   font: inherit;
   font-size: var(--fs-base);
   font-weight: 500;
+  /* PlanSectionNav renders these as links. */
+  text-decoration: none;
   cursor: pointer;
   transition: color var(--t-fast) var(--ease);
 }

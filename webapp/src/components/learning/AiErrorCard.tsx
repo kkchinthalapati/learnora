@@ -8,7 +8,7 @@ export function AiErrorCard({
   detail,
   onRetry,
   onFallback,
-  fallbackLabel = "Switch to flashcards meanwhile",
+  fallbackLabel = "Switch to cards meanwhile",
   kept = "Your message is saved below, so nothing was lost, and retrying won't send it twice.",
 }: {
   /** The service's own sentence, when it gave one. */

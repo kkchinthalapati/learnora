@@ -3,7 +3,7 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { IconButton } from "../../components/IconButton";
-import { PageHeader } from "../../components/PageHeader";
+import { SectionHeader } from "../../components/SectionHeader";
 import { ProGate } from "../../components/ProGate";
 import { useToast } from "../../context/toast";
 import { useLifeContext } from "../../hooks/useLifeContext";
@@ -299,13 +299,12 @@ export function MyWeekView() {
   return (
     <div className={styles.view}>
       <PlanSectionNav />
-      {/* No <h1> here: the shell's Header renders the page's one heading from
-          lib/sectionLabel.ts. PageHeader's title names what is below it rather
-          than repeating the route's name, the same as FriendsView. */}
-      <PageHeader
-        title="When you're free to study"
-        sub="Tell Learnora about your week once. It plans study into the gaps, not over your classes."
-      />
+      {/* The Plan header (PlanSectionNav) is the page's one title; this
+          section says what the Free time tab is for. */}
+      <SectionHeader title="When you're free to study" />
+      <p className={styles.intro}>
+        Tell Learnora about your week once. It plans study into the gaps, not over your classes.
+      </p>
 
       {/* --- 1. The shape of a day ------------------------------------ */}
       <Card as="section" variant="panel" className={styles.section}>

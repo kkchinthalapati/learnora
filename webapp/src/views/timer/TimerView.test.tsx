@@ -270,10 +270,10 @@ describe("TimerView", () => {
     const user = userEvent.setup();
     renderTimer();
 
-    await user.click(screen.getByRole("button", { name: "Deep Work (90m)" }));
+    await user.click(screen.getByRole("button", { name: "Deep work (90m)" }));
 
     expect(screen.getByLabelText("Focus (mins)")).toHaveValue(90);
-    expect(screen.getByLabelText("Long Break")).toHaveValue(30);
+    expect(screen.getByLabelText("Long break")).toHaveValue(30);
     // 90 minutes crosses an hour, so it formats as h:mm:ss.
     expect(screen.getByText("1:30:00")).toBeInTheDocument();
   });
@@ -512,7 +512,7 @@ describe("TimerView", () => {
     await waitFor(() => expect(body).toBeDefined());
     expect(body![0]).toMatchObject({ minutes: 25 });
     expect(
-      screen.getByRole("heading", { name: "Short Break" }),
+      screen.getByRole("heading", { name: "Short break" }),
     ).toBeInTheDocument();
   });
 
@@ -599,7 +599,7 @@ describe("TimerView", () => {
       { withTimer: true },
     );
 
-    expect(screen.getByText("Guest Mode")).toBeInTheDocument();
+    expect(screen.getByText("Guest mode")).toBeInTheDocument();
     expect(
       screen.getByText(/Your timer sessions are safely saved locally/i),
     ).toBeInTheDocument();

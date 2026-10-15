@@ -22,7 +22,7 @@ const RADAR_AXES: RadarAxis[] = [
     badgeName: "Edge cases",
   },
   {
-    label: "Negative Wording",
+    label: "Negative wording",
     key: "negative-wording-maze",
     badgeName: "Negative wording",
   },
@@ -54,7 +54,7 @@ const RADAR_AXES: RadarAxis[] = [
 ];
 
 export function TrapImmunityRadarView({
-  subject = "All Subjects",
+  subject = "All subjects",
   disarmedTrapIds = [],
   score,
   categoryScores,

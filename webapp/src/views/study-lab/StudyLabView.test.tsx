@@ -112,7 +112,7 @@ describe("StudyLabView", () => {
 
     expect(screen.getByRole("heading", { name: "Hydrolysis" })).toBeInTheDocument();
     expect(screen.getByText("From your work in Chemistry")).toBeInTheDocument();
-    expect(steps()).toEqual(["Quick check", "Flashcards", "Teach it back", "Exam traps"]);
+    expect(steps()).toEqual(["Quick check", "Cards", "Teach it back", "Exam traps"]);
     expect(screen.getByText(/come back 3 times/)).toBeInTheDocument();
     expect(screen.getAllByText(/Chemistry Paper 1 exam is in 5 days/).length).toBeGreaterThan(0);
   });

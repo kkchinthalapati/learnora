@@ -76,10 +76,6 @@ describe("touch targets", () => {
     ["views/timer/timer.module.css", ".soundButton"],
     ["views/friends/friends.module.css", ".periodTab"],
     ["views/notebooks/notebooks.module.css", ".filterPill"],
-    ["views/debugger/CognitiveDebuggerView.module.css", ".presetPill"],
-    ["views/feynman/FeynmanHubView.module.css", ".topicChip"],
-    ["views/sparring/sparring.module.css", ".chipBtn"],
-    ["views/sparring/sparring.module.css", ".audioToggleBtn"],
   ];
 
   it.each(coarseFloors)(

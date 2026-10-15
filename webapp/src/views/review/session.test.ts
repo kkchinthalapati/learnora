@@ -258,7 +258,7 @@ describe("review session helpers", () => {
      word that shows up once is just a word from that card. Listing those too
      turned a single Hard card into "Algae 1 · Bacteria 1 · Chemical 1 ·
      Convert 1 · Energy 1 · Glucose 1 · Green 1 · Light 1 · Plants 1" under a
-     heading that says "Weak Topics Identified". */
+     heading that says "Weak topics identified". */
   it("does not turn a single difficult card into a bag of words", () => {
     const only = card("c1", {
       front: "What is the primary purpose of photosynthesis?",

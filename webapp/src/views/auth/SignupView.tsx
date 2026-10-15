@@ -92,7 +92,7 @@ export function SignupView() {
           <p className={styles.toggleText}>
             Confirmed somewhere else?{" "}
             <Link className={styles.link} to="/login">
-              Log in
+              Sign in
             </Link>
           </p>
         </div>
@@ -104,7 +104,7 @@ export function SignupView() {
     <RedirectIfSignedIn>
       <AuthShell
         title="Create your account"
-        subtitle="Start studying smarter in minutes."
+        subtitle="It takes a minute, and your first lesson comes right after."
         status={statusNode}
       >
         <form className={styles.form} onSubmit={(e) => void onSubmit(e)}>
@@ -207,13 +207,13 @@ export function SignupView() {
             className={styles.submit}
             disabled={signup.isPending}
           >
-            {signup.isPending ? "Creating account..." : "Create Account →"}
+            {signup.isPending ? "Creating account..." : "Create account →"}
           </Button>
 
           <p className={styles.toggleText}>
             Already have an account?{" "}
             <Link className={styles.link} to="/login">
-              Log In
+              Sign in
             </Link>
           </p>
         </form>

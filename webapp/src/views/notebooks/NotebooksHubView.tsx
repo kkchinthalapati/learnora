@@ -103,10 +103,6 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
     >
       <header className={styles.hubHeader}>
         <div className={styles.hubTitleGroup}>
-          <span className={styles.hubEyebrow}>
-            <Icon name="book-open" size={16} />
-            Grounded in your own sources
-          </span>
           {embedded ? (
             <h2 className={styles.hubTitle}>Notebooks</h2>
           ) : (
@@ -143,7 +139,7 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
             Use the Library to store individual files, notes, decks and quizzes.
           </span>
           <Link to="/library" className={styles.hubGuideLink}>
-            Open Library →
+            Open library →
           </Link>
         </div>
       ) : null}
@@ -276,7 +272,7 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
                           size={13}
                           style={{ color: "var(--accent)" }}
                         />
-                        {cheatSheetCount} Cheat Sheet
+                        {cheatSheetCount} Cheat sheet
                         {cheatSheetCount === 1 ? "" : "s"}
                       </span>
                     )}
@@ -374,7 +370,7 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
                 }}
                 className={styles.formControl}
               >
-                <option value="">No subject folder</option>
+                <option value="">No subject</option>
                 {folders.map((folder) => (
                   <option key={folder.id} value={folder.id}>
                     {folder.name}

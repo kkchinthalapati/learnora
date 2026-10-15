@@ -134,9 +134,9 @@ function renderLibrary(path = "/library/folders") {
       <Routes>
         <Route path="/library" element={<LibraryView />} />
         <Route path="/library/:tab" element={<LibraryView />} />
-        <Route path="/folders/:folderId" element={<h1>Subject workspace</h1>} />
+        <Route path="/subjects/:folderId" element={<h1>Subject workspace</h1>} />
         <Route path="/notes/:materialId" element={<h1>Notes editor</h1>} />
-        <Route path="/review/:deckId" element={<h1>Deck review</h1>} />
+        <Route path="/review/:deckId" element={<h1>Card set review</h1>} />
         <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
         <Route path="/quiz/:quizId/review" element={<h1>Quiz review</h1>} />
       </Routes>
@@ -167,16 +167,16 @@ describe("LibraryView shell", () => {
     const tabs = await screen.findAllByRole("tab");
     expect(tabs.map((t) => t.textContent)).toEqual([
       "Subjects",
-      "Files & notes",
-      "Flashcards",
+      "Lessons",
+      "Card sets",
       "Quizzes",
       "Notebooks",
     ]);
     expect(tab("Subjects")).toHaveAttribute("aria-selected", "true");
     expect(
-      screen.getByRole("heading", { name: "Your learning" }),
+      screen.getByRole("heading", { level: 1, name: "Library" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/One folder per class/)).toBeInTheDocument();
+    expect(screen.getByText(/One subject per class/)).toBeInTheDocument();
     expect(await screen.findByText("Biology")).toBeInTheDocument();
   });
 
@@ -197,7 +197,7 @@ describe("LibraryView shell", () => {
     );
 
     expect(
-      await screen.findByText("Files & notes", { selector: "h2" }),
+      await screen.findByText("Lessons", { selector: "h2" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Quizzes", { selector: "h2" })).toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
@@ -290,7 +290,7 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    await user.click(tab("Files & notes"));
+    await user.click(tab("Lessons"));
 
     expect(await screen.findByText("Cell division")).toBeInTheDocument();
     expect(screen.getByTestId("path")).toHaveTextContent("/library/materials");
@@ -305,14 +305,14 @@ describe("LibraryView shell", () => {
     await screen.findByText("Biology");
 
     expect(tab("Subjects")).toHaveAttribute("tabindex", "0");
-    expect(tab("Files & notes")).toHaveAttribute("tabindex", "-1");
+    expect(tab("Lessons")).toHaveAttribute("tabindex", "-1");
 
     tab("Subjects").focus();
     await user.keyboard("{ArrowRight}");
 
     expect(await screen.findByText("Cell division")).toBeInTheDocument();
-    expect(tab("Files & notes")).toHaveAttribute("aria-selected", "true");
-    expect(tab("Files & notes")).toHaveFocus();
+    expect(tab("Lessons")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Lessons")).toHaveFocus();
   });
 
   it("wraps from the last tab back to the first with Home/End", async () => {
@@ -337,9 +337,7 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    const panel = screen.getByRole("tabpanel");
-    expect(panel).toHaveAttribute("id", "library-panel-folders");
-    expect(panel).toHaveAttribute("aria-labelledby", "library-tab-folders");
+    expect(screen.getByRole("tabpanel", { name: "Subjects" })).toBeInTheDocument();
   });
 
   it("opens the create dialog from the header button", async () => {
@@ -349,7 +347,7 @@ describe("LibraryView shell", () => {
     await screen.findByText("Biology");
 
     await user.click(
-      screen.getByRole("button", { name: "Add your notes" }),
+      screen.getByRole("button", { name: "Add a lesson" }),
     );
 
     expect(
@@ -360,7 +358,7 @@ describe("LibraryView shell", () => {
   });
 });
 
-describe("Library — Folders tab", () => {
+describe("Library — Subjects tab", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
   });
@@ -381,10 +379,10 @@ describe("Library — Folders tab", () => {
     renderLibrary();
 
     const biology = (await screen.findByText("Biology")).closest("li")!;
-    expect(biology).toHaveTextContent("2 materials");
+    expect(biology).toHaveTextContent("2 lessons");
 
     const history = screen.getByText("History").closest("li")!;
-    expect(history).toHaveTextContent("1 material •");
+    expect(history).toHaveTextContent("1 lesson");
   });
 
   it("counts both materials and notebooks in each folder", async () => {
@@ -431,10 +429,10 @@ describe("Library — Folders tab", () => {
     renderLibrary();
 
     const biology = (await screen.findByText("Biology")).closest("li")!;
-    expect(biology).toHaveTextContent("2 materials • 2 notebooks");
+    expect(biology).toHaveTextContent("2 lessons · 2 notebooks");
 
     const history = screen.getByText("History").closest("li")!;
-    expect(history).toHaveTextContent("1 material • 1 notebook •");
+    expect(history).toHaveTextContent("1 lesson · 1 notebook");
   });
 
   it("links a folder card to its workspace", async () => {
@@ -455,9 +453,9 @@ describe("Library — Folders tab", () => {
     renderLibrary();
 
     expect(
-      await screen.findByText("Your notes become lessons, quizzes and flashcards."),
+      await screen.findByText("Your notes become lessons, quizzes and cards."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add material" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add lesson" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "New subject" }));
 
     expect(
@@ -593,7 +591,7 @@ describe("Library — Folders tab", () => {
   });
 });
 
-describe("Library — Materials tab", () => {
+describe("Library — Lessons tab", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
   });
@@ -621,11 +619,11 @@ describe("Library — Materials tab", () => {
     serveLibrary({ materials: [] });
     renderLibrary("/library/materials");
 
-    expect(await screen.findByText("No materials yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No lessons yet.")).toBeInTheDocument();
     // Both the workspace action and this contextual empty-state action open
     // the same source-first flow.
     expect(
-      screen.getByRole("button", { name: "Add your notes" }),
+      screen.getByRole("button", { name: "Add a lesson" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Create study resources" }),
@@ -713,7 +711,7 @@ describe("Library — Materials tab", () => {
   });
 });
 
-describe("Library — Flashcards tab", () => {
+describe("Library — Cards tab", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
   });
@@ -826,7 +824,7 @@ describe("Library — Flashcards tab", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Deck review" }),
+      await screen.findByRole("heading", { name: "Card set review" }),
     ).toBeInTheDocument();
   });
 

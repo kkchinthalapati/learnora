@@ -144,17 +144,17 @@ export function FeynmanDebriefView() {
         `Added ${cardsToAdd.length} flashcards to "${deckTitle}".`
       );
     } catch (err) {
-      /* This used to `setExportMessage("Made N flashcards for you.")` from
+      /* This used to `setExportMessage("Made N cards for you.")` from
          inside the catch — a "graceful fallback for demo or test
          environments". In practice the write fails against the real database,
          so that reassuring sentence was the *only* message a student ever saw,
          rendered under a ✓ in the success banner, while nothing was saved.
          A save that did not happen has to look like one that did not happen. */
-      console.error("Could not save the Feynman deck", err);
+      console.error("Could not save the Feynman card set", err);
       setExportError(
         err instanceof Error && err.message
           ? err.message
-          : "Something went wrong saving the deck.",
+          : "Something went wrong saving the card set.",
       );
     } finally {
       setIsExporting(false);
@@ -323,7 +323,7 @@ export function FeynmanDebriefView() {
             data-testid="export-flashcards-btn"
           >
             <Icon name="layers" size={16} />{" "}
-            {isExporting ? "Saving…" : "Save these as a deck"}
+            {isExporting ? "Saving…" : "Save these as a card set"}
           </Button>
         </div>
 

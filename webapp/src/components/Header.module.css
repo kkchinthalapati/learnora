@@ -1,4 +1,9 @@
+/* Centred on the same 860px reading column the pages that own their title
+   use (Subjects, Lesson, Settings), so a shell-titled page — a quiz, a
+   review, the timer — lines its title up with its content too. */
 .header {
+  width: min(100%, 860px);
+  margin-inline: auto;
   min-height: 52px;
   display: flex;
   align-items: center;

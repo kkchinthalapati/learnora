@@ -151,7 +151,7 @@ describe("ExamPrepModal", () => {
     expect(
       screen.getByText("Your exam countdown and prep plan"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Material Coverage/i)).toBeInTheDocument();
+    expect(screen.getByText(/Lesson coverage/i)).toBeInTheDocument();
     expect(screen.getByText(/Quiz Mastery/i)).toBeInTheDocument();
     expect(screen.getByText(/Study Investment/i)).toBeInTheDocument();
     expect(

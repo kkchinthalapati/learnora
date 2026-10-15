@@ -80,10 +80,10 @@ describe("ResetPasswordView", () => {
     auth.fire("PASSWORD_RECOVERY");
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "Reset Password" }),
+      await screen.findByRole("heading", { level: 1, name: "Reset password" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("New Password")).toBeInTheDocument();
-    expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
+    expect(screen.getByLabelText("New password")).toBeInTheDocument();
+    expect(screen.getByLabelText("Confirm password")).toBeInTheDocument();
   });
 
   it("calls the link expired when no recovery event ever arrives", async () => {
@@ -114,10 +114,10 @@ describe("ResetPasswordView", () => {
     renderReset();
     auth.fire("PASSWORD_RECOVERY");
 
-    await screen.findByLabelText("New Password");
-    await user.type(screen.getByLabelText("New Password"), "Password1!");
-    await user.type(screen.getByLabelText("Confirm Password"), "Password1!");
-    await user.click(screen.getByRole("button", { name: "Update Password →" }));
+    await screen.findByLabelText("New password");
+    await user.type(screen.getByLabelText("New password"), "Password1!");
+    await user.type(screen.getByLabelText("Confirm password"), "Password1!");
+    await user.click(screen.getByRole("button", { name: "Update password →" }));
 
     expect(
       await screen.findByRole("heading", { level: 1, name: "Password updated" }),
@@ -146,10 +146,10 @@ describe("ResetPasswordView", () => {
     renderReset();
     auth.fire("PASSWORD_RECOVERY");
 
-    await screen.findByLabelText("New Password");
-    await user.type(screen.getByLabelText("New Password"), "Password1!");
-    await user.type(screen.getByLabelText("Confirm Password"), "Password2!");
-    await user.click(screen.getByRole("button", { name: "Update Password →" }));
+    await screen.findByLabelText("New password");
+    await user.type(screen.getByLabelText("New password"), "Password1!");
+    await user.type(screen.getByLabelText("Confirm password"), "Password2!");
+    await user.click(screen.getByRole("button", { name: "Update password →" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Passwords do not match",
@@ -170,16 +170,16 @@ describe("ResetPasswordView", () => {
     renderReset();
     auth.fire("PASSWORD_RECOVERY");
 
-    await screen.findByLabelText("New Password");
-    await user.type(screen.getByLabelText("New Password"), "Password1!");
-    await user.type(screen.getByLabelText("Confirm Password"), "Password1!");
-    await user.click(screen.getByRole("button", { name: "Update Password →" }));
+    await screen.findByLabelText("New password");
+    await user.type(screen.getByLabelText("New password"), "Password1!");
+    await user.type(screen.getByLabelText("Confirm password"), "Password1!");
+    await user.click(screen.getByRole("button", { name: "Update password →" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "must be different",
     );
     /* Still on the form, so the user can correct it — not stranded on a
        success screen for something that failed. */
-    expect(screen.getByLabelText("New Password")).toBeInTheDocument();
+    expect(screen.getByLabelText("New password")).toBeInTheDocument();
   });
 });

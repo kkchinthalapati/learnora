@@ -109,7 +109,7 @@ describe("ExamDetailView", () => {
     );
     render();
 
-    expect(await screen.findByText("AQA GCSE Biology (8461), Higher tier")).toBeInTheDocument();
+    expect(await screen.findByText(/AQA GCSE Biology \(8461\), Higher tier/)).toBeInTheDocument();
     const rows = await screen.findAllByRole("listitem");
     expect(rows[0]).toHaveTextContent("4.4.2");
     expect(rows[0]).toHaveTextContent("Respiration");
@@ -173,7 +173,7 @@ describe("ExamDetailView", () => {
   it("offers no practice for a spec the bank doesn't cover yet", async () => {
     serveExam({ syllabus_id: "ib-biology-2025", syllabus_tier: "HL" });
     render();
-    await screen.findByText("IB Biology HL");
+    await screen.findByText(/IB Biology HL/);
     expect(screen.queryByRole("button", { name: "Practise top topics" })).toBeNull();
   });
   describe("past papers", () => {

@@ -12,11 +12,11 @@ function renderNotFound() {
 }
 
 describe("NotFoundView", () => {
-  it("renders 404 badge and Page Not Found heading", () => {
+  it("renders 404 badge and Page not found heading", () => {
     renderNotFound();
 
     expect(
-      screen.getByRole("heading", { level: 2, name: "Page Not Found" }),
+      screen.getByRole("heading", { level: 2, name: "Page not found" }),
     ).toBeInTheDocument();
     expect(screen.getByText("404")).toBeInTheDocument();
   });
@@ -34,11 +34,11 @@ describe("NotFoundView", () => {
     );
   });
 
-  it("renders a Go Back button", () => {
+  it("renders a Go back button", () => {
     renderNotFound();
 
     expect(
-      screen.getByRole("button", { name: /Go Back/i }),
+      screen.getByRole("button", { name: /Go back/i }),
     ).toBeInTheDocument();
   });
 });

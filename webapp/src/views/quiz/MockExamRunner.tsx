@@ -73,7 +73,7 @@ export function MockExamRunner() {
      the exit side of this lives there instead, scoped to `!finished`. That
      scoping also means alt-tabbing on this landing screen (before the exam
      has started) or after finishing (while looking at the score, before
-     clicking "Review Answers") is never mistaken for leaving mid-exam. */
+     clicking "Review answers") is never mistaken for leaving mid-exam. */
   useEffect(() => {
     const handleFullscreenChange = () => {
       if (document.fullscreenElement) setIsFullscreen(true);
@@ -145,8 +145,8 @@ export function MockExamRunner() {
           </p>
           <Button variant="danger" onClick={enterFullscreen}>
             {typeof document !== "undefined" && document.fullscreenEnabled
-              ? "Begin Mock Exam (Fullscreen)"
-              : "Begin Mock Exam"}
+              ? "Begin mock exam (Fullscreen)"
+              : "Begin mock exam"}
           </Button>
           <div style={{ marginTop: 16 }}>
             <Link to={QUIZZES_PATH} className={styles.exit}>Cancel</Link>

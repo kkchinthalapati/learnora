@@ -88,7 +88,7 @@ describe("SignupView", () => {
     renderSignup();
     const dob = adultDob();
     await fillForm(user, { dob });
-    await user.click(screen.getByRole("button", { name: "Create Account →" }));
+    await user.click(screen.getByRole("button", { name: "Create account →" }));
 
     await waitFor(() => expect(body).not.toBeNull());
     expect(body).toMatchObject({
@@ -122,7 +122,7 @@ describe("SignupView", () => {
     await fillForm(user, { consent: false });
     expect(screen.getByRole("checkbox")).not.toBeRequired();
     expect(screen.getByText(/Optional — you can decide later/)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Create Account →" }));
+    await user.click(screen.getByRole("button", { name: "Create account →" }));
 
     await waitFor(() => expect(body).not.toBeNull());
     expect(body!.data!.consent_given).toBe(false);
@@ -141,7 +141,7 @@ describe("SignupView", () => {
     const user = userEvent.setup();
     renderSignup();
     await fillForm(user);
-    await user.click(screen.getByRole("button", { name: "Create Account →" }));
+    await user.click(screen.getByRole("button", { name: "Create account →" }));
 
     expect(
       await screen.findByRole("heading", {
@@ -166,7 +166,7 @@ describe("SignupView", () => {
     const user = userEvent.setup();
     renderSignup();
     await fillForm(user, { password: "short", confirm: "short" });
-    await user.click(screen.getByRole("button", { name: "Create Account →" }));
+    await user.click(screen.getByRole("button", { name: "Create account →" }));
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("at least 8 characters");
@@ -188,7 +188,7 @@ describe("SignupView", () => {
       password: "Password1!",
       confirm: "Password2!",
     });
-    await user.click(screen.getByRole("button", { name: "Create Account →" }));
+    await user.click(screen.getByRole("button", { name: "Create account →" }));
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Passwords do not match");
@@ -211,7 +211,7 @@ describe("SignupView", () => {
     const user = userEvent.setup();
     renderSignup();
     await fillForm(user);
-    await user.click(screen.getByRole("button", { name: "Create Account →" }));
+    await user.click(screen.getByRole("button", { name: "Create account →" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "already exists",

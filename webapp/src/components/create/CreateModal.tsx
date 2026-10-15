@@ -25,7 +25,7 @@ const TYPE_COPY: Record<CreateEntityType, { title: string; subtitle: string }> =
     },
     subject: {
       title: "Create a subject",
-      subtitle: "Keep related materials, decks, and quizzes in one place.",
+      subtitle: "Keep related lessons, card sets, and quizzes in one place.",
     },
     exam: {
       title: "Add an exam",

@@ -236,17 +236,17 @@ export function CaptureBar({
         : "Make my study set";
   const hint =
     kind === "link"
-      ? "Learnora will read this page or video and make notes and flashcards."
+      ? "Learnora will read this page or video and make notes and cards."
       : kind === "text"
-        ? "Learnora will turn your notes into a study guide and flashcards."
+        ? "Learnora will turn your notes into a study guide and cards."
         : kind === "topic"
-          ? "Learnora will teach this topic and make flashcards to practise it."
+          ? "Learnora will teach this topic and make cards to practise it."
           : kind === "recording"
-            ? "Learnora will listen to the recording and make notes and flashcards."
+            ? "Learnora will listen to the recording and make notes and cards."
             : kind === "photo"
-              ? "Learnora will read the photo and make notes and flashcards."
+              ? "Learnora will read the photo and make notes and cards."
               : kind === "file"
-                ? "Learnora will read this and make notes and flashcards."
+                ? "Learnora will read this and make notes and cards."
                 : "PDFs, slides, Word documents, photos, recordings, YouTube or web links, pasted notes, or just a topic.";
 
   const handleSubmit = (event: FormEvent) => {

@@ -141,7 +141,7 @@ export function sectionLabel(
   if (pathname.startsWith("/study")) return "Study";
   if (pathname.startsWith("/feynman/debrief")) return "Teach debrief";
   if (pathname.startsWith("/exam-detective")) return "Exam traps";
-  if (pathname.startsWith("/my-week")) return "Availability";
+  if (pathname.startsWith("/my-week")) return "Free time";
   if (pathname.startsWith("/plan")) return "Plan";
   if (pathname.startsWith("/exams")) return "Exams";
   if (pathname.startsWith("/room")) return "Study Room";
@@ -177,6 +177,12 @@ const HERO_ROUTES = [
   "/subjects",
   "/analytics",
   "/settings",
+  /* The planner's four pages share one header (PlanSectionNav); an exam's
+     own page and its placement check name the exam themselves. */
+  "/plan",
+  "/my-week",
+  "/tasks",
+  "/exams",
 ];
 
 export function viewOwnsPageTitle(pathname: string): boolean {

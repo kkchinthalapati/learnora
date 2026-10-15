@@ -32,6 +32,7 @@ function renderShell(initialPath: string, fullName = "Ada Lovelace", signOut = v
       <Route element={<AppShell />}>
         <Route path="/" element={<h1>Home view</h1>} />
         <Route path="/tasks" element={<p>Tasks view</p>} />
+        <Route path="/timer" element={<p>Timer view</p>} />
         <Route path="/library" element={<h1>Library view</h1>} />
         <Route path="/folders/:folderId" element={<h1>Biology</h1>} />
         <Route path="/settings" element={<h1>Settings view</h1>} />
@@ -121,15 +122,15 @@ describe("AppShell", () => {
 
   it("renders the current section as the page's one <h1>", () => {
     serveDueCount(0);
-    renderShell("/tasks");
+    renderShell("/timer");
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tasks");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Focus timer");
   });
 
   it("has exactly one banner landmark", () => {
     serveDueCount(0);
-    renderShell("/tasks");
+    renderShell("/timer");
     expect(screen.getAllByRole("banner")).toHaveLength(1);
   });
 

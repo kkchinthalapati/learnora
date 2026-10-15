@@ -63,8 +63,8 @@ describe("RetentionInsights", () => {
   it("says there is nothing to measure before any flashcards exist", async () => {
     serve([]);
     renderInsights();
-    expect(await screen.findByText(/No flashcards yet/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Make a deck" })).toHaveAttribute(
+    expect(await screen.findByText(/No cards yet/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Make a card set" })).toHaveAttribute(
       "href",
       "/library/flashcards",
     );
@@ -138,7 +138,7 @@ describe("RetentionInsights", () => {
 
     // Per-deck table: a curve where there is data, an honest gap where not.
     const table = screen.getByRole("table", {
-      name: "Predicted recall and next review for each flashcard deck",
+      name: "Predicted recall and next review for each card set",
     });
     const chem = within(table).getByRole("rowheader", { name: "Acids" }).closest("tr")!;
     expect(chem).toHaveTextContent("Not enough reviews yet (1 of 3)");

@@ -62,7 +62,7 @@ function renderReview(deckId = "d-1") {
       <ChatProvider>
         <Routes>
           <Route path="/review/:deckId" element={<ReviewView />} />
-          <Route path="/library/flashcards" element={<h1>Flashcards tab</h1>} />
+          <Route path="/library/flashcards" element={<h1>Cards tab</h1>} />
         </Routes>
       </ChatProvider>
     </MemoryRouter>,
@@ -133,7 +133,7 @@ describe("ReviewView offline", () => {
   it("says plainly when a deck isn't saved on this device", async () => {
     renderReview("d-unknown");
     expect(
-      await screen.findByText("This deck isn't saved for offline review"),
+      await screen.findByText("This card set isn't saved for offline review"),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Review your saved cards" })).toHaveAttribute(
       "href",
@@ -145,7 +145,7 @@ describe("ReviewView offline", () => {
     setOfflineKVForTests(null);
     renderReview();
     expect(
-      await screen.findByText("This deck isn't saved for offline review"),
+      await screen.findByText("This card set isn't saved for offline review"),
     ).toBeInTheDocument();
   });
 });

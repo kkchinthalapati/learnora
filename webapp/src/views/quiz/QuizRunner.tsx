@@ -265,7 +265,7 @@ function QuizSession({
   });
 
   /* Minted once per run and carried in the draft, so resuming keeps the same
-     key while "Start Over" below mints a fresh one — a genuine second sitting
+     key while "Start over" below mints a fresh one — a genuine second sitting
      is a second attempt and should count as one. */
   const [attemptKey, setAttemptKey] = useState(
     () => resumedDraft?.attemptKey ?? newAttemptKey(),
@@ -306,7 +306,7 @@ function QuizSession({
       `You have an in-progress attempt at this quiz (question ${
         resumedDraft.index + 1
       } of ${questions.length}). Resume where you left off?`,
-      { title: "Resume quiz?", confirmText: "Resume", cancelText: "Start Over" },
+      { title: "Resume quiz?", confirmText: "Resume", cancelText: "Start over" },
     ).then((keep) => {
       if (cancelled || keep) return;
       setIndex(0);
@@ -668,7 +668,7 @@ function QuizSession({
             <Button variant="primary" onClick={next}>
               {index + 1 === questions.length
                 ? "See results →"
-                : "Next Question →"}
+                : "Next question →"}
             </Button>
           </div>
         ) : null}

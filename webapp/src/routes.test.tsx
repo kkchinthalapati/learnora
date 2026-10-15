@@ -15,14 +15,16 @@ import { fakeSession, renderWithAuth } from "./test/auth";
    once, up front, with a budget of their own. */
 beforeAll(async () => {
   await Promise.all([
-    import("./views/analytics/StudyAnalyticsView"),
+    import("./views/analytics/ProgressView"),
+    import("./views/home/HomeView"),
+    import("./views/lesson/LessonView"),
+    import("./views/subjects/SubjectsView"),
+    import("./views/subjects/SubjectView"),
     import("./views/decks/DeckCardsView"),
     import("./views/session/SessionView"),
     import("./views/feynman/FeynmanDebriefView"),
-    import("./views/feynman/FeynmanStudioView"),
     import("./views/friends/FriendInviteLanding"),
     import("./views/friends/FriendsView"),
-    import("./views/library/SubjectDetailPage"),
     import("./views/lifesync/MyWeekView"),
     import("./views/notebooks/NotebookStudioView"),
     import("./views/notes/NotesView"),
@@ -34,8 +36,6 @@ beforeAll(async () => {
     import("./views/review/ReviewView"),
     import("./views/room/StudyRoomView"),
     import("./views/settings/SettingsView"),
-    import("./views/sparring/SocraticSparringView"),
-    import("./views/trajectory/TrajectoryView"),
   ]);
 }, 120_000);
 import { mockAuthSession } from "./test/mockSession";
@@ -77,18 +77,18 @@ describe("route skeleton", () => {
        audit found Tasks' old page-only "Tasks" heading duplicating the
        shell's own nav-derived label right below it); the shell's label —
        t("nav_tasks"), "Tasks" — is the one that survives. */
-    ["/tasks", "Tasks"],
-    ["/exams", "Exams"],
+    ["/tasks", "Plan"],
+    ["/exams", "Plan"],
     ["/timer", "Focus timer"],
-    ["/library", "Your learning"],
+    ["/library", "Library"],
     /* A real tab. This row used to read "/library/notes", which is not in
        LIBRARY_TABS — LibraryView bounced it to /library and rendered the same
        heading, so the assertion passed whether or not tab routing worked. */
-    ["/library/quizzes", "Your learning"],
+    ["/library/quizzes", "Library"],
     ["/plan", "Plan"],
     ["/friends", "Friends"],
     ["/analytics", "Progress"],
-    ["/study", "One session, picked from your mistakes"],
+    ["/study", "Study"],
     /* A page again (it was a redirect into Practice for a while). */
     ["/exam-detective", "Exam traps"],
     ["/settings", "Settings"],
@@ -275,7 +275,7 @@ describe("route skeleton", () => {
   it("unknown paths fall through to Page Not Found", () => {
     renderAt("/definitely-not-a-route");
     expect(
-      screen.getByRole("heading", { level: 2, name: "Page Not Found" }),
+      screen.getByRole("heading", { level: 2, name: "Page not found" }),
     ).toBeInTheDocument();
   });
 });
@@ -296,7 +296,7 @@ describe("public routes", () => {
   it.each([
     ["/login", "Welcome back"],
     ["/signup", "Create your account"],
-    ["/forgot-password", "Reset Password"],
+    ["/forgot-password", "Reset password"],
     ["/terms", "Terms of Service"],
   ])("%s renders for a signed-out user", (path, heading) => {
     renderSignedOutAt(path);

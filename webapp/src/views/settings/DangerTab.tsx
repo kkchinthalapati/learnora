@@ -43,7 +43,7 @@ export function DangerTab() {
 
   async function onWipe() {
     const ok = await confirm(
-      "This permanently deletes all your tasks, study logs, exams, weekly plans, quizzes, and saved timer presets from the cloud and this device. Folders, materials, notes, and flashcards are not affected. This cannot be undone.",
+      "This permanently deletes all your tasks, study logs, exams, weekly plans, quizzes, and saved timer presets from the cloud and this device. Subjects, lessons, notes, and cards are not affected. This cannot be undone.",
       {
         title: "Wipe all data?",
         confirmText: "Delete everything",

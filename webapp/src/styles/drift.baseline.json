@@ -105,27 +105,6 @@
     "rawBlur": 0,
     "emerald": 0
   },
-  "views/debugger/CognitiveDebuggerView.module.css": {
-    "hex": 0,
-    "rawFontSize": 0,
-    "rawShadow": 0,
-    "rawBlur": 0,
-    "emerald": 0
-  },
-  "views/debugger/KnowledgeCircuit.module.css": {
-    "hex": 0,
-    "rawFontSize": 0,
-    "rawShadow": 0,
-    "rawBlur": 0,
-    "emerald": 0
-  },
-  "views/debugger/MicroRepairModal.module.css": {
-    "hex": 0,
-    "rawFontSize": 0,
-    "rawShadow": 0,
-    "rawBlur": 0,
-    "emerald": 0
-  },
   "views/exams/examPrepModal.module.css": {
     "hex": 0,
     "rawFontSize": 0,
@@ -136,13 +115,6 @@
   "views/exams/exams.module.css": {
     "hex": 0,
     "rawFontSize": 0,
-    "rawShadow": 0,
-    "rawBlur": 0,
-    "emerald": 0
-  },
-  "views/feynman/FeynmanHubView.module.css": {
-    "hex": 0,
-    "rawFontSize": 3,
     "rawShadow": 0,
     "rawBlur": 0,
     "emerald": 0

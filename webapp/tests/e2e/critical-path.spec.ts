@@ -112,7 +112,7 @@ test.describe("Auth", () => {
     await page.getByLabel("Password", { exact: true }).fill("Password1!");
     await page.getByLabel("Confirm password").fill("Password1!");
     await page.getByRole("checkbox").check();
-    await page.getByRole("button", { name: /Create Account/ }).click();
+    await page.getByRole("button", { name: /Create account/ }).click();
 
     await expect(
       page.getByRole("heading", { name: "Check your email" }),
@@ -133,7 +133,7 @@ test.describe("Auth", () => {
     await page.goto("login");
     await page.getByLabel("Email").fill("free@test.com");
     await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
-    await page.getByRole("button", { name: /Log In/ }).click();
+    await page.getByRole("button", { name: /^Sign in$/ }).click();
 
     await expect(page).toHaveURL(/\/app\/?$/, { timeout: 20_000 });
     /* Today owns the root route (/dashboard redirects to it). This
@@ -158,7 +158,7 @@ test.describe("Auth", () => {
   }) => {
     await page.goto("forgot-password");
     await page.getByLabel("Email").fill("free@test.com");
-    await page.getByRole("button", { name: /Send Reset Link/ }).click();
+    await page.getByRole("button", { name: /Send reset link/ }).click();
 
     /* Deliberately vague wording — the screen must not tell a stranger
        whether an address is registered. */
@@ -182,7 +182,7 @@ test.describe("Auth", () => {
       .click();
 
     await expect(page).toHaveURL(/\/login/);
-    await expect(page.getByRole("button", { name: /Log In/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Sign in$/ })).toBeVisible();
     expect(backend.callsTo("/auth/v1/logout").length).toBeGreaterThan(0);
   });
 });
@@ -339,9 +339,9 @@ test.describe("Quizzes", () => {
     const wizard = page.getByRole("dialog");
     await wizard.getByRole("tab", { name: "Topic" }).click();
     await wizard.getByLabel("Topic").fill("Photosynthesis");
-    /* The panel's submit was renamed to "Generate Study Resources"; the unit
+    /* The panel's submit was renamed to "Generate study resources"; the unit
        suite moved with it and this one did not. */
-    await wizard.getByRole("button", { name: "Generate Study Resources" }).click();
+    await wizard.getByRole("button", { name: "Generate study resources" }).click();
 
     await expect
       .poll(() => backend.table("quizzes").length, { timeout: 30_000 })
@@ -366,7 +366,7 @@ test.describe("Quizzes", () => {
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Mitochondria", exact: true }).click();
-    await page.getByRole("button", { name: /Next Question/ }).click();
+    await page.getByRole("button", { name: /Next question/ }).click();
 
     await expect(page.getByText("Question 2 of 2")).toBeVisible();
     await expect(
@@ -399,7 +399,7 @@ test.describe("Quizzes", () => {
     await page.goto("quiz/quiz-1");
 
     await page.getByRole("button", { name: "Mitochondria", exact: true }).click();
-    await page.getByRole("button", { name: /Next Question/ }).click();
+    await page.getByRole("button", { name: /Next question/ }).click();
     await page.getByRole("button", { name: "Deoxyribonucleic acid", exact: true }).click();
     await page.getByRole("button", { name: /See results/ }).click();
 
@@ -420,7 +420,7 @@ test.describe("Quizzes", () => {
 
     // One right, one wrong — so there is a weak topic worth naming.
     await page.getByRole("button", { name: "Mitochondria", exact: true }).click();
-    await page.getByRole("button", { name: /Next Question/ }).click();
+    await page.getByRole("button", { name: /Next question/ }).click();
     await page.getByRole("button", { name: "Dinitroamine", exact: true }).click();
     await page.getByRole("button", { name: /See results/ }).click();
 
@@ -627,7 +627,7 @@ test.describe("Errors", () => {
     backend,
   }) => {
     await page.goto("login");
-    await page.getByRole("button", { name: /Log In/ }).click();
+    await page.getByRole("button", { name: /^Sign in$/ }).click();
 
     /* The browser's own constraint validation blocks the submit; what matters
        for the test is that nothing was sent and the student is still here. */
@@ -699,7 +699,7 @@ test.describe("Data safety", () => {
     await page.goto("quiz/quiz-1");
 
     await page.getByRole("button", { name: "Mitochondria", exact: true }).click();
-    await page.getByRole("button", { name: /Next Question/ }).click();
+    await page.getByRole("button", { name: /Next question/ }).click();
     await expect(page.getByText("Question 2 of 2")).toBeVisible();
 
     // The draft is debounced, so give the write its window before reloading.
@@ -779,7 +779,7 @@ test.describe("Guardrails", () => {
     await page.getByLabel("Password", { exact: true }).fill("Password1!");
     await page.getByLabel("Confirm password").fill("Password1!");
     // Consent deliberately left unchecked.
-    await page.getByRole("button", { name: /Create Account/ }).click();
+    await page.getByRole("button", { name: /Create account/ }).click();
 
     await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
     expect(backend.callsTo("/auth/v1/signup").at(-1)?.body).toMatchObject({
@@ -820,7 +820,7 @@ test.describe("Guardrails", () => {
     await page.goto("login");
     await page.getByLabel("Email").fill("free@test.com");
     await page.getByLabel("Password", { exact: true }).fill("not-my-password");
-    await page.getByRole("button", { name: /Log In/ }).click();
+    await page.getByRole("button", { name: /^Sign in$/ }).click();
 
     await expect(page.getByRole("alert")).toContainText(/Incorrect email or password/i);
     await expect(page).toHaveURL(/\/login/);
@@ -854,7 +854,7 @@ test.describe("Guardrails", () => {
 
     await page.getByLabel("Email").fill("free@test.com");
     await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
-    await page.getByRole("button", { name: /Log In/ }).click();
+    await page.getByRole("button", { name: /^Sign in$/ }).click();
 
     await expect(page).toHaveURL(/\/exams/, { timeout: 20_000 });
   });

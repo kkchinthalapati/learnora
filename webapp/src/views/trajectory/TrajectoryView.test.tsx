@@ -313,7 +313,7 @@ describe("TrajectoryView", () => {
     });
     render();
 
-    expect(await screen.findByText("Learnora Forecast")).toBeInTheDocument();
+    expect(await screen.findByText("Learnora forecast")).toBeInTheDocument();
     expect(screen.getByText("How this is worked out")).toBeInTheDocument();
     /* 60 − 5 ± 5 = 50–60, every term of it on the screen. */
     expect(screen.getByText(/60 − 5 ± 5 =/)).toBeInTheDocument();

@@ -80,7 +80,7 @@ const CONFIDENCE: { id: Confidence; label: string }[] = [
   { id: 3, label: "Confident" },
 ];
 const DEVICES = ["Phone", "Laptop", "Tablet", "Shared computer"];
-const METHODS = ["Re-reading notes", "Flashcards", "Past papers", "Practice questions", "Videos", "Making notes"];
+const METHODS = ["Re-reading notes", "Cards", "Past papers", "Practice questions", "Videos", "Making notes"];
 const STYLES = ["Worked examples", "Diagrams", "Talking it through", "Practice first"];
 
 function Chip({ on, onClick, label, hint }: { on: boolean; onClick: () => void; label: string; hint?: string }) {

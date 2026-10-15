@@ -80,12 +80,12 @@ const SECTION_DESCRIPTIONS: Record<
   },
   activityRings: {
     title: "Daily activity rings",
-    desc: "Focus, flashcard and completed-task goals for today",
+    desc: "Focus, card and completed-task goals for today",
     icon: "target",
   },
   priorities: {
     title: "Daily recall drill",
-    desc: "The flashcards most worth reviewing today",
+    desc: "The cards most worth reviewing today",
     icon: "flame",
   },
   continueStudying: {
@@ -143,7 +143,7 @@ export function DashboardCustomizeModal({
     <Modal
       open={isOpen}
       onClose={onClose}
-      title="Customize Dashboard"
+      title="Customize dashboard"
       subtitle="Choose which sections and study widgets appear on your home workspace."
     >
       <div
@@ -231,14 +231,14 @@ export function DashboardCustomizeModal({
         }}
       >
         <Button variant="ghost" size="sm" onClick={handleReset}>
-          Reset Defaults
+          Reset defaults
         </Button>
         <div style={{ display: "flex", gap: 8 }}>
           <Button variant="secondary" size="sm" onClick={onClose}>
             Cancel
           </Button>
           <Button variant="primary" size="sm" onClick={handleSave}>
-            Save Layout
+            Save layout
           </Button>
         </div>
       </div>

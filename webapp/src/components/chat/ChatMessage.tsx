@@ -160,7 +160,7 @@ function GeneratedImage({
           image.savedDeckId ? (
             <span className={styles.cardsSaved}>
               <Icon name="check" size={14} />
-              Saved as a flashcard
+              Saved as a card
             </span>
           ) : (
             <Button
@@ -170,7 +170,7 @@ function GeneratedImage({
               onClick={onSave}
             >
               <Icon name="layers" size={14} />
-              {image.saving ? "Saving…" : "Save as flashcard"}
+              {image.saving ? "Saving…" : "Save as card"}
             </Button>
           )
         ) : null}
@@ -283,7 +283,7 @@ export function ChatMessageBubble({
                 onClick={() => onSaveCards(message.id)}
               >
                 <Icon name="layers" size={14} />
-                {message.savingCards ? "Saving…" : "Save as deck"}
+                {message.savingCards ? "Saving…" : "Save as card set"}
               </Button>
             )
           ) : null}

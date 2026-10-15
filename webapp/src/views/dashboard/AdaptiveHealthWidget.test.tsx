@@ -204,7 +204,7 @@ describe("AdaptiveHealthWidget", () => {
             id: "d1",
             user_id: "user-1",
             folder_id: "f1",
-            title: "Deck 1",
+            title: "Card set 1",
             created_at: now.toISOString(),
           },
         ]),

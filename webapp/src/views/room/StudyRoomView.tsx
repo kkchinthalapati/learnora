@@ -18,10 +18,10 @@ import styles from "./room.module.css";
 
 const AMBIANCE_PRESETS: { id: AmbiancePreset; label: string; icon: string }[] =
   [
-    { id: "rain", label: "Gentle Rain", icon: "🌧️" },
-    { id: "white_noise", label: "Brown Noise", icon: "📻" },
-    { id: "cafe", label: "Cafe Murmur", icon: "☕" },
-    { id: "waves", label: "Ocean Waves", icon: "🌊" },
+    { id: "rain", label: "Gentle rain", icon: "🌧️" },
+    { id: "white_noise", label: "Brown noise", icon: "📻" },
+    { id: "cafe", label: "Cafe murmur", icon: "☕" },
+    { id: "waves", label: "Ocean waves", icon: "🌊" },
     { id: "binaural", label: "Alpha Waves (10Hz)", icon: "🧠" },
   ];
 
@@ -127,7 +127,7 @@ export function StudyRoomView() {
      be showing a room you are not actually in. */
   if (isRoomFull) {
     return (
-      <main className={styles.roomView} aria-label="Virtual Study Room">
+      <main className={styles.roomView} aria-label="Virtual study room">
         <div className={styles.roomFull} role="status">
           <Icon name="users" size={32} />
           <h1 className={styles.roomFullTitle}>This room is full</h1>
@@ -145,7 +145,7 @@ export function StudyRoomView() {
   }
 
   return (
-    <main className={styles.roomView} aria-label="Virtual Study Room">
+    <main className={styles.roomView} aria-label="Virtual study room">
       {/* Reaction & Floating Animation Overlay */}
       <ReactionOverlay reactions={reactions} cheerFeed={cheerFeed} />
 
@@ -153,8 +153,8 @@ export function StudyRoomView() {
       <header className={styles.roomHeader}>
         <div className={styles.roomHeaderLeft}>
           <div className={styles.roomTitleRow}>
-            {/* Same name as the sidebar row and the header ("Study Room"). */}
-            <h1 className={styles.roomTitle}>Study Room</h1>
+            {/* Same name as the sidebar row and the header ("Study room"). */}
+            <h1 className={styles.roomTitle}>Study room</h1>
             <div className={styles.roomStats} aria-label="Active participants">
               <span className={styles.liveDot} />
               <span>
@@ -169,7 +169,7 @@ export function StudyRoomView() {
         </div>
 
         <div className={styles.roomActions}>
-          {/* Sound Ambiance Control */}
+          {/* Sound ambiance Control */}
           <div className={styles.ambianceWrapper} ref={ambianceMenuRef}>
             <button
               type="button"
@@ -185,7 +185,7 @@ export function StudyRoomView() {
               <span>
                 {activeAmbianceMeta
                   ? activeAmbianceMeta.label
-                  : "Sound Ambiance"}
+                  : "Sound ambiance"}
               </span>
               <Icon
                 name="chevron-down"
@@ -204,7 +204,7 @@ export function StudyRoomView() {
                 aria-modal="true"
                 aria-label="Sound ambiance settings"
               >
-                <p className={styles.ambianceTitle}>Focus Soundscapes</p>
+                <p className={styles.ambianceTitle}>Focus soundscapes</p>
                 <div className={styles.ambianceGrid}>
                   {AMBIANCE_PRESETS.map((preset) => {
                     const isSelected = currentAmbiance === preset.id;
@@ -302,7 +302,7 @@ export function StudyRoomView() {
         </div>
       </section>
 
-      {/* Synchronized Group Pomodoro */}
+      {/* Synchronized group pomodoro */}
       <GroupTimerBanner
         timerState={groupTimerState}
         isHost={isGroupTimerHost}
@@ -313,7 +313,7 @@ export function StudyRoomView() {
       />
 
       {/* Desks Grid */}
-      <section className={styles.desksGrid} aria-label="Student Study Desks">
+      <section className={styles.desksGrid} aria-label="Student study desks">
         {/* Current User Self Desk */}
         {selfParticipant && (
           <StudyDeskCard
@@ -344,7 +344,7 @@ export function StudyRoomView() {
           <div className={styles.emptyIcon}>
             <Icon name="users" size={44} />
           </div>
-          <h2 className={styles.emptyTitle}>You're the first one here!</h2>
+          <h2 className={styles.emptyTitle}>You're the first one here.</h2>
           <p className={styles.emptySub}>
             Studying is more motivating together. Share your room invite link
             with study partners or classmates to sync timers and keep each other
@@ -362,13 +362,13 @@ export function StudyRoomView() {
         </section>
       )}
 
-      {/* Room Chat Section */}
+      {/* Room chat Section */}
       <section
         className={`${styles.deskCard} ${styles.chatSection}`}
         role="region"
-        aria-label="Room Chat"
+        aria-label="Room chat"
       >
-        <h3 className={styles.chatTitle}>Room Chat</h3>
+        <h3 className={styles.chatTitle}>Room chat</h3>
 
         {messages.length === 0 ? (
           <p className={styles.chatEmpty}>

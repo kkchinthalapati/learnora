@@ -125,7 +125,7 @@ export function CognitiveCrossLinkBar({
   }
 
   const activeConceptName =
-    effectivePayload.concept || effectivePayload.topic || "Unknown Concept";
+    effectivePayload.concept || effectivePayload.topic || "Unknown concept";
   const sourceLabel =
     SOURCE_TOOL_LABELS[effectivePayload.sourceTool] || effectivePayload.sourceTool;
 

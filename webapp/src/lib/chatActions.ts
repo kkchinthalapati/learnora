@@ -250,7 +250,7 @@ async function runTag(
       const dueNote = dueDate ? ` — due ${dueDate}` : "";
       const allowed = await handlers.confirm(
         `AI wants to create a new task:\n\n"${text}"${dueNote}\n\nAllow this?`,
-        { title: "AI Task Creation", confirmText: "Add Task" },
+        { title: "Add a task?", confirmText: "Add task" },
       );
       if (!allowed) return cancelled("Canceled adding task:", text);
       // Passed positionally only when present, so a caller asserting the
