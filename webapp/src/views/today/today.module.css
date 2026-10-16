@@ -580,14 +580,22 @@
   line-height: var(--leading-h2);
 }
 
-/* Matches ListRow (webapp/DESIGN.md 0.4): separate hairline rows, so Home's
-   "Fix these" reads as the same list as its lessons. */
+/* Matches ListRow (webapp/DESIGN.md 0.4, 0.8): one ruled page with the red
+   margin line, so Home's "Fix these" reads as the same book as its lessons.
+   The mark in the margin is the correction itself: red pen for a mistake to
+   fix, ochre for one that is due a retest. */
 .rows {
+  --margin-x: calc(var(--s-4) + 10px + var(--s-2));
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background:
+    linear-gradient(var(--margin-rule), var(--margin-rule)) var(--margin-x) 0 / 1px 100% no-repeat,
+    var(--surface);
   list-style: none;
 }
 
@@ -598,9 +606,10 @@
   gap: var(--s-4);
   min-height: 72px;
   padding: 0 var(--s-4);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
-  background: var(--surface);
+}
+
+.row + .row {
+  border-top: 1px solid var(--hairline);
 }
 
 .dot {
@@ -610,9 +619,12 @@
   background: var(--line-strong);
 }
 
-.dot[data-kind="repair"],
+.dot[data-kind="repair"] {
+  background: var(--danger);
+}
+
 .dot[data-kind="retest"] {
-  background: var(--accent);
+  background: var(--recall);
 }
 
 .rowLabel {
@@ -620,8 +632,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--fs-base);
-  font-weight: 600;
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 500;
 }
 
 .rowDetail {

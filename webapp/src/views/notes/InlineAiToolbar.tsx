@@ -1,18 +1,20 @@
 import { useEffect, type ReactNode } from "react";
 import type { EditorSelectionRect } from "../../components/RichTextEditor";
 import type { InlineAction } from "../../api/aiInlineActions";
+import { Icon } from "../../components/Icon";
+import type { IconName } from "../../components/icons";
 import styles from "./notes.module.css";
 
 const ACTIONS: ReadonlyArray<{
   action: Exclude<InlineAction, "custom" | "flashcard" | "make_card">;
-  icon: string;
+  icon: IconName;
   label: string;
 }> = [
-  { action: "improve", icon: "✨", label: "Improve" },
-  { action: "explain", icon: "💬", label: "Explain" },
-  { action: "summarize", icon: "📝", label: "Summarise" },
-  { action: "expand", icon: "🔍", label: "Expand" },
-  { action: "simplify", icon: "🔤", label: "Simplify" },
+  { action: "improve", icon: "pencil", label: "Improve" },
+  { action: "explain", icon: "message-square", label: "Explain" },
+  { action: "summarize", icon: "file-text", label: "Summarise" },
+  { action: "expand", icon: "maximize", label: "Expand" },
+  { action: "simplify", icon: "minimize", label: "Simplify" },
 ];
 
 interface InlineAiToolbarProps {
@@ -91,7 +93,7 @@ export function InlineAiToolbar({
                 aria-label={`${label} in progress`}
               />
             ) : (
-              <span aria-hidden="true">{icon}</span>
+              <Icon name={icon} size={14} />
             )}
             <span>{label}</span>
           </button>
@@ -114,7 +116,7 @@ export function InlineAiToolbar({
               aria-label="Make card in progress"
             />
           ) : (
-            <span aria-hidden="true">🃏</span>
+            <Icon name="layers" size={14} />
           )}
           <span>Make card</span>
         </button>
@@ -132,7 +134,7 @@ export function InlineAiToolbar({
               aria-label="Custom instruction in progress"
             />
           ) : (
-            <span aria-hidden="true">✏️</span>
+            <Icon name="help-circle" size={14} />
           )}
           <span>Ask AI</span>
         </button>

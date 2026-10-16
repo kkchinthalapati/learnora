@@ -28,7 +28,7 @@ export const CUSTOM_THEME_KEY = "learnora_custom_theme";
 export const CUSTOM_THEME_MAX_COLORS = 3;
 
 export const CUSTOM_THEME_DEFAULTS = Object.freeze({
-  colors: ["#5865F2"] as readonly string[],
+  colors: ["#2F8F80"] as readonly string[],
   intensity: 74,
 });
 
@@ -74,7 +74,7 @@ export const THEME_PRESETS: ReadonlyArray<{ id: string; name: string }> = [
   { id: "breeze", name: "Arctic Glade" },
   { id: "forest", name: "Botanical Sage" },
   { id: "hacker", name: "Terminal Green" },
-  { id: "lavender", name: "Amethyst Haze" },
+  { id: "lavender", name: "Mulberry" },
   { id: "cyberpunk", name: "Neon Velvet" },
   { id: "ruby", name: "Crimson Velvet" },
   { id: "warm", name: "Warm Terracotta" },

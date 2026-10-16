@@ -12,7 +12,7 @@ import { TIMER_END_KEY, TIMER_STATE_KEY } from "../../lib/timer";
 import { Storage } from "../../lib/storage";
 import type { Exam, Folder, StudySession, Task } from "../../api/types";
 import { ChatProvider } from "../../context/ChatProvider";
-import { TurboChat } from "../../components/chat/TurboChat";
+import { TutorChat } from "../../components/chat/TutorChat";
 import { DashboardView } from "./DashboardView";
 import { NextExamCard } from "./NextExamCard";
 import { TasksCard } from "./TasksCard";
@@ -126,9 +126,9 @@ function renderDashboard() {
         <Route path="/library/flashcards" element={<h1>Cards</h1>} />
         <Route path="/plan" element={<h1>Weekly plan</h1>} />
       </Routes>
-      {/* App.tsx renders TurboChat beside the routes rather than inside a
+      {/* App.tsx renders TutorChat beside the routes rather than inside a
           view, so the "same conversation" test below mounts it the same way. */}
-      <TurboChat />
+      <TutorChat />
     </ChatProvider>,
     { session: fakeSession() },
     { withTimer: true, initialEntries: ["/"] },

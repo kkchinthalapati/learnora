@@ -11,7 +11,7 @@ import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { ChatProvider } from "../../context/ChatProvider";
 import { useChat } from "../../context/chat";
-import { TurboChat } from "./TurboChat";
+import { TutorChat } from "./TutorChat";
 import {
   FakeRecognition,
   installFakeSpeech,
@@ -100,7 +100,7 @@ function renderChat(initialPath = "/") {
         <Routes>
           <Route path="*" element={<OpenChatButton />} />
         </Routes>
-        <TurboChat />
+        <TutorChat />
       </ChatProvider>
     </MemoryRouter>,
     { session: fakeSession() },
@@ -121,7 +121,7 @@ async function ask(question: string) {
   await userEvent.click(screen.getByRole("button", { name: "Send message" }));
 }
 
-describe("TurboChat", () => {
+describe("TutorChat", () => {
   beforeEach(() => {
     localStorage.clear();
     mockAuthSession("user-1");

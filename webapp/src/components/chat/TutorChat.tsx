@@ -96,7 +96,7 @@ const FOLLOW_UPS = [
   },
 ] as const;
 
-export function TurboChat() {
+export function TutorChat() {
   const {
     messages,
     isOpen,
@@ -443,7 +443,7 @@ export function TurboChat() {
     >
       {isDropTarget ? (
         <div className={styles.dropOverlay}>
-          <span>Drop files here</span>
+          <span>Let go to ask about this file</span>
         </div>
       ) : null}
 

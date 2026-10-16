@@ -79,7 +79,7 @@ import {
  *
  * Lives above the router (but inside it, so it can navigate) because the
  * panel is app-wide: the dashboard command bar pushes into the same
- * conversation the panel shows, exactly as the vanilla's one `#turbo-chat`
+ * conversation the panel shows, exactly as the vanilla's one chat panel
  * did for every entry point.
  *
  * The reply is rendered as soon as it lands, with its action tags stripped,

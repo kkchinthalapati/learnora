@@ -56,7 +56,7 @@ function renderReview(deckId = "d-1", autoStart = true) {
   const rendered = renderWithAuth(
     <MemoryRouter initialEntries={[`/review/${deckId}`]}>
       {/* ReviewView still calls useChat() for registerFlashcardGrader — a
-          <GRADE_FLASHCARD> tag from the floating Turbo panel needs somewhere
+          <GRADE_FLASHCARD> tag from the floating tutor panel needs somewhere
           to click through to — so this needs ChatProvider inside the router
           exactly like the dashboard's command bar does (see
           DashboardView.test.tsx), even though the AI-grade box's own request

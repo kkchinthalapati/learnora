@@ -22,17 +22,10 @@
   text-decoration: none;
 }
 
+/* The margin-and-tick mark (LearnoraMark), drawn in the accent and ochre —
+   no filled tile behind it. */
 .brandMark {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--r-sm);
-  background: var(--accent);
-  color: var(--accent-on);
-  font-family: var(--font-head);
-  font-size: var(--fs-lg);
-  font-weight: 600;
+  flex: none;
 }
 
 .brandName {

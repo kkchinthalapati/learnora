@@ -6,9 +6,15 @@
   "scope": "/app/",
   "id": "/app/",
   "display": "standalone",
-  "background_color": "#0a0e0d",
-  "theme_color": "#0a0e0d",
+  "background_color": "#0d0c0a",
+  "theme_color": "#0d0c0a",
   "icons": [
+    {
+      "src": "/app/learnora-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/app/learnora.jpg",
       "sizes": "1024x1024",

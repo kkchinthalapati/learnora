@@ -3,7 +3,7 @@
  * Every other tool in this category is an artifact factory. NotebookLM answers
  * questions from your sources. Notion gives you a database and asks you to
  * build the system yourself — which is the exact skill our users don't have.
- * Turbo AI and its cousins turn a PDF into flashcards. All three optimise the
+ * Flashcard generators turn a PDF into flashcards. All three optimise the
  * *material*. None of them own the *outcome*, and none of them can, because
  * none of them holds the two models you need to:
  *

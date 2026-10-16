@@ -129,10 +129,10 @@ describe("MaterialPanel streamlined creation", () => {
 
     // Voice control and screen readers must use the visible button label.
     const submit = screen.getByRole("button", {
-      name: "Generate study resources",
+      name: "Make my study set",
     });
     expect(submit).toBeInTheDocument();
-    expect(submit).toHaveTextContent("Generate study resources");
+    expect(submit).toHaveTextContent("Make my study set");
     expect(submit).not.toHaveAttribute("aria-label");
   });
 
@@ -200,7 +200,7 @@ describe("MaterialPanel streamlined creation", () => {
     expect(await screen.findByText("board.jpg")).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
     expect(await screen.findByText("Created cards.")).toBeInTheDocument();
 
@@ -261,7 +261,7 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     await user.click(screen.getByRole("tab", { name: /Upload Document/ }));
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent("Choose a file");
   });
@@ -270,7 +270,7 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     await chooseText(user, "Too short");
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "a bit short to study from",
@@ -283,7 +283,7 @@ describe("MaterialPanel streamlined creation", () => {
     const input = screen.getByRole("textbox", { name: "Web or YouTube link" });
     await user.type(input, "javascript:alert(1)");
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Links have to start with http:// or https://",
@@ -291,7 +291,7 @@ describe("MaterialPanel streamlined creation", () => {
     await user.clear(input);
     await user.type(input, "not a link");
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "doesn't look like a link",
@@ -312,7 +312,7 @@ describe("MaterialPanel streamlined creation", () => {
     await chooseText(user);
     await user.click(outputCheckbox("Cards"));
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Pick at least one thing",
@@ -336,7 +336,7 @@ describe("MaterialPanel streamlined creation", () => {
     await chooseText(user);
     expect(screen.getByLabelText("Subject")).toBeInTheDocument();
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Choose a subject to save this into",
@@ -375,7 +375,7 @@ describe("MaterialPanel streamlined creation", () => {
     await chooseText(user);
     await user.click(outputCheckbox("Summary notes"));
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
     expect(
       await screen.findByText("Created notes, cards."),
@@ -399,7 +399,7 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     await chooseText(user);
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "That topic isn't supported.",
@@ -425,9 +425,9 @@ describe("MaterialPanel streamlined creation", () => {
     await chooseText(user);
     await user.click(outputCheckbox("Summary notes"));
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
-    const busy = await screen.findByRole("button", { name: "Creating…" });
+    const busy = await screen.findByRole("button", { name: "Making…" });
     expect(busy).toBeDisabled();
     expect(
       within(screen.getByRole("dialog")).getByRole("status"),
@@ -502,7 +502,7 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     await chooseText(user);
     await user.click(
-      screen.getByRole("button", { name: "Generate study resources" }),
+      screen.getByRole("button", { name: "Make my study set" }),
     );
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();

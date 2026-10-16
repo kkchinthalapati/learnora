@@ -30,7 +30,7 @@ import styles from "./notesSidebar.module.css";
  * `bindNotesEditor`/`bindNotesQuickActions`/`bindNotesSuggestions`
  * (:2522-2628), and `AI.sendNotesChat` (js/ai.js:1388-1512).
  *
- * This is not the workspace Turbo chat with a different prompt. It keeps its
+ * This is not the workspace tutor chat with a different prompt. It keeps its
  * own conversation, and it executes no action tags: the vanilla panel's own
  * system context tells the model it "cannot run app actions", and the two
  * quick-action cards above the chat are how a quiz or a deck actually gets

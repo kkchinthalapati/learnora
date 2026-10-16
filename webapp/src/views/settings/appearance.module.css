@@ -253,10 +253,10 @@
   background: #22c55e;
 }
 .swatchCard[data-theme="lavender"] .swatchPreview {
-  background: linear-gradient(135deg, #2e1065, #8452f5);
+  background: linear-gradient(135deg, #3a1229, #9b4377);
 }
 .swatchCard[data-theme="lavender"] .swatchDot {
-  background: #8452f5;
+  background: #9b4377;
 }
 .swatchCard[data-theme="cyberpunk"] .swatchPreview {
   background: linear-gradient(135deg, #180816, #ec4899);

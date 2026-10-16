@@ -155,13 +155,13 @@ export function CommandPalette(props: CommandPaletteProps) {
         return [
           {
             id: "action-prefix-ai",
-            category: "AI TurboChat",
+            category: "Ask the tutor",
             title: prefixMatch.text
-              ? `Ask AI: "${prefixMatch.text}"`
-              : "Type an AI prompt...",
-            subtitle: "Send prompt directly into TurboChat",
+              ? `Ask the tutor: "${prefixMatch.text}"`
+              : "Type a question for the tutor",
+            subtitle: "Opens the tutor with your question",
             icon: "bot",
-            badge: "AI Chat",
+            badge: "Tutor",
             shortcut: "↵",
             onSelect: () => {
               if (!prefixMatch.text) return;
@@ -789,7 +789,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                 inputRef.current?.focus();
               }}
             >
-              <code>ai:</code> Ask AI
+              <code>ai:</code> Ask the tutor
             </button>
             <button
               type="button"
@@ -898,7 +898,7 @@ export function CommandPalette(props: CommandPaletteProps) {
               <kbd className={styles.footerKbd}>t:</kbd> New task
             </span>
             <span className={styles.hintItem}>
-              <kbd className={styles.footerKbd}>ai:</kbd> Ask AI
+              <kbd className={styles.footerKbd}>ai:</kbd> Ask the tutor
             </span>
           </div>
         </div>

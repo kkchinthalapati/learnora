@@ -65,11 +65,11 @@ export function HomeView() {
     <div className={styles.page}>
       <section className={styles.hero} aria-labelledby="home-title">
         <h1 id="home-title" className={styles.title}>
-          What do you want to learn?
+          What do you want to <span className={styles.marked}>learn</span>?
         </h1>
         <CaptureBar
           size="lg"
-          placeholder="Drop a file, paste a link or your notes, or type a topic"
+          placeholder="Write a topic, or paste your notes or a link"
         />
         {resumeAction ? (
           <Link to={resumeAction.targetUrl} className={styles.resume}>

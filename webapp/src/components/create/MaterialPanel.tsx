@@ -836,7 +836,7 @@ export function MaterialPanel({
       >
         <div className={styles.sectionHeader}>
           <h3 id="outputs-section-heading" className={styles.sectionTitle}>
-            Choose your study kit
+            What should Learnora make?
           </h3>
           <span className={styles.sectionHint}>Pick one or more</span>
         </div>
@@ -1182,7 +1182,7 @@ export function MaterialPanel({
           disabled={create.isPending}
           className={styles.submitButton}
         >
-          {create.isPending ? "Creating…" : "Generate study resources"}
+          {create.isPending ? "Making…" : "Make my study set"}
         </Button>
       </div>
     </form>

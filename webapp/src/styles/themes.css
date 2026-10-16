@@ -187,8 +187,11 @@ body[data-theme-color="forest"] {
 body[data-theme-color="hacker"] {
   --accent-text: #167f3d;
 }
+/* "lavender" is now Mulberry, a red-violet ink (2026-10 identity). The id
+   stays so saved preferences carry over; the electric blue-violet it used
+   to be is the house colour of other study apps. */
 body[data-theme-color="lavender"] {
-  --accent-text: #7d49f5;
+  --accent-text: #8a3a6b;
 }
 body[data-theme-color="cyberpunk"] {
   --accent-text: #d41674;
@@ -291,11 +294,11 @@ body[data-theme-color="sunset"] {
 /* Same story as Ocean: #8b5cf6 left both label colours short (4.23 / 4.32).
    A hair darker and white clears at 4.66:1. */
 body[data-theme-color="lavender"] {
-  --accent-rgb: 132, 82, 245;
-  --accent-rgb-2: 217, 70, 239;
-  --accent: #8452f5;
-  --accent-hover: #7c3aed;
-  --accent-press: #6d28d9;
+  --accent-rgb: 155, 67, 119;
+  --accent-rgb-2: 196, 92, 140;
+  --accent: #9b4377;
+  --accent-hover: #86386a;
+  --accent-press: #722d59;
 }
 
 body[data-theme-color="monochrome"] {
@@ -380,10 +383,10 @@ body.dark-theme[data-theme-color="ocean"] {
 }
 
 body.dark-theme[data-theme-color="lavender"] {
-  --accent-rgb: 151, 109, 247;
-  --accent: #976df7;
-  --accent-hover: #b394f9;
-  --accent-press: #7841f5;
+  --accent-rgb: 208, 127, 176;
+  --accent: #d07fb0;
+  --accent-hover: #dc9cc3;
+  --accent-press: #c2639e;
 }
 
 body.dark-theme[data-theme-color="ruby"] {
@@ -436,12 +439,12 @@ body.dark-theme[data-theme-color]:not([data-theme-color="custom"]) {
    the theme engine; the fallbacks keep the app usable if a stop is missing
    or localStorage was cleared mid-session. */
 body[data-theme-color="custom"] {
-  --accent: var(--custom-accent, #6366f1);
-  --accent-hover: var(--custom-accent-hover, #4f46e5);
-  --accent-press: var(--custom-accent-press, #4338ca);
-  --accent-soft: var(--custom-accent-soft, rgba(99, 102, 241, 0.12));
-  --accent-ring: var(--custom-accent-ring, rgba(99, 102, 241, 0.32));
-  --accent-glow: var(--custom-accent-glow, rgba(99, 102, 241, 0.4));
+  --accent: var(--custom-accent, #1f7a6d);
+  --accent-hover: var(--custom-accent-hover, #18665b);
+  --accent-press: var(--custom-accent-press, #125249);
+  --accent-soft: var(--custom-accent-soft, rgba(31, 122, 109, 0.12));
+  --accent-ring: var(--custom-accent-ring, rgba(31, 122, 109, 0.32));
+  --accent-glow: var(--custom-accent-glow, rgba(31, 122, 109, 0.4));
   --accent-on: var(--custom-accent-on, #ffffff);
   --text-on-accent: var(--custom-accent-on, #ffffff);
   --primary: var(--accent);
@@ -451,5 +454,5 @@ body[data-theme-color="custom"] {
     linear-gradient(135deg, var(--accent), var(--accent-hover))
   );
   --bg-tint-1: var(--custom-tint-1, rgba(99, 102, 241, 0.08));
-  --bg-tint-2: var(--custom-tint-2, rgba(168, 85, 247, 0.06));
+  --bg-tint-2: var(--custom-tint-2, rgba(217, 165, 87, 0.06));
 }
