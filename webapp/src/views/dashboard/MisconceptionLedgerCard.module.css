@@ -52,6 +52,8 @@
 
 .title {
   margin: 0;
+  /* Sans, like every section heading (webapp/DESIGN.md 0.3). */
+  font-family: var(--font);
   font-size: var(--fs-lg);
   font-weight: 650;
   color: var(--text);

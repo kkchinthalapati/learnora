@@ -1,6 +1,9 @@
+/* The same reading column as Subjects and Progress (webapp/DESIGN.md 0.3). */
 .view {
-  width: 100%;
-  max-width: 1180px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  width: min(100%, 860px);
   margin: 0 auto;
   padding-bottom: var(--s-8);
 }
@@ -167,7 +170,12 @@
   min-width: 0;
 }
 
+/* A section's cards, stacked: Account is profile, then security, then the
+   danger zone. */
 .panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
   animation: settings-panel-in var(--t-fast) var(--ease) both;
 }
 
@@ -207,15 +215,16 @@
   gap: var(--s-3);
   margin-bottom: var(--s-4);
   padding-bottom: var(--s-4);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--hairline);
 }
 
+/* Sans, like SectionHeader (webapp/DESIGN.md 0.3): only page titles are serif. */
 .cardHeader h3 {
   margin: 0;
   color: var(--text);
-  font-family: var(--font-head);
+  font-family: var(--font);
   font-size: var(--fs-lg);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.3;
 }
 

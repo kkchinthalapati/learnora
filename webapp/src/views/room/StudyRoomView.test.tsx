@@ -118,7 +118,7 @@ describe("StudyRoomView", () => {
   it("renders room header, active count stats, and subtext", () => {
     renderView("/room");
 
-    expect(screen.getByRole("heading", { level: 1, name: "Study Room" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Study room" })).toBeInTheDocument();
     expect(screen.getByText("2 students focusing together")).toBeInTheDocument();
     expect(screen.getByText(/Quiet co-working room · Live timer sync & cheers/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sound ambiance focus generator" })).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe("StudyRoomView", () => {
   it("renders participant desks with avatar initials, names, streak, and status pills", () => {
     renderView("/room");
 
-    const desksSection = screen.getByRole("region", { name: "Student Study Desks" });
+    const desksSection = screen.getByRole("region", { name: "Student study desks" });
     expect(desksSection).toBeInTheDocument();
 
     // Self desk
@@ -211,7 +211,7 @@ describe("StudyRoomView", () => {
     expect(screen.getByText("1 student focusing together")).toBeInTheDocument();
 
     const emptySection = screen.getByRole("region", { name: "Empty study room prompt" });
-    expect(within(emptySection).getByText("You're the first one here!")).toBeInTheDocument();
+    expect(within(emptySection).getByText("You're the first one here.")).toBeInTheDocument();
     expect(
       within(emptySection).getByText(/Studying is more motivating together/i),
     ).toBeInTheDocument();
@@ -233,9 +233,9 @@ describe("StudyRoomView", () => {
 
     const dialog = screen.getByRole("dialog", { name: "Sound ambiance settings" });
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByText("Focus Soundscapes")).toBeInTheDocument();
+    expect(within(dialog).getByText("Focus soundscapes")).toBeInTheDocument();
 
-    const rainPresetBtn = within(dialog).getByRole("button", { name: /Gentle Rain/i });
+    const rainPresetBtn = within(dialog).getByRole("button", { name: /Gentle rain/i });
     await user.click(rainPresetBtn);
 
     expect(playSpy).toHaveBeenCalledWith("rain", 0.5);
@@ -302,12 +302,12 @@ describe("StudyRoomView", () => {
       });
 
       expect(
-        screen.getByRole("region", { name: "Synchronized Group Focus Session" }),
+        screen.getByRole("region", { name: "Synchronized group focus session" }),
       ).toBeInTheDocument();
       expect(screen.getByText(/Hosted by Ada Lovelace/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Pause/i })).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: /Start Break/i }),
+        screen.getByRole("button", { name: /Start break/i }),
       ).toBeInTheDocument();
     });
 

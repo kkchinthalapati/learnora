@@ -226,7 +226,7 @@ describe("FocusStudyHUD", () => {
     expect(await screen.findByText("Full Timer View")).toBeInTheDocument();
   });
 
-  describe("Distraction Scratchpad", () => {
+  describe("Distraction scratchpad", () => {
     it("opens and closes scratchpad popover on button click", async () => {
       const user = userEvent.setup();
       persistTimerState({

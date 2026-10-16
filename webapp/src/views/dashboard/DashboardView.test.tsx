@@ -123,7 +123,7 @@ function renderDashboard() {
         <Route path="/timer" element={<h1>Timer</h1>} />
         <Route path="/tasks" element={<h1>Tasks</h1>} />
         <Route path="/exams" element={<h1>Exams</h1>} />
-        <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
+        <Route path="/library/flashcards" element={<h1>Cards</h1>} />
         <Route path="/plan" element={<h1>Weekly plan</h1>} />
       </Routes>
       {/* App.tsx renders TurboChat beside the routes rather than inside a
@@ -144,7 +144,7 @@ function renderCard(node: React.ReactNode) {
       <Route path="/" element={node} />
       <Route path="/tasks" element={<h1>Tasks</h1>} />
       <Route path="/exams" element={<h1>Exams</h1>} />
-      <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
+      <Route path="/library/flashcards" element={<h1>Cards</h1>} />
     </Routes>,
     { session: fakeSession() },
     { withTimer: true, initialEntries: ["/"] },
@@ -449,7 +449,7 @@ describe("DashboardView", () => {
       expect(await screen.findByText("4 cards due today")).toBeInTheDocument();
       await user.click(screen.getByRole("link", { name: "Review now" }));
       expect(
-        await screen.findByRole("heading", { name: "Flashcards" }),
+        await screen.findByRole("heading", { name: "Cards" }),
       ).toBeInTheDocument();
     });
 
@@ -712,14 +712,14 @@ describe("DashboardView", () => {
         screen.getByRole("button", { name: "Customize dashboard layout" }),
       );
       const dialog = await screen.findByRole("dialog", {
-        name: "Customize Dashboard",
+        name: "Customize dashboard",
       });
       const row = within(dialog)
         .getByText("Progress and memory")
         .closest("div")!.parentElement!.parentElement!;
       await user.click(within(row).getByRole("button", { name: "Visible" }));
       await user.click(
-        within(dialog).getByRole("button", { name: "Save Layout" }),
+        within(dialog).getByRole("button", { name: "Save layout" }),
       );
 
       expect(screen.queryByRole("heading", { name: heading })).not.toBeInTheDocument();
@@ -735,7 +735,7 @@ describe("DashboardView", () => {
       renderDashboard();
 
       expect(
-        await screen.findByRole("region", { name: "Daily Activity Rings" }),
+        await screen.findByRole("region", { name: "Daily activity rings" }),
       ).toBeInTheDocument();
     });
   });

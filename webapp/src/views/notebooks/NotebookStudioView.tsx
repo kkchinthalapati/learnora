@@ -151,7 +151,7 @@ export function NotebookStudioView() {
       ? `${notebook.notes}\n\n---\n\n${content}`
       : content;
     updateNotes(next);
-    showToast("Added to your Notes Canvas");
+    showToast("Added to your Notes canvas");
     setActiveArtifactPreview(null);
   };
 
@@ -162,7 +162,7 @@ export function NotebookStudioView() {
       const cards = flashcardsFromCheatSheet(activeArtifactPreview.content);
       const deck = await decksApi.add(
         notebook.folderId,
-        `${notebook.title} — Revision Cheat Sheet`,
+        `${notebook.title} — Revision cheat sheet`,
         notebook.id,
       );
       await flashcardsApi.addBatch(deck.id, cards);
@@ -172,7 +172,7 @@ export function NotebookStudioView() {
       setActiveArtifactPreview(null);
       void navigate(`/review/${deck.id}`);
     } catch {
-      showToast("Could not create the flashcard deck. Please try again.");
+      showToast("Could not create the card set. Please try again.");
     } finally {
       setIsExportingArtifact(false);
     }
@@ -342,11 +342,11 @@ ${DIAGRAM_CHAT_HINT}`;
       return;
     }
     setIsGenerating(true);
-    showToast("Generating high-yield Revision Cheat Sheet…");
+    showToast("Generating high-yield Revision cheat sheet…");
 
     try {
       const sourcesText = groundedSourceText();
-      const prompt = `Create a high-yield, structured Revision Cheat Sheet for "${notebook.title}".
+      const prompt = `Create a high-yield, structured Revision cheat sheet for "${notebook.title}".
 Format in clean Markdown with:
 1. 📌 Core Definitions & Fundamentals
 2. 📐 Essential Theorems & Equations
@@ -367,7 +367,7 @@ Use British English throughout.`;
 
       addArtifact({
         type: "cheat_sheet",
-        title: `${notebook.subject}: High-Yield Revision Cheat Sheet`,
+        title: `${notebook.subject}: High-Yield Revision cheat sheet`,
         content: res.text,
         summary:
           "Structured summary covering core theorems, definitions, and exam pitfalls.",
@@ -511,14 +511,14 @@ Use British English throughout.`;
 
   const handleGenerateFlashcards = async () => {
     if (flashcardsUsage.exceeded) {
-      showToast("You've reached today's limit for flashcard decks.", {
+      showToast("You've reached today's limit for card sets.", {
         actionLabel: "View plan",
         onAction: () => void navigate("/settings?tab=billing"),
       });
       return;
     }
     if (selectedSources.length === 0) {
-      showToast("Select at least one source to make flashcards from.");
+      showToast("Select at least one source to make cards from.");
       return;
     }
     setIsGenerating(true);
@@ -531,7 +531,7 @@ Use British English throughout.`;
         count: CREATE_DEFAULTS.cardCount,
         settings,
       });
-      showToast("Flashcard deck created from your sources.", {
+      showToast("Card set created from your sources.", {
         actionLabel: "Review",
         onAction: () => void navigate(`/review/${deck.id}`),
       });
@@ -539,7 +539,7 @@ Use British English throughout.`;
       showToast(
         cause instanceof Error
           ? cause.message
-          : "Could not create the flashcard deck. Please try again.",
+          : "Could not create the card set. Please try again.",
       );
     } finally {
       setIsGenerating(false);
@@ -657,7 +657,7 @@ Use British English throughout.`;
           onClick={() => setMobilePanel("tools")}
         >
           <Icon name="zap" size={14} />
-          Studio Tools ({notebook.artifacts.length})
+          Studio tools ({notebook.artifacts.length})
         </button>
       </div>
 
@@ -795,7 +795,7 @@ Use British English throughout.`;
               title="View Notes and AI Tutor side by side"
             >
               <Icon name="layout" size={15} />
-              Split View
+              Split view
             </button>
             <button
               type="button"
@@ -811,7 +811,7 @@ Use British English throughout.`;
               onClick={() => setActiveViewMode("notes")}
             >
               <Icon name="file-text" size={15} />
-              Notes Canvas
+              Notes canvas
             </button>
           </div>
 
@@ -947,7 +947,7 @@ Use British English throughout.`;
                           )
                         }
                       >
-                        ✨ Key theorems
+                        Key theorems
                       </button>
                       <button
                         type="button"
@@ -1025,7 +1025,7 @@ Use British English throughout.`;
                       color: "var(--text-muted)",
                     }}
                   >
-                    Notes Canvas
+                    Notes canvas
                   </span>
                 </div>
                 <textarea
@@ -1115,7 +1115,7 @@ Use British English throughout.`;
                       )
                     }
                   >
-                    ✨ Summarise key theorems
+                    Summarise key theorems
                   </button>
                   <button
                     type="button"
@@ -1180,12 +1180,12 @@ Use British English throughout.`;
           </div>
         </main>
 
-        {/* PANEL 3: Studio Tools & Artifacts (Right Column) */}
+        {/* PANEL 3: Studio tools & Artifacts (Right Column) */}
         <aside
           className={`${styles.studioToolsPanel} ${mobilePanel !== "tools" ? styles.mobileHidden : ""}`}
         >
           <div>
-            <div className={styles.toolsSectionTitle}>Studio Tools</div>
+            <div className={styles.toolsSectionTitle}>Studio tools</div>
             <div className={styles.toolsGrid}>
               <button
                 type="button"
@@ -1243,7 +1243,7 @@ Use British English throughout.`;
                 <div className={styles.toolIconBox}>
                   <Icon name="file-text" size={18} />
                 </div>
-                <div className={styles.toolLabel}>Revision Cheat Sheet</div>
+                <div className={styles.toolLabel}>Revision cheat sheet</div>
                 <div className={styles.toolSubtext}>
                   High-yield formulas & definitions
                 </div>
@@ -1257,14 +1257,14 @@ Use British English throughout.`;
                 disabled={isGenerating}
                 title={
                   flashcardsUsage.exceeded
-                    ? "Daily allowance reached for flashcard decks"
+                    ? "Daily allowance reached for card sets"
                     : undefined
                 }
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="layers" size={18} />
                 </div>
-                <div className={styles.toolLabel}>Flashcard Deck</div>
+                <div className={styles.toolLabel}>Card set</div>
                 <div className={styles.toolSubtext}>
                   Generate active recall deck
                 </div>
@@ -1285,7 +1285,7 @@ Use British English throughout.`;
                 <div className={styles.toolIconBox}>
                   <Icon name="check" size={18} />
                 </div>
-                <div className={styles.toolLabel}>Practice Quiz</div>
+                <div className={styles.toolLabel}>Practice quiz</div>
                 <div className={styles.toolSubtext}>Quick self-test</div>
                 {renderQuotaBadge(quizUsage)}
               </button>
@@ -1418,7 +1418,7 @@ Use British English throughout.`;
                   marginBottom: "var(--s-1)",
                 }}
               >
-                Source Title
+                Source title
               </label>
               <input
                 type="text"
@@ -1446,7 +1446,7 @@ Use British English throughout.`;
                   marginBottom: "var(--s-1)",
                 }}
               >
-                Source Type
+                Source type
               </label>
               <select
                 value={newSourceType}
@@ -1461,10 +1461,10 @@ Use British English throughout.`;
                 }}
               >
                 <option value="pdf">PDF Textbook / Document</option>
-                <option value="note">Lecture Notes</option>
-                <option value="past_paper">Past Exam Paper</option>
+                <option value="note">Lecture notes</option>
+                <option value="past_paper">Past exam paper</option>
                 <option value="syllabus">Curriculum / Syllabus Guide</option>
-                <option value="web">Web Reference Article</option>
+                <option value="web">Web reference article</option>
               </select>
             </div>
 
@@ -1646,8 +1646,8 @@ Use British English throughout.`;
               >
                 <Icon name="layers" size={14} />
                 {isExportingArtifact
-                  ? "Creating deck..."
-                  : "Create Flashcard Deck"}
+                  ? "Creating card set..."
+                  : "Create card set"}
               </Button>
             )}
             <Button

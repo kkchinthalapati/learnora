@@ -16,7 +16,7 @@ describe("pipelineSteps", () => {
 
   it("only lists the stages the student asked for", () => {
     const steps = pipelineSteps({
-      message: "Reading your material and writing notes…",
+      message: "Reading your lesson and writing notes…",
       outputs: { notes: false, flashcards: true, quiz: false },
       failed: [],
     });

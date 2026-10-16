@@ -103,7 +103,7 @@ export function SetupCard() {
           <Icon name="compass" size={18} />
         </span>
         <div>
-          <h3 id="settings-setup-heading">Your Setup</h3>
+          <h3 id="settings-setup-heading">Your setup</h3>
           <p>
             What you told us when you joined. Change it whenever it changes.
           </p>

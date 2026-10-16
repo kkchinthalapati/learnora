@@ -11,7 +11,7 @@ export function NotFoundView() {
           <span className={styles.badge}>404</span>
         </div>
 
-        <h2 className={styles.title}>Page Not Found</h2>
+        <h2 className={styles.title}>Page not found</h2>
 
         <p className={styles.description}>
           The page or workspace item you are looking for could not be found or has been moved.
@@ -75,7 +75,7 @@ export function NotFoundView() {
               <line x1="19" y1="12" x2="5" y2="12" />
               <polyline points="12 19 5 12 12 5" />
             </svg>
-            Go Back
+            Go back
           </button>
         </div>
       </div>

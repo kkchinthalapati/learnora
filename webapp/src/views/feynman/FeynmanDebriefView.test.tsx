@@ -169,7 +169,7 @@ describe("FeynmanDebriefView Component", () => {
   });
 
   /* The whole point of C1: this used to render the *success* banner saying
-     "Made 3 flashcards for you", because the catch block set the success
+     "Made 3 cards for you", because the catch block set the success
      message. A save that 403s must not be reported as a save. */
   it("reports a failed save as a failure, not a success", async () => {
     const user = userEvent.setup();

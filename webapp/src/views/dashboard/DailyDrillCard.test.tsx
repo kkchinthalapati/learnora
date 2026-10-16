@@ -28,7 +28,7 @@ function renderCard() {
           path="/review/daily-drill"
           element={<h1>Daily Drill Session</h1>}
         />
-        <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
+        <Route path="/library/flashcards" element={<h1>Cards</h1>} />
       </Routes>
     </MemoryRouter>,
     { session: fakeSession() },
@@ -51,8 +51,8 @@ describe("DailyDrillCard", () => {
     renderCard();
     expect(await screen.findByText(/You're caught up/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Open flashcards" }));
-    expect(await screen.findByText("Flashcards")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Open cards" }));
+    expect(await screen.findByText("Cards")).toBeInTheDocument();
   });
 
   it("shows count and navigates to drill when there are cards", async () => {

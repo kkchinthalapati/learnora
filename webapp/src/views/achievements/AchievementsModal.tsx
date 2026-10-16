@@ -219,7 +219,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
       <Modal
         open={open}
         onClose={onClose}
-        title="Trophy Cabinet & Goals"
+        title="Trophy cabinet & Goals"
         subtitle="Track your study streaks, earn milestone badges, and customize your daily targets."
         contentClassName={styles.modalDialog}
       >
@@ -234,7 +234,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Trophy Cabinet & Goals"
+      title="Trophy cabinet & Goals"
       subtitle="Track your study streaks, earn milestone badges, and customize your daily targets."
       contentClassName={styles.modalDialog}
     >
@@ -247,7 +247,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
                 <Icon name="trophy" size={24} />
               </div>
               <div>
-                <h3 className={styles.heroTitle}>Trophy Cabinet</h3>
+                <h3 className={styles.heroTitle}>Trophy cabinet</h3>
                 <p className={styles.heroSubtitle}>
                   {unlockedCount} of {totalCount} badges unlocked ({overallPercent}%)
                 </p>
@@ -273,12 +273,12 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
           </div>
         </section>
 
-        {/* Daily Goals Customization */}
+        {/* Daily goals Customization */}
         <section className={styles.goalsSection}>
           <div className={styles.goalsHeader}>
             <h4 className={styles.sectionTitle}>
               <Icon name="target" size={18} />
-              Customize Daily Study Goals
+              Customize daily study goals
             </h4>
             {savedFeedback && (
               <span className={styles.savedPill}>
@@ -291,7 +291,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
             {/* Minutes Goal */}
             <div className={styles.goalCard}>
               <div className={styles.goalCardHead}>
-                <span>Daily Focus</span>
+                <span>Daily focus</span>
                 <Icon name="clock" size={16} className={styles.goalIcon} />
               </div>
               <div className={styles.goalInputRow}>
@@ -341,7 +341,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
             {/* Flashcards Goal */}
             <div className={styles.goalCard}>
               <div className={styles.goalCardHead}>
-                <span>Flashcards</span>
+                <span>Cards</span>
                 <Icon name="layers" size={16} className={styles.goalIcon} />
               </div>
               <div className={styles.goalInputRow}>
@@ -359,7 +359,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
                     )
                   }
                   className={styles.goalInput}
-                  aria-label="Daily flashcards review goal"
+                  aria-label="Daily cards review goal"
                 />
                 <span className={styles.goalUnit}>cards</span>
               </div>
@@ -389,7 +389,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
             {/* Tasks Goal */}
             <div className={styles.goalCard}>
               <div className={styles.goalCardHead}>
-                <span>Daily Tasks</span>
+                <span>Daily tasks</span>
                 <Icon name="list-checks" size={16} className={styles.goalIcon} />
               </div>
               <div className={styles.goalInputRow}>
@@ -437,7 +437,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
         </section>
 
         {/* Category Filters */}
-        <div className={styles.filtersRow} role="tablist" aria-label="Achievement Categories">
+        <div className={styles.filtersRow} role="tablist" aria-label="Achievement categories">
           {CATEGORIES.map(({ key, label }, i) => {
             const count =
               key === "all"

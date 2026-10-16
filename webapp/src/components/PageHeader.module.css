@@ -1,14 +1,18 @@
-/* Matches library.module.css's former .header/.title/.headerSub exactly —
- * this primitive's first consumer (Library) had already independently
- * invented this shape, see PRIMITIVES.md. */
+/* DESIGN.md rule 0.3. The title matches the shell's own page title
+ * (Header.module.css .title) and text.module.css .pageTitle, so a page reads
+ * the same whether it or the shell supplies its name. */
 
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--s-4);
   flex-wrap: wrap;
-  margin-bottom: var(--s-5);
+  margin-bottom: var(--s-6);
+}
+
+.text {
+  min-width: 0;
 }
 
 .eyebrow {
@@ -21,13 +25,23 @@
 }
 
 .title {
-  font-family: var(--font-head);
-  font-size: var(--fs-2xl);
-  font-weight: 700;
   margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-3xl);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
 .sub {
+  max-width: 60ch;
+  margin: var(--s-2) 0 0;
   color: var(--text-muted);
-  margin-top: var(--s-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
 }

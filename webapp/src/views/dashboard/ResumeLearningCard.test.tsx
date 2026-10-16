@@ -26,6 +26,7 @@ function renderCard(initialRoute = "/") {
         <Route path="/" element={<ResumeLearningCard />} />
         <Route path="/library" element={<h1>Library Page</h1>} />
         <Route path="/notes/:materialId" element={<h1>Notes Page</h1>} />
+        <Route path="/lessons/:materialId" element={<h1>Lesson Page</h1>} />
         <Route path="/review/:deckId" element={<h1>Review Page</h1>} />
         <Route path="/quiz/:quizId" element={<h1>Quiz Page</h1>} />
         <Route path="/timer" element={<h1>Timer Page</h1>} />
@@ -53,7 +54,7 @@ describe("ResumeLearningCard", () => {
       screen.getByText(/Open a note, review a flashcard deck/),
     ).toBeInTheDocument();
 
-    const openLibBtn = screen.getByRole("button", { name: "Open Library" });
+    const openLibBtn = screen.getByRole("button", { name: "Open library" });
     await user.click(openLibBtn);
     expect(
       await screen.findByRole("heading", { name: "Library Page" }),
@@ -122,7 +123,7 @@ describe("ResumeLearningCard", () => {
     renderCard();
 
     expect(screen.getByText("Cellular Metabolism & ATP")).toBeInTheDocument();
-    expect(screen.getByText("Notes • 65% read")).toBeInTheDocument();
+    expect(screen.getByText("65% of the notes read")).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toHaveAttribute(
       "aria-valuenow",
       "65",
@@ -133,7 +134,7 @@ describe("ResumeLearningCard", () => {
     await user.click(resumeBtn);
 
     expect(
-      await screen.findByRole("heading", { name: "Notes Page" }),
+      await screen.findByRole("heading", { name: "Lesson Page" }),
     ).toBeInTheDocument();
   });
 
@@ -149,7 +150,7 @@ describe("ResumeLearningCard", () => {
     renderCard();
 
     expect(screen.getByText("Organic Chemistry Reactions")).toBeInTheDocument();
-    expect(screen.getByText("Flashcards • Card 8 of 20")).toBeInTheDocument();
+    expect(screen.getByText("Cards • Card 8 of 20")).toBeInTheDocument();
     expect(screen.getByText("40% complete")).toBeInTheDocument();
 
     const resumeBtn = screen.getByRole("button", { name: "Resume" });
@@ -233,7 +234,7 @@ describe("ResumeLearningCard", () => {
       },
       lastReviewedDeck: {
         id: "deck-active",
-        title: "Biochemistry Decks",
+        title: "Biochemistry Card sets",
         cardIndex: 3,
         totalCards: 10,
         lastReviewedAt: "2026-08-20T14:00:00.000Z",
@@ -243,7 +244,7 @@ describe("ResumeLearningCard", () => {
     renderCard();
 
     expect(
-      screen.getByRole("heading", { level: 3, name: "Biochemistry Decks" }),
+      screen.getByRole("heading", { level: 3, name: "Biochemistry Card sets" }),
     ).toBeInTheDocument();
 
     expect(screen.getByText("Recent activity")).toBeInTheDocument();
@@ -253,7 +254,7 @@ describe("ResumeLearningCard", () => {
     await user.click(trayLink);
 
     expect(
-      await screen.findByRole("heading", { name: "Notes Page" }),
+      await screen.findByRole("heading", { name: "Lesson Page" }),
     ).toBeInTheDocument();
   });
 });

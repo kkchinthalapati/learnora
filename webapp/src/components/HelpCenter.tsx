@@ -38,7 +38,7 @@ const HELP_BY_ROUTE: ReadonlyArray<{
     suggestions: [
       "Create a notebook for one subject",
       "Search across saved resources",
-      "Turn material into flashcards or a quiz",
+      "Turn lesson into cards or a quiz",
     ],
   },
   {
@@ -62,7 +62,7 @@ const HELP_BY_ROUTE: ReadonlyArray<{
       "Bind a session to a task or subject so progress, streaks, and recommendations stay accurate.",
     suggestions: [
       "Choose a task before starting",
-      "Use a soundscape in Study Room",
+      "Use a soundscape in Study room",
       "Review the session when the timer ends",
     ],
   },
@@ -137,6 +137,7 @@ export function HelpCenter() {
   return (
     <>
       <IconButton
+        variant="ghost"
         aria-label="Help and support"
         title="Help and support"
         onClick={() => setOpen(true)}

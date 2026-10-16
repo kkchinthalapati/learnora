@@ -22,8 +22,8 @@ import {
 describe("studyRoom helpers", () => {
   it("formats status labels accurately", () => {
     expect(getTimerStatusLabel("focus")).toBe("Focusing");
-    expect(getTimerStatusLabel("short_break")).toBe("Short Break");
-    expect(getTimerStatusLabel("long_break")).toBe("Long Break");
+    expect(getTimerStatusLabel("short_break")).toBe("Short break");
+    expect(getTimerStatusLabel("long_break")).toBe("Long break");
     expect(getTimerStatusLabel("flow")).toBe("In Flow");
     expect(getTimerStatusLabel("paused")).toBe("Paused");
     expect(getTimerStatusLabel("idle")).toBe("Idle");

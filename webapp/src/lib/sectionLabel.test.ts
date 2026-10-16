@@ -31,8 +31,8 @@ describe("isLibrarySection", () => {
 });
 
 describe("sectionLabel", () => {
-  it("labels the dashboard", () => {
-    expect(sectionLabel("/", t)).toBe("Today");
+  it("labels Home and the old dashboard path", () => {
+    expect(sectionLabel("/", t)).toBe("Home");
     expect(sectionLabel("/dashboard", t)).toBe("Dashboard");
   });
 

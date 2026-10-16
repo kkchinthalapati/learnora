@@ -238,7 +238,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
                 {/* 1. Material Coverage */}
                 <div className={styles.factorCard}>
                   <div className={styles.factorHeader}>
-                    <span>Material Coverage (30%)</span>
+                    <span>Lesson Coverage (30%)</span>
                     <span className={styles.factorScore}>
                       {readiness.breakdown.coverage}%
                     </span>
@@ -282,7 +282,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
                   </span>
                 </div>
 
-                {/* 3. Study Time Investment */}
+                {/* 3. Study time Investment */}
                 <div className={styles.factorCard}>
                   <div className={styles.factorHeader}>
                     <span>Study Investment (30%)</span>
@@ -317,7 +317,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
                 />
                 <div className={styles.weakBannerContent}>
                   <span className={styles.weakBannerTitle}>
-                    Key Weak Topics Identified
+                    Key weak topics identified
                   </span>
                   <p
                     style={{
@@ -345,7 +345,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
               <div className={styles.roadmapHeader}>
                 <h4 className={styles.roadmapTitle}>
                   <Icon name="compass" size={18} />
-                  Milestone Countdown Roadmap
+                  Milestone countdown roadmap
                 </h4>
               </div>
 

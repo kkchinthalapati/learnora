@@ -31,7 +31,7 @@ export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
   const [picked, setPicked] = useState<Flashcard[] | null>(null);
 
   const deckTitle = useCallback(
-    (id: string | null) => decks.data?.find((d) => d.id === id)?.title ?? "Flashcards",
+    (id: string | null) => decks.data?.find((d) => d.id === id)?.title ?? "Cards",
     [decks.data],
   );
 

@@ -144,7 +144,7 @@ describe("ErrorBoundary", () => {
       );
 
       expect(screen.getByText("You're offline")).toBeInTheDocument();
-      expect(screen.getByText(/Flashcard review still works offline/)).toBeInTheDocument();
+      expect(screen.getByText(/Card review still works offline/)).toBeInTheDocument();
       expect(screen.queryByText("A new version is ready")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
     } finally {

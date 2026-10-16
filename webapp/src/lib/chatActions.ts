@@ -250,7 +250,7 @@ async function runTag(
       const dueNote = dueDate ? ` — due ${dueDate}` : "";
       const allowed = await handlers.confirm(
         `AI wants to create a new task:\n\n"${text}"${dueNote}\n\nAllow this?`,
-        { title: "AI Task Creation", confirmText: "Add Task" },
+        { title: "Add a task?", confirmText: "Add task" },
       );
       if (!allowed) return cancelled("Canceled adding task:", text);
       // Passed positionally only when present, so a caller asserting the
@@ -445,7 +445,7 @@ async function runTag(
 /** Every key the tutor is told it may use (the CAPABILITIES line in
  *  chatPrompt.ts is built from this list). */
 export const NAVIGATE_TARGETS = [
-  "today", "study", "library", "materials", "flashcards", "quizzes", "notebooks",
+  "home", "subjects", "study", "library", "materials", "flashcards", "quizzes", "notebooks",
   "plan", "availability", "tasks", "exams", "timer", "progress", "trajectory", "settings",
 ] as const;
 
@@ -458,7 +458,9 @@ export function pathForNavigateTarget(view: string): string | null {
     exams: "/exams",
     timer: "/timer",
     library: "/library",
-    folders: "/library",
+    /* 2026-10 overhaul: Subjects holds each subject's lessons, exam and week. */
+    subjects: "/subjects",
+    folders: "/subjects",
     materials: "/library/materials",
     flashcards: "/library/flashcards",
     quizzes: "/library/quizzes",
@@ -471,8 +473,8 @@ export function pathForNavigateTarget(view: string): string | null {
     study: "/study",
     progress: "/analytics",
     analytics: "/analytics",
-    trajectory: "/trajectory",
-    forecast: "/trajectory",
+    trajectory: "/analytics?tab=forecast",
+    forecast: "/analytics?tab=forecast",
     availability: "/my-week",
     review: "/library/flashcards",
     notebooks: "/library/notebooks",

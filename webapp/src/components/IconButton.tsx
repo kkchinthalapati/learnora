@@ -6,13 +6,20 @@ import styles from "./IconButton.module.css";
  * the canonical declaration; a real `<button>`, so this can't be a Card
  * variant (Card is div/section only) — it needed its own primitive. */
 
-type IconButtonProps = ComponentPropsWithRef<"button">;
+interface IconButtonProps extends ComponentPropsWithRef<"button"> {
+  /* "ghost": no border or fill until hovered — the TopBar's tools, so help,
+     search and the timer read as one row (webapp/DESIGN.md 0.2). */
+  variant?: "default" | "ghost";
+}
 
 export function IconButton({
   className,
   type = "button",
+  variant = "default",
   ...rest
 }: IconButtonProps) {
-  const classes = [styles.iconButton, className].filter(Boolean).join(" ");
+  const classes = [styles.iconButton, variant === "ghost" ? styles.ghost : null, className]
+    .filter(Boolean)
+    .join(" ");
   return <button type={type} className={classes} {...rest} />;
 }

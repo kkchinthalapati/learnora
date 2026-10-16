@@ -7,22 +7,22 @@ export const LIBRARY_TABS = [
   {
     id: "folders",
     label: "Subjects",
-    blurb: "One folder per class. Notes, flashcards and quizzes for Biology all live in Biology.",
+    blurb: "One subject per class. Each subject's lessons, cards and quizzes live in it.",
   },
   {
     id: "materials",
-    label: "Files & notes",
-    blurb: "Everything you've uploaded or pasted, and the notes made from it — from every subject.",
+    label: "Lessons",
+    blurb: "Every lesson you've added, and the notes made from it, from every subject.",
   },
   {
     id: "flashcards",
-    label: "Flashcards",
-    blurb: "All your flashcard decks, from every subject.",
+    label: "Card sets",
+    blurb: "All your card sets, from every subject.",
   },
   {
     id: "quizzes",
     label: "Quizzes",
-    blurb: "All your practice quizzes, from every subject.",
+    blurb: "All your quizzes, from every subject.",
   },
   {
     id: "notebooks",

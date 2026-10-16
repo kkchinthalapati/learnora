@@ -112,7 +112,7 @@ describe("QuizRunner hint ladder", () => {
     await user.click(await screen.findByRole("button", { name: /I'm stuck/ }));
     await user.click(await screen.findByRole("button", { name: /Another hint|Show the worked/ }));
     await user.click(await screen.findByRole("button", { name: "Show the worked solution" }));
-    await user.click(screen.getByRole("button", { name: /Next Question/ }));
+    await user.click(screen.getByRole("button", { name: /Next question/ }));
     await user.click(await screen.findByRole("button", { name: "4" }));
     await user.click(screen.getByRole("button", { name: /See results/ }));
 
@@ -131,7 +131,7 @@ describe("QuizRunner hint ladder", () => {
     await user.click(await screen.findByRole("button", { name: /I'm stuck/ }));
     await screen.findByText(LADDER.nudge);
     await user.click(screen.getByRole("button", { name: "3" }));
-    await user.click(screen.getByRole("button", { name: /Next Question/ }));
+    await user.click(screen.getByRole("button", { name: /Next question/ }));
     await user.click(await screen.findByRole("button", { name: "4" }));
     await user.click(screen.getByRole("button", { name: /See results/ }));
     await waitFor(() => expect(attempts).toHaveLength(1));
@@ -186,7 +186,7 @@ describe("the worked solution hands the question to the mistake loop", () => {
     await user.click(await screen.findByRole("button", { name: /I'm stuck/ }));
     await user.click(await screen.findByRole("button", { name: /Another hint|Show the worked/ }));
     await user.click(await screen.findByRole("button", { name: "Show the worked solution" }));
-    await user.click(screen.getByRole("button", { name: /Next Question/ }));
+    await user.click(screen.getByRole("button", { name: /Next question/ }));
     await user.click(await screen.findByRole("button", { name: "4" }));
     await user.click(screen.getByRole("button", { name: /See results/ }));
 

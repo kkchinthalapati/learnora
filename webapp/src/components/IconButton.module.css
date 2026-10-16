@@ -29,3 +29,15 @@
   border-color: var(--accent-ring);
   box-shadow: none;
 }
+
+.ghost {
+  border-color: transparent;
+  background: none;
+  color: var(--text-muted);
+}
+
+.ghost:hover {
+  border-color: transparent;
+  background: var(--surface-hover);
+  color: var(--text);
+}

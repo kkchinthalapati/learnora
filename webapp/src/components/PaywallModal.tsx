@@ -203,7 +203,7 @@ export function PaywallModal({
           <p className={styles.plusPitch}>
             Every AI tool's daily limit goes up — chat, notes, flashcards,
             quizzes and the rest — nothing else changes. Upgrade to Pro any
-            time for Exam Trajectory, calendar sync, and the highest AI
+            time for Exam forecast, calendar sync, and the highest AI
             ceiling.
           </p>
         )}

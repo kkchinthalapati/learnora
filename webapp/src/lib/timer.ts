@@ -163,8 +163,8 @@ export function modeLabel(state: TimerState): string {
       return state.mode === "Focus"
         ? "Focus"
         : state.mode === "ShortBreak"
-          ? "Short Break"
-          : "Long Break";
+          ? "Short break"
+          : "Long break";
   }
 }
 

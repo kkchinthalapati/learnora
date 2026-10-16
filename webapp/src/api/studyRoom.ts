@@ -350,8 +350,8 @@ export function sanitizeParticipant(
 
 export const TIMER_STATUS_LABELS: Record<TimerStatus, string> = {
   focus: "Focusing",
-  short_break: "Short Break",
-  long_break: "Long Break",
+  short_break: "Short break",
+  long_break: "Long break",
   flow: "In Flow",
   paused: "Paused",
   idle: "Idle",

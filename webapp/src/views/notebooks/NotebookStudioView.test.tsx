@@ -83,13 +83,13 @@ describe("NotebookStudioView", () => {
       screen.getByRole("button", { name: /Grounded AI Tutor/ }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Notes Canvas/ }),
+      screen.getByRole("button", { name: /Notes canvas/ }),
     ).toBeInTheDocument();
 
-    // Panel 3: Studio Tools & Artifacts
-    expect(screen.getByText("Studio Tools")).toBeInTheDocument();
+    // Panel 3: Studio tools & Artifacts
+    expect(screen.getByText("Studio tools")).toBeInTheDocument();
     expect(screen.getByText("Explain it simply")).toBeInTheDocument();
-    expect(screen.getByText("Revision Cheat Sheet")).toBeInTheDocument();
+    expect(screen.getByText("Revision cheat sheet")).toBeInTheDocument();
   });
 
   it("switches to the notes canvas tab", async () => {
@@ -97,7 +97,7 @@ describe("NotebookStudioView", () => {
     renderStudio();
     await screen.findByRole("heading", { name: "Sources" });
 
-    await user.click(screen.getByRole("button", { name: /Notes Canvas/ }));
+    await user.click(screen.getByRole("button", { name: /Notes canvas/ }));
 
     expect(screen.getByText(/Circle Theorems Revision/)).toBeInTheDocument();
   });
@@ -128,7 +128,7 @@ describe("NotebookStudioView", () => {
             {
               id: "art-1",
               type: "cheat_sheet",
-              title: "Circle Theorems Cheat Sheet",
+              title: "Circle Theorems Cheat sheet",
               content: "## Angle at the centre is twice the angle at the rim",
               created_at: "2026-08-02T00:00:00Z",
             },
@@ -149,7 +149,7 @@ describe("NotebookStudioView", () => {
     await screen.findByRole("heading", { name: "Sources" });
 
     const card = await screen.findByRole("button", {
-      name: /Circle Theorems Cheat Sheet/,
+      name: /Circle Theorems Cheat sheet/,
     });
 
     // Space activates it *and* is prevented, so the page underneath does not
@@ -323,7 +323,7 @@ describe("NotebookStudioView", () => {
             {
               id: "art-1",
               type: "cheat_sheet",
-              title: "Circle Theorems Cheat Sheet",
+              title: "Circle Theorems Cheat sheet",
               content: "## Angle at the centre is twice the angle at the rim",
               created_at: "2026-08-02T00:00:00Z",
             },
@@ -344,7 +344,7 @@ describe("NotebookStudioView", () => {
     await screen.findByRole("heading", { name: "Sources" });
 
     const card = await screen.findByRole("button", {
-      name: /Circle Theorems Cheat Sheet/,
+      name: /Circle Theorems Cheat sheet/,
     });
     card.focus();
     await user.keyboard("{Enter}");
@@ -365,7 +365,7 @@ describe("NotebookStudioView", () => {
             {
               id: "art-1",
               type: "cheat_sheet",
-              title: "Circle Theorems Cheat Sheet",
+              title: "Circle Theorems Cheat sheet",
               content: "Chord: A line joining two points on a circle.",
               created_at: "2026-08-02T00:00:00Z",
             },
@@ -390,11 +390,11 @@ describe("NotebookStudioView", () => {
     );
     await user.click(
       await screen.findByRole("button", {
-        name: /Circle Theorems Cheat Sheet/,
+        name: /Circle Theorems Cheat sheet/,
       }),
     );
     await user.click(
-      screen.getByRole("button", { name: "Create Flashcard Deck" }),
+      screen.getByRole("button", { name: "Create card set" }),
     );
 
     await waitFor(() => expect(deckInserts).toHaveLength(1));
@@ -457,7 +457,7 @@ describe("NotebookStudioView", () => {
 
       renderStudio();
       await screen.findByRole("heading", { name: "Sources" });
-      await user.click(screen.getByRole("button", { name: /Flashcard Deck/i }));
+      await user.click(screen.getByRole("button", { name: /Card set/i }));
 
       await waitFor(() => expect(deckInserts).toHaveLength(1));
       expect(deckInserts).toEqual([
@@ -498,7 +498,7 @@ describe("NotebookStudioView", () => {
 
       renderStudio();
       await screen.findByRole("heading", { name: "Sources" });
-      await user.click(screen.getByRole("button", { name: /Practice Quiz/i }));
+      await user.click(screen.getByRole("button", { name: /Practice quiz/i }));
 
       await waitFor(() => expect(quizInserts).toHaveLength(1));
       expect(quizInserts).toEqual([
@@ -533,7 +533,7 @@ describe("NotebookStudioView", () => {
     renderStudio();
     await screen.findByRole("heading", { name: "Sources" });
     await user.click(
-      screen.getByRole("button", { name: /Revision Cheat Sheet/i }),
+      screen.getByRole("button", { name: /Revision cheat sheet/i }),
     );
 
     /* callEdge retries once with a 2s backoff (MAX_RETRIES / RETRY_DELAY_MS in
@@ -568,12 +568,12 @@ describe("NotebookStudioView", () => {
 
     // Clicking the exceeded tool shows quota warning toast
     const flashcardBtn = screen.getByRole("button", {
-      name: /Flashcard Deck/i,
+      name: /Card set/i,
     });
     await user.click(flashcardBtn);
 
     expect(
-      await screen.findByText(/reached today's limit for flashcard decks/i),
+      await screen.findByText(/reached today's limit for card sets/i),
     ).toBeInTheDocument();
   });
 });

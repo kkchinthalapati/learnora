@@ -74,7 +74,7 @@ describe("CommandPalette", () => {
           <Route path="/analytics" element={<div>Analytics Page</div>} />
           <Route
             path="/folders/:folderId"
-            element={<div>Subject Folder Page</div>}
+            element={<div>Subject folder Page</div>}
           />
           <Route path="/notes/:materialId" element={<div>Notes Page</div>} />
           <Route path="/review/:deckId" element={<div>Review Deck Page</div>} />
@@ -297,7 +297,7 @@ describe("CommandPalette", () => {
       ),
       http.get(rest("flashcard_decks"), () =>
         HttpResponse.json([
-          { id: "deck-1", title: "Biochemistry Deck", folder_id: "folder-bio" },
+          { id: "deck-1", title: "Biochemistry Card set", folder_id: "folder-bio" },
         ]),
       ),
     );

@@ -107,10 +107,10 @@ export interface FeatureMeta {
 export const FEATURES: Record<FeatureId, FeatureMeta> = {
   trajectory: {
     id: "trajectory",
-    name: "Exam Trajectory",
+    name: "Exam forecast",
     blurb: "See the grade you are heading for, and what changes it.",
     pitch:
-      "Projects every topic forward to exam day under real memory decay, then tells you what the next hour of your life is worth — in points, on the topic that needs it.",
+      "Projects each topic to exam day, allowing for what you'll forget, and shows which hour of study would add the most marks.",
     minimumPlan: "pro",
   },
   calendarImport: {

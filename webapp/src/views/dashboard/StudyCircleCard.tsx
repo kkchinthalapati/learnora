@@ -27,7 +27,7 @@ export function StudyCircleCard() {
           {activeCount} studying right now
         </span>
         <Link to="/room" className={styles.circleLiveAction}>
-          Join Room →
+          Join room →
         </Link>
       </div>
     ) : null;

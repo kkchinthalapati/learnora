@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useOptionalAuth } from "../../context/auth";
 import { clearPendingTopic, readPendingTopic } from "../../lib/pendingTopic";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { PageHeader } from "../../components/PageHeader";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
 import { useExams } from "../../hooks/useExams";
@@ -69,7 +70,7 @@ const MODE_CARDS: ModeCard[] = [
   {
     mode: "recall",
     prompt: "I want to keep it from fading",
-    description: "The flashcards that are due, mixed across topics. About ten minutes.",
+    description: "The cards that are due, mixed across topics. About ten minutes.",
     icon: "layers",
   },
 ];
@@ -128,8 +129,8 @@ export function StudyLabView() {
   return (
     <div className={styles.view}>
       <header className={styles.hero}>
-        <span className={text.meta}>Study</span>
-        <h1 className={text.display}>One session, picked from your mistakes</h1>
+        {/* webapp/DESIGN.md 0.3: one page header, no kicker above it. */}
+        <PageHeader as="h1" title="Study" sub="One session, picked from your mistakes and your next exam." />
         {finished ? (
           <p className={styles.finished} role="status">
             Session done: {finished.done.length}{" "}

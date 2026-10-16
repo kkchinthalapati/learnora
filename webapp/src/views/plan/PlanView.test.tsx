@@ -293,7 +293,7 @@ describe("PlanView", () => {
     });
   });
 
-  describe("Triage Mode", () => {
+  describe("Triage mode", () => {
     it("shows the Triage button when an exam is less than 3 days away", async () => {
       servePlan(planRow(SAMPLE_PLAN));
       const closeExamDate = new Date();
@@ -400,7 +400,7 @@ describe("PlanView", () => {
 
       const dialog = await screen.findByRole("alertdialog");
       await userEvent.click(
-        within(dialog).getByRole("button", { name: "Triage Mode" }),
+        within(dialog).getByRole("button", { name: "Triage mode" }),
       );
 
       await waitFor(() => expect(wasTriage).toBe(true));
@@ -1014,7 +1014,7 @@ describe("PlanView", () => {
        The tab was renamed "Week" → "Study plan" when PlanSectionNav landed and
        this assertion was not moved with it, so it had been failing on main
        against a link that no longer exists. */
-    expect(screen.getByRole("link", { name: "Study plan" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Week plan" })).toHaveAttribute(
       "aria-current",
       "page",
     );

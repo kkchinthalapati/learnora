@@ -306,7 +306,7 @@ describe("SessionView", () => {
         current: {
           kind: "flashcards",
           mode: "recall",
-          title: "Flashcards",
+          title: "Cards",
           topic: "Hydrolysis",
           why: "3 cards are due.",
         },
@@ -320,7 +320,7 @@ describe("SessionView", () => {
       renderSession("/study/new?mode=recall&topic=Hydrolysis&run=r1");
 
       const bar = await screen.findByRole("region", { name: "Your session" });
-      expect(bar).toHaveTextContent("Step 2 Flashcards");
+      expect(bar).toHaveTextContent("Step 2 Cards");
       const recallId = loadRun("r1")?.current?.sessionId;
       expect(recallId).toBeTruthy();
 

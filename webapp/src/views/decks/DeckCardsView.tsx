@@ -365,7 +365,7 @@ function CardRow({
             onClick={() => {
               void (async () => {
                 const ok = await confirm(
-                  "This card and its review history will be permanently deleted. The rest of the deck is untouched.",
+                  "This card and its review history will be permanently deleted. The rest of the card set is untouched.",
                   {
                     title: "Delete card?",
                     confirmText: "Delete",
@@ -406,7 +406,7 @@ export function DeckCardsView() {
   if (decks.isPending || cards.isPending) {
     return (
       <div className={styles.view} aria-busy="true">
-        <Skeleton label="Loading deck" height={320} />
+        <Skeleton label="Loading card set" height={320} />
       </div>
     );
   }
@@ -430,11 +430,11 @@ export function DeckCardsView() {
         <BackLink />
         <EmptyState
           icon="layers"
-          title="This deck no longer exists."
+          title="This card set no longer exists."
           message="It may have been deleted from another tab or device."
         >
           <Link to={FLASHCARDS_PATH}>
-            <Button variant="primary">Back to Flashcards</Button>
+            <Button variant="primary">Back to Cards</Button>
           </Link>
         </EmptyState>
       </div>
@@ -448,7 +448,7 @@ export function DeckCardsView() {
       <BackLink />
       <PageHeader
         title={deck.title}
-        eyebrow="Deck"
+        eyebrow="Card set"
         sub={
           <span className={styles.count}>
             {list.length} {list.length === 1 ? "card" : "cards"}
@@ -466,7 +466,7 @@ export function DeckCardsView() {
       {list.length === 0 ? (
         <EmptyState
           icon="layers"
-          title="This deck is empty."
+          title="This card set is empty."
           message="Add a card below to start building it."
         />
       ) : (

@@ -44,7 +44,7 @@ export function OfflineBanner() {
     message =
       queueSize > 0
         ? `Offline · ${waiting} waiting to sync`
-        : "Offline · flashcard review still works";
+        : "Offline · card review still works";
   } else {
     pillClass = styles.pending;
     icon = "clock";

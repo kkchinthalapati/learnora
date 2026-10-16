@@ -374,7 +374,7 @@ describe("TurboChat", () => {
 
       const dialog = await screen.findByRole("alertdialog");
       await userEvent.click(
-        within(dialog).getByRole("button", { name: "Add Task" }),
+        within(dialog).getByRole("button", { name: "Add task" }),
       );
 
       await screen.findByText("Revise ch. 3");
@@ -396,7 +396,7 @@ describe("TurboChat", () => {
 
       const dialog = await screen.findByRole("alertdialog");
       await userEvent.click(
-        within(dialog).getByRole("button", { name: "Add Task" }),
+        within(dialog).getByRole("button", { name: "Add task" }),
       );
 
       await waitFor(() => expect(posted).toBeDefined());
@@ -1068,8 +1068,8 @@ describe("TurboChat", () => {
       await userEvent.click(screen.getByRole("button", { name: "Draw image" }));
       await screen.findByRole("img", { name: "Diagram: the heart" });
 
-      await userEvent.click(screen.getByRole("button", { name: "Save as flashcard" }));
-      expect(await screen.findByText("Saved as a flashcard")).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Save as card" }));
+      expect(await screen.findByText("Saved as a card")).toBeInTheDocument();
       expect(cards[0]).toMatchObject({ deck_id: "deck-9", back: "the heart" });
     });
 
@@ -1244,7 +1244,7 @@ describe("TurboChat", () => {
     });
 
     it("typesets TeX in a card list", async () => {
-      /* The same card is typeset on the review screen once "Save as deck"
+      /* The same card is typeset on the review screen once "Save as card set"
          has written it, so the bubble must not print raw dollars. */
       serveReply(
         JSON.stringify([{ front: "Simplify $x^2$", back: "It is $y^3$" }]),
@@ -1310,12 +1310,12 @@ describe("TurboChat", () => {
       await screen.findByText("Mitochondrion");
 
       await userEvent.click(
-        screen.getByRole("button", { name: "Save as deck" }),
+        screen.getByRole("button", { name: "Save as card set" }),
       );
 
       expect(await screen.findByText("Saved")).toBeInTheDocument();
       expect(
-        screen.queryByRole("button", { name: "Save as deck" }),
+        screen.queryByRole("button", { name: "Save as card set" }),
       ).not.toBeInTheDocument();
     });
   });

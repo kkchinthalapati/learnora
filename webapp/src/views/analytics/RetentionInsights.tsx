@@ -81,7 +81,7 @@ export function RetentionInsights() {
         </p>
       ) : summary.totalCards === 0 ? (
         <p className={own.empty}>
-          No flashcards yet. <Link to="/library/flashcards">Make a deck</Link> and review
+          No cards yet. <Link to="/library/flashcards">Make a card set</Link> and review
           it, and this will show how well you're remembering it.
         </p>
       ) : summary.reviewedCards === 0 ? (
@@ -160,7 +160,7 @@ export function RetentionInsights() {
             />
           </div>
 
-          <h4 className={own.subheading}>Forgetting curve by deck</h4>
+          <h4 className={own.subheading}>Forgetting curve by card set</h4>
           <p className={own.caption}>
             Predicted recall over the next {CURVE_DAYS} days if you don't review. The
             dashed line is the {pct(TARGET_RECALL)} point where the scheduler brings a
@@ -169,11 +169,11 @@ export function RetentionInsights() {
           <div className={own.tableWrap}>
             <table className={own.table}>
               <caption className={styles.srOnly}>
-                Predicted recall and next review for each flashcard deck
+                Predicted recall and next review for each card set
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">Deck</th>
+                  <th scope="col">Card set</th>
                   <th scope="col">Reviewed</th>
                   <th scope="col">Recall now</th>
                   <th scope="col">In 7 days</th>
@@ -290,7 +290,7 @@ function DueForecast({ days, now }: { days: { date: Date; count: number }[]; now
         <div
           className={styles.barsContainer}
           role="group"
-          aria-label="Flashcard reviews due on each of the next 7 days"
+          aria-label="Card reviews due on each of the next 7 days"
         >
           {total === 0 && (
             <p className={styles.chartEmptyMessage}>Nothing falls due this week.</p>

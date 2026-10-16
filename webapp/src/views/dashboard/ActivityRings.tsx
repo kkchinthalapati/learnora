@@ -102,7 +102,7 @@ export function ActivityRings({
     <div
       className={styles.ringsContainer}
       role="region"
-      aria-label="Daily Activity Rings"
+      aria-label="Daily activity rings"
     >
       <div className={styles.svgWrap}>
         <svg viewBox="0 0 112 112" className={styles.svg} aria-hidden="true">
@@ -150,7 +150,7 @@ export function ActivityRings({
         </svg>
         <div
           className={styles.centerIcon}
-          title={`${overallProgress}% Daily Goal Completed`}
+          title={`${overallProgress}% Daily goal Completed`}
         >
           <span>{overallProgress}%</span>
         </div>

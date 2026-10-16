@@ -86,7 +86,7 @@ export class ErrorBoundary extends Component<
             </h1>
             <p className={styles.muted}>
               {offline
-                ? "This page needs a connection. Flashcard review still works offline, and your reviews sync when you're back online."
+                ? "This page needs a connection. Card review still works offline, and your reviews sync when you're back online."
                 : staleBuild
                   ? "Learnora updated while this tab was open, so part of the app couldn't load. Reloading picks up the new version."
                   : "This screen hit an unexpected error. Your work up to this point may not be saved."}

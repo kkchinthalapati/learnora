@@ -325,12 +325,12 @@ export function CustomThemeStudio() {
         <span className={styles.addPlus} aria-hidden="true">
           +
         </span>{" "}
-        Add Colour
+        Add colour
       </button>
 
       <div className={styles.controlsTitle}>Controls</div>
       <div className={styles.intensityRow}>
-        <label htmlFor={intensityId}>Colour Intensity</label>
+        <label htmlFor={intensityId}>Colour intensity</label>
         <span className={styles.intensityValue}>{customTheme.intensity}%</span>
       </div>
       <input
@@ -351,7 +351,7 @@ export function CustomThemeStudio() {
           className={styles.actionBtn}
           onClick={() => setCustomTheme(surpriseCustomTheme())}
         >
-          Surprise Me
+          Surprise me
         </button>
         <button
           type="button"

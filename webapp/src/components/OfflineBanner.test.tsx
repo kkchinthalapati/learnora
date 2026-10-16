@@ -46,7 +46,7 @@ describe("OfflineBanner", () => {
     renderAt("/library");
 
     expect(
-      screen.getByText("Offline · flashcard review still works"),
+      screen.getByText("Offline · card review still works"),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Review cards" })).toHaveAttribute(
       "href",

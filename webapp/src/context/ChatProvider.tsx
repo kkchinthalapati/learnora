@@ -896,7 +896,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount }),
         ]);
         patchImage({ saving: false, savedDeckId: deckId });
-        showToast("Saved as a flashcard.");
+        showToast("Saved as a card.");
       } catch (err) {
         patchImage({ saving: false });
         showToast(

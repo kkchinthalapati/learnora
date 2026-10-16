@@ -42,7 +42,7 @@ describe("StreakCard", () => {
     expect(trophyBtn).toBeInTheDocument();
 
     await user.click(trophyBtn);
-    expect(await screen.findByText("Trophy Cabinet")).toBeInTheDocument();
+    expect(await screen.findByText("Trophy cabinet")).toBeInTheDocument();
   });
 
   it("renders streak count, daily goal progress ring, and opens modal on Badges click", async () => {
@@ -60,16 +60,16 @@ describe("StreakCard", () => {
 
     renderWithAuth(<StreakCard />, { session: fakeSession() });
 
-    expect(await screen.findByText("Streak & Daily Goal")).toBeInTheDocument();
+    expect(await screen.findByText("Streak & Daily goal")).toBeInTheDocument();
     expect(screen.getByText(/1/)).toBeInTheDocument();
     expect(screen.getByText("25 / 30m")).toBeInTheDocument();
 
     const trophyBtn = screen.getByRole("button", {
-      name: "Open Trophy Cabinet and Achievements",
+      name: "Open Trophy cabinet and Achievements",
     });
     await user.click(trophyBtn);
 
-    expect(await screen.findByText("Trophy Cabinet")).toBeInTheDocument();
+    expect(await screen.findByText("Trophy cabinet")).toBeInTheDocument();
   });
 
   it("shows 'Goal Complete! 🔥' when today's minutes reach the goal", async () => {

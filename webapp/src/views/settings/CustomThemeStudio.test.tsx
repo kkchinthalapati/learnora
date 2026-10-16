@@ -176,7 +176,7 @@ describe("CustomThemeStudio", () => {
   it("adds stops up to three, then disables the button", async () => {
     const user = userEvent.setup();
     renderWithProviders(<CustomThemeStudio />);
-    const add = screen.getByRole("button", { name: /^Add Colour/ });
+    const add = screen.getByRole("button", { name: /^Add colour/ });
     expect(stops()).toHaveLength(1);
 
     await user.click(add);
@@ -191,17 +191,17 @@ describe("CustomThemeStudio", () => {
     renderWithProviders(<CustomThemeStudio />);
     expect(screen.queryByRole("button", { name: /^Remove colour/ })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: /^Add Colour/ }));
+    await user.click(screen.getByRole("button", { name: /^Add colour/ }));
 
     expect(
       screen.getAllByRole("button", { name: /^Remove colour/ }),
     ).toHaveLength(2);
   });
 
-  it("removes a stop and re-enables Add Colour", async () => {
+  it("removes a stop and re-enables Add colour", async () => {
     const user = userEvent.setup();
     renderWithProviders(<CustomThemeStudio />);
-    const add = screen.getByRole("button", { name: /^Add Colour/ });
+    const add = screen.getByRole("button", { name: /^Add colour/ });
     await user.click(add);
     await user.click(add);
     expect(add).toBeDisabled();
@@ -217,7 +217,7 @@ describe("CustomThemeStudio", () => {
   it("marks exactly one stop as the one being edited", async () => {
     const user = userEvent.setup();
     renderWithProviders(<CustomThemeStudio />);
-    await user.click(screen.getByRole("button", { name: /^Add Colour/ }));
+    await user.click(screen.getByRole("button", { name: /^Add colour/ }));
 
     // A freshly added stop becomes the active one.
     expect(stops()[1]).toHaveAttribute("aria-pressed", "true");
@@ -232,7 +232,7 @@ describe("CustomThemeStudio", () => {
   it("edits the selected stop, not always the first", async () => {
     const user = userEvent.setup();
     renderWithProviders(<CustomThemeStudio />);
-    await user.click(screen.getByRole("button", { name: /^Add Colour/ }));
+    await user.click(screen.getByRole("button", { name: /^Add colour/ }));
     const firstColour = stops()[0].getAttribute("aria-label");
 
     await user.clear(hexInput());
@@ -244,7 +244,7 @@ describe("CustomThemeStudio", () => {
 
   it("reports intensity as it moves", async () => {
     renderWithProviders(<CustomThemeStudio />);
-    const slider = screen.getByLabelText("Colour Intensity");
+    const slider = screen.getByLabelText("Colour intensity");
     expect(screen.getByText("74%")).toBeInTheDocument();
 
     // userEvent can't drag a range input; fire the change the browser would.
@@ -258,11 +258,11 @@ describe("CustomThemeStudio", () => {
     expect(screen.getByText("20%")).toBeInTheDocument();
   });
 
-  it("Surprise Me produces a fresh, valid palette", async () => {
+  it("Surprise me produces a fresh, valid palette", async () => {
     const user = userEvent.setup();
     renderWithProviders(<CustomThemeStudio />);
 
-    await user.click(screen.getByRole("button", { name: "Surprise Me" }));
+    await user.click(screen.getByRole("button", { name: "Surprise me" }));
 
     const labels = stops().map((s) => s.getAttribute("aria-label")!);
     expect(labels.length).toBeGreaterThanOrEqual(1);
@@ -273,15 +273,15 @@ describe("CustomThemeStudio", () => {
   it("Reset restores the default stop and persists it straight away", async () => {
     const user = userEvent.setup();
     renderWithProviders(<CustomThemeStudio />);
-    await user.click(screen.getByRole("button", { name: /^Add Colour/ }));
-    await user.click(screen.getByRole("button", { name: "Surprise Me" }));
+    await user.click(screen.getByRole("button", { name: /^Add colour/ }));
+    await user.click(screen.getByRole("button", { name: "Surprise me" }));
 
     await user.click(screen.getByRole("button", { name: "Reset" }));
 
     expect(hexInput()).toHaveValue("#5865F2");
     expect(stops()).toHaveLength(1);
     /* Unlike every other studio edit, the vanilla's reset writes through
-       immediately rather than waiting for Save Appearance. */
+       immediately rather than waiting for Save appearance. */
     expect(
       Storage.get<{ colors: string[]; intensity: number }>(CUSTOM_THEME_KEY),
     ).toEqual({ colors: ["#5865F2"], intensity: 74 });

@@ -10,6 +10,8 @@ import { useLocation } from "react-router";
 
 const TITLES: ReadonlyArray<readonly [prefix: string, title: string]> = [
   ["/welcome-pro", "Welcome to Pro"],
+  ["/lessons/", "Lesson"],
+  ["/subjects", "Subjects"],
   ["/welcome", "Welcome"],
   ["/login", "Log in"],
   ["/signup", "Create your account"],
@@ -32,7 +34,7 @@ const TITLES: ReadonlyArray<readonly [prefix: string, title: string]> = [
   ["/study/", "Study session"],
   ["/study", "Study"],
   ["/plan", "Study plan · Plan"],
-  ["/my-week", "Availability · Plan"],
+  ["/my-week", "Free time · Plan"],
   ["/tasks", "Tasks · Plan"],
   ["/exams/", "Exam · Plan"],
   ["/exams", "Exams · Plan"],
@@ -48,7 +50,7 @@ const TITLES: ReadonlyArray<readonly [prefix: string, title: string]> = [
 export const APP_NAME = "Learnora";
 
 export function titleForPath(pathname: string): string {
-  if (pathname === "/" || pathname === "") return `Today · ${APP_NAME}`;
+  if (pathname === "/" || pathname === "") return `Home · ${APP_NAME}`;
   const hit = TITLES.find(([prefix]) => pathname.startsWith(prefix));
   return hit ? `${hit[1]} · ${APP_NAME}` : APP_NAME;
 }

@@ -17,7 +17,6 @@ import {
 import { INTERVENTION_BLOCK_MINS, type Verdict } from "../../lib/trajectory";
 import { TrajectoryChart } from "./TrajectoryChart";
 import { QuizOnlyForecast } from "./QuizOnlyForecast";
-import { ProgressSectionNav } from "../analytics/ProgressSectionNav";
 import styles from "./trajectory.module.css";
 
 /* The screen that answers "is what I'm doing going to be enough?"
@@ -52,7 +51,7 @@ const VERDICT_COPY: Record<Verdict, { tone: string; headline: string }> = {
   },
 };
 
-function TrajectoryBody() {
+export function TrajectoryBody() {
   const [examId, setExamId] = useState<number | null>(null);
   const { exam, candidates, forecast, needsMaterial, scopedToSubject, isPending } =
     useTrajectory(examId);
@@ -313,9 +312,7 @@ function TrajectoryBody() {
 export function TrajectoryView() {
   return (
     <div className={styles.view}>
-      <ProgressSectionNav />
       <PageHeader
-        eyebrow="Trajectory"
         title="The grade you are heading for"
         sub="Every topic projected forward to exam day under your study habits and timely refreshers, against the hours you actually have."
       />

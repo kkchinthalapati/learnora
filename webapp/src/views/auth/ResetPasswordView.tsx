@@ -158,7 +158,7 @@ export function ResetPasswordView() {
 
   return (
     <AuthShell
-      title="Reset Password"
+      title="Reset password"
       subtitle="Choose a strong, new password for your account."
       status={statusNode}
       showLegal={false}
@@ -167,7 +167,7 @@ export function ResetPasswordView() {
         <div>
           <PasswordField
             id={passwordId}
-            label="New Password"
+            label="New password"
             value={password}
             onChange={setPassword}
             autoComplete="new-password"
@@ -178,7 +178,7 @@ export function ResetPasswordView() {
 
         <PasswordField
           id={confirmId}
-          label="Confirm Password"
+          label="Confirm password"
           value={confirmPassword}
           onChange={setConfirmPassword}
           autoComplete="new-password"
@@ -192,7 +192,7 @@ export function ResetPasswordView() {
           className={styles.submit}
           disabled={saving}
         >
-          {saving ? "Updating..." : "Update Password →"}
+          {saving ? "Updating..." : "Update password →"}
         </Button>
       </form>
     </AuthShell>

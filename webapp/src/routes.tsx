@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { Navigate, Route, Routes, useParams } from "react-router";
 import { LegacyToolRedirect } from "./views/session/LegacyToolRedirect";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import {
@@ -31,8 +31,11 @@ import styles from "./routes.module.css";
 const LazyAppShell = lazy(async () => ({
   default: (await import("./components/AppShell")).AppShell,
 }));
-const LazyTodayView = lazy(async () => ({
-  default: (await import("./views/today/TodayView")).TodayView,
+const LazyHomeView = lazy(async () => ({
+  default: (await import("./views/home/HomeView")).HomeView,
+}));
+const LazyLessonView = lazy(async () => ({
+  default: (await import("./views/lesson/LessonView")).LessonView,
 }));
 const LazyTasksView = lazy(async () => ({
   default: (await import("./views/tasks/TasksView")).TasksView,
@@ -75,10 +78,19 @@ const LazyNotebookStudioView = lazy(async () => ({
   default: (await import("./views/notebooks/NotebookStudioView"))
     .NotebookStudioView,
 }));
-const LazySubjectDetailPage = lazy(async () => ({
-  default: (await import("./views/library/SubjectDetailPage"))
-    .SubjectDetailPage,
+const LazySubjectsView = lazy(async () => ({
+  default: (await import("./views/subjects/SubjectsView")).SubjectsView,
 }));
+const LazySubjectView = lazy(async () => ({
+  default: (await import("./views/subjects/SubjectView")).SubjectView,
+}));
+
+/* The folder workspace became the subject page (webapp/DESIGN.md 0.1); old
+   /folders/:id links land on /subjects/:id. */
+function FolderRedirect() {
+  const { folderId = "" } = useParams();
+  return <Navigate to={`/subjects/${encodeURIComponent(folderId)}`} replace />;
+}
 const LazyNotesView = lazy(async () => ({
   default: (await import("./views/notes/NotesView")).NotesView,
 }));
@@ -102,9 +114,6 @@ const LazyDeckCardsView = lazy(async () => ({
    reason the studio and the quiz runner are. */
 const LazyMyWeekView = lazy(async () => ({
   default: (await import("./views/lifesync/MyWeekView")).MyWeekView,
-}));
-const LazyTrajectoryView = lazy(async () => ({
-  default: (await import("./views/trajectory/TrajectoryView")).TrajectoryView,
 }));
 const LazyStudyRoomView = lazy(async () => ({
   default: (await import("./views/room/StudyRoomView")).StudyRoomView,
@@ -136,15 +145,17 @@ const LazyFriendInviteLanding = lazy(async () => ({
   default: (await import("./views/friends/FriendInviteLanding"))
     .FriendInviteLanding,
 }));
-const LazyStudyAnalyticsView = lazy(async () => ({
-  default: (await import("./views/analytics/StudyAnalyticsView"))
-    .StudyAnalyticsView,
+const LazyProgressView = lazy(async () => ({
+  default: (await import("./views/analytics/ProgressView")).ProgressView,
 }));
 const LazySessionView = lazy(async () => ({
   default: (await import("./views/session/SessionView")).SessionView,
 }));
 const LazyCheckBackView = lazy(async () => ({
   default: (await import("./views/checkback/CheckBackView")).CheckBackView,
+}));
+const LazyCaptureView = lazy(async () => ({
+  default: (await import("./views/capture/CaptureView")).CaptureView,
 }));
 const LazyStudyLabView = lazy(async () => ({
   default: (await import("./views/study-lab/StudyLabView")).StudyLabView,
@@ -283,11 +294,20 @@ export function AppRoutes() {
               </Suspense>
             }
           >
+            {/* 2026-10 overhaul: Home replaces Today (webapp/DESIGN.md 0.1). */}
             <Route path="/" element={
               <DeferredView>
-                <LazyTodayView />
+                <LazyHomeView />
               </DeferredView>
             } />
+            <Route
+              path="/lessons/:materialId"
+              element={
+                <DeferredView>
+                  <LazyLessonView />
+                </DeferredView>
+              }
+            />
             {/* 2026-09 redesign: Today is the home. The misconception ledger
                 that lived on the Dashboard is on Progress now. */}
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
@@ -339,13 +359,22 @@ export function AppRoutes() {
               </DeferredView>
             } />
             <Route
-              path="/folders/:folderId"
+              path="/subjects"
               element={
                 <DeferredView>
-                  <LazySubjectDetailPage />
+                  <LazySubjectsView />
                 </DeferredView>
               }
             />
+            <Route
+              path="/subjects/:folderId"
+              element={
+                <DeferredView>
+                  <LazySubjectView />
+                </DeferredView>
+              }
+            />
+            <Route path="/folders/:folderId" element={<FolderRedirect />} />
             <Route
               path="/notes/:materialId"
               element={
@@ -368,6 +397,14 @@ export function AppRoutes() {
               }
             />
             <Route path="/study-lab" element={<Navigate to="/study" replace />} />
+            <Route
+              path="/capture"
+              element={
+                <DeferredView>
+                  <LazyCaptureView />
+                </DeferredView>
+              }
+            />
             <Route
               path="/my-week"
               element={
@@ -444,18 +481,12 @@ export function AppRoutes() {
               path="/analytics"
               element={
                 <DeferredView>
-                  <LazyStudyAnalyticsView />
+                  <LazyProgressView />
                 </DeferredView>
               }
             />
-            <Route
-              path="/trajectory"
-              element={
-                <DeferredView>
-                  <LazyTrajectoryView />
-                </DeferredView>
-              }
-            />
+            {/* The forecast is a tab of Progress (webapp/DESIGN.md 0.1). */}
+            <Route path="/trajectory" element={<Navigate to="/analytics?tab=forecast" replace />} />
             {/* /ai-tutor was a third way to reach tools that already had two
                 each: it rendered no UI of its own, only a tab strip that
                 mounted the Solver, Feynman and Viva views inline. The hub at

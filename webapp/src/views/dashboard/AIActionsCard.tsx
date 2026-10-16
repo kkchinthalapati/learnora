@@ -59,7 +59,7 @@ export function AIActionsCard() {
       const ok = await confirm(
         "This will replace your current weekly plan. Continue?",
         {
-          title: "Regenerate Weekly Plan",
+          title: "Regenerate weekly plan",
           confirmText: "Regenerate",
           danger: true,
         },

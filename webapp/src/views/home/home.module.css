@@ -1,0 +1,134 @@
+/* Home (DESIGN.md rule 0.1). A single centred column: the question owns the
+   top of the page, everything after it is a list. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-10);
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding-top: clamp(16px, 6vh, 64px);
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-5);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-4xl);
+  font-weight: 500;
+  line-height: var(--lh-display);
+  letter-spacing: var(--tracking-display);
+  color: var(--text);
+  text-align: center;
+}
+
+.resume {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  align-self: center;
+  max-width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--s-2) var(--s-4) var(--s-2) var(--s-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.resume:hover {
+  border-color: var(--hairline-strong);
+  background: var(--surface-hover);
+}
+
+.resumeTitle {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resumeMeta {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resumeAction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex: none;
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.arrow {
+  transform: rotate(-90deg);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.exam {
+  color: var(--recall-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.quietLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.quietLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+@media (max-width: 768px) {
+  .page {
+    gap: var(--s-8);
+    padding-top: var(--s-4);
+  }
+
+  .title {
+    font-size: var(--fs-3xl);
+  }
+
+  .resumeMeta {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resume {
+    transition: none;
+  }
+}

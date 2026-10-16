@@ -87,13 +87,21 @@ describe("MaterialPanel streamlined creation", () => {
     return checkbox as HTMLInputElement;
   }
 
+  /* The dialog opens on the capture bar; this panel is behind "More
+     options" (a caller naming a material or a quiz skips straight to it). */
+  async function openFullPanel(user: ReturnType<typeof userEvent.setup>) {
+    const more = screen.queryByRole("button", { name: /More options/ });
+    if (more) await user.click(more);
+    await screen.findByRole("heading", { name: "1. Provide Source" });
+  }
+
   async function openDialog(initial?: OpenCreateModalOptions) {
     const user = userEvent.setup();
     renderWithProviders(<Harness initial={initial} />, undefined, {
       withRouter: true,
     });
     await user.click(screen.getByRole("button", { name: "Open create" }));
-    await screen.findByRole("heading", { name: "1. Provide Source" });
+    await openFullPanel(user);
     return user;
   }
 
@@ -115,16 +123,16 @@ describe("MaterialPanel streamlined creation", () => {
     expect(screen.getByRole("tab", { name: /Web Link/ })).toBeInTheDocument();
 
     /* One default, so one request, unless the student adds more. */
-    expect(outputCheckbox("Flashcards")).toBeChecked();
-    expect(outputCheckbox("Summary Notes")).not.toBeChecked();
-    expect(outputCheckbox("Practice Quiz")).not.toBeChecked();
+    expect(outputCheckbox("Cards")).toBeChecked();
+    expect(outputCheckbox("Summary notes")).not.toBeChecked();
+    expect(outputCheckbox("Practice quiz")).not.toBeChecked();
 
     // Voice control and screen readers must use the visible button label.
     const submit = screen.getByRole("button", {
-      name: "Generate Study Resources",
+      name: "Generate study resources",
     });
     expect(submit).toBeInTheDocument();
-    expect(submit).toHaveTextContent("Generate Study Resources");
+    expect(submit).toHaveTextContent("Generate study resources");
     expect(submit).not.toHaveAttribute("aria-label");
   });
 
@@ -134,15 +142,15 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     expect(
       screen.getByText(
-        "Uses from today's AI allowance: 1 notes + 1 flashcards (new material always gets a notes pass so the AI can read it).",
+        "Uses from today's AI allowance: 1 notes + 1 cards (a new lesson always gets a notes pass so the AI can read it).",
       ),
     ).toBeInTheDocument();
 
-    await user.click(outputCheckbox("Practice Quiz"));
-    await user.click(outputCheckbox("Summary Notes"));
+    await user.click(outputCheckbox("Practice quiz"));
+    await user.click(outputCheckbox("Summary notes"));
     expect(
       screen.getByText(
-        "Uses from today's AI allowance: 1 notes + 1 flashcards + 1 quiz.",
+        "Uses from today's AI allowance: 1 notes + 1 cards + 1 quiz.",
       ),
     ).toBeInTheDocument();
   });
@@ -192,9 +200,9 @@ describe("MaterialPanel streamlined creation", () => {
     expect(await screen.findByText("board.jpg")).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
-    expect(await screen.findByText("Created flashcards.")).toBeInTheDocument();
+    expect(await screen.findByText("Created cards.")).toBeInTheDocument();
 
     /* The photo is read once, into notes, by the attachment path — and the
        deck is built from those notes, never from the image again. */
@@ -219,7 +227,7 @@ describe("MaterialPanel streamlined creation", () => {
     expect(screen.queryByText("IMG_0001.heic")).not.toBeInTheDocument();
   });
 
-  it("only offers Saved Material when the student has one", async () => {
+  it("only offers Saved material when the student has one", async () => {
     server.use(
       http.get(`${SUPABASE_URL}/rest/v1/materials`, () =>
         HttpResponse.json([{ id: "m1", title: "Chapter 4 notes" }]),
@@ -227,15 +235,15 @@ describe("MaterialPanel streamlined creation", () => {
     );
     const user = await openDialog();
     expect(
-      await screen.findByRole("tab", { name: /Saved Material/ }),
+      await screen.findByRole("tab", { name: /Saved lesson/ }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: /Saved Material/ }));
+    await user.click(screen.getByRole("tab", { name: /Saved lesson/ }));
     expect(
       screen.getByRole("option", { name: "Chapter 4 notes" }),
     ).toBeInTheDocument();
   });
 
-  it("hides Saved Material when the library is empty", async () => {
+  it("hides Saved material when the library is empty", async () => {
     server.use(
       http.get(`${SUPABASE_URL}/rest/v1/materials`, () =>
         HttpResponse.json([]),
@@ -244,7 +252,7 @@ describe("MaterialPanel streamlined creation", () => {
     await openDialog();
     await waitFor(() =>
       expect(
-        screen.queryByRole("tab", { name: /Saved Material/ }),
+        screen.queryByRole("tab", { name: /Saved lesson/ }),
       ).not.toBeInTheDocument(),
     );
   });
@@ -253,7 +261,7 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     await user.click(screen.getByRole("tab", { name: /Upload Document/ }));
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent("Choose a file");
   });
@@ -262,7 +270,7 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     await chooseText(user, "Too short");
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "a bit short to study from",
@@ -275,7 +283,7 @@ describe("MaterialPanel streamlined creation", () => {
     const input = screen.getByRole("textbox", { name: "Web or YouTube link" });
     await user.type(input, "javascript:alert(1)");
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Links have to start with http:// or https://",
@@ -283,7 +291,7 @@ describe("MaterialPanel streamlined creation", () => {
     await user.clear(input);
     await user.type(input, "not a link");
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "doesn't look like a link",
@@ -302,9 +310,9 @@ describe("MaterialPanel streamlined creation", () => {
   it("requires an output when all are deselected", async () => {
     const user = await openDialog();
     await chooseText(user);
-    await user.click(outputCheckbox("Flashcards"));
+    await user.click(outputCheckbox("Cards"));
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Pick at least one thing",
@@ -313,11 +321,11 @@ describe("MaterialPanel streamlined creation", () => {
 
   it("allows 1-tap toggling of output cards", async () => {
     const user = await openDialog();
-    expect(outputCheckbox("Practice Quiz")).not.toBeChecked();
-    await user.click(outputCheckbox("Practice Quiz"));
-    expect(outputCheckbox("Practice Quiz")).toBeChecked();
-    await user.click(outputCheckbox("Flashcards"));
-    expect(outputCheckbox("Flashcards")).not.toBeChecked();
+    expect(outputCheckbox("Practice quiz")).not.toBeChecked();
+    await user.click(outputCheckbox("Practice quiz"));
+    expect(outputCheckbox("Practice quiz")).toBeChecked();
+    await user.click(outputCheckbox("Cards"));
+    expect(outputCheckbox("Cards")).not.toBeChecked();
   });
 
   it("keeps required filing visible and validates subject selection", async () => {
@@ -328,7 +336,7 @@ describe("MaterialPanel streamlined creation", () => {
     await chooseText(user);
     expect(screen.getByLabelText("Subject")).toBeInTheDocument();
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Choose a subject to save this into",
@@ -338,17 +346,17 @@ describe("MaterialPanel streamlined creation", () => {
   it("reveals fine-tune generation settings in accordion", async () => {
     const user = await openDialog();
     await chooseText(user);
-    await user.click(outputCheckbox("Practice Quiz"));
+    await user.click(outputCheckbox("Practice quiz"));
     await user.click(screen.getByText("Fine-tune generation"));
     expect(screen.getByText("Quiz difficulty")).toBeInTheDocument();
-    expect(screen.getByLabelText("Flashcards: 12")).toBeInTheDocument();
+    expect(screen.getByLabelText("Cards: 12")).toBeInTheDocument();
   });
 
   it("seeds the quiz host from the student's AI persona", async () => {
     Storage.set(SETTINGS_KEY, { ...DEFAULT_SETTINGS, aiPersona: "coach" });
     const user = await openDialog();
     await chooseText(user);
-    await user.click(outputCheckbox("Practice Quiz"));
+    await user.click(outputCheckbox("Practice quiz"));
     await user.click(screen.getByText("Fine-tune generation"));
     expect(screen.getByLabelText("Quiz host")).toHaveValue("Strict Coach");
   });
@@ -365,12 +373,12 @@ describe("MaterialPanel streamlined creation", () => {
     );
     const user = await openDialog();
     await chooseText(user);
-    await user.click(outputCheckbox("Summary Notes"));
+    await user.click(outputCheckbox("Summary notes"));
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
     expect(
-      await screen.findByText("Created notes, flashcards."),
+      await screen.findByText("Created notes, cards."),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
@@ -391,7 +399,7 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     await chooseText(user);
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "That topic isn't supported.",
@@ -415,15 +423,15 @@ describe("MaterialPanel streamlined creation", () => {
     );
     const user = await openDialog();
     await chooseText(user);
-    await user.click(outputCheckbox("Summary Notes"));
+    await user.click(outputCheckbox("Summary notes"));
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
     const busy = await screen.findByRole("button", { name: "Creating…" });
     expect(busy).toBeDisabled();
     expect(
       within(screen.getByRole("dialog")).getByRole("status"),
-    ).toHaveTextContent("Reading your material and writing notes…");
+    ).toHaveTextContent("Reading your lesson and writing notes…");
     await user.click(busy);
     expect(edgeCalls).toBe(1);
     release?.();
@@ -494,7 +502,7 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     await chooseText(user);
     await user.click(
-      screen.getByRole("button", { name: "Generate Study Resources" }),
+      screen.getByRole("button", { name: "Generate study resources" }),
     );
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
@@ -510,7 +518,7 @@ describe("MaterialPanel streamlined creation", () => {
       screen.getByRole("button", { name: "Retry what didn't finish" }),
     );
     expect(
-      await screen.findByText("Created notes, flashcards."),
+      await screen.findByText("Created notes, cards."),
     ).toBeInTheDocument();
     expect(materialPosts).toBe(1);
   });
@@ -519,9 +527,9 @@ describe("MaterialPanel streamlined creation", () => {
     await openDialog({
       outputs: { flashcards: false, quiz: true, notes: false },
     });
-    expect(outputCheckbox("Flashcards")).not.toBeChecked();
-    expect(outputCheckbox("Practice Quiz")).toBeChecked();
-    expect(outputCheckbox("Summary Notes")).not.toBeChecked();
+    expect(outputCheckbox("Cards")).not.toBeChecked();
+    expect(outputCheckbox("Practice quiz")).toBeChecked();
+    expect(outputCheckbox("Summary notes")).not.toBeChecked();
   });
 
   describe("draft recovery", () => {
@@ -532,9 +540,7 @@ describe("MaterialPanel streamlined creation", () => {
       await user.keyboard("{Escape}");
 
       await user.click(screen.getByRole("button", { name: "Open create" }));
-      await screen.findByRole("heading", {
-        name: "1. Provide Source",
-      });
+      await openFullPanel(user);
 
       expect(screen.getByLabelText("Paste your notes or text")).toHaveValue(
         "Mitochondria are the powerhouse of the cell.",

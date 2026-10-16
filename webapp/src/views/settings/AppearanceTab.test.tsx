@@ -56,8 +56,10 @@ describe("AppearanceTab", () => {
     serveProfile(false);
     renderWithProviders(<AppearanceTab />);
 
+    /* The gate waits on the entitlements query; under a full parallel run
+       that took over the default 1s and the test flaked (2026-10-15). */
     expect(
-      await screen.findByRole("button", { name: /see what pro adds/i }),
+      await screen.findByRole("button", { name: /see what pro adds/i }, { timeout: 5000 }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Pacific Deep")).toBeNull();
   });
@@ -76,7 +78,7 @@ describe("AppearanceTab", () => {
     Storage.set("learnora_accent", "ocean");
     await renderTab();
 
-    expect(screen.getByRole("button", { name: /Light Mode/ })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: /Light mode/ })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -84,7 +86,7 @@ describe("AppearanceTab", () => {
       "aria-pressed",
       "true",
     );
-    expect(screen.getByRole("button", { name: /Dark Mode/ })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: /Dark mode/ })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
@@ -95,7 +97,7 @@ describe("AppearanceTab", () => {
     await renderTab();
     expect(document.body.classList.contains("dark-theme")).toBe(true);
 
-    await user.click(screen.getByRole("button", { name: /Light Mode/ }));
+    await user.click(screen.getByRole("button", { name: /Light mode/ }));
 
     expect(document.body.classList.contains("dark-theme")).toBe(false);
   });
@@ -118,29 +120,27 @@ describe("AppearanceTab", () => {
     expect(group.querySelectorAll("button")).toHaveLength(13);
   });
 
-  it("applies font, scale, sidebar and background choices to the body", async () => {
+  it("applies font, scale and background choices to the body", async () => {
     const user = userEvent.setup();
     await renderTab();
 
     await user.click(screen.getByRole("button", { name: /JetBrains Mono/ }));
     await user.click(screen.getByRole("button", { name: /Compact/ }));
-    await user.click(screen.getByRole("button", { name: /Solid Canvas/ }));
-    await user.click(screen.getByRole("button", { name: /Liquid Mesh/ }));
+    await user.click(screen.getByRole("button", { name: /Liquid mesh/ }));
 
     expect(document.body.getAttribute("data-font-family")).toBe("mono");
     expect(document.body.getAttribute("data-font-size")).toBe("sm");
-    expect(document.body.getAttribute("data-sidebar-style")).toBe("solid");
     expect(document.body.getAttribute("data-bg-texture")).toBe("mesh");
   });
 
-  it("does not persist a change until Save Appearance is pressed", async () => {
+  it("does not persist a change until Save appearance is pressed", async () => {
     const user = userEvent.setup();
     await renderTab();
 
     await user.click(screen.getByRole("button", { name: /Pacific Deep/ }));
     expect(Storage.get<string>("learnora_accent")).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Save Appearance" }));
+    await user.click(screen.getByRole("button", { name: "Save appearance" }));
 
     expect(Storage.get<string>("learnora_accent")).toBe("ocean");
     expect(await screen.findByText("Appearance saved.")).toBeInTheDocument();
@@ -150,9 +150,9 @@ describe("AppearanceTab", () => {
     const user = userEvent.setup();
     await renderTab();
 
-    await user.click(screen.getByRole("button", { name: /Light Mode/ }));
+    await user.click(screen.getByRole("button", { name: /Light mode/ }));
     await user.click(screen.getByRole("button", { name: /Inter UI/ }));
-    await user.click(screen.getByRole("button", { name: "Save Appearance" }));
+    await user.click(screen.getByRole("button", { name: "Save appearance" }));
 
     expect(Storage.get<string>("learnora_mode")).toBe("light");
     expect(Storage.get<string>("learnora_theme")).toBe("light");
@@ -169,7 +169,7 @@ describe("AppearanceTab", () => {
     Storage.set(CUSTOM_THEME_KEY, { colors: ["#123456"], intensity: 10 });
     await renderTab();
 
-    await user.click(screen.getByRole("button", { name: "Reset Defaults" }));
+    await user.click(screen.getByRole("button", { name: "Reset defaults" }));
 
     expect(Storage.get<string>("learnora_accent")).toBe("default");
     expect(Storage.get<string>("learnora_font")).toBe("jakarta");
@@ -185,11 +185,11 @@ describe("AppearanceTab", () => {
     await renderTab();
     expect(document.body.getAttribute("data-theme-color")).toBe("default");
 
-    await user.click(screen.getByRole("button", { name: /^Add Colour/ }));
+    await user.click(screen.getByRole("button", { name: /^Add colour/ }));
 
     expect(document.body.getAttribute("data-theme-color")).toBe("custom");
     // The studio's own field label, plus the live preview badge following it.
-    expect(screen.getAllByText("Custom Colours")).toHaveLength(2);
+    expect(screen.getAllByText("Custom colours")).toHaveLength(2);
   });
 
   it("deselects the preset that was active before the studio took over", async () => {
@@ -198,7 +198,7 @@ describe("AppearanceTab", () => {
     const scholar = screen.getByRole("button", { name: /Scholar Teal/ });
     expect(scholar).toHaveAttribute("aria-pressed", "true");
 
-    await user.click(screen.getByRole("button", { name: /^Add Colour/ }));
+    await user.click(screen.getByRole("button", { name: /^Add colour/ }));
 
     expect(scholar).toHaveAttribute("aria-pressed", "false");
   });

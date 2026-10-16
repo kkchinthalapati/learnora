@@ -68,7 +68,7 @@ describe("LoginView", () => {
 
     await user.type(screen.getByLabelText("Email"), "  ada@example.com  ");
     await user.type(screen.getByLabelText("Password"), "password123");
-    await user.click(screen.getByRole("button", { name: "Log In →" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() => expect(body).not.toBeNull());
     expect(body).toMatchObject({
@@ -95,7 +95,7 @@ describe("LoginView", () => {
 
     await user.type(screen.getByLabelText("Email"), "ada@example.com");
     await user.type(screen.getByLabelText("Password"), "wrong-password");
-    await user.click(screen.getByRole("button", { name: "Log In →" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     /* role="alert", not just visible text: an error that blocks what the user
        just tried has to be announced, which the vanilla's #auth-status never

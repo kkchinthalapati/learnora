@@ -17,7 +17,12 @@
  * not named here, so a new version never serves an old one's files. */
 const SHELL_CACHE = "learnora-shell-v4";
 const ASSETS_CACHE = "learnora-assets-v4";
-const CURRENT_CACHES = [SHELL_CACHE, ASSETS_CACHE];
+/* "Share to Learnora" (the manifest's share_target) posts here. The shared
+ * item waits in this cache for the one page load that reads it, then is
+ * deleted — see src/lib/sharedCapture.ts. Never versioned away by activate. */
+const SHARE_CACHE = "learnora-share";
+const SHARE_ACTION = "/app/capture";
+const CURRENT_CACHES = [SHELL_CACHE, ASSETS_CACHE, SHARE_CACHE];
 
 /* Every route under /app/ is the same index.html (vercel.json rewrites them
  * all), so the shell is kept under ONE key and refreshed by every online
@@ -155,9 +160,44 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/* One share at a time: a new one replaces whatever was waiting. Only the
+ * first file is kept, matching the capture bar's single source. */
+async function receiveShare(request) {
+  const cache = await caches.open(SHARE_CACHE);
+  await Promise.all((await cache.keys()).map((key) => cache.delete(key)));
+  try {
+    const form = await request.formData();
+    const file = form.getAll("file").find((entry) => entry instanceof File && entry.size > 0);
+    const meta = {
+      title: String(form.get("title") || ""),
+      text: String(form.get("text") || ""),
+      url: String(form.get("url") || ""),
+      fileName: file ? file.name : null,
+      fileType: file ? file.type : null,
+    };
+    await cache.put(
+      SHARE_ACTION + "/__meta",
+      new Response(JSON.stringify(meta), { headers: { "Content-Type": "application/json" } }),
+    );
+    if (file) await cache.put(SHARE_ACTION + "/__file", new Response(file));
+  } catch {
+    /* The page shows an empty capture bar; nothing to recover. */
+  }
+  return Response.redirect(SHARE_ACTION + "?shared=1", 303);
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  if (
+    request.method === "POST" &&
+    url.origin === self.location.origin &&
+    url.pathname === SHARE_ACTION
+  ) {
+    event.respondWith(receiveShare(request));
+    return;
+  }
 
   // Only intercept GET requests
   if (request.method !== "GET") return;

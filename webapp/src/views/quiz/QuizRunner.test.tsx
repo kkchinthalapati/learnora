@@ -119,7 +119,7 @@ describe("QuizRunner", () => {
     await screen.findByText("Question 1 of 2");
 
     expect(
-      screen.queryByRole("button", { name: /Next Question/ }),
+      screen.queryByRole("button", { name: /Next question/ }),
     ).not.toBeInTheDocument();
 
     await userEvent.click(
@@ -127,7 +127,7 @@ describe("QuizRunner", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "Next Question →" }),
+      screen.getByRole("button", { name: "Next question →" }),
     ).toBeInTheDocument();
   });
 
@@ -183,7 +183,7 @@ describe("QuizRunner", () => {
       screen.getByRole("button", { name: "Mitochondrion" }),
     );
     await userEvent.click(
-      screen.getByRole("button", { name: "Next Question →" }),
+      screen.getByRole("button", { name: "Next question →" }),
     );
 
     await userEvent.click(
@@ -234,7 +234,7 @@ describe("QuizRunner", () => {
       screen.getByRole("button", { name: "Mitochondrion" }),
     );
     await userEvent.click(
-      screen.getByRole("button", { name: "Next Question →" }),
+      screen.getByRole("button", { name: "Next question →" }),
     );
     await userEvent.click(
       screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
@@ -255,7 +255,7 @@ describe("QuizRunner", () => {
         screen.getByRole("button", { name: "Mitochondrion" }),
       );
       await userEvent.click(
-        screen.getByRole("button", { name: "Next Question →" }),
+        screen.getByRole("button", { name: "Next question →" }),
       );
       await userEvent.click(screen.getByRole("button", { name: secondAnswer }));
       await userEvent.click(
@@ -371,7 +371,7 @@ describe("QuizRunner", () => {
       await userEvent.click(screen.getByRole("button", { name: "Guess" }));
       await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
       expect(screen.queryByRole("group", { name: /optional/ })).toBeNull();
-      await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+      await userEvent.click(screen.getByRole("button", { name: "Next question →" }));
       await userEvent.click(screen.getByRole("button", { name: "Certain" }));
       await userEvent.click(screen.getByRole("button", { name: "Dinitrogen acetate" }));
       await userEvent.click(screen.getByRole("button", { name: "See results →" }));
@@ -501,7 +501,7 @@ describe("QuizRunner draft autosave", () => {
       screen.getByRole("button", { name: "Mitochondrion" }),
     );
     await userEvent.click(
-      screen.getByRole("button", { name: "Next Question →" }),
+      screen.getByRole("button", { name: "Next question →" }),
     );
     await screen.findByText("Question 2 of 2");
 
@@ -522,7 +522,7 @@ describe("QuizRunner draft autosave", () => {
       screen.getByRole("button", { name: "Mitochondrion" }),
     );
     await userEvent.click(
-      screen.getByRole("button", { name: "Next Question →" }),
+      screen.getByRole("button", { name: "Next question →" }),
     );
     await screen.findByText("Question 2 of 2");
     await waitFor(() => expect(Storage.get(draftKey)).not.toBeNull());
@@ -576,7 +576,7 @@ describe("QuizRunner draft autosave", () => {
     renderRunner();
 
     await screen.findByText(/Resume where you left off/);
-    await userEvent.click(screen.getByRole("button", { name: "Start Over" }));
+    await userEvent.click(screen.getByRole("button", { name: "Start over" }));
 
     await waitFor(() =>
       expect(screen.getByText("Question 1 of 2")).toBeInTheDocument(),
@@ -634,7 +634,7 @@ describe("QuizRunner draft autosave", () => {
         screen.getByRole("button", { name: "Mitochondrion" }),
       );
       await userEvent.click(
-        screen.getByRole("button", { name: "Next Question →" }),
+        screen.getByRole("button", { name: "Next question →" }),
       );
       advance(perQuestionMs);
       await userEvent.click(
@@ -714,7 +714,7 @@ describe("QuizRunner answer integrity", () => {
        verdict is restored rather than the question being offered fresh: a
        refresh must not turn a seen wrong answer into a right one. */
     expect(screen.getByRole("button", { name: "Mitochondrion" })).toBeDisabled();
-    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next question →" }));
     await screen.findByText("Question 2 of 2");
     await userEvent.click(
       screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
@@ -748,7 +748,7 @@ describe("QuizRunner results routing", () => {
     await screen.findByText("Question 1 of 2");
     /* Wrong on both, so there is something to fix. */
     await userEvent.click(screen.getByRole("button", { name: "Nucleus" }));
-    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next question →" }));
     await screen.findByText("Question 2 of 2");
     await userEvent.click(screen.getByRole("button", { name: "Dinitrogen acetate" }));
     await userEvent.click(screen.getByRole("button", { name: "See results →" }));
@@ -767,7 +767,7 @@ describe("QuizRunner results routing", () => {
 
     await screen.findByText("Question 1 of 2");
     await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
-    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next question →" }));
     await screen.findByText("Question 2 of 2");
     await userEvent.click(
       screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
@@ -792,7 +792,7 @@ describe("QuizRunner results routing", () => {
 
     await screen.findByText("Question 1 of 2");
     await userEvent.click(screen.getByRole("button", { name: "Nucleus" }));
-    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next question →" }));
     await screen.findByText("Question 2 of 2");
     await userEvent.click(screen.getByRole("button", { name: "Dinitrogen acetate" }));
     await userEvent.click(screen.getByRole("button", { name: "See results →" }));
@@ -803,7 +803,7 @@ describe("QuizRunner results routing", () => {
     await screen.findByText("Question 1 of 2");
     expect(screen.getByRole("button", { name: "Mitochondrion" })).toBeEnabled();
     await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
-    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next question →" }));
     await userEvent.click(
       await screen.findByRole("button", { name: "Deoxyribonucleic acid" }),
     );

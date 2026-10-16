@@ -158,9 +158,9 @@ function Placement({
 
   const header = (
     <PageHeader
-      eyebrow={specWithTierLabel(spec, tier)}
+      as="h1"
       title="Find my level"
-      sub={`${examName} · up to ${PLACEMENT_MAX_QUESTIONS} questions, no marks shown until the end`}
+      sub={`${examName} · ${specWithTierLabel(spec, tier)} · up to ${PLACEMENT_MAX_QUESTIONS} questions, no marks shown until the end`}
     />
   );
 

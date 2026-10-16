@@ -25,7 +25,7 @@ describe("PreferencesTab", () => {
     await user.selectOptions(screen.getByLabelText("Exam framework"), "sat");
     expect(sync).not.toHaveBeenCalled();
     expect(loadSettings().framework).toBe("auto");
-    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
     expect(await screen.findByText("Preferences saved.")).toBeInTheDocument();
     expect(sync).toHaveBeenCalledWith({
       region: "US",
@@ -43,7 +43,7 @@ describe("PreferencesTab", () => {
     const user = userEvent.setup();
     renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
     await user.selectOptions(screen.getByLabelText("Exam framework"), "sat");
-    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
     expect(
       await screen.findByText(
         /Saved on this device. Could not sync preferences/,
@@ -76,7 +76,7 @@ describe("PreferencesTab", () => {
     await user.selectOptions(screen.getByLabelText("AI Persona"), "buddy");
     expect(loadSettings().aiPersona).toBe("tutor");
 
-    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
     expect(loadSettings().aiPersona).toBe("buddy");
   });
 
@@ -85,7 +85,7 @@ describe("PreferencesTab", () => {
     renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     await user.selectOptions(screen.getByLabelText("AI Persona"), "coach");
-    await user.selectOptions(screen.getByLabelText("Response Length"), "short");
+    await user.selectOptions(screen.getByLabelText("Response length"), "short");
     /* AI Response Language before UI Language: switching UI Language
        re-translates this tab live (Step 23's useTranslation), which renames
        the "AI Response Language" <label> itself once it's no longer English
@@ -113,7 +113,7 @@ describe("PreferencesTab", () => {
     const user = userEvent.setup();
     renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
-    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(await screen.findByText("Preferences saved.")).toBeInTheDocument();
   });
@@ -132,11 +132,11 @@ describe("PreferencesTab", () => {
       { withRouter: true },
     );
 
-    await user.click(screen.getByRole("switch", { name: "Timer Alerts" }));
+    await user.click(screen.getByRole("switch", { name: "Timer alerts" }));
     expect(loadSettings().notifyTimerAlerts).toBe(false);
 
     await user.selectOptions(screen.getByLabelText("AI Persona"), "coach");
-    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(loadSettings()).toMatchObject({
       aiPersona: "coach",
@@ -153,18 +153,18 @@ describe("PreferencesTab", () => {
     ).toBeInTheDocument();
 
     await user.selectOptions(
-      screen.getByLabelText("Depth Level"),
+      screen.getByLabelText("Depth level"),
       "4: Advanced Analysis",
     );
-    await user.selectOptions(screen.getByLabelText("Study Style"), "visual");
+    await user.selectOptions(screen.getByLabelText("Study style"), "visual");
     await user.click(
       screen.getByRole("switch", { name: "Auto-Adapt Persona" }),
     );
     await user.click(
-      screen.getByRole("switch", { name: "Live Web Intelligence" }),
+      screen.getByRole("switch", { name: "Live web intelligence" }),
     );
 
-    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(loadSettings()).toMatchObject({
       aiDepth: 4,

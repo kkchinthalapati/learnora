@@ -23,7 +23,7 @@ export function MaterialsPanel() {
   if (isPending) {
     return (
       <div aria-busy="true">
-        <Skeleton label="Loading your materials" height={180} />
+        <Skeleton label="Loading your lessons" height={180} />
       </div>
     );
   }
@@ -40,8 +40,8 @@ export function MaterialsPanel() {
     return (
       <EmptyState
         icon="file-text"
-        title="No materials yet."
-        message="Add a PDF, link, pasted text, or topic, then choose which notes, flashcards, or quiz to create."
+        title="No lessons yet."
+        message="Add a PDF, link, pasted text, or topic, then choose which notes, cards, or quiz to create."
       >
         <Button
           variant="primary"

@@ -72,7 +72,7 @@ export function AhaWalkthroughModal({
         {/* Header */}
         <div className={styles.modalHeader}>
           <div>
-            <span className={styles.heroEyebrow}>4-Step Aha! Breakdown</span>
+            <span className={styles.heroEyebrow}>Four-step breakdown</span>
             <h2 className={styles.modalTitle}>{data.trapName}</h2>
           </div>
           <button
@@ -155,7 +155,7 @@ export function AhaWalkthroughModal({
               </div>
               <p className={styles.trapDesc}>{data.step1Bait.description}</p>
               <div className={styles.exampleBox}>
-                <span className={styles.exampleLabel}>Juicy Bait Example</span>
+                <span className={styles.exampleLabel}>Juicy bait example</span>
                 <p style={{ margin: 0 }}>{data.step1Bait.baitExample}</p>
               </div>
               <div className={styles.disarmRuleBox}>
@@ -208,7 +208,7 @@ export function AhaWalkthroughModal({
                 {data.step3DetectiveRule.ruleStatement}
               </div>
               <div className={styles.exampleBox}>
-                <span className={styles.exampleLabel}>Field Checklist</span>
+                <span className={styles.exampleLabel}>Field checklist</span>
                 <ul
                   style={{
                     margin: 0,
@@ -348,7 +348,7 @@ export function AhaWalkthroughModal({
             disabled={step === 1}
             onClick={() => setStep((s) => (s > 1 ? ((s - 1) as any) : s))}
           >
-            Previous Step
+            Previous step
           </Button>
           <div style={{ display: "flex", gap: "var(--s-2)" }}>
             {step < 4 ? (
@@ -356,7 +356,7 @@ export function AhaWalkthroughModal({
                 variant="secondary"
                 onClick={() => setStep((s) => (s < 4 ? ((s + 1) as any) : s))}
               >
-                Next Step →
+                Next step →
               </Button>
             ) : (
               <Button variant="primary" onClick={onClose}>

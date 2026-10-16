@@ -1,0 +1,180 @@
+/* The capture bar: one field, two helpers, one action. */
+
+.bar,
+.recordingPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.bar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.bar[data-dragging] {
+  border-style: dashed;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.field {
+  display: flex;
+  min-width: 0;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  resize: vertical;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+/* The bar is the field's frame; the global textarea border would double it. */
+.bar .input,
+.bar .input:focus,
+.bar .input:focus-visible {
+  padding: 0;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.fileChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  max-width: 100%;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.fileName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clearFile {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.clearFile:hover {
+  color: var(--text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--danger-text);
+}
+
+.moreOptions {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.recordingStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-3);
+}
+
+.recDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  align-self: center;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.recClock {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xl);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.recMeta {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recDot {
+    animation: none;
+  }
+}
+
+/* Home's box (size="lg"): roomier, and the field reads as the page's
+   question rather than a form control. */
+.lg {
+  gap: var(--s-4);
+  padding: var(--s-5);
+  border-radius: var(--r-2xl);
+}
+
+.lg .input {
+  font-size: var(--fs-lg);
+}

@@ -44,7 +44,7 @@ export const ACTIVITY_ORDER: readonly ActivityKind[] = [
 
 export const ACTIVITY_TITLES: Record<ActivityKind, string> = {
   check: "Quick check",
-  flashcards: "Flashcards",
+  flashcards: "Cards",
   teach: "Teach it back",
   traps: "Exam traps",
 };

@@ -65,6 +65,37 @@ export function primaryDestinationForPath(
   return null;
 }
 
+/* The top bar's three destinations (DESIGN.md rule 0.2). Home is where you
+   land and add things; Subjects holds every subject and lesson, and for now
+   the planner pages that will fold into a subject; Progress is history and
+   forecast. A study session, the timer and settings belong to none of them,
+   so no item lights up there. */
+export type TopDestination = "home" | "subjects" | "progress";
+
+export function topDestinationForPath(pathname: string): TopDestination | null {
+  if (pathname === "/" || pathname.startsWith("/capture")) return "home";
+  if (pathname === "/study") return "home";
+  /* The planner lives in Subjects (webapp/DESIGN.md 0.1): each subject shows
+     its exam and week, and the full plan, free time, tasks and exams pages
+     are reached from there. */
+  if (
+    pathname.startsWith("/subjects") ||
+    pathname.startsWith("/lessons/") ||
+    isLibrarySection(pathname) ||
+    isNotebooksSection(pathname) ||
+    pathname.startsWith("/plan") ||
+    pathname.startsWith("/my-week") ||
+    pathname.startsWith("/tasks") ||
+    pathname.startsWith("/exams")
+  ) {
+    return "subjects";
+  }
+  if (pathname.startsWith("/analytics") || pathname.startsWith("/trajectory")) {
+    return "progress";
+  }
+  return null;
+}
+
 export function isStudyLabSection(pathname: string): boolean {
   /* Canonical routes only. /debugger, /sparring, /premortem, /exam-traps and
      /ai-tutor are <Navigate> redirects, so the router replaces them before any
@@ -84,7 +115,9 @@ export function sectionLabel(
   pathname: string,
   t: (key: TranslationKey) => string,
 ): string {
-  if (pathname === "/") return "Today";
+  if (pathname === "/") return "Home";
+  if (pathname.startsWith("/lessons/")) return "Lesson";
+  if (pathname.startsWith("/subjects")) return "Subjects";
   if (pathname.startsWith("/dashboard")) return t("nav_dashboard");
   if (isNotebooksSection(pathname)) return "Notebooks";
   /* A quiz or a review session is an activity, not the Library page; the
@@ -108,7 +141,7 @@ export function sectionLabel(
   if (pathname.startsWith("/study")) return "Study";
   if (pathname.startsWith("/feynman/debrief")) return "Teach debrief";
   if (pathname.startsWith("/exam-detective")) return "Exam traps";
-  if (pathname.startsWith("/my-week")) return "Availability";
+  if (pathname.startsWith("/my-week")) return "Free time";
   if (pathname.startsWith("/plan")) return "Plan";
   if (pathname.startsWith("/exams")) return "Exams";
   if (pathname.startsWith("/room")) return "Study Room";
@@ -140,6 +173,16 @@ const HERO_ROUTES = [
   "/feynman",
   "/exam-detective",
   "/room",
+  "/lessons",
+  "/subjects",
+  "/analytics",
+  "/settings",
+  /* The planner's four pages share one header (PlanSectionNav); an exam's
+     own page and its placement check name the exam themselves. */
+  "/plan",
+  "/my-week",
+  "/tasks",
+  "/exams",
 ];
 
 export function viewOwnsPageTitle(pathname: string): boolean {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router";
@@ -8,6 +8,10 @@ import { SUPABASE_URL } from "../lib/supabase";
 import { mockAuthSession } from "../test/mockSession";
 import { fakeSession, renderWithAuth } from "../test/auth";
 import { AppShell } from "./AppShell";
+
+/* The shell after the 2026-10 overhaul (webapp/DESIGN.md 0.2): one top bar
+ * with Home · Subjects · Progress, search, Ask, the timer and a profile
+ * menu; the page's title row under it. No sidebar, rail or drawer. */
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 
@@ -22,25 +26,24 @@ function serveDueCount(count: number) {
   );
 }
 
-/* The router comes from the harness, not from here: the sidebar's Create
-   button opens a dialog the provider renders *beside* this tree, and its
-   Material panel navigates — so the router has to sit above the provider,
-   exactly as it does in App.tsx. */
-function renderShell(initialPath: string, fullName = "Ada Lovelace") {
+function renderShell(initialPath: string, fullName = "Ada Lovelace", signOut = vi.fn()) {
   return renderWithAuth(
     <Routes>
       <Route element={<AppShell />}>
-        <Route path="/" element={<h1>Dashboard view</h1>} />
+        <Route path="/" element={<h1>Home view</h1>} />
         <Route path="/tasks" element={<p>Tasks view</p>} />
+        <Route path="/timer" element={<p>Timer view</p>} />
         <Route path="/library" element={<h1>Library view</h1>} />
         <Route path="/folders/:folderId" element={<h1>Biology</h1>} />
         <Route path="/settings" element={<h1>Settings view</h1>} />
       </Route>
     </Routes>,
-    { session: fakeSession({ user_metadata: { full_name: fullName } }) },
+    { session: fakeSession({ user_metadata: { full_name: fullName } }), signOut },
     { initialEntries: [initialPath] },
   );
 }
+
+const mainNav = () => screen.getByRole("navigation", { name: "Main navigation" });
 
 describe("AppShell", () => {
   beforeEach(() => {
@@ -52,253 +55,111 @@ describe("AppShell", () => {
     vi.restoreAllMocks();
   });
 
-  it("offers a skip link ahead of the sidebar that focuses the page content", async () => {
+  it("offers a skip link first that focuses the page content", async () => {
     serveDueCount(0);
     renderShell("/");
     const user = userEvent.setup();
 
-    // First Tab from a fresh page lands on the skip link, not the first
-    // sidebar item — a keyboard user shouldn't have to tab past the whole
-    // nav on every single page.
     await user.tab();
     const skipLink = screen.getByRole("link", { name: "Skip to content" });
     expect(skipLink).toHaveFocus();
-    expect(skipLink).toHaveAttribute("href", "#page-content");
 
     await user.click(skipLink);
     expect(document.getElementById("page-content")).toHaveFocus();
-    expect(screen.getByText("Dashboard view")).toBeInTheDocument();
   });
 
-  it("renders every nav link with its label", () => {
+  it("has three destinations: Home, Subjects and Progress", () => {
+    serveDueCount(0);
+    renderShell("/");
+    const links = within(mainNav()).getAllByRole("link");
+
+    expect(links.map((l) => l.textContent)).toEqual(["Home", "Subjects", "Progress"]);
+    expect(links.map((l) => l.getAttribute("href"))).toEqual(["/", "/subjects", "/analytics"]);
+  });
+
+  it("marks Home as the current page on the root route", () => {
     serveDueCount(0);
     renderShell("/");
 
-    expect(screen.getByRole("link", { name: /Today/ })).toHaveAttribute(
-      "href",
-      "/",
-    );
-    expect(screen.getByRole("link", { name: /Library/ })).toHaveAttribute(
-      "href",
-      "/library",
-    );
-    expect(screen.getByRole("link", { name: /Plan/ })).toHaveAttribute(
-      "href",
-      "/plan",
-    );
-    expect(screen.getByRole("link", { name: /Study$/ })).toHaveAttribute(
-      "href",
-      "/study",
-    );
-    expect(screen.getByRole("link", { name: /Progress/ })).toHaveAttribute(
-      "href",
-      "/analytics",
-    );
+    expect(within(mainNav()).getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+    expect(within(mainNav()).getByRole("link", { name: "Subjects" })).not.toHaveAttribute("aria-current");
   });
 
-  it("highlights Dashboard as active only on the root route", () => {
-    serveDueCount(0);
-    renderShell("/tasks");
-
-    expect(screen.getByRole("link", { name: /Today/ })).not.toHaveAttribute(
-      "aria-current",
-    );
-    /* Tasks hangs off Plan in the rail. The child link is the current page —
-       only one element may carry aria-current — and Plan is the section that
-       contains it. */
-    expect(screen.getByRole("link", { name: "Tasks" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    expect(screen.getByRole("link", { name: "Plan" })).not.toHaveAttribute(
-      "aria-current",
-    );
-  });
-
-  it("keeps Library active on a page reached from it with no sidebar entry of its own", async () => {
-    server.use(
-      http.get(rest("folders"), () =>
-        HttpResponse.json([
-          {
-            id: "f-1",
-            user_id: "user-1",
-            name: "Biology",
-            color: "#4A90E2",
-            created_at: "2026-01-01T00:00:00.000Z",
-          },
-        ]),
-      ),
-    );
+  it("keeps Subjects lit on pages that belong to it", async () => {
     serveDueCount(0);
     renderShell("/folders/f-1");
 
     await screen.findByRole("heading", { name: "Biology" });
-    expect(screen.getByRole("link", { name: /Library/ })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    const subjects = within(mainNav()).getByRole("link", { name: "Subjects" });
+    expect(subjects).toHaveAttribute("aria-current", "true");
+    expect(within(mainNav()).getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current");
   });
 
-  it("shows the flashcards-due badge only when cards are due", async () => {
+  it("shows how many cards are due on Subjects, and nothing when none are", async () => {
     serveDueCount(3);
     renderShell("/");
-
-    expect(await screen.findByText("3")).toBeInTheDocument();
+    expect(await within(mainNav()).findByText("3")).toBeInTheDocument();
   });
 
-  it("hides the badge when nothing is due", async () => {
+  it("shows no due count when nothing is due", async () => {
     serveDueCount(0);
     renderShell("/");
-
-    await screen.findByText("Dashboard view");
-    expect(screen.queryByText("0")).not.toBeInTheDocument();
+    await screen.findByText("Home view");
+    expect(within(mainNav()).queryByText("0")).not.toBeInTheDocument();
   });
 
-  /* Create moved to Library and the command palette's "New…" entry; the
-     rail is five destinations, not a launcher. */
-  it("keeps Create out of the sidebar", () => {
+  /* Ask and search need the chat and command-palette providers, which this
+     harness doesn't mount; with no provider they stay out rather than render
+     a button that does nothing. */
+  it("puts the focus timer in the top bar", () => {
     serveDueCount(0);
     renderShell("/");
-    const sidebar = screen.getByRole("navigation", { name: "Main navigation" });
-    expect(within(sidebar).queryByRole("button", { name: "Create" })).toBeNull();
+    const bar = screen.getByRole("banner");
+
+    expect(within(bar).getByRole("link", { name: "Focus timer" })).toHaveAttribute("href", "/timer");
+    expect(within(bar).queryByRole("button", { name: "Ask the tutor" })).toBeNull();
   });
 
   it("renders the current section as the page's one <h1>", () => {
     serveDueCount(0);
-    renderShell("/tasks");
+    renderShell("/timer");
 
-    // The header (a <header> landmark, i.e. role "banner") shows the
-    // section label as an <h1> — migrated views don't render their own
-    // competing heading, so this is the page's one and only <h1>.
-    const heading = screen.getByRole("heading", { level: 1 });
-    expect(within(screen.getByRole("banner")).getByText("Tasks")).toBe(
-      heading,
-    );
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Focus timer");
   });
 
-  it("keeps log out out of the header, and offers it in the account menu", async () => {
+  it("has exactly one banner landmark", () => {
+    serveDueCount(0);
+    renderShell("/timer");
+    expect(screen.getAllByRole("banner")).toHaveLength(1);
+  });
+
+  it("keeps sign out behind the profile menu", async () => {
     serveDueCount(0);
     const signOut = vi.fn().mockResolvedValue(undefined);
-    renderWithAuth(
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<h1>Dashboard view</h1>} />
-        </Route>
-      </Routes>,
-      { session: fakeSession(), signOut },
-      { initialEntries: ["/"] },
-    );
+    renderShell("/", "Ada Lovelace", signOut);
     const user = userEvent.setup();
 
-    expect(
-      within(screen.getByRole("banner")).queryByRole("button", { name: /log out/i }),
-    ).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Account menu" }));
-    await user.click(screen.getByRole("button", { name: "Log out" }));
+    expect(screen.queryByRole("menuitem", { name: "Sign out" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Ada Lovelace, account menu" }));
+    const menu = screen.getByRole("menu", { name: "Account" });
+    expect(within(menu).getByRole("menuitem", { name: "Settings" })).toHaveAttribute("href", "/settings");
+    expect(within(menu).getByRole("menuitem", { name: /Study room and friends/ })).toHaveAttribute("href", "/room");
 
+    await user.click(within(menu).getByRole("menuitem", { name: "Sign out" }));
     expect(signOut).toHaveBeenCalled();
   });
 
-  it("toggles the mobile menu open and closed from the header button", async () => {
-    const originalWidth = window.innerWidth;
-    Object.defineProperty(window, "innerWidth", {
-      configurable: true,
-      value: 480,
-    });
-    /* `collapsed` is a CSS Module class, so the DOM's actual class token is
-       a hashed name like `_collapsed_xxxxx` — checked by substring rather
-       than `toHaveClass`, which requires an exact token match. */
+  it("closes the profile menu with Escape and returns focus to the button", async () => {
     serveDueCount(0);
     renderShell("/");
     const user = userEvent.setup();
 
-    const sidebar = screen.getByRole("navigation", { name: "Main navigation" });
-    expect(sidebar.className).not.toMatch(/drawerOpen/);
-
-    await user.click(
-      screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
-    );
-    expect(sidebar.className).toMatch(/drawerOpen/);
-
-    await user.click(
-      screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
-    );
-    expect(sidebar.className).not.toMatch(/drawerOpen/);
-
-    Object.defineProperty(window, "innerWidth", {
-      configurable: true,
-      value: originalWidth,
-    });
-  });
-
-  it("retracts the sidebar to an icon rail from its own toggle, not just Header's hamburger", async () => {
-    serveDueCount(0);
-    renderShell("/");
-    const user = userEvent.setup();
-
-    const sidebar = screen.getByRole("navigation", { name: "Main navigation" });
-    const railToggle = screen.getByRole("button", { name: "Collapse sidebar" });
-    expect(railToggle).toHaveAttribute("aria-expanded", "true");
-
-    await user.click(railToggle);
-    expect(sidebar.className).toMatch(/railCollapsed/);
-
-    // Same underlying state as Header's control — labelled the opposite way
-    // now that it reflects "expand" instead of "collapse".
-    const expandToggle = screen.getByRole("button", { name: "Expand sidebar" });
-    expect(expandToggle).toBe(railToggle);
-    expect(expandToggle).toHaveAttribute("aria-expanded", "false");
-
-    // And Header's hamburger toggles the very same state back.
-    await user.click(
-      screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
-    );
-    expect(sidebar.className).not.toMatch(/railCollapsed/);
-    expect(
-      screen.getByRole("button", { name: "Collapse sidebar" }),
-    ).toHaveAttribute("aria-expanded", "true");
-  });
-
-  it("still exposes every nav item's accessible name while retracted to the icon rail", async () => {
-    serveDueCount(0);
-    renderShell("/");
-    const user = userEvent.setup();
-
-    await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
-
-    // Labels are visually hidden in the rail, but aria-label keeps each
-    // link's accessible name intact for assistive tech.
-    expect(screen.getByRole("link", { name: "Today" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Plan" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Study room & friends" }),
-    ).toBeInTheDocument();
-  });
-
-  it("auto-closes the mobile menu after choosing a nav link on a narrow viewport", async () => {
-    const originalWidth = window.innerWidth;
-    Object.defineProperty(window, "innerWidth", {
-      configurable: true,
-      value: 480,
-    });
-    serveDueCount(0);
-    renderShell("/");
-    const user = userEvent.setup();
-
-    /* On a phone the drawer opens from the header's menu button. */
-    const sidebar = screen.getByRole("navigation", { name: "Main navigation" });
-    await user.click(
-      screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
-    );
-    expect(sidebar.className).toMatch(/drawerOpen/);
-
-    await user.click(within(sidebar).getByRole("link", { name: /Library/ }));
-    await waitFor(() => expect(sidebar.className).not.toMatch(/drawerOpen/));
-
-    Object.defineProperty(window, "innerWidth", {
-      configurable: true,
-      value: originalWidth,
-    });
+    const button = screen.getByRole("button", { name: "Ada Lovelace, account menu" });
+    await user.click(button);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(button).toHaveFocus();
   });
 });

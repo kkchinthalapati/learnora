@@ -825,7 +825,7 @@ export function PlanView() {
   const removeBlock = async () => {
     if (!plan || editor?.kind !== "edit") return;
     const ok = await confirm("Remove this study block from your week?", {
-      title: "Remove Study Block",
+      title: "Remove study block",
       confirmText: "Remove",
       danger: true,
     });
@@ -854,7 +854,7 @@ export function PlanView() {
       const ok = await confirm(
         "This will overwrite your current weekly plan. Are you sure you want to regenerate it?",
         {
-          title: "Regenerate Weekly Plan",
+          title: "Regenerate weekly plan",
           confirmText: "Regenerate",
           danger: true,
         },
@@ -883,8 +883,8 @@ export function PlanView() {
       const ok = await confirm(
         "This will replace your current weekly plan with an emergency 48-hour survival schedule. Proceed?",
         {
-          title: "Emergency Triage",
-          confirmText: "Triage Mode",
+          title: "Emergency triage",
+          confirmText: "Triage mode",
           danger: true,
         },
       );

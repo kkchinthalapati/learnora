@@ -267,7 +267,7 @@ export function NotesAiSidebar({
           stripped ||
           (insertMatch
             ? "Done — I've added that to your notes."
-            : "I tried to run an app action, but this panel can't — use the Quiz me or Flashcards buttons above.");
+            : "I tried to run an app action, but this panel can't — use the Quiz me or Cards buttons above.");
         historyRef.current = [
           ...historyRef.current,
           { role: "user", content: query },
@@ -376,12 +376,12 @@ export function NotesAiSidebar({
         />
         <QuickActionCard
           icon="layers"
-          title="Flashcards"
+          title="Cards"
           description="Active recall drill"
           onActivate={() =>
             openCreateForDocument(
               { flashcards: true, quiz: false },
-              "Flashcards from this document",
+              "Cards from this document",
             )
           }
         />

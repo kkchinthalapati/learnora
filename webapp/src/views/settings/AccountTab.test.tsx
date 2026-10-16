@@ -54,11 +54,11 @@ describe("AccountTab", () => {
   it("keeps the name form closed until Edit is pressed", async () => {
     const user = userEvent.setup();
     renderAccount();
-    expect(screen.queryByRole("textbox", { name: "Display Name" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Display name" })).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
 
-    expect(screen.getByRole("textbox", { name: "Display Name" })).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Display name" })).toHaveFocus();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });
 
@@ -68,7 +68,7 @@ describe("AccountTab", () => {
     renderAccount();
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
-    await user.clear(screen.getByRole("textbox", { name: "Display Name" }));
+    await user.clear(screen.getByRole("textbox", { name: "Display name" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -83,7 +83,7 @@ describe("AccountTab", () => {
     renderAccount();
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
-    const input = screen.getByRole("textbox", { name: "Display Name" });
+    const input = screen.getByRole("textbox", { name: "Display name" });
     await user.clear(input);
     await user.type(input, "  Grace Hopper  ");
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -99,7 +99,7 @@ describe("AccountTab", () => {
     expect(screen.getByText("GH")).toBeInTheDocument();
     expect(screen.getByText("Display name updated.")).toBeInTheDocument();
     // Form collapses on success.
-    expect(screen.queryByRole("textbox", { name: "Display Name" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Display name" })).toBeNull();
   });
 
   it("surfaces the mapped API error and keeps the form open", async () => {
@@ -114,7 +114,7 @@ describe("AccountTab", () => {
       "Too many requests. Please wait a minute and try again.",
     );
     expect(
-      screen.getByRole("textbox", { name: "Display Name" }),
+      screen.getByRole("textbox", { name: "Display name" }),
     ).toBeInTheDocument();
   });
 
@@ -124,7 +124,7 @@ describe("AccountTab", () => {
     renderAccount();
 
     await user.click(screen.getByRole("button", { name: "Change" }));
-    const input = screen.getByRole("textbox", { name: "Email Address" });
+    const input = screen.getByRole("textbox", { name: "Email address" });
 
     await user.type(input, "nope");
     await user.click(screen.getByRole("button", { name: "Update" }));
@@ -148,7 +148,7 @@ describe("AccountTab", () => {
     renderAccount();
 
     await user.click(screen.getByRole("button", { name: "Change" }));
-    const input = screen.getByRole("textbox", { name: "Email Address" });
+    const input = screen.getByRole("textbox", { name: "Email address" });
     await user.type(input, "grace@example.com");
     await user.click(screen.getByRole("button", { name: "Update" }));
 

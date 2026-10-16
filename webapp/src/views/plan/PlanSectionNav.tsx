@@ -1,53 +1,52 @@
 import { NavLink, useInRouterContext } from "react-router";
-import { Icon } from "../../components/Icon";
-import type { IconName } from "../../components/icons";
+import { PageHeader } from "../../components/PageHeader";
 import { appPath } from "../../lib/appUrl";
-import styles from "./planSectionNav.module.css";
+import tabs from "../../components/Tabs.module.css";
 
-const PLAN_SECTIONS: ReadonlyArray<{
-  label: string;
-  path: string;
-  icon: IconName;
-}> = [
-  { label: "Study plan", path: "/plan", icon: "calendar-week" },
-  { label: "Availability", path: "/my-week", icon: "calendar" },
-  { label: "Tasks", path: "/tasks", icon: "list-checks" },
-  { label: "Exams", path: "/exams", icon: "calendar" },
+/* The Plan page's header (webapp/DESIGN.md 0.3-0.4): one title for the four
+ * planner pages, and their sections as the same tab strip every other page
+ * with parts uses. They are separate routes, so the strip is links with
+ * aria-current rather than a tablist. Reached from Subjects, which shows each
+ * subject's share of the week. */
+
+const PLAN_SECTIONS: ReadonlyArray<{ label: string; path: string }> = [
+  { label: "Week plan", path: "/plan" },
+  { label: "Free time", path: "/my-week" },
+  { label: "Tasks", path: "/tasks" },
+  { label: "Exams", path: "/exams" },
 ];
 
 export function PlanSectionNav() {
   const isWithinRouter = useInRouterContext();
 
   return (
-    <nav className={styles.nav} aria-label="Plan sections">
-      {PLAN_SECTIONS.map((section) => {
-        const content = (
-          <>
-            <Icon name={section.icon} size={16} />
-            <span>{section.label}</span>
-          </>
-        );
-
-        return isWithinRouter ? (
-          <NavLink
-            key={section.path}
-            to={section.path}
-            end={section.path === "/plan"}
-            className={({ isActive }) =>
-              `${styles.link}${isActive ? ` ${styles.active}` : ""}`
-            }
-          >
-            {content}
-          </NavLink>
-        ) : (
-          /* Outside a router there is no basename to apply the deployed path
-             prefix, so the href is built with it explicitly — a bare
-             `/plan` here would leave this app entirely. */
-          <a key={section.path} href={appPath(section.path)} className={styles.link}>
-            {content}
-          </a>
-        );
-      })}
-    </nav>
+    <>
+      <PageHeader
+        as="h1"
+        title="Plan"
+        sub="Your week of study, the free time it fits into, your tasks and your exams."
+      />
+      <nav className={tabs.strip} aria-label="Plan sections">
+        {PLAN_SECTIONS.map((section) =>
+          isWithinRouter ? (
+            <NavLink
+              key={section.path}
+              to={section.path}
+              end={section.path === "/plan"}
+              className={({ isActive }) => `${tabs.tab}${isActive ? ` ${tabs.selected}` : ""}`}
+            >
+              {section.label}
+            </NavLink>
+          ) : (
+            /* Outside a router there is no basename to apply the deployed path
+               prefix, so the href is built with it explicitly — a bare
+               `/plan` here would leave this app entirely. */
+            <a key={section.path} href={appPath(section.path)} className={tabs.tab}>
+              {section.label}
+            </a>
+          ),
+        )}
+      </nav>
+    </>
   );
 }

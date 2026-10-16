@@ -96,14 +96,14 @@ export function NotificationsTab() {
             <Icon name="bell" size={18} />
           </span>
           <div>
-            <h3 id="settings-notif-heading">Browser Notifications</h3>
+            <h3 id="settings-notif-heading">Browser notifications</h3>
             <p>Choose alerts for this browser.</p>
           </div>
         </div>
 
         <div className={`${styles.field} ${notif.permissionRow}`}>
           <div className={styles.fieldLabel}>
-            <span className={styles.labelText}>Browser Permission</span>
+            <span className={styles.labelText}>Browser permission</span>
             <p
               className={`${styles.fieldDesc} ${notif[permission]}`}
               role="status"
@@ -114,7 +114,7 @@ export function NotificationsTab() {
           {permission === "default" && (
             <div className={styles.fieldAction}>
               <Button variant="primary" size="sm" onClick={requestPermission}>
-                Enable Browser Notifications
+                Enable browser notifications
               </Button>
             </div>
           )}
@@ -123,7 +123,7 @@ export function NotificationsTab() {
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <span className={styles.labelText} id={remindersId}>
-              Flashcard Due Reminders
+              Card due reminders
             </span>
             <p className={styles.fieldDesc}>
               Send one daily alert when flashcards are due.
@@ -143,7 +143,7 @@ export function NotificationsTab() {
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <span className={styles.labelText} id={timerId}>
-              Timer Alerts
+              Timer alerts
             </span>
             <p className={styles.fieldDesc}>
               Alert when a focus session, countdown or Flow session ends.
@@ -184,7 +184,7 @@ export function NotificationsTab() {
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <span className={styles.labelText} id={examGraceId}>
-              Mock Exam Warning
+              Mock exam warning
             </span>
             <p className={styles.fieldDesc}>
               Allow five seconds to return before a mock exam is submitted. When
@@ -216,14 +216,14 @@ export function NotificationsTab() {
             <Icon name="bell" size={18} />
           </span>
           <div>
-            <h3 id="settings-push-heading">Push Notifications</h3>
-            <p>Receive exam and flashcard reminders when Learnora is closed.</p>
+            <h3 id="settings-push-heading">Push notifications</h3>
+            <p>Receive exam and card reminders when Learnora is closed.</p>
           </div>
         </div>
 
         <div className={`${styles.field} ${notif.permissionRow}`}>
           <div className={styles.fieldLabel}>
-            <span className={styles.labelText}>This Device</span>
+            <span className={styles.labelText}>This device</span>
             <p className={styles.fieldDesc} role="status">
               {!isPushSupported()
                 ? "Your browser does not support push notifications."
@@ -254,8 +254,8 @@ export function NotificationsTab() {
                 }
               >
                 {push.status === "subscribed"
-                  ? "Disable on This Device"
-                  : "Enable Push Notifications"}
+                  ? "Disable on This device"
+                  : "Enable push notifications"}
               </Button>
             </div>
           ) : null}
@@ -266,7 +266,7 @@ export function NotificationsTab() {
             <div className={styles.field}>
               <div className={styles.fieldLabel}>
                 <span className={styles.labelText} id={pushExamsId}>
-                  Exam Reminders
+                  Exam reminders
                 </span>
                 <p className={styles.fieldDesc}>
                   A push the day before (and the day of) an upcoming exam
@@ -286,7 +286,7 @@ export function NotificationsTab() {
             <div className={styles.field}>
               <div className={styles.fieldLabel}>
                 <span className={styles.labelText} id={pushFlashcardsId}>
-                  Flashcard Due Push
+                  Flashcard due push
                 </span>
                 <p className={styles.fieldDesc}>
                   Once a day, if you have cards due for review
@@ -308,7 +308,7 @@ export function NotificationsTab() {
         {push.allSubscriptions.length > 0 && (
           <div className={`${styles.field} ${notif.deviceListField}`}>
             <div className={`${styles.fieldLabel} ${notif.deviceListHeader}`}>
-              <span className={styles.labelText}>Registered Devices</span>
+              <span className={styles.labelText}>Registered devices</span>
               <p className={styles.fieldDesc}>
                 Manage push notifications across your devices
               </p>
@@ -355,7 +355,7 @@ export function NotificationsTab() {
             <Icon name="bell" size={18} />
           </span>
           <div>
-            <h3 id="settings-email-notif-heading">Email Notifications</h3>
+            <h3 id="settings-email-notif-heading">Email notifications</h3>
             <p>
               Reach you even on a device that has never had push turned on.
             </p>
@@ -374,7 +374,7 @@ export function NotificationsTab() {
             <div className={styles.field}>
               <div className={styles.fieldLabel}>
                 <span className={styles.labelText} id={emailExamsId}>
-                  Exam Reminders
+                  Exam reminders
                 </span>
                 <p className={styles.fieldDesc}>
                   An email the day before (and the day of) an upcoming exam
@@ -403,7 +403,7 @@ export function NotificationsTab() {
             <div className={styles.field}>
               <div className={styles.fieldLabel}>
                 <span className={styles.labelText} id={emailFlashcardsId}>
-                  Flashcard Due Email
+                  Flashcard due email
                 </span>
                 <p className={styles.fieldDesc}>
                   Once a day, if you have cards due for review

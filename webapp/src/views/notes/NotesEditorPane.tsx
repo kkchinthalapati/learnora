@@ -587,7 +587,7 @@ ${fenceUntrusted(currentHtml)}
       showToast(
         error instanceof Error
           ? error.message
-          : "Could not create flashcard from selection.",
+          : "Could not create card from selection.",
         { error: true },
       );
       interactionLockedRef.current = false;
@@ -695,8 +695,8 @@ ${fenceUntrusted(currentHtml)}
     (note
       ? ""
       : notesOmitted
-        ? "<h2>Flashcards &amp; Quiz Only</h2><p>You chose not to create summary notes for this material. Your flashcards and quiz are ready in the Library.</p>"
-        : "<p>No notes yet — Learnora is still processing this material.</p>");
+        ? "<h2>Cards &amp; Quiz Only</h2><p>You chose not to create summary notes for this lesson. Your cards and quiz are ready in the Library.</p>"
+        : "<p>No notes yet — Learnora is still processing this lesson.</p>");
 
   return (
     <div className={styles.view}>
@@ -747,13 +747,13 @@ ${fenceUntrusted(currentHtml)}
           disabled={!note || rewriteMutation.isPending}
           onClick={() => rewriteMutation.mutate(complexity)}
         >
-          {rewriteMutation.isPending ? "Rewriting..." : "Rewrite Notes"}
+          {rewriteMutation.isPending ? "Rewriting..." : "Rewrite notes"}
         </Button>
         {undoStack.length > 0 && (
           <Button size="sm" variant="secondary" onClick={undoLastAiEdit}>
             {undoStack.at(-1)?.source === "inline"
-              ? "Undo Last AI Edit"
-              : "Undo Rewrite"}
+              ? "Undo last AI edit"
+              : "Undo rewrite"}
           </Button>
         )}
       </div>
@@ -768,7 +768,7 @@ ${fenceUntrusted(currentHtml)}
               <strong className={styles.bannerTitle}>
                 Flashcards &amp; Quiz Only
               </strong>
-              <span>Summary notes were not selected for this material.</span>
+              <span>Summary notes were not selected for this lesson.</span>
             </div>
           </div>
         </div>
@@ -780,7 +780,7 @@ ${fenceUntrusted(currentHtml)}
               <strong className={styles.bannerTitle}>
                 Processing study notes…
               </strong>
-              <span>Learnora is reading your material and writing notes.</span>
+              <span>Learnora is reading your lesson and writing notes.</span>
             </div>
           </div>
         </div>
@@ -797,7 +797,7 @@ ${fenceUntrusted(currentHtml)}
               </strong>
               <span>
                 {processingRecord?.error ||
-                  "Could not generate notes from this material."}
+                  "Could not generate notes from this lesson."}
               </span>
               {processingRecord?.stageFailures &&
                 processingRecord.stageFailures.length > 0 && (
@@ -818,7 +818,7 @@ ${fenceUntrusted(currentHtml)}
               disabled={isRetrying}
               onClick={() => retryMutation.mutate(materialId)}
             >
-              {isRetrying ? "Retrying..." : "Retry Generation"}
+              {isRetrying ? "Retrying..." : "Retry generation"}
             </Button>
           </div>
         </div>
@@ -834,7 +834,7 @@ ${fenceUntrusted(currentHtml)}
               </strong>
               <span>
                 {processingRecord?.error ||
-                  "Notes were created, but flashcards or quiz generation failed."}
+                  "Notes were created, but cards or quiz generation failed."}
               </span>
               {processingRecord?.stageFailures &&
                 processingRecord.stageFailures.length > 0 && (
@@ -855,7 +855,7 @@ ${fenceUntrusted(currentHtml)}
               disabled={isRetrying}
               onClick={() => retryMutation.mutate(materialId)}
             >
-              {isRetrying ? "Retrying..." : "Retry Generation"}
+              {isRetrying ? "Retrying..." : "Retry generation"}
             </Button>
           </div>
         </div>

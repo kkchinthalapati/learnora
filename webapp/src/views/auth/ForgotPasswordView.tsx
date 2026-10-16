@@ -42,7 +42,7 @@ export function ForgotPasswordView() {
   return (
     <RedirectIfSignedIn>
       <AuthShell
-        title="Reset Password"
+        title="Reset password"
         subtitle="We'll send you a recovery link."
         status={statusNode}
       >
@@ -71,13 +71,13 @@ export function ForgotPasswordView() {
             className={styles.submit}
             disabled={request.isPending}
           >
-            {request.isPending ? "Sending..." : "Send Reset Link →"}
+            {request.isPending ? "Sending..." : "Send reset link →"}
           </Button>
 
           <p className={styles.toggleText}>
             Remembered your password?{" "}
             <Link className={styles.link} to="/login">
-              Log In
+              Sign in
             </Link>
           </p>
         </form>

@@ -1,0 +1,15 @@
+/* Progress (webapp/DESIGN.md 0.1): the same reading column as Subjects. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  width: min(100%, 960px);
+  margin: 0 auto;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}

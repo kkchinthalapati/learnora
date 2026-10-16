@@ -15,7 +15,7 @@ import { useWipeData } from "../../hooks/useDataAdmin";
 import { authApi } from "../../api/auth";
 import styles from "./settings.module.css";
 
-/* Danger Zone tab — ports index.html:1642-1673 + js/main.js:1140-1170.
+/* Danger zone tab — ports index.html:1642-1673 + js/main.js:1140-1170.
  *
  * The wipe flow is carried over exactly. Account deletion is not: the vanilla
  * asked "are you sure?" twice, which mostly teaches people to click through
@@ -43,7 +43,7 @@ export function DangerTab() {
 
   async function onWipe() {
     const ok = await confirm(
-      "This permanently deletes all your tasks, study logs, exams, weekly plans, quizzes, and saved timer presets from the cloud and this device. Folders, materials, notes, and flashcards are not affected. This cannot be undone.",
+      "This permanently deletes all your tasks, study logs, exams, weekly plans, quizzes, and saved timer presets from the cloud and this device. Subjects, lessons, notes, and cards are not affected. This cannot be undone.",
       {
         title: "Wipe all data?",
         confirmText: "Delete everything",
@@ -126,14 +126,14 @@ export function DangerTab() {
           <Icon name="alert-triangle" size={18} />
         </span>
         <div>
-          <h3 id="settings-danger-heading">Danger Zone</h3>
+          <h3 id="settings-danger-heading">Danger zone</h3>
           <p>Irreversible and destructive actions</p>
         </div>
       </div>
 
       <div className={styles.dangerItem}>
         <div className={styles.dangerItemInfo}>
-          <h4>Wipe All Data</h4>
+          <h4>Wipe all data</h4>
           <p>
             Permanently delete all tasks, study logs, exams, weekly plans,
             quizzes, and saved timer presets from the cloud and this device.
@@ -148,13 +148,13 @@ export function DangerTab() {
           disabled={wipeData.isPending}
         >
           <Icon name="trash" size={16} />
-          {wipeData.isPending ? "Wiping..." : "Wipe Data"}
+          {wipeData.isPending ? "Wiping..." : "Wipe data"}
         </Button>
       </div>
 
       <div className={styles.dangerItem}>
         <div className={styles.dangerItemInfo}>
-          <h4>Delete Account</h4>
+          <h4>Delete account</h4>
           <p>
             Permanently delete your account and all associated data. This action
             cannot be undone.
@@ -167,7 +167,7 @@ export function DangerTab() {
           disabled={deleteAccount.isPending}
         >
           <Icon name="alert-triangle" size={16} />
-          {deleteAccount.isPending ? "Deleting..." : "Delete Account"}
+          {deleteAccount.isPending ? "Deleting..." : "Delete account"}
         </Button>
       </div>
 

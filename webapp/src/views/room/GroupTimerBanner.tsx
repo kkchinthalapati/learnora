@@ -60,14 +60,14 @@ export function GroupTimerBanner({
       <div
         className={styles.banner}
         role="region"
-        aria-label="Synchronized Group Pomodoro"
+        aria-label="Synchronized group pomodoro"
       >
         <div className={styles.leftSection}>
           <div className={styles.iconBadge}>
             <Icon name="users" size={20} />
           </div>
           <div className={styles.info}>
-            <h3 className={styles.title}>Group Focus Mode</h3>
+            <h3 className={styles.title}>Group focus mode</h3>
             <p className={styles.hostSubtitle}>
               Study together with synchronized Pomodoro sessions.
             </p>
@@ -109,7 +109,7 @@ export function GroupTimerBanner({
     <div
       className={styles.banner}
       role="region"
-      aria-label="Synchronized Group Focus Session"
+      aria-label="Synchronized group focus session"
     >
       <div className={styles.leftSection}>
         <div className={styles.iconBadge}>
@@ -117,7 +117,7 @@ export function GroupTimerBanner({
         </div>
         <div className={styles.info}>
           <div className={styles.titleRow}>
-            <h3 className={styles.title}>Group Focus Room</h3>
+            <h3 className={styles.title}>Group focus room</h3>
             <span
               className={`${styles.phaseBadge} ${
                 isBreak ? styles.phaseBreak : styles.phaseFocus
@@ -165,7 +165,7 @@ export function GroupTimerBanner({
             </Button>
             <Button variant="ghost" size="sm" onClick={onNextPhase}>
               <Icon name="play" size={14} />
-              <span>{isBreak ? "Next Focus" : "Start Break"}</span>
+              <span>{isBreak ? "Next focus" : "Start break"}</span>
             </Button>
           </>
         )}

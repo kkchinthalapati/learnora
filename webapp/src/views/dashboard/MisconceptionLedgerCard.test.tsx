@@ -69,7 +69,7 @@ describe("MisconceptionLedgerCard as Mix-ups (revamp step 3)", () => {
     );
     renderWithAuth(<MisconceptionLedgerCard />, { session: fakeSession() }, { withRouter: true });
 
-    const card = await screen.findByRole("region", { name: "Mix-ups" });
+    const card = await screen.findByRole("region", { name: "Mistakes you're fixing" });
     const fixedHeading = await within(card).findByRole("heading", { name: "Fixed · 1" });
     const fixingHeading = within(card).getByRole("heading", { name: /^Fixing · / });
     expect(fixedHeading.compareDocumentPosition(fixingHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

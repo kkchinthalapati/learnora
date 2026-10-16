@@ -61,7 +61,7 @@ export function SessionCompletePanel({ session, onClose }: { session: LocalSessi
         <Button variant="secondary" onClick={onClose}>Done</Button>
       </div>
     </> : checking && topic ? <QuickCheck key={session.id} topic={topic} deckId={session.deckId} folderId={session.folderId} clientId={`quick-check:${session.id}`} onDone={setResult} onSkip={onClose} /> : <>
-      <p>{!signedIn ? "Create a free account to unlock AI session checks and quizzes." : topic ? "A four-question check reveals what stuck while the material is fresh." : "Choose a topic or add a session note next time to check what you learned."}</p>
+      <p>{!signedIn ? "Create a free account to get AI checks and quizzes after a session." : topic ? "A four-question check reveals what stuck while the lesson is fresh." : "Choose a topic or add a session note next time to check what you learned."}</p>
       <div className={styles.heroActions}>
         <Button variant="secondary" onClick={onClose}>Not now</Button>
         {!signedIn ? <Link to="/signup">Create free account</Link> : topic ? <Button onClick={() => setChecking(true)}>Start quick check</Button> : null}

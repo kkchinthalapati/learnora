@@ -77,8 +77,9 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MIN_NOTES_CHARS = 50;
 
 /* `createStudyPackage` decides audio-vs-document from this, and the notes
-   prompt spots a video link from the other. Both carried over verbatim. */
-const AUDIO_FILE = /\.(mp3|mp4|wav|m4a|aac|ogg)$/i;
+   prompt spots a video link from the other. WebM is what Chrome records a
+   lecture in (hooks/useLectureRecorder.ts). */
+const AUDIO_FILE = /\.(mp3|mp4|wav|m4a|aac|ogg|webm)$/i;
 const YOUTUBE_LINK = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//;
 
 /** Thrown when the model replied but the reply was too short to be a study
@@ -532,7 +533,7 @@ export async function createStudyPackage(
     topic = baseTitle;
 
     // Always generated for new material — see the primitive's header.
-    step("Reading your material and writing notes…");
+    step("Reading your lesson and writing notes…");
     let generatedNotes: string;
     try {
       generatedNotes = await generateNotes({
@@ -576,7 +577,7 @@ export async function createStudyPackage(
           );
         }
         const file = new File([blob], material.title, { type: blob.type });
-        step("Reading your material and writing notes…");
+        step("Reading your lesson and writing notes…");
         try {
           result.notes = await generateNotes({
             material,
@@ -591,7 +592,7 @@ export async function createStudyPackage(
           result.notes.substring(0, MAX_SOURCE_CHARS),
         );
       } else if (material.raw_content) {
-        step("Reading your material and writing notes…");
+        step("Reading your lesson and writing notes…");
         try {
           result.notes = await generateNotes({
             material,
@@ -719,7 +720,7 @@ export function summarizeStudyPackage(
 ): string | null {
   const made: string[] = [];
   if (result.notes) made.push("notes");
-  if (result.deck) made.push("flashcards");
+  if (result.deck) made.push("cards");
   if (result.quiz) made.push("a quiz");
   if (made.length === 0) return null;
 

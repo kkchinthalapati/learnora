@@ -109,15 +109,15 @@ export function StreakCard() {
   return (
     <Card variant="elevated" className={styles.streakCard}>
       <div className={styles.streakCardHeader}>
-        <span className={styles.eyebrow}>Streak & Daily Goal</span>
+        <span className={styles.eyebrow}>Streak & Daily goal</span>
         <Chip
           tone="accent"
           onClick={() => setModalOpen(true)}
-          title="Open Trophy Cabinet & Goals"
+          title="Open Trophy cabinet & Goals"
           aria-label={
             sessions.length === 0
               ? "Open Achievements and Study Goals"
-              : "Open Trophy Cabinet and Achievements"
+              : "Open Trophy cabinet and Achievements"
           }
         >
           <Icon name="trophy" size={16} />
@@ -131,7 +131,7 @@ export function StreakCard() {
           {streak} <span>day{streak === 1 ? "" : "s"}</span>
         </h2>
 
-        {/* Animated SVG Progress Ring for Daily Focus Goal */}
+        {/* Animated SVG Progress Ring for Daily focus Goal */}
         <div className={styles.dailyGoalRingContainer}>
           <div className={styles.svgWrapper}>
             <svg
@@ -181,7 +181,7 @@ export function StreakCard() {
           </div>
 
           <div className={styles.goalInfo}>
-            <span className={styles.goalLabel}>Daily Goal</span>
+            <span className={styles.goalLabel}>Daily goal</span>
             <span className={styles.goalValue}>
               {todayMins} / {goals.dailyMinutesGoal}m
             </span>

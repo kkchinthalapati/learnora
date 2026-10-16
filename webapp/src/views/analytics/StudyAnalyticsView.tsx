@@ -18,10 +18,7 @@ import { Skeleton } from "../../components/Skeleton";
 import { anyPending } from "../../lib/queryState";
 import { daysBetween } from "../../lib/studyNow";
 import { StudyHeatmap } from "./StudyHeatmap";
-import { ProgressSectionNav } from "./ProgressSectionNav";
 import { RetentionInsights } from "./RetentionInsights";
-import { MisconceptionLedgerCard } from "../dashboard/MisconceptionLedgerCard";
-import { FadingTopicsCard } from "./FadingTopicsCard";
 import styles from "./analytics.module.css";
 import { plural } from "../../lib/plural";
 
@@ -29,9 +26,9 @@ const RANGE_OPTIONS: ReadonlyArray<{
   days: 365 | 90 | 30;
   label: string;
 }> = [
-  { days: 365, label: "52 Weeks (1Y)" },
-  { days: 90, label: "90 Days" },
-  { days: 30, label: "30 Days" },
+  { days: 365, label: "1 year" },
+  { days: 90, label: "90 days" },
+  { days: 30, label: "30 days" },
 ];
 
 /* "Balanced" read as a judgement with no reference point, and it was shown
@@ -151,7 +148,6 @@ export function StudyAnalyticsView() {
   if (isPending) {
     return (
       <div className={styles.container} aria-busy="true">
-        <ProgressSectionNav />
         <Skeleton label="Working out your study progress" height={480} />
       </div>
     );
@@ -159,12 +155,8 @@ export function StudyAnalyticsView() {
 
   return (
     <div className={styles.container}>
-      <ProgressSectionNav />
-      {/* The misconception ledger moved here from the retired Dashboard
-          (/dashboard now redirects to Today): what you keep getting wrong is
-          progress, not a daily to-do. */}
-      <FadingTopicsCard />
-      <MisconceptionLedgerCard />
+      {/* Fading topics and the mistake ledger are Progress's Mistakes tab
+          now (ProgressView); this is the History tab. */}
       <div className={styles.progressToolbar}>
         <p>
           Progress from the past <strong>{activeRange} days</strong>
@@ -491,7 +483,7 @@ export function StudyAnalyticsView() {
                     Subject
                   </th>
                   <th scope="col" className={styles.th}>
-                    Study Time
+                    Study time
                   </th>
                   <th scope="col" className={styles.th}>
                     Vs. most-studied
@@ -500,7 +492,7 @@ export function StudyAnalyticsView() {
                     Upcoming Exam
                   </th>
                   <th scope="col" className={styles.th}>
-                    Days Left
+                    Days left
                   </th>
                   <th scope="col" className={styles.th}>
                     Time

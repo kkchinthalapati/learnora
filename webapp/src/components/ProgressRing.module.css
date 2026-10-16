@@ -1,0 +1,37 @@
+.ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+
+.track {
+  fill: none;
+  stroke: var(--track);
+}
+
+.fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--t) var(--ease);
+}
+
+.center {
+  position: absolute;
+  font-family: var(--font-numeric);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.sm .center {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}

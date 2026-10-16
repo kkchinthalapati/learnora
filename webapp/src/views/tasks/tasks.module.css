@@ -12,10 +12,11 @@
   padding-bottom: var(--s-8);
 }
 
+/* Sans, like every section heading (webapp/DESIGN.md 0.3). */
 .regionTitle {
   margin: 0 0 var(--s-3);
   color: var(--text);
-  font-family: var(--font-head);
+  font-family: var(--font);
   font-size: var(--fs-lg);
   line-height: 1.25;
 }

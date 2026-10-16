@@ -184,13 +184,13 @@ describe("NotesEditorPane inline AI", () => {
       expect.stringContaining("A clearer replacement"),
     );
 
-    const undo = screen.getByRole("button", { name: "Undo Last AI Edit" });
+    const undo = screen.getByRole("button", { name: "Undo last AI edit" });
     fireEvent.click(undo);
     expect(editorMock.setHtml).toHaveBeenCalledWith(
       "<p>Original selected passage with more notes</p>",
     );
     expect(
-      screen.queryByRole("button", { name: "Undo Last AI Edit" }),
+      screen.queryByRole("button", { name: "Undo last AI edit" }),
     ).not.toBeInTheDocument();
   });
 
@@ -258,7 +258,7 @@ describe("NotesEditorPane inline AI", () => {
 
   it("captures selected snippet and material metadata to create a flashcard", async () => {
     createCardFromSnippetMock.mockResolvedValue({
-      deck: { id: "d-1", title: "Cell division Flashcards" },
+      deck: { id: "d-1", title: "Cell division Cards" },
       cards: [
         {
           id: "c-1",
@@ -271,7 +271,7 @@ describe("NotesEditorPane inline AI", () => {
     await selectPassage();
 
     const makeCardBtn = screen.getByRole("button", {
-      name: "Make Flashcard selected text",
+      name: "Make card selected text",
     });
     fireEvent.click(makeCardBtn);
 
@@ -288,7 +288,7 @@ describe("NotesEditorPane inline AI", () => {
 
     await waitFor(() => {
       expect(showToastMock).toHaveBeenCalledWith(
-        'Created flashcard in "Cell division Flashcards"!',
+        'Created flashcard in "Cell division Cards"!',
       );
     });
 

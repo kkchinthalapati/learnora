@@ -232,7 +232,7 @@ export function TimerView() {
     if (hasProgress) {
       const ok = await confirm(
         "Are you sure you want to discard your current session progress?",
-        { title: "Reset Timer", confirmText: "Reset", danger: true },
+        { title: "Reset timer", confirmText: "Reset", danger: true },
       );
       if (!ok) return;
     }
@@ -272,7 +272,7 @@ export function TimerView() {
       {!session && (
         <div className={styles.guestBanner}>
           <div className={styles.guestBannerInfo}>
-            <span className={styles.guestBannerBadge}>Guest Mode</span>
+            <span className={styles.guestBannerBadge}>Guest mode</span>
             <span className={styles.guestBannerText}>
               Focusing without an account. Your timer sessions are safely saved
               locally on this browser.
@@ -655,11 +655,11 @@ export function TimerView() {
             <div className={styles.studyRoomWidgetHeader}>
               <span className={styles.studyRoomTitle}>
                 <span className={styles.studyRoomDot} />
-                Study Room ·{" "}
-                {activeCount > 0 ? `${activeCount} focusing` : "Live Room"}
+                Study room ·{" "}
+                {activeCount > 0 ? `${activeCount} focusing` : "Live room"}
               </span>
               <Link to="/room" className={styles.studyRoomCta}>
-                Open Study Room →
+                Open study room →
               </Link>
             </div>
             {focusParticipants.length > 0 ? (

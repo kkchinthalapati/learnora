@@ -61,7 +61,7 @@ describe("executeActions", () => {
 
       expect(h.confirm).toHaveBeenCalledWith(
         expect.stringContaining("Read chapter 3"),
-        expect.objectContaining({ title: "AI Task Creation" }),
+        expect.objectContaining({ title: "Add a task?" }),
       );
       expect(h.addTask).toHaveBeenCalledWith("Read chapter 3");
       expect(widgets(parts)[0]).toMatchObject({
@@ -634,7 +634,7 @@ describe("pathForNavigateTarget", () => {
 
 describe("NAVIGATE covers the app's real destinations", () => {
   it("every sidebar destination has a key the tutor is taught", async () => {
-    const { NAV_PATHS } = await import("../components/Sidebar");
+    const { NAV_PATHS } = await import("../components/TopBar");
     const { NAVIGATE_TARGETS } = await import("./chatActions");
     const reachable = new Set(NAVIGATE_TARGETS.map((k) => pathForNavigateTarget(k)));
     for (const path of NAV_PATHS) expect(reachable, path).toContain(path);

@@ -23,5 +23,8 @@ describe("PlanSectionNav", () => {
       "aria-current",
       "page",
     );
+    /* The four planner pages share one title (webapp/DESIGN.md 0.3). */
+    expect(screen.getByRole("heading", { level: 1, name: "Plan" })).toBeInTheDocument();
+    expect(links.map((link) => link.textContent)).toEqual(["Week plan", "Free time", "Tasks", "Exams"]);
   });
 });

@@ -107,7 +107,7 @@ describe("DeckCardsView", () => {
     renderView();
 
     const user = userEvent.setup();
-    expect(await screen.findByText("This deck is empty.")).toBeInTheDocument();
+    expect(await screen.findByText("This card set is empty.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Write a card" }));
     await user.type(screen.getByLabelText("Front"), "What is telophase?");
@@ -191,7 +191,7 @@ describe("DeckCardsView", () => {
     renderView("deck-gone");
 
     expect(
-      await screen.findByText("This deck no longer exists."),
+      await screen.findByText("This card set no longer exists."),
     ).toBeInTheDocument();
   });
 

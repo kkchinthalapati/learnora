@@ -1,5 +1,8 @@
 .view {
-  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  width: min(100%, 960px);
   margin: 0 auto;
   padding-bottom: var(--s-8);
 }
@@ -755,4 +758,15 @@
   color: var(--text-muted);
   font-size: var(--fs-sm);
   line-height: 1.5;
+}
+
+/* Subjects tab: the shared list rows, then one quiet action. */
+.folderList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.newSubject {
+  align-self: flex-start;
 }

@@ -78,8 +78,8 @@ function DayExamRow({ exam, onEditExam, onOpenPrepRoadmap }: DayExamRowProps) {
             e.stopPropagation();
             onOpenPrepRoadmap(exam);
           }}
-          title="Open AI Prep Roadmap"
-          aria-label={`Open AI Prep Roadmap for ${exam.exam_name}`}
+          title="Open AI prep roadmap"
+          aria-label={`Open AI prep roadmap for ${exam.exam_name}`}
         >
           <Icon name="compass" size={13} />
           Roadmap

@@ -97,7 +97,7 @@ const SOURCE_TABS: Array<{
   {
     kind: "material",
     label: "From Learnora",
-    accessibleLabel: "Saved Material",
+    accessibleLabel: "Saved lesson",
     icon: "folder",
   },
 ];
@@ -243,7 +243,7 @@ export function MaterialPanel({
      their notes allowance gone after asking only for flashcards. */
   const allowanceUse = [
     ...(wantNotes || isNewMaterial ? ["notes"] : []),
-    ...(wantFlashcards ? ["flashcards"] : []),
+    ...(wantFlashcards ? ["cards"] : []),
     ...(wantQuiz ? ["quiz"] : []),
   ];
   const allowanceHint = allowanceUse.length
@@ -251,7 +251,7 @@ export function MaterialPanel({
         .map((tool) => `1 ${tool}`)
         .join(" + ")}${
         isNewMaterial && !wantNotes
-          ? " (new material always gets a notes pass so the AI can read it)"
+          ? " (a new lesson always gets a notes pass so the AI can read it)"
           : ""
       }.`
     : "";
@@ -393,7 +393,7 @@ export function MaterialPanel({
 
     if (source === "material" && !materialId) {
       return {
-        message: "Choose which saved material to build from.",
+        message: "Choose which saved lesson to build from.",
         focus: () => materialSelectRef.current?.focus(),
       };
     }
@@ -799,7 +799,7 @@ export function MaterialPanel({
           {source === "material" ? (
             <div>
               <label htmlFor="material-select" className={styles.fieldLabel}>
-                Saved material
+                Saved lesson
               </label>
               <select
                 ref={materialSelectRef}
@@ -814,8 +814,8 @@ export function MaterialPanel({
               >
                 <option value="" disabled>
                   {materialsQuery.isLoading
-                    ? "Loading your materials…"
-                    : "Choose a material…"}
+                    ? "Loading your lessons…"
+                    : "Choose a lesson…"}
                 </option>
                 {savedMaterials.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -865,12 +865,12 @@ export function MaterialPanel({
               </span>
             </div>
             <div className={styles.outputCopy}>
-              <strong>Flashcards</strong>
-              <span>Active Recall Decks</span>
+              <strong>Cards</strong>
+              <span>Active recall card sets</span>
             </div>
           </label>
 
-          {/* Practice Quiz */}
+          {/* Practice quiz */}
           <label
             className={`${styles.outputCard} ${wantQuiz ? styles.outputCardActive : ""}`}
           >
@@ -892,12 +892,12 @@ export function MaterialPanel({
               </span>
             </div>
             <div className={styles.outputCopy}>
-              <strong>Practice Quiz</strong>
+              <strong>Practice quiz</strong>
               <span>Multiple Choice & Conceptual Questions</span>
             </div>
           </label>
 
-          {/* Summary Notes */}
+          {/* Summary notes */}
           <label
             className={`${styles.outputCard} ${wantNotes ? styles.outputCardActive : ""}`}
           >
@@ -919,8 +919,8 @@ export function MaterialPanel({
               </span>
             </div>
             <div className={styles.outputCopy}>
-              <strong>Summary Notes</strong>
-              <span>Crisp Revision Notes</span>
+              <strong>Summary notes</strong>
+              <span>Crisp revision notes</span>
             </div>
           </label>
         </div>
@@ -1001,7 +1001,7 @@ export function MaterialPanel({
                 htmlFor="material-card-count"
                 className={styles.fieldLabel}
               >
-                Flashcards: {cardCount}
+                Cards: {cardCount}
               </label>
               <input
                 id="material-card-count"
@@ -1182,7 +1182,7 @@ export function MaterialPanel({
           disabled={create.isPending}
           className={styles.submitButton}
         >
-          {create.isPending ? "Creating…" : "Generate Study Resources"}
+          {create.isPending ? "Creating…" : "Generate study resources"}
         </Button>
       </div>
     </form>

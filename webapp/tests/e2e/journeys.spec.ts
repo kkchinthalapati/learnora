@@ -48,7 +48,7 @@ test("a mock exam can be sat to its score", async ({ page, backend }) => {
   await loginAs(page);
   await page.goto("quiz/q-1/mock-exam");
 
-  await page.getByRole("button", { name: /Begin Mock Exam/ }).click();
+  await page.getByRole("button", { name: /Begin mock exam/ }).click();
   await expect(page.getByText(/Question 1 of \d+/)).toBeVisible();
 
   /* The fixture's three questions: right, wrong, then a typed-in number

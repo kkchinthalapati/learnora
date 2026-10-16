@@ -48,7 +48,7 @@ export function QuizzesPanel() {
       <EmptyState
         icon="help-circle"
         title="No quizzes yet."
-        message="Create a practice quiz from a file, saved material, link, pasted text, or any topic."
+        message="Create a practice quiz from a file, saved lesson, link, pasted text, or any topic."
       >
         <Button
           variant="primary"
@@ -111,7 +111,7 @@ export function QuizzesPanel() {
                 to={`/quiz/${quiz.id}`}
                 className={`${styles.footerLink} ${styles.footerLinkPrimary}`}
               >
-                Take Quiz
+                Take quiz
               </Link>
               <Link
                 to={`/quiz/${quiz.id}/mock-exam`}

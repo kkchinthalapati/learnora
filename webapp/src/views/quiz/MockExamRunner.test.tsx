@@ -79,7 +79,7 @@ describe("MockExamRunner", () => {
     serveQuiz(SAMPLE_QUIZ);
     renderRunner();
     expect(await screen.findByText(/This is a strict mock exam/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Begin Mock Exam/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Begin mock exam/ })).toBeInTheDocument();
   });
 
   it("shows questions and timer when in fullscreen", async () => {
@@ -267,7 +267,7 @@ describe("MockExamRunner", () => {
     try {
       renderRunner();
       await userEvent.click(
-        await screen.findByRole("button", { name: /Begin Mock Exam/ }),
+        await screen.findByRole("button", { name: /Begin mock exam/ }),
       );
       expect(await screen.findByText(/Question 1 of/)).toBeInTheDocument();
     } finally {
@@ -280,7 +280,7 @@ describe("MockExamRunner", () => {
     renderRunner();
 
     // Still on the pre-fullscreen instructions screen — never clicked
-    // "Begin Mock Exam".
+    // "Begin mock exam".
     await screen.findByText(/This is a strict mock exam/);
 
     Object.defineProperty(document, "hidden", {
@@ -291,7 +291,7 @@ describe("MockExamRunner", () => {
 
     expect(screen.queryByText("Quizzes tab")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Begin Mock Exam/ }),
+      screen.getByRole("button", { name: /Begin mock exam/ }),
     ).toBeInTheDocument();
   });
 
@@ -309,7 +309,7 @@ describe("MockExamRunner", () => {
     await screen.findByText("Bio Exam · 2 of 2");
 
     // Leaving the tab to celebrate (or just breathe) before clicking
-    // "Review Answers" must not be mistaken for leaving mid-exam.
+    // "Review answers" must not be mistaken for leaving mid-exam.
     Object.defineProperty(document, "hidden", {
       configurable: true,
       get: () => true,

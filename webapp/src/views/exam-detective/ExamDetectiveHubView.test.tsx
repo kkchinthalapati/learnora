@@ -70,7 +70,7 @@ describe("ExamDetectiveHubView", () => {
     ).toBeInTheDocument();
   });
 
-  it("switches to Deconstruct Exam Paper tab and allows scanning text", async () => {
+  it("switches to Deconstruct exam paper tab and allows scanning text", async () => {
     const user = userEvent.setup();
     renderWithAuth(
       <ExamDetectiveHubView />,
@@ -83,12 +83,12 @@ describe("ExamDetectiveHubView", () => {
     });
     await user.click(deconstructTab);
 
-    expect(screen.getByText("Analyse your own material")).toBeInTheDocument();
+    expect(screen.getByText("Analyse your own lesson")).toBeInTheDocument();
     const textarea = screen.getByPlaceholderText(/Paste past exam questions/i);
     expect(textarea).toBeInTheDocument();
 
     const sampleBtn = screen.getByRole("button", {
-      name: /Load Sample Problem/i,
+      name: /Load sample problem/i,
     });
     await user.click(sampleBtn);
 
@@ -127,7 +127,7 @@ describe("ExamDetectiveHubView", () => {
 
     // Modal should appear
     await waitFor(() => {
-      expect(screen.getByText("4-Step Aha! Breakdown")).toBeInTheDocument();
+      expect(screen.getByText("Four-step breakdown")).toBeInTheDocument();
     });
     expect(screen.getByText(/Spotting the Bait/i)).toBeInTheDocument();
     expect(screen.getByText(/The Sneaky Trick/i)).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe("ExamDetectiveHubView", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("No practice saved yet")).toBeInTheDocument();
     expect(screen.getByText("Edge cases")).toBeInTheDocument();
-    expect(screen.getByText("Negative wording")).toBeInTheDocument();
+    expect(screen.getAllByText("Negative wording").length).toBeGreaterThan(0);
   });
 
   it("launches Challenge Sprint and renders runner", async () => {
@@ -209,10 +209,10 @@ describe("ExamDetectiveHubView", () => {
       expect(screen.getByText(/Trap 1 of/i)).toBeInTheDocument();
     });
     expect(
-      screen.getByRole("button", { name: /Exit Sprint/i }),
+      screen.getByRole("button", { name: /Exit sprint/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Inspect Bait Clue/i }),
+      screen.getByRole("button", { name: /Inspect bait clue/i }),
     ).toBeInTheDocument();
   });
   /* Exam Detective is one of the four diagnostic tools the product rests on,

@@ -60,7 +60,7 @@ export function QuizOnlyForecast({
 
   return (
     <Card as="section" variant="panel" className={styles.section}>
-      <p className={styles.forecastEyebrow}>Learnora Forecast</p>
+      <p className={styles.forecastEyebrow}>Learnora forecast</p>
       <h2 className={styles.sectionTitle}>
         {examName}: {forecast.predictedMin}–{forecast.predictedMax}
       </h2>

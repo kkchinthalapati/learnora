@@ -152,7 +152,7 @@ describe("TasksView", () => {
     renderTasks();
     await screen.findByText("No tasks yet. Add one above.");
 
-    await user.click(screen.getByRole("button", { name: "Add Task" }));
+    await user.click(screen.getByRole("button", { name: "Add task" }));
 
     expect(posted).toBe(false);
   });
@@ -170,11 +170,11 @@ describe("TasksView", () => {
     renderTasks();
     await screen.findByText("No tasks yet. Add one above.");
 
-    const input = screen.getByRole("textbox", { name: "New Task Input" });
+    const input = screen.getByRole("textbox", { name: "New task input" });
     await user.type(input, "Write essay");
     const due = screen.getByLabelText(/Due date/);
     await user.type(due, "2026-08-20");
-    await user.click(screen.getByRole("button", { name: "Add Task" }));
+    await user.click(screen.getByRole("button", { name: "Add task" }));
 
     await waitFor(() => expect(body).toBeDefined());
     expect(body![0]).toMatchObject({
@@ -201,7 +201,7 @@ describe("TasksView", () => {
     await screen.findByText("No tasks yet. Add one above.");
 
     await user.type(
-      screen.getByRole("textbox", { name: "New Task Input" }),
+      screen.getByRole("textbox", { name: "New task input" }),
       "Just do it{Enter}",
     );
 
@@ -520,13 +520,13 @@ describe("TasksView", () => {
       await screen.findByText("No tasks yet. Add one above.");
 
       await user.type(
-        screen.getByRole("textbox", { name: "New Task Input" }),
+        screen.getByRole("textbox", { name: "New task input" }),
         "Review biology",
       );
       await user.click(
         screen.getByRole("button", { name: "🔁 Repeat weekly" }),
       );
-      await user.click(screen.getByRole("button", { name: "Add Task" }));
+      await user.click(screen.getByRole("button", { name: "Add task" }));
 
       await waitFor(() => expect(body).toBeDefined());
       expect(body![0]).toMatchObject({

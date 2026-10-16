@@ -76,7 +76,7 @@ describe("DangerTab", () => {
     );
     renderDanger();
 
-    await user.click(screen.getByRole("button", { name: /Wipe Data/ }));
+    await user.click(screen.getByRole("button", { name: /Wipe data/ }));
     const dialog = await screen.findByRole("alertdialog");
     expect(dialog).toHaveTextContent("This cannot be undone.");
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
@@ -97,7 +97,7 @@ describe("DangerTab", () => {
     );
     renderDanger();
 
-    await user.click(screen.getByRole("button", { name: /Wipe Data/ }));
+    await user.click(screen.getByRole("button", { name: /Wipe data/ }));
     await confirmDialog(user, "Delete everything");
     await confirmWipePassword(user);
 
@@ -119,7 +119,7 @@ describe("DangerTab", () => {
     localStorage.setItem("learnora_accent", '"ocean"');
     renderDanger();
 
-    await user.click(screen.getByRole("button", { name: /Wipe Data/ }));
+    await user.click(screen.getByRole("button", { name: /Wipe data/ }));
     await confirmDialog(user, "Delete everything");
     await confirmWipePassword(user);
 
@@ -137,7 +137,7 @@ describe("DangerTab", () => {
     );
     renderDanger();
 
-    await user.click(screen.getByRole("button", { name: /Wipe Data/ }));
+    await user.click(screen.getByRole("button", { name: /Wipe data/ }));
     await confirmDialog(user, "Delete everything");
     await confirmWipePassword(user);
 
@@ -157,7 +157,7 @@ describe("DangerTab", () => {
     );
     renderDanger();
 
-    await user.click(screen.getByRole("button", { name: /Delete Account/ }));
+    await user.click(screen.getByRole("button", { name: /Delete account/ }));
     await confirmDialog(user, "Yes, delete my account");
 
     // Second step — backing out of the password prompt deletes nothing.
@@ -186,7 +186,7 @@ describe("DangerTab", () => {
     >);
     renderDanger(signOut);
 
-    await user.click(screen.getByRole("button", { name: /Delete Account/ }));
+    await user.click(screen.getByRole("button", { name: /Delete account/ }));
     await confirmDialog(user, "Yes, delete my account");
     await confirmPassword(user);
 
@@ -215,7 +215,7 @@ describe("DangerTab", () => {
     >);
     renderDanger();
 
-    await user.click(screen.getByRole("button", { name: /Delete Account/ }));
+    await user.click(screen.getByRole("button", { name: /Delete account/ }));
     await confirmDialog(user, "Yes, delete my account");
     await confirmPassword(user, "correct-horse");
 
@@ -232,7 +232,7 @@ describe("DangerTab", () => {
     );
     renderDanger();
 
-    await user.click(screen.getByRole("button", { name: /Delete Account/ }));
+    await user.click(screen.getByRole("button", { name: /Delete account/ }));
     await confirmDialog(user, "Yes, delete my account");
     await confirmPassword(user);
 

@@ -71,7 +71,7 @@ export function DailyDrillCard() {
               className={styles.drillAction}
               onClick={() => navigate("/library/flashcards")}
             >
-              Open flashcards
+              Open cards
             </Button>
           </>
         )}

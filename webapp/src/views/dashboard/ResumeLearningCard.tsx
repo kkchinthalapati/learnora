@@ -156,7 +156,7 @@ export function ResumeLearningCard() {
             Open a note, review a flashcard deck, or start a focus session.
           </p>
           <Button variant="secondary" onClick={() => navigate("/library")}>
-            Open Library
+            Open library
           </Button>
         </div>
       )}

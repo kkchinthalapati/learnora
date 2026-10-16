@@ -35,7 +35,7 @@ import styles from "./chat.module.css";
  * it either. */
 
 const GREETING =
-  "I can explain a topic, quiz you, turn your notes into flashcards, or sort out your tasks and timer. I can get things wrong, so check anything important against your notes.";
+  "I can explain a topic, quiz you, turn your notes into cards, or sort out your tasks and timer. I can get things wrong, so check anything important against your notes.";
 
 const SUGGESTIONS = [
   /* Explaining and quizzing lead: they are what a student opens the panel
@@ -60,8 +60,8 @@ const SUGGESTIONS = [
   },
   {
     icon: "layers",
-    label: "Create flashcards",
-    prompt: "Generate flashcards from my notes",
+    label: "Create cards",
+    prompt: "Generate cards from my notes",
     autoSend: false,
   },
   /* Deliberately unsent: this chip used to fire "Start a 25-minute focus
@@ -129,7 +129,7 @@ export function TurboChat() {
         let targetId = list[0]?.id;
         if (!targetId) {
           const created = await notebooksApi.add({
-            title: "Web Research Notebook",
+            title: "Web research notebook",
             subject: "General",
             color: "teal",
           });

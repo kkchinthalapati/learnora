@@ -40,7 +40,7 @@ describe("NotificationsTab", () => {
 
     expect(screen.getByText("Not enabled yet.")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Enable Browser Notifications" }),
+      screen.getByRole("button", { name: "Enable browser notifications" }),
     ).toBeInTheDocument();
   });
 
@@ -50,7 +50,7 @@ describe("NotificationsTab", () => {
 
     expect(screen.getByText("✓ Enabled")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Enable Browser Notifications" }),
+      screen.queryByRole("button", { name: "Enable browser notifications" }),
     ).toBeNull();
   });
 
@@ -62,7 +62,7 @@ describe("NotificationsTab", () => {
       screen.getByText(/^Blocked by your browser. To allow them/),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Enable Browser Notifications" }),
+      screen.queryByRole("button", { name: "Enable browser notifications" }),
     ).toBeNull();
   });
 
@@ -90,7 +90,7 @@ describe("NotificationsTab", () => {
     });
 
     await user.click(
-      screen.getByRole("button", { name: "Enable Browser Notifications" }),
+      screen.getByRole("button", { name: "Enable browser notifications" }),
     );
 
     expect(await screen.findByText("✓ Enabled")).toBeInTheDocument();
@@ -103,9 +103,9 @@ describe("NotificationsTab", () => {
     /* The vanilla wrapped each checkbox in an empty <label class="toggle-
        switch">, so none had an accessible name. */
     expect(
-      screen.getByRole("switch", { name: "Flashcard Due Reminders" }),
+      screen.getByRole("switch", { name: "Card due reminders" }),
     ).toBeChecked();
-    expect(screen.getByRole("switch", { name: "Timer Alerts" })).toBeChecked();
+    expect(screen.getByRole("switch", { name: "Timer alerts" })).toBeChecked();
     expect(
       screen.getByRole("switch", { name: "Stay-Focused Nudges" }),
     ).toBeChecked();
@@ -117,7 +117,7 @@ describe("NotificationsTab", () => {
     renderWithProviders(<NotificationsTab />);
 
     await user.click(
-      screen.getByRole("switch", { name: "Flashcard Due Reminders" }),
+      screen.getByRole("switch", { name: "Card due reminders" }),
     );
 
     await waitFor(() =>
@@ -133,13 +133,13 @@ describe("NotificationsTab", () => {
     renderWithProviders(<NotificationsTab />);
 
     await user.click(
-      screen.getByRole("switch", { name: "Flashcard Due Reminders" }),
+      screen.getByRole("switch", { name: "Card due reminders" }),
     );
-    await user.click(screen.getByRole("switch", { name: "Timer Alerts" }));
+    await user.click(screen.getByRole("switch", { name: "Timer alerts" }));
     await user.click(
       screen.getByRole("switch", { name: "Stay-Focused Nudges" }),
     );
-    await user.click(screen.getByRole("switch", { name: "Mock Exam Warning" }));
+    await user.click(screen.getByRole("switch", { name: "Mock exam warning" }));
 
     await waitFor(() =>
       expect(loadSettings()).toMatchObject({
@@ -159,7 +159,7 @@ describe("NotificationsTab", () => {
     setNotificationPermission("granted");
     renderWithProviders(<NotificationsTab />);
 
-    const toggle = screen.getByRole("switch", { name: "Mock Exam Warning" });
+    const toggle = screen.getByRole("switch", { name: "Mock exam warning" });
     expect(toggle).toBeChecked();
 
     await user.click(toggle);

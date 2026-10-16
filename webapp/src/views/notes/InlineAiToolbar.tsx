@@ -100,7 +100,7 @@ export function InlineAiToolbar({
           type="button"
           className={styles.inlineToolbarBtn}
           disabled={loadingAction !== null}
-          aria-label="Make Flashcard selected text"
+          aria-label="Make card selected text"
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             if (onCreateCard) {
@@ -111,12 +111,12 @@ export function InlineAiToolbar({
           {isCardLoading ? (
             <span
               className={styles.inlineToolbarLoading}
-              aria-label="Make Flashcard in progress"
+              aria-label="Make card in progress"
             />
           ) : (
             <span aria-hidden="true">🃏</span>
           )}
-          <span>Make Flashcard</span>
+          <span>Make card</span>
         </button>
         <button
           type="button"

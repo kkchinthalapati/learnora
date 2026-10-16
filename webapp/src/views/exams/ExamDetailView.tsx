@@ -163,9 +163,9 @@ export function ExamDetailView() {
     <div className={styles.page} data-print-root>
       <p className={styles.printOnly}>Learnora progress report · generated {localDateStr()}</p>
       <PageHeader
-        eyebrow={spec ? specWithTierLabel(spec, tier) : "No specification chosen"}
+        as="h1"
         title={exam.exam_name}
-        sub={when}
+        sub={<>{spec ? specWithTierLabel(spec, tier) : "No specification chosen"} · {when}</>}
         actions={
           <div className={styles.headerActions} data-print-hide>
             <Button onClick={() => setEditing(true)}>Edit exam</Button>
