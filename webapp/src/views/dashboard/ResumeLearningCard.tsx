@@ -80,14 +80,14 @@ export function ResumeLearningCard() {
               <div
                 className={styles.progressBarTrack}
                 role="progressbar"
-                aria-valuenow={resumeAction.progressPercentage}
+                aria-valuenow={resumeAction.progressPercentage ?? undefined}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label={`Progress: ${resumeAction.progressPercentage}%`}
+                aria-label={resumeAction.progressPercentage === null ? "Progress not measured" : `Progress: ${resumeAction.progressPercentage}%`}
               >
                 <div
                   className={styles.progressBarFill}
-                  style={{ width: `${resumeAction.progressPercentage}%` }}
+                  style={{ width: `${resumeAction.progressPercentage ?? 0}%` }}
                 />
               </div>
               <span className={styles.progressLabel}>

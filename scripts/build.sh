@@ -34,6 +34,7 @@ VANILLA_PATHS=(
   404.html
   style.css
   learnora.jpg
+  learnora-mark.svg
   study-planner-imageandlogo.jpg
   public.css
   landing.html

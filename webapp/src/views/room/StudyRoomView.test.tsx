@@ -121,7 +121,7 @@ describe("StudyRoomView", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Study room" })).toBeInTheDocument();
     expect(screen.getByText("2 students focusing together")).toBeInTheDocument();
     expect(screen.getByText(/Quiet co-working room · Live timer sync & cheers/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sound ambiance focus generator" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sound ambience focus generator" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy study room invite link" })).toBeInTheDocument();
   });
 
@@ -222,16 +222,16 @@ describe("StudyRoomView", () => {
     expect(mockCopyInviteLink).toHaveBeenCalled();
   });
 
-  it("opens and interacts with sound ambiance settings dialog", async () => {
+  it("opens and interacts with sound ambience settings dialog", async () => {
     const playSpy = vi.spyOn(ambianceEngine, "play").mockImplementation(() => {});
     const stopSpy = vi.spyOn(ambianceEngine, "stop").mockImplementation(() => {});
 
     const { user } = renderView("/room");
 
-    const ambianceBtn = screen.getByRole("button", { name: "Sound ambiance focus generator" });
+    const ambianceBtn = screen.getByRole("button", { name: "Sound ambience focus generator" });
     await user.click(ambianceBtn);
 
-    const dialog = screen.getByRole("dialog", { name: "Sound ambiance settings" });
+    const dialog = screen.getByRole("dialog", { name: "Sound ambience settings" });
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByText("Focus soundscapes")).toBeInTheDocument();
 
@@ -245,16 +245,16 @@ describe("StudyRoomView", () => {
     expect(stopSpy).toHaveBeenCalled();
   });
 
-  it("handles overlay behavior (Escape to close, focus return, aria-modal) for ambiance dialog", async () => {
+  it("handles overlay behavior (Escape to close, focus return, aria-modal) for ambience dialog", async () => {
     const { user } = renderView("/room");
 
     const ambianceBtn = screen.getByRole("button", {
-      name: "Sound ambiance focus generator",
+      name: "Sound ambience focus generator",
     });
     await user.click(ambianceBtn);
 
     const dialog = screen.getByRole("dialog", {
-      name: "Sound ambiance settings",
+      name: "Sound ambience settings",
     });
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveAttribute("aria-modal", "true");
@@ -262,7 +262,7 @@ describe("StudyRoomView", () => {
     // Pressing Escape closes the popover and returns focus to the trigger button
     await user.keyboard("{Escape}");
     expect(
-      screen.queryByRole("dialog", { name: "Sound ambiance settings" }),
+      screen.queryByRole("dialog", { name: "Sound ambience settings" }),
     ).not.toBeInTheDocument();
     expect(ambianceBtn).toHaveFocus();
   });

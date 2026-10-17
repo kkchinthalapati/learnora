@@ -77,7 +77,7 @@ describe("examReadiness", () => {
   });
 
   describe("computeExamReadiness", () => {
-    it("calculates the Needs work tier when no materials, reviews, or study sessions exist", () => {
+    it("withholds a score when nothing has been answered or reviewed", () => {
       const now = new Date("2026-09-01T00:00:00");
       const readiness = computeExamReadiness(
         baseExam,
@@ -89,8 +89,9 @@ describe("examReadiness", () => {
         now,
       );
 
-      expect(readiness.score).toBe(0);
-      expect(readiness.tier).toBe("Needs work");
+      expect(readiness.score).toBeNull();
+      expect(readiness.tier).toBe("Not enough data");
+      expect(readiness.evidence).toEqual({ quizQuestions: 0, reviewedCards: 0, enough: false });
       expect(readiness.breakdown.coverage).toBe(0);
       expect(readiness.breakdown.mastery).toBe(0);
       expect(readiness.breakdown.studyTime).toBe(0);
@@ -98,7 +99,9 @@ describe("examReadiness", () => {
       expect(readiness.targetHoursRemaining).toBe(20);
     });
 
-    it("computes In Progress tier with partial study investment and materials", () => {
+    /* Two uploads, eight timer hours and one reviewed card used to read
+       "Getting there". Effort without evidence of knowing is not readiness. */
+    it("withholds a score when uploads and timer hours are the only evidence", () => {
       const materials: Material[] = [
         {
           id: "m-1",
@@ -164,8 +167,36 @@ describe("examReadiness", () => {
       expect(readiness.breakdown.coverage).toBeGreaterThan(50);
       expect(readiness.breakdown.mastery).toBe(100);
       expect(readiness.breakdown.studyTime).toBe(40); // 480 / 1200 = 40%
-      expect(readiness.tier).toBe("Getting there");
+      expect(readiness.score).toBeNull();
+      expect(readiness.tier).toBe("Not enough data");
+      expect(readiness.evidence.reviewedCards).toBe(1);
       expect(readiness.targetHoursRemaining).toBe(12);
+    });
+
+    it("scores once enough cards have been reviewed", () => {
+      const reviewed: Flashcard[] = Array.from({ length: 15 }, (_, i) => ({
+        id: `r-${i}`,
+        user_id: "user-123",
+        deck_id: "d-1",
+        front: `Q${i}`,
+        back: `A${i}`,
+        next_review_date: "2026-09-10T00:00:00Z",
+        srs_interval: 5,
+        ease_factor: 2.5,
+        created_at: "2026-08-15T00:00:00Z",
+      }));
+      const readiness = computeExamReadiness(
+        baseExam,
+        folder,
+        [],
+        reviewed,
+        [],
+        [],
+        new Date("2026-09-01T00:00:00"),
+      );
+      expect(readiness.evidence.enough).toBe(true);
+      expect(readiness.score).not.toBeNull();
+      expect(readiness.tier).not.toBe("Not enough data");
     });
 
     it("does not treat a brand-new card's default ease factor as mastery", () => {
@@ -476,6 +507,7 @@ describe("examReadiness", () => {
         weakTopics: [],
         openMisconceptions: 0,
         closedMisconceptions: 0,
+        evidence: { quizQuestions: 20, reviewedCards: 0, enough: true },
         misconceptionPenalty: 0,
         daysRemaining: 9,
         targetHoursRemaining: 8,

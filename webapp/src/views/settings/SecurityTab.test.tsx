@@ -40,6 +40,7 @@ async function fillPasswordForm(
     confirm = next,
   }: { current?: string; next?: string; confirm?: string } = {},
 ) {
+  await user.click(screen.getByRole("button", { name: "Change password" }));
   if (current)
     await user.type(screen.getByLabelText("Current password"), current);
   if (next) await user.type(screen.getByLabelText("New password"), next);
@@ -59,6 +60,7 @@ describe("SecurityTab", () => {
   it("hides the strength meter until something is typed", async () => {
     const user = userEvent.setup();
     renderSecurity();
+    await user.click(screen.getByRole("button", { name: "Change password" }));
     expect(screen.queryByText(/Too Weak/)).toBeNull();
 
     await user.type(screen.getByLabelText("New password"), "a");
@@ -71,6 +73,7 @@ describe("SecurityTab", () => {
   it("upgrades the strength label as the password improves", async () => {
     const user = userEvent.setup();
     renderSecurity();
+    await user.click(screen.getByRole("button", { name: "Change password" }));
     const input = screen.getByLabelText("New password");
 
     await user.type(input, "aaaaAAAA");
@@ -87,6 +90,7 @@ describe("SecurityTab", () => {
   it("toggles password visibility without leaving the tab order", async () => {
     const user = userEvent.setup();
     renderSecurity();
+    await user.click(screen.getByRole("button", { name: "Change password" }));
     const input = screen.getByLabelText("New password");
     expect(input).toHaveAttribute("type", "password");
 
@@ -153,6 +157,7 @@ describe("SecurityTab", () => {
         "Password updated. Other sessions have been signed out.",
       ),
     ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Change password" }));
     expect(screen.getByLabelText("Current password")).toHaveValue("");
     expect(screen.getByLabelText("New password")).toHaveValue("");
     expect(screen.getByLabelText("Confirm new password")).toHaveValue("");

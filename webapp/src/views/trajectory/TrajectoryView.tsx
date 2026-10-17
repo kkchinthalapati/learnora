@@ -17,6 +17,7 @@ import {
 import { INTERVENTION_BLOCK_MINS, type Verdict } from "../../lib/trajectory";
 import { TrajectoryChart } from "./TrajectoryChart";
 import { QuizOnlyForecast } from "./QuizOnlyForecast";
+import { MIN_FORECAST_EVIDENCE } from "../../lib/trajectory";
 import styles from "./trajectory.module.css";
 
 /* The screen that answers "is what I'm doing going to be enough?"
@@ -87,7 +88,11 @@ export function TrajectoryBody() {
      stopping there, fall back to what the student does have — quiz results —
      and say plainly that it is the rougher model. An empty screen is a worse
      answer than a rough number honestly labelled. */
-  if (needsMaterial || !forecast) {
+  if (
+    needsMaterial ||
+    !forecast ||
+    forecast.confidence.measured < MIN_FORECAST_EVIDENCE
+  ) {
     return (
       <QuizOnlyForecast examName={exam.exam_name} examDate={exam.exam_date} />
     );

@@ -1,0 +1,1513 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import { server } from "../../test/mocks/server";
+import { SUPABASE_URL } from "../../lib/supabase";
+import { SETTINGS_KEY } from "../../lib/settings";
+import { Storage } from "../../lib/storage";
+import { mockAuthSession } from "../../test/mockSession";
+import { fakeSession, renderWithAuth } from "../../test/auth";
+import { ChatProvider } from "../../context/ChatProvider";
+import { useChat } from "../../context/chat";
+import { TutorChat } from "./TutorChat";
+import {
+  FakeRecognition,
+  installFakeSpeech,
+  uninstallFakeSpeech,
+} from "../../test/fakeSpeech";
+
+const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
+const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
+const WEB_RESEARCH_URL = `${SUPABASE_URL}/functions/v1/web-research`;
+
+/** Opens the panel — the app's real entry points do this from the dashboard,
+ *  which would drag the whole dashboard into every chat test. */
+function OpenChatButton() {
+  const { open } = useChat();
+  return (
+    <button type="button" onClick={open}>
+      Open chat
+    </button>
+  );
+}
+
+function LocationProbe() {
+  const { pathname } = useLocation();
+  return <p>{`path:${pathname}`}</p>;
+}
+
+function serveWorkspace() {
+  server.use(
+    http.get(rest("tasks"), () => HttpResponse.json([])),
+    http.get(rest("exams"), () => HttpResponse.json([])),
+    http.post(WEB_RESEARCH_URL, () =>
+      HttpResponse.json({ query: "", results: [] }),
+    ),
+  );
+}
+
+function serveReply(text: string) {
+  server.use(http.post(EDGE_URL, () => HttpResponse.json({ text })));
+}
+
+/** Dispatches the edge call by `mode`, for tags like `<ADD_QUIZ>`/`<ADD_PLAN>`
+ *  whose handler fires a *second*, differently-moded `callEdge` after the
+ *  chat turn that emitted the tag — a plain `serveReply` would hand the
+ *  generation call the chat reply's tag-bearing text right back. */
+function serveEdgeByMode(byMode: Record<string, () => Response>) {
+  server.use(
+    http.post(EDGE_URL, async ({ request }) => {
+      const { mode } = (await request.json()) as { mode?: string };
+      const reply = byMode[mode ?? "chat"];
+      if (!reply) {
+        throw new Error(`test forgot to stub edge mode "${mode}"`);
+      }
+      return reply();
+    }),
+  );
+}
+
+/** Records every prompt the chat sends to the edge function, so a test can
+ *  assert on the system context rather than only on the rendered reply. */
+function capturePrompts(text = "Sure.") {
+  const sent: string[] = [];
+  server.use(
+    http.post(EDGE_URL, async ({ request }) => {
+      const body = (await request.json()) as {
+        history: { content: string }[];
+        context?: string;
+      };
+      /* The app's instructions travel in `context`, the student's words as
+         the last history turn; together they are what the model reads. */
+      sent.push(
+        `${body.context ?? ""}\n${body.history[body.history.length - 1]?.content ?? ""}`,
+      );
+      return HttpResponse.json({ text });
+    }),
+  );
+  return sent;
+}
+
+function renderChat(initialPath = "/") {
+  return renderWithAuth(
+    <MemoryRouter initialEntries={[initialPath]}>
+      {/* ChatProvider sits inside the router, as it does in App.tsx — it
+          navigates and reads the current path for context. */}
+      <ChatProvider>
+        <LocationProbe />
+        <Routes>
+          <Route path="*" element={<OpenChatButton />} />
+        </Routes>
+        <TutorChat />
+      </ChatProvider>
+    </MemoryRouter>,
+    { session: fakeSession() },
+    { withTimer: true },
+  );
+}
+
+async function openChat() {
+  await userEvent.click(screen.getByRole("button", { name: "Open chat" }));
+  return screen.getByRole("region", { name: "Learnora AI chat" });
+}
+
+async function ask(question: string) {
+  await userEvent.type(
+    screen.getByRole("textbox", { name: "AI chat input" }),
+    question,
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Send message" }));
+}
+
+describe("TutorChat", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+    serveWorkspace();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /* Auto-Adapt promises to "adjust its next reply when your follow-up shows
+     confusion". It computed that adjustment and then sent only its sentence:
+     a stuck student on the detailed setting was told to slow down and to
+     "err on the side of covering more" in the same breath. */
+  it("shortens the reply it asks for once the student is plainly stuck", async () => {
+    Storage.set(SETTINGS_KEY, { aiConciseness: "detailed", aiAutoAdapt: true });
+    const sent = capturePrompts();
+    renderChat();
+    await openChat();
+
+    await ask("what is a mole");
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toContain("Give comprehensive, detailed responses");
+
+    await ask("i still dont understand");
+    await waitFor(() => expect(sent).toHaveLength(2));
+    await ask("i still dont understand");
+    await waitFor(() => expect(sent).toHaveLength(3));
+
+    expect(sent[2]).toContain("ADAPTIVE NUDGE: The student appears stuck");
+    expect(sent[2]).toContain("Keep replies short and to the point");
+    expect(sent[2]).not.toContain("Give comprehensive, detailed responses");
+  });
+
+  it("leaves the student's own length preference alone while nothing is wrong", async () => {
+    Storage.set(SETTINGS_KEY, { aiConciseness: "detailed", aiAutoAdapt: true });
+    const sent = capturePrompts();
+    renderChat();
+    await openChat();
+
+    await ask("what is a mole");
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toContain("Give comprehensive, detailed responses");
+    expect(sent[0]).not.toContain("ADAPTIVE NUDGE");
+  });
+
+  it("is closed until something opens it", () => {
+    renderChat();
+    expect(
+      screen.queryByRole("region", { name: "Learnora AI chat" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("greets the student on an empty conversation", async () => {
+    renderChat();
+    const panel = await openChat();
+    expect(
+      within(panel).getByText(/I can explain a topic, quiz you/),
+    ).toBeInTheDocument();
+  });
+
+  it("closes on the close button", async () => {
+    renderChat();
+    const panel = await openChat();
+    await userEvent.click(
+      within(panel).getByRole("button", { name: "Close AI chat" }),
+    );
+    expect(
+      screen.queryByRole("region", { name: "Learnora AI chat" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("toggles full screen and reports its state", async () => {
+    renderChat();
+    const panel = await openChat();
+    const toggle = within(panel).getByRole("button", {
+      name: "Toggle full screen",
+    });
+
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(toggle);
+    expect(
+      within(panel).getByRole("button", { name: "Exit full screen" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  describe("sending", () => {
+    it("shows the question, then the reply", async () => {
+      serveReply("You have nothing due today.");
+      renderChat();
+      await openChat();
+
+      await ask("what are my tasks?");
+
+      expect(screen.getByText("what are my tasks?")).toBeInTheDocument();
+      expect(
+        await screen.findByText("You have nothing due today."),
+      ).toBeInTheDocument();
+    });
+
+    it("sends the workspace state and the student's message to the model", async () => {
+      let body:
+        | { history?: { content: string }[]; context?: string }
+        | undefined;
+      server.use(
+        http.get(rest("tasks"), () =>
+          HttpResponse.json([
+            {
+              id: 1,
+              user_id: "user-1",
+              text: "Read chapter 4",
+              is_done: false,
+              due_date: "2026-08-07",
+            },
+          ]),
+        ),
+        http.post(EDGE_URL, async ({ request }) => {
+          body = (await request.json()) as typeof body;
+          return HttpResponse.json({ text: "ok" });
+        }),
+      );
+      renderChat();
+      await openChat();
+
+      await ask("hello");
+      await screen.findByText("ok");
+
+      /* The app's context and the student's words travel separately, so the
+         student's message can never pose as the app's instructions. */
+      expect(body?.context ?? "").toContain("Read chapter 4 (due 2026-08-07)");
+      expect(body?.context ?? "").not.toContain("User message:");
+      expect(body?.history?.at(-1)?.content).toBe("hello");
+    });
+
+    it("renders markdown in the reply", async () => {
+      serveReply("Try **this** and `that`");
+      renderChat();
+      await openChat();
+      await ask("hi");
+
+      expect(await screen.findByText("this")).toBeInTheDocument();
+      expect(screen.getByText("this").tagName).toBe("STRONG");
+      expect(screen.getByText("that").tagName).toBe("CODE");
+    });
+
+    /* The whole reason the chat renders React nodes instead of assigning
+       `renderMarkdown`'s output to `innerHTML`. */
+    it("cannot be made to inject markup by the model", async () => {
+      serveReply('<img src=x onerror="alert(1)">');
+      renderChat();
+      await openChat();
+      await ask("hi");
+
+      expect(await screen.findByText(/<img src=x/)).toBeInTheDocument();
+      expect(document.querySelector("img")).toBeNull();
+    });
+
+    it("reports a failure in the feed rather than silently doing nothing", async () => {
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ error: "Bad token" }, { status: 401 }),
+        ),
+      );
+      renderChat();
+      await openChat();
+      await ask("hi");
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Bad token");
+    });
+
+    it("offers Try again on a failure, which re-sends the same question", async () => {
+      let failing = true;
+      server.use(
+        http.post(EDGE_URL, () =>
+          failing
+            ? HttpResponse.json({ error: "Internal error" }, { status: 400 })
+            : HttpResponse.json({ text: "recovered answer" }),
+        ),
+      );
+      renderChat();
+      await openChat();
+      await ask("what is osmosis");
+
+      const alert = await screen.findByRole("alert");
+      failing = false;
+      await userEvent.click(within(alert).getByRole("button", { name: /try again/i }));
+      expect(await screen.findByText("recovered answer")).toBeInTheDocument();
+    });
+
+    it("carries the conversation into the next request", async () => {
+      const bodies: { history: { role: string; content: string }[] }[] = [];
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          bodies.push((await request.json()) as (typeof bodies)[number]);
+          return HttpResponse.json({ text: `reply ${bodies.length}` });
+        }),
+      );
+      renderChat();
+      await openChat();
+
+      await ask("first");
+      await screen.findByText("reply 1");
+      await ask("second");
+      await screen.findByText("reply 2");
+
+      /* The second request carries the first exchange — the *clean* text, not
+         the injected system context. */
+      expect(bodies[1].history[0]).toEqual({ role: "user", content: "first" });
+      expect(bodies[1].history[1]).toEqual({
+        role: "model",
+        content: "reply 1",
+      });
+    });
+
+    /* Replaying a failed exchange would make the model answer a question the
+       student never saw answered. */
+    it("does not put a failed exchange into the history", async () => {
+      const bodies: { history: { content: string }[] }[] = [];
+      let calls = 0;
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          bodies.push((await request.json()) as (typeof bodies)[number]);
+          calls++;
+          return calls === 1
+            ? HttpResponse.json({ error: "nope" }, { status: 400 })
+            : HttpResponse.json({ text: "second time" });
+        }),
+      );
+      renderChat();
+      await openChat();
+
+      await ask("doomed");
+      await screen.findByRole("alert");
+      await ask("retry");
+      await screen.findByText("second time");
+
+      expect(bodies[1].history).toHaveLength(1);
+    });
+  });
+
+  describe("action tags", () => {
+    it("never shows a raw tag to the student", async () => {
+      serveReply("Done — <ADD_TASK>Revise ch. 3</ADD_TASK>");
+      server.use(
+        http.post(rest("tasks"), () => new HttpResponse(null, { status: 201 })),
+      );
+      renderChat();
+      await openChat();
+      await ask("add a task");
+
+      const dialog = await screen.findByRole("alertdialog");
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Add task" }),
+      );
+
+      await screen.findByText("Revise ch. 3");
+      expect(screen.queryByText(/<ADD_TASK>/)).not.toBeInTheDocument();
+    });
+
+    it("creates the task once the student allows it", async () => {
+      let posted: Record<string, unknown>[] | undefined;
+      serveReply("<ADD_TASK>Revise ch. 3</ADD_TASK>");
+      server.use(
+        http.post(rest("tasks"), async ({ request }) => {
+          posted = (await request.json()) as Record<string, unknown>[];
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      renderChat();
+      await openChat();
+      await ask("add a task");
+
+      const dialog = await screen.findByRole("alertdialog");
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Add task" }),
+      );
+
+      await waitFor(() => expect(posted).toBeDefined());
+      expect(posted?.[0]).toMatchObject({
+        text: "Revise ch. 3",
+        user_id: "user-1",
+      });
+      expect(await screen.findByText("Added task:")).toBeInTheDocument();
+    });
+
+    it("creates nothing when the student declines", async () => {
+      let posts = 0;
+      serveReply("<ADD_TASK>Revise ch. 3</ADD_TASK>");
+      server.use(
+        http.post(rest("tasks"), () => {
+          posts++;
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      renderChat();
+      await openChat();
+      await ask("add a task");
+
+      const dialog = await screen.findByRole("alertdialog");
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Cancel" }),
+      );
+
+      expect(
+        await screen.findByText("Canceled adding task:"),
+      ).toBeInTheDocument();
+      expect(posts).toBe(0);
+    });
+
+    it("starts a timer and lands the student on it", async () => {
+      serveReply("Starting now. <START_TIMER>30</START_TIMER>");
+      server.use(http.get(rest("folders"), () => HttpResponse.json([])));
+      renderChat();
+      await openChat();
+      await ask("30 minute timer please");
+
+      expect(
+        await screen.findByText("Started focus timer for 30m"),
+      ).toBeInTheDocument();
+    });
+
+    it("says the reply was pure action when nothing else was in it", async () => {
+      serveReply("<SET_THEME>light</SET_THEME>");
+      renderChat();
+      await openChat();
+      await ask("go light");
+
+      expect(
+        await screen.findByText("Switched theme to light"),
+      ).toBeInTheDocument();
+    });
+
+    it("navigates on <NAVIGATE> and says where", async () => {
+      serveReply("Sure — <NAVIGATE>settings</NAVIGATE>");
+      renderChat();
+      await openChat();
+      await ask("take me to settings");
+
+      expect(
+        await screen.findByText("Navigated to settings"),
+      ).toBeInTheDocument();
+      expect(await screen.findByText("path:/settings")).toBeInTheDocument();
+    });
+
+    /* <ADD_QUIZ>/<ADD_PLAN> fire a *second*, differently-moded `callEdge` off
+       the handler passed to `executeActions` — real network glue that the
+       pure `chatActions.test.ts` (which mocks the handler outright) can't
+       exercise, and nothing else in the suite reaches. */
+    describe("<ADD_QUIZ>", () => {
+      it("generates the quiz once allowed, and lands on it", async () => {
+        serveEdgeByMode({
+          chat: () =>
+            HttpResponse.json({
+              text: "Sure — <ADD_QUIZ>Cell biology</ADD_QUIZ>",
+            }),
+          quiz: () =>
+            HttpResponse.json({
+              text: JSON.stringify([
+                {
+                  question: "What holds a cell's DNA?",
+                  choices: ["Nucleus", "Ribosome"],
+                  correctIndex: 0,
+                },
+              ]),
+            }),
+        });
+        server.use(
+          http.post(rest("quizzes"), () =>
+            HttpResponse.json({ id: "quiz-1", title: "Cell biology Quiz" }),
+          ),
+        );
+        renderChat();
+        await openChat();
+        await ask("quiz me on cell biology");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        expect(await screen.findByText("Generating quiz:")).toBeInTheDocument();
+        expect(
+          await screen.findByText("Quiz ready"),
+        ).toBeInTheDocument();
+        await waitFor(() =>
+          expect(screen.getByText("path:/quiz/quiz-1")).toBeInTheDocument(),
+        );
+      });
+
+      /* <ADD_QUIZ> has no picker of its own to name a host personality with —
+         unlike MaterialPanel's Create dialog — so it has to fall back to
+         *something*. Before AI_PERSONA_QUIZ_HOST existed that fallback was
+         hardcoded to "Friendly Tutor" regardless of what the student had set
+         in Preferences; now it follows the same global aiPersona setting
+         MaterialPanel's own default follows. */
+      it("hosts the quiz in the student's own AI persona, not a fixed default", async () => {
+        Storage.set(SETTINGS_KEY, { aiPersona: "coach" });
+        // The quiz-mode reply is deliberately unusable (no questions survive
+        // extraction) — this test only cares what prompt the quiz call was
+        // sent, not whether generation succeeds.
+        let quizPrompt = "";
+        server.use(
+          http.post(EDGE_URL, async ({ request }) => {
+            const body = (await request.json()) as {
+              mode?: string;
+              history: { content: string }[];
+            };
+            if (body.mode === "quiz") {
+              quizPrompt = body.history.at(-1)?.content ?? "";
+              return HttpResponse.json({ text: JSON.stringify([]) });
+            }
+            return HttpResponse.json({
+              text: "Sure — <ADD_QUIZ>Cell biology</ADD_QUIZ>",
+            });
+          }),
+        );
+        renderChat();
+        await openChat();
+        await ask("quiz me on cell biology");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        await waitFor(() => expect(quizPrompt).not.toBe(""));
+        expect(quizPrompt).toContain("AI Host Personality: Strict Coach");
+      });
+
+      it("generates nothing when declined", async () => {
+        let quizCalls = 0;
+        serveReply("Sure — <ADD_QUIZ>Cell biology</ADD_QUIZ>");
+        server.use(
+          http.post(rest("quizzes"), () => {
+            quizCalls++;
+            return HttpResponse.json({ id: "quiz-1" });
+          }),
+        );
+        renderChat();
+        await openChat();
+        await ask("quiz me on cell biology");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Cancel" }),
+        );
+
+        expect(
+          await screen.findByText("Canceled quiz generation"),
+        ).toBeInTheDocument();
+        expect(quizCalls).toBe(0);
+      });
+
+      /* A refused topic carries its own explanation, distinct from a plain
+         "try again" — the generic message must not swallow it. */
+      it("toasts the safety refusal's own wording, not a generic failure", async () => {
+        serveEdgeByMode({
+          chat: () =>
+            HttpResponse.json({
+              text: "<ADD_QUIZ>How to make a bomb</ADD_QUIZ>",
+            }),
+          quiz: () =>
+            HttpResponse.json(
+              { error: "I can't help with that topic.", refused: true },
+              { status: 422 },
+            ),
+        });
+        renderChat();
+        await openChat();
+        await ask("quiz me on that");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        expect(
+          await screen.findByText("I can't help with that topic."),
+        ).toBeInTheDocument();
+      });
+
+      it("shows QuizShapeError's own wording when nothing quiz-shaped comes back", async () => {
+        serveEdgeByMode({
+          chat: () =>
+            HttpResponse.json({ text: "<ADD_QUIZ>Cell biology</ADD_QUIZ>" }),
+          quiz: () => HttpResponse.json({ text: "not JSON at all" }),
+        });
+        renderChat();
+        await openChat();
+        await ask("quiz me");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        expect(
+          await screen.findByText(
+            "Couldn't generate a quiz this time. Please try again.",
+          ),
+        ).toBeInTheDocument();
+      });
+
+      /* Distinct from both the refusal and the shape-error paths above: a
+         plain transport failure carries no message worth showing verbatim,
+         so this is the one case that must fall all the way through to the
+         generic wording. A 4xx (rather than a 5xx/429) keeps this from also
+         exercising the client's own retry-with-backoff path — covered
+         separately in ai.test.ts — which would just slow this test down. */
+      it("falls back to a generic toast for a plain transport failure", async () => {
+        serveEdgeByMode({
+          chat: () =>
+            HttpResponse.json({ text: "<ADD_QUIZ>Cell biology</ADD_QUIZ>" }),
+          quiz: () =>
+            HttpResponse.json({ error: "Bad request" }, { status: 400 }),
+        });
+        renderChat();
+        await openChat();
+        await ask("quiz me");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        expect(
+          await screen.findByText("Failed to generate quiz. Please try again."),
+        ).toBeInTheDocument();
+      });
+
+      /* The toast vanishes in seconds; the chat used to keep saying
+         "Generating quiz:" for good, so the failure has to land there too. */
+      it("posts the failure in the chat, with Try again", async () => {
+        serveEdgeByMode({
+          chat: () =>
+            HttpResponse.json({ text: "<ADD_QUIZ>Cell biology</ADD_QUIZ>" }),
+          quiz: () =>
+            HttpResponse.json({ error: "Bad request" }, { status: 400 }),
+        });
+        renderChat();
+        await openChat();
+        await ask("quiz me");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        expect(
+          await screen.findByText(/I couldn't make the quiz on "Cell biology"/),
+        ).toBeInTheDocument();
+        expect(
+          screen.getAllByRole("button", { name: /Try again/ }).length,
+        ).toBeGreaterThan(0);
+      });
+    });
+
+    describe("<ADD_PLAN>", () => {
+      it("generates the plan once allowed, and lands on it", async () => {
+        serveEdgeByMode({
+          chat: () => HttpResponse.json({ text: "<ADD_PLAN></ADD_PLAN>" }),
+          plan: () =>
+            HttpResponse.json({
+              text: JSON.stringify({
+                summary: "A balanced week",
+                days: [],
+              }),
+            }),
+        });
+        server.use(
+          http.post(rest("weekly_plans"), () =>
+            HttpResponse.json({
+              id: "plan-1",
+              week_start: "2026-08-03",
+              plan_json: { summary: "A balanced week", days: [] },
+            }),
+          ),
+        );
+        renderChat();
+        await openChat();
+        await ask("plan my week");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Plan" }),
+        );
+
+        expect(
+          await screen.findByText("Generating your weekly study plan"),
+        ).toBeInTheDocument();
+        expect(
+          await screen.findByText("Plan ready"),
+        ).toBeInTheDocument();
+        await waitFor(() =>
+          expect(screen.getByText("path:/plan")).toBeInTheDocument(),
+        );
+      });
+
+      it("generates nothing when declined", async () => {
+        let planCalls = 0;
+        serveReply("<ADD_PLAN></ADD_PLAN>");
+        server.use(
+          http.post(rest("weekly_plans"), () => {
+            planCalls++;
+            return HttpResponse.json({ id: "plan-1" });
+          }),
+        );
+        renderChat();
+        await openChat();
+        await ask("plan my week");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Cancel" }),
+        );
+
+        expect(
+          await screen.findByText("Canceled plan generation"),
+        ).toBeInTheDocument();
+        expect(planCalls).toBe(0);
+      });
+
+      it("shows PlanShapeError's own wording when nothing plan-shaped comes back", async () => {
+        serveEdgeByMode({
+          chat: () => HttpResponse.json({ text: "<ADD_PLAN></ADD_PLAN>" }),
+          plan: () => HttpResponse.json({ text: "no plan for you" }),
+        });
+        renderChat();
+        await openChat();
+        await ask("plan my week");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Plan" }),
+        );
+
+        expect(
+          await screen.findByText(
+            "Couldn't generate a plan this time. Please try again.",
+          ),
+        ).toBeInTheDocument();
+      });
+
+      /* A 4xx keeps this from also exercising the client's own retry path,
+         which would just slow the test down for no extra coverage. */
+      it("falls back to a generic toast for a plain transport failure", async () => {
+        serveEdgeByMode({
+          chat: () => HttpResponse.json({ text: "<ADD_PLAN></ADD_PLAN>" }),
+          plan: () =>
+            HttpResponse.json({ error: "Bad request" }, { status: 400 }),
+        });
+        renderChat();
+        await openChat();
+        await ask("plan my week");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Plan" }),
+        );
+
+        expect(
+          await screen.findByText(
+            "Failed to generate your weekly plan. Please try again.",
+          ),
+        ).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("suggestion chips", () => {
+    it("sends the ones marked auto-send", async () => {
+      serveReply("Here are your tasks.");
+      renderChat();
+      const panel = await openChat();
+
+      await userEvent.click(
+        within(panel).getByRole("button", { name: /What are my tasks\?/ }),
+      );
+
+      expect(
+        await screen.findByText("Here are your tasks."),
+      ).toBeInTheDocument();
+    });
+
+    /* This chip used to fire "Start a 25-minute focus timer" immediately, so
+       tapping it silently committed the student to 25 minutes. */
+    it("drops the timer chip's unfinished prompt into the box instead", async () => {
+      renderChat();
+      const panel = await openChat();
+
+      await userEvent.click(
+        within(panel).getByRole("button", { name: /Start a timer/ }),
+      );
+
+      expect(
+        screen.getByRole("textbox", { name: "AI chat input" }),
+      ).toHaveValue("Start a focus timer for ");
+    });
+  });
+
+  describe("attachments", () => {
+    it("shows a pill for the attached file and lets it be removed", async () => {
+      renderChat();
+      const panel = await openChat();
+      const input = panel.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await userEvent.upload(
+        input,
+        new File(["hello"], "notes.txt", { type: "text/plain" }),
+      );
+
+      expect(await screen.findByText("notes.txt")).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Remove notes.txt" }),
+      );
+      expect(screen.queryByText("notes.txt")).not.toBeInTheDocument();
+    });
+
+    it("inlines a text file into the prompt rather than sending it as a blob", async () => {
+      let body:
+        | { history?: { content: string }[]; file?: unknown; context?: string }
+        | undefined;
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          body = (await request.json()) as typeof body;
+          return HttpResponse.json({ text: "read it" });
+        }),
+      );
+      renderChat();
+      const panel = await openChat();
+      const input = panel.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await userEvent.upload(
+        input,
+        new File(["mitosis has four phases"], "notes.txt", {
+          type: "text/plain",
+        }),
+      );
+      await screen.findByText("notes.txt");
+      await ask("summarise this");
+      await screen.findByText("read it");
+
+      expect(body?.file).toBeFalsy();
+      expect(body?.context).toContain("mitosis has four phases");
+    });
+
+    it("sends a photo as an image attachment, with nothing typed", async () => {
+      let body:
+        | { history?: { content: string }[]; file?: { mimeType: string } | null }
+        | undefined;
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          body = (await request.json()) as typeof body;
+          return HttpResponse.json({ text: "That's the Krebs cycle." });
+        }),
+      );
+      renderChat();
+      const panel = await openChat();
+      const input = panel.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await userEvent.upload(
+        input,
+        new File(["jpeg"], "whiteboard.jpg", { type: "image/jpeg" }),
+      );
+      await screen.findByText("whiteboard.jpg");
+      /* An attachment on its own is enough to send. */
+      const sendButton = screen.getByRole("button", { name: "Send message" });
+      expect(sendButton).toBeEnabled();
+      await userEvent.click(sendButton);
+      await screen.findByText("That's the Krebs cycle.");
+
+      expect(body?.file?.mimeType).toBe("image/jpeg");
+      expect(body?.history?.at(-1)?.content).toBe("Analyse this.");
+    });
+
+    it("refuses a photo format it cannot read, with a reason", async () => {
+      renderChat();
+      const panel = await openChat();
+      const input = panel.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await userEvent.upload(
+        input,
+        new File(["gif"], "diagram.gif", { type: "image/gif" }),
+        { applyAccept: false },
+      );
+      expect(
+        await screen.findByText("That image format can't be read. Use a JPEG, PNG or WebP photo."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("diagram.gif")).not.toBeInTheDocument();
+    });
+
+    it("clears the attachment once it has been sent", async () => {
+      serveReply("done");
+      renderChat();
+      const panel = await openChat();
+      const input = panel.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await userEvent.upload(
+        input,
+        new File(["x"], "notes.txt", { type: "text/plain" }),
+      );
+      await screen.findByText("notes.txt");
+      await ask("go");
+      await screen.findByText("done");
+
+      /* The name survives on the sent message, but the composer's pill is
+         gone — an attachment belongs to the message it went with. */
+      expect(
+        screen.queryByRole("button", { name: "Remove notes.txt" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Generate image", () => {
+    /* The CSP admits blob: images but not the Supabase host, so the bubble
+       fetches the signed URL and shows an object URL. jsdom has no
+       createObjectURL; this stands in for it and records what was shown. */
+    const objectUrls: Blob[] = [];
+    beforeEach(() => {
+      objectUrls.length = 0;
+      Object.defineProperty(URL, "createObjectURL", {
+        configurable: true,
+        value: (blob: Blob) => {
+          objectUrls.push(blob);
+          return `blob:learnora/diagram-${objectUrls.length}`;
+        },
+      });
+      Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => {} });
+    });
+
+    function serveImage(reply: () => Response) {
+      const bodies: Record<string, unknown>[] = [];
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          bodies.push((await request.json()) as Record<string, unknown>);
+          return reply();
+        }),
+        http.post(`${SUPABASE_URL}/storage/v1/object/sign/chat-media/*`, () =>
+          HttpResponse.json({ signedURL: "/object/sign/chat-media/user-1/cell.png?token=t" }),
+        ),
+        http.get(`${SUPABASE_URL}/storage/v1/object/sign/chat-media/*`, ({ request }) =>
+          new URL(request.url).searchParams.get("token") === "t"
+            ? new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+                headers: { "Content-Type": "image/png" },
+              })
+            : new HttpResponse(null, { status: 403 }),
+        ),
+      );
+      return bodies;
+    }
+
+    it("is offered beside the starters and the follow-ups", async () => {
+      serveReply("Mitosis has four phases.");
+      renderChat();
+      await openChat();
+      expect(screen.getByRole("button", { name: "Generate image" })).toBeInTheDocument();
+      await ask("what is mitosis");
+      await screen.findByText("Mitosis has four phases.");
+      expect(screen.getByRole("button", { name: "Explain simpler" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Generate image" })).toBeInTheDocument();
+    });
+
+    it("draws only after the student arms it and sends, showing what is left today", async () => {
+      const bodies = serveImage(() =>
+        HttpResponse.json({
+          text: "Diagram: a labelled plant cell",
+          alt: "Diagram: a labelled plant cell",
+          imagePath: "user-1/cell.png",
+        }),
+      );
+      renderChat();
+      await openChat();
+
+      const chip = screen.getByRole("button", { name: "Generate image" });
+      await userEvent.click(chip);
+      expect(chip).toHaveAttribute("aria-pressed", "true");
+      /* Free plan, nothing used yet: the image allowance is 2. */
+      expect(await screen.findByText(/2 left today/)).toBeInTheDocument();
+      expect(bodies).toHaveLength(0);
+
+      await userEvent.type(
+        screen.getByRole("textbox", { name: "AI chat input" }),
+        "a labelled plant cell",
+      );
+      /* The send button's name changes with the mode, so it is clear what
+         pressing it will do. */
+      await userEvent.click(screen.getByRole("button", { name: "Draw image" }));
+
+      const img = await screen.findByRole("img", { name: "Diagram: a labelled plant cell" });
+      /* Read through the signed URL, shown as a same-origin object URL. */
+      expect(img.getAttribute("src")).toBe("blob:learnora/diagram-1");
+      expect(objectUrls[0].type).toBe("image/png");
+      const download = screen.getByRole("link", { name: /Download/ });
+      expect(download.getAttribute("href")).toBe("blob:learnora/diagram-1");
+      expect(download.getAttribute("download")).toBe("learnora-diagram.png");
+      expect(bodies[0]).toMatchObject({
+        mode: "image",
+        tool: "image",
+        history: [{ role: "user", content: "a labelled plant cell" }],
+      });
+      /* One-shot: the next send is an ordinary question again. */
+      expect(screen.getByRole("button", { name: "Generate image" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+
+    it("saves a drawn diagram as a flashcard", async () => {
+      serveImage(() =>
+        HttpResponse.json({ text: "Diagram: the heart", imagePath: "user-1/heart.png" }),
+      );
+      const cards: Record<string, unknown>[] = [];
+      server.use(
+        http.get(`${SUPABASE_URL}/storage/v1/object/chat-media/*`, () =>
+          new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+            headers: { "Content-Type": "image/png" },
+          }),
+        ),
+        http.post(`${SUPABASE_URL}/storage/v1/object/card-media/*`, () =>
+          HttpResponse.json({ Key: "card-media/user-1/h.png" }),
+        ),
+        http.get(rest("flashcard_decks"), () => HttpResponse.json([])),
+        http.post(rest("flashcard_decks"), () => HttpResponse.json({ id: "deck-9" })),
+        http.post(rest("flashcards"), async ({ request }) => {
+          const rows = (await request.json()) as Record<string, unknown>[];
+          cards.push(...rows);
+          return HttpResponse.json({ id: "card-1", ...rows[0] });
+        }),
+      );
+      renderChat();
+      await openChat();
+      await userEvent.click(screen.getByRole("button", { name: "Generate image" }));
+      await userEvent.type(screen.getByRole("textbox", { name: "AI chat input" }), "the heart");
+      await userEvent.click(screen.getByRole("button", { name: "Draw image" }));
+      await screen.findByRole("img", { name: "Diagram: the heart" });
+
+      await userEvent.click(screen.getByRole("button", { name: "Save as card" }));
+      expect(await screen.findByText("Saved as a card")).toBeInTheDocument();
+      expect(cards[0]).toMatchObject({ deck_id: "deck-9", back: "the heart" });
+    });
+
+    it("shows a refusal as the reply, with nothing to retry", async () => {
+      serveImage(() =>
+        HttpResponse.json({ text: "I can't help with that topic.", refused: true }),
+      );
+      renderChat();
+      await openChat();
+      await userEvent.click(screen.getByRole("button", { name: "Generate image" }));
+      await userEvent.type(
+        screen.getByRole("textbox", { name: "AI chat input" }),
+        "something it should not draw",
+      );
+      await userEvent.keyboard("{Enter}");
+
+      expect(await screen.findByText("I can't help with that topic.")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Try again/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: /Diagram/ })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("voice", () => {
+    afterEach(() => {
+      uninstallFakeSpeech();
+      vi.useRealTimers();
+    });
+
+    function captureEdge(reply = "Osmosis is water moving across a membrane.") {
+      const bodies: { history: { content: string }[] }[] = [];
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          bodies.push((await request.json()) as (typeof bodies)[number]);
+          return HttpResponse.json({ text: reply });
+        }),
+      );
+      return bodies;
+    }
+
+    it("shows no voice controls where the browser has no speech support", async () => {
+      renderChat();
+      await openChat();
+      expect(screen.queryByRole("button", { name: "Speak your question" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Read replies aloud" })).not.toBeInTheDocument();
+      // Typing is untouched.
+      expect(screen.getByRole("textbox", { name: "AI chat input" })).toBeEnabled();
+    });
+
+    it("sends what was said through the normal chat path once the student pauses", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      installFakeSpeech();
+      const bodies = captureEdge();
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      expect(await screen.findByText(/Listening — pause when you're done/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Stop listening" })).toBeInTheDocument();
+
+      act(() => FakeRecognition.latest().say("what is osmosis"));
+      expect(screen.getByRole("textbox", { name: "AI chat input" })).toHaveValue("what is osmosis");
+
+      // Three seconds of silence ends the turn and sends it.
+      act(() => {
+        vi.advanceTimersByTime(3100);
+      });
+      expect(
+        await screen.findByText("Osmosis is water moving across a membrane."),
+      ).toBeInTheDocument();
+      expect(bodies[0].history.at(-1)?.content).toBe("what is osmosis");
+    });
+
+    it("keeps the words in the box, unsent, when the student presses Stop", async () => {
+      installFakeSpeech();
+      const bodies = captureEdge();
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      await screen.findByText(/Listening/);
+      act(() => FakeRecognition.latest().say("explain mitosis"));
+      await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+
+      expect(screen.getByRole("textbox", { name: "AI chat input" })).toHaveValue("explain mitosis");
+      expect(screen.queryByText(/Listening/)).not.toBeInTheDocument();
+      expect(bodies).toHaveLength(0);
+    });
+
+    it("says so when the microphone is blocked, and leaves typing working", async () => {
+      installFakeSpeech();
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      await screen.findByText(/Listening/);
+      act(() => FakeRecognition.latest().deny());
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        /Microphone permission was denied.*You can still type your question/,
+      );
+      expect(screen.getByRole("button", { name: "Speak your question" })).toBeInTheDocument();
+    });
+
+    it("reads replies aloud only when the student has turned it on", async () => {
+      const synth = installFakeSpeech();
+      captureEdge("**Osmosis** is water moving across a membrane.");
+      renderChat();
+      await openChat();
+
+      await ask("what is osmosis");
+      await screen.findByText(/is water moving across a membrane/);
+      expect(synth.spoken).toEqual([]);
+
+      const toggle = screen.getByRole("button", { name: "Read replies aloud" });
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+      await userEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+      await ask("and again");
+      await waitFor(() =>
+        expect(synth.spoken).toEqual(["Osmosis is water moving across a membrane."]),
+      );
+    });
+
+    it("keeps a spoken conversation going hands-free until Stop", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      Storage.set(SETTINGS_KEY, { aiSpokenReplies: true });
+      const synth = installFakeSpeech();
+      captureEdge("Water moves to the saltier side.");
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      await screen.findByText(/Listening/);
+      const recognition = FakeRecognition.latest();
+      act(() => recognition.say("which way does water move"));
+      act(() => {
+        vi.advanceTimersByTime(3100);
+      });
+      await waitFor(() => expect(synth.spoken).toEqual(["Water moves to the saltier side."]));
+      expect(screen.getByText("Reading the reply aloud…")).toBeInTheDocument();
+
+      // When the reply finishes, the mic reopens for the next question.
+      const startsBefore = FakeRecognition.instances.reduce((n, r) => n + r.started, 0);
+      act(() => synth.finish());
+      await waitFor(() =>
+        expect(FakeRecognition.instances.reduce((n, r) => n + r.started, 0)).toBe(startsBefore + 1),
+      );
+      expect(await screen.findByText(/Listening/)).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+      expect(screen.queryByText(/Listening|Voice conversation on/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("flashcard replies", () => {
+    it("lists the cards instead of dumping raw JSON", async () => {
+      serveReply(
+        JSON.stringify([
+          { front: "Mitochondrion", back: "Makes ATP" },
+          { front: "Ribosome", back: "Builds proteins" },
+          { front: "Nucleus", back: "Holds DNA" },
+        ]),
+      );
+      renderChat();
+      await openChat();
+      await ask("make me flashcards");
+
+      expect(await screen.findByText("Mitochondrion")).toBeInTheDocument();
+      expect(screen.getByText("Makes ATP")).toBeInTheDocument();
+      expect(screen.queryByText(/"front"/)).not.toBeInTheDocument();
+    });
+
+    it("typesets TeX in a card list", async () => {
+      /* The same card is typeset on the review screen once "Save as card set"
+         has written it, so the bubble must not print raw dollars. */
+      serveReply(
+        JSON.stringify([{ front: "Simplify $x^2$", back: "It is $y^3$" }]),
+      );
+      renderChat();
+      await openChat();
+      await ask("make me flashcards");
+
+      const term = await screen.findByText(/Simplify/);
+      const list = term.closest("dl");
+      expect(list?.textContent).toContain("Simplify");
+      expect(list?.textContent).toContain("It is");
+      expect(list?.textContent).not.toContain("$");
+    });
+
+    /* A conversational answer that happens to quote a card or two must not be
+       swallowed by a card list (js/ai.js:1309-1315). */
+    it("leaves a conversational reply that only quotes a card alone", async () => {
+      serveReply(
+        'Here is an example: {"front": "A", "back": "B"} — want more?',
+      );
+      renderChat();
+      await openChat();
+      await ask("show me an example card");
+
+      expect(await screen.findByText(/want more\?/)).toBeInTheDocument();
+    });
+
+    /** Echoes each inserted row back the way PostgREST does for `.select()` —
+     *  same pattern MaterialPanel.test.tsx uses for the Create pipeline's
+     *  own deck/card inserts. */
+    function serveDeckWrites() {
+      const echo = (table: string, id: string) =>
+        http.post(rest(table), async ({ request }) => {
+          const rows = (await request.json()) as Record<string, unknown>[];
+          return HttpResponse.json(
+            rows.length === 1
+              ? { id, ...rows[0] }
+              : rows.map((r) => ({ id, ...r })),
+            { status: 201 },
+          );
+        });
+      server.use(
+        echo("flashcard_decks", "deck-1"),
+        echo("flashcards", "card-1"),
+      );
+    }
+
+    /* Previously the only way to keep a chat-generated set was to notice and
+       manually redo the whole thing through +Create — this is the fix. */
+    it("saves the set as a real deck the student can review later", async () => {
+      serveReply(
+        JSON.stringify([
+          { front: "Mitochondrion", back: "Makes ATP" },
+          { front: "Ribosome", back: "Builds proteins" },
+          { front: "Nucleus", back: "Holds DNA" },
+        ]),
+      );
+      serveDeckWrites();
+      renderChat();
+      await openChat();
+      await ask("make me flashcards");
+      await screen.findByText("Mitochondrion");
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Save as card set" }),
+      );
+
+      expect(await screen.findByText("Saved")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Save as card set" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("keeps the conversation when the panel is closed and reopened", async () => {
+    serveReply("first answer");
+    renderChat();
+    const panel = await openChat();
+    await ask("hello");
+    await screen.findByText("first answer");
+
+    await userEvent.click(
+      within(panel).getByRole("button", { name: "Close AI chat" }),
+    );
+    await openChat();
+
+    expect(screen.getByText("first answer")).toBeInTheDocument();
+  });
+
+  it("renders the PersonaOffsetToolbar in the chat panel", async () => {
+    renderChat();
+    await openChat();
+
+    expect(
+      screen.getByRole("region", {
+        name: "Answer settings",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Answer settings:/ }),
+    ).toHaveTextContent(/Answers from/);
+  });
+
+  it("renders web citation cards with 1-click Add to Notebook action", async () => {
+    serveReply("Here is the research on transformers [1].");
+    server.use(
+      http.post(WEB_RESEARCH_URL, () =>
+        HttpResponse.json({
+          query: "transformers",
+          results: [
+            {
+              id: "paper-1",
+              title: "Attention Is All You Need",
+              url: "https://arxiv.org/abs/1706.03762",
+              domain: "arxiv.org",
+              snippet:
+                "The Transformer model relies entirely on self-attention mechanisms.",
+            },
+          ],
+        }),
+      ),
+      http.get(rest("notebooks"), () =>
+        HttpResponse.json([
+          { id: "nb-1", title: "Study Notebook", notebook_sources: [] },
+        ]),
+      ),
+      http.post(rest("notebook_sources"), () =>
+        HttpResponse.json({ id: "src-1" }),
+      ),
+    );
+
+    renderChat();
+    await openChat();
+    await ask("explain transformers");
+
+    expect(
+      await screen.findByText("Here is the research on transformers [1]."),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("web-citations-container")).toBeInTheDocument();
+    expect(screen.getByText("Attention Is All You Need ↗")).toBeInTheDocument();
+    expect(screen.getByText("🌐 arxiv.org")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "The Transformer model relies entirely on self-attention mechanisms.",
+      ),
+    ).toBeInTheDocument();
+
+    const addBtn = screen.getByRole("button", {
+      name: "Add Attention Is All You Need to Notebook",
+    });
+    expect(addBtn).toHaveTextContent("📥 Add to Notebook");
+
+    await userEvent.click(addBtn);
+    expect(await screen.findByText("✓ Added to Notebook")).toBeInTheDocument();
+  });
+});
+
+/* "I still don't get it" is the commonest next move for a stuck student,
+   and it cost a full typed sentence every time. The live pass showed the
+   tutor adapts well when asked — the typing was the only thing in the way. */
+describe("follow-up chips", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+    serveWorkspace();
+  });
+
+  it("appear only once an answer has arrived, then send on one tap", async () => {
+    serveReply("Induction is a changing magnetic field pushing electrons.");
+    renderChat();
+    await openChat();
+
+    /* An empty panel shows the starters instead. */
+    expect(screen.queryByRole("button", { name: "Explain simpler" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /What are my tasks/ }),
+    ).toBeInTheDocument();
+
+    await ask("explain induction");
+    await screen.findByText(/changing magnetic field/);
+
+    const simpler = await screen.findByRole("button", {
+      name: "Explain simpler",
+    });
+    expect(
+      screen.getByRole("button", { name: "Give an example" }),
+    ).toBeInTheDocument();
+
+    let asked: string | undefined;
+    server.use(
+      http.post(EDGE_URL, async ({ request }) => {
+        const body = (await request.json()) as { history?: { content?: string }[] };
+        asked = body.history?.at(-1)?.content ?? "";
+        return HttpResponse.json({ text: "Simpler version." });
+      }),
+    );
+
+    await userEvent.click(simpler);
+    await screen.findByText("Simpler version.");
+    /* Sent as a complete instruction rather than dropped in the box. */
+    expect(asked).toContain("more simply");
+  });
+
+  describe("the Ask drawer (2026-09 redesign)", () => {
+    it("says what it knows about where the student is", async () => {
+      renderChat("/library");
+      const panel = await openChat();
+      expect(within(panel).getByRole("heading", { name: "Ask" })).toBeInTheDocument();
+      expect(within(panel).getByText(/Knows you're on Library/)).toBeInTheDocument();
+    });
+
+    it("closes on Escape", async () => {
+      renderChat();
+      await openChat();
+      await userEvent.keyboard("{Escape}");
+      expect(screen.queryByRole("region", { name: "Learnora AI chat" })).toBeNull();
+    });
+
+    it("asks for a guess first, and offers a hint or the plain answer", async () => {
+      localStorage.setItem("learnora:flag:guessFirst", "true");
+      const sent = capturePrompts(
+        "Before I answer: what happens to the electrons at the end of the chain?",
+      );
+      renderChat();
+      const panel = await openChat();
+
+      await ask("Why does the electron transport chain need oxygen?");
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(sent[0]).toContain("GUESS FIRST");
+      expect(
+        await within(panel).findByText(/A guess is fine/),
+      ).toBeInTheDocument();
+
+      /* "Just explain it" always wins, and is sent without the instruction. */
+      await userEvent.click(within(panel).getByRole("button", { name: "Just explain it" }));
+      await waitFor(() => expect(sent).toHaveLength(2));
+      expect(sent[1]).not.toContain("GUESS FIRST");
+    });
+
+    it("answers the student's guess rather than asking again", async () => {
+      localStorage.setItem("learnora:flag:guessFirst", "true");
+      const sent = capturePrompts("What do you think happens next?");
+      renderChat();
+      await openChat();
+      await ask("Why does the chain need oxygen?");
+      await waitFor(() => expect(sent).toHaveLength(1));
+      await screen.findByText(/A guess is fine/);
+      await ask("How would it keep going without it, maybe it stops?");
+      await waitFor(() => expect(sent).toHaveLength(2));
+      expect(sent[1]).not.toContain("GUESS FIRST");
+    });
+
+    it("promotes the thread to a Session", async () => {
+      localStorage.setItem("learnora:flag:guessFirst", "false");
+      serveReply("Oxygen is the final electron acceptor.");
+      renderChat();
+      const panel = await openChat();
+      await ask("Why does the chain need oxygen?");
+      await within(panel).findByText(/final electron acceptor/);
+      await userEvent.click(within(panel).getByRole("button", { name: "Open as session" }));
+      expect(screen.getByText("path:/study/new")).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Learnora AI chat" })).toBeNull();
+    });
+  });
+});

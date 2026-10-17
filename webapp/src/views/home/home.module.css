@@ -2,6 +2,9 @@
    top of the page, everything after it is a list. */
 
 .page {
+  /* No margin line on Home: the capture box and every list here are plain
+     cards. The token stays on in Lists and Capture elsewhere. */
+  --margin-rule: transparent;
   display: flex;
   flex-direction: column;
   gap: var(--s-10);
@@ -131,4 +134,62 @@
   .resume {
     transition: none;
   }
+}
+
+/* The one hand-made touch on Home: a highlighter stroke under "learn", the
+   way you'd mark the word that matters on a page of notes (DESIGN.md 0.8). */
+.marked {
+  padding: 0 0.06em;
+  background: linear-gradient(
+    transparent 58%,
+    var(--accent-line-strong) 58%,
+    var(--accent-line-strong) 90%,
+    transparent 90%
+  );
+  box-decoration-break: clone;
+}
+
+/* The typing caret: a thin bar that blinks after the last letter typed. */
+.caret {
+  display: inline-block;
+  width: 0.06em;
+  height: 0.9em;
+  margin-left: 0.04em;
+  vertical-align: -0.08em;
+  background: var(--accent);
+  animation: caret 1s steps(1) infinite;
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
+  }
+}
+
+/* The typed tip can wrap on a phone; reserve two lines so the page below
+   doesn't jump when it does. */
+@media (max-width: 600px) {
+  .hero > .title {
+    min-height: 2.1em;
+  }
+}
+
+/* Words that stand out inside the typed heading: an accent underline, or an
+   italic in the accent colour. */
+.emUnderline {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 0.07em;
+  text-underline-offset: 0.14em;
+}
+
+.emItalic {
+  font-style: italic;
+  color: var(--accent-text);
 }

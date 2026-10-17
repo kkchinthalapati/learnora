@@ -2,6 +2,7 @@ import { useEffect, useImperativeHandle, useRef, type RefObject } from "react";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 import { loadMathTypesetter } from "../lib/quillMath";
+import { registerNoteFormats } from "../lib/noteFormats";
 import styles from "./RichTextEditor.module.css";
 
 /* Hand-rolled Quill wrapper (archive/REACT_MIGRATION.md Decision #8) rather than
@@ -36,6 +37,11 @@ const TOOLBAR_CONFIG = [
  * same-origin frame of the app inside a note (clickjacking / spoofed UI).
  * Nothing in this editor needs embeds, so the format is dropped. */
 const ALLOWED_FORMATS = [
+  /* Learnora's own: the three named highlighters and the callout lines
+     (lib/noteFormats). Stored as classes, so they survive the round trip
+     through clipboard.convert like any other registered format. */
+  "mark",
+  "callout",
   "bold",
   "italic",
   "underline",
@@ -95,6 +101,9 @@ export interface RichTextEditorHandle {
   replaceRange: (index: number, length: number, html: string) => void;
   insertAfterRange: (index: number, length: number, html: string) => void;
   onSelectionChange: (cb: (range: EditorRange | null) => void) => void;
+  /** The live Quill instance, for the notes tools that drive formatting
+   *  directly. Null until the editor has mounted. */
+  getQuill: () => Quill | null;
 }
 
 export interface EditorRange {
@@ -121,6 +130,10 @@ export interface RichTextEditorProps {
   onUserChange?: (html: string) => void;
   className?: string;
   ref?: RefObject<RichTextEditorHandle | null>;
+  /** Quill's own toolbar. The notes page turns it off and draws its own. */
+  toolbar?: boolean;
+  /** Fires once the editor has mounted (it waits for KaTeX first). */
+  onReady?: (quill: Quill) => void;
 }
 
 export function RichTextEditor({
@@ -130,6 +143,8 @@ export function RichTextEditor({
   onUserChange,
   className,
   ref,
+  toolbar = true,
+  onReady,
 }: RichTextEditorProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const quillRef = useRef<Quill | null>(null);
@@ -138,6 +153,8 @@ export function RichTextEditor({
     ((range: EditorRange | null) => void) | null
   >(null);
   onUserChangeRef.current = onUserChange;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
 
   useImperativeHandle(
     ref,
@@ -245,6 +262,7 @@ export function RichTextEditor({
       onSelectionChange: (cb) => {
         onSelectionChangeRef.current = cb;
       },
+      getQuill: () => quillRef.current,
     }),
     [],
   );
@@ -276,10 +294,11 @@ export function RichTextEditor({
       const target = document.createElement("div");
       host.appendChild(target);
 
+      registerNoteFormats();
       const quill = new Quill(target, {
         theme: "snow",
         placeholder,
-        modules: { toolbar: TOOLBAR_CONFIG },
+        modules: { toolbar: toolbar ? TOOLBAR_CONFIG : false },
         formats: ALLOWED_FORMATS,
       });
       quillRef.current = quill;
@@ -296,6 +315,7 @@ export function RichTextEditor({
           range ? { index: range.index, length: range.length } : null,
         );
       });
+      onReadyRef.current?.(quill);
     }
 
     return () => {

@@ -1139,7 +1139,7 @@ function ReviewSession({
     { enabled: !finished },
   );
 
-  /* Registered so a `<GRADE_FLASHCARD>` tag from the *floating* Turbo panel
+  /* Registered so a `<GRADE_FLASHCARD>` tag from the *floating* tutor panel
      (a student who happens to chat "I knew that one" while reviewing) can
      still reach this session — see chatPrompt.ts's review-scoped teaching of
      that tag. The AI-grade box below this component does not go through the

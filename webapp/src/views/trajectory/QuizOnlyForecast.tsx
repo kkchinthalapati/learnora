@@ -46,11 +46,12 @@ export function QuizOnlyForecast({
           {taken === 0
             ? `A forecast needs something to measure. Take ${MIN_FORECAST_QUIZZES} quizzes and this fills in.`
             : `You have taken ${taken} ${taken === 1 ? "quiz" : "quizzes"}. ${remaining} more and this fills in — forecasting off fewer would print a range too wide to plan around.`}{" "}
-          You can also{" "}
-          <Link to="/library" className={styles.link}>
-            turn a material into a deck
+          Reviewing your{" "}
+          <Link to="/review/daily-drill" className={styles.link}>
+            cards
           </Link>{" "}
-          for the full forecast, which needs no quizzes at all.
+          also works: the full forecast reads review history, not how many
+          cards you own.
         </p>
       </Card>
     );
@@ -128,8 +129,8 @@ export function QuizOnlyForecast({
       <p className={styles.sectionCopy}>
         This is the rough version: it reads your quiz scores only, so it cannot
         model what you will forget or what your remaining study time is worth.{" "}
-        <Link to="/library" className={styles.link}>
-          Turn a material into a deck
+        <Link to="/review/daily-drill" className={styles.link}>
+          Review your cards
         </Link>{" "}
         and you get the full forecast, which does both.
       </p>

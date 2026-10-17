@@ -279,7 +279,8 @@ describe("useExamReadiness", () => {
     const { result } = renderHook(() => useExamReadiness(exam, now));
 
     expect(result.current.readiness).toMatchObject({
-      score: 0,
+      score: null,
+      tier: "Not enough data",
       breakdown: { coverage: 0, mastery: 0, studyTime: 0 },
       totalStudyMinutes: 0,
       weakTopics: [],

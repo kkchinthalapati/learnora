@@ -36,4 +36,8 @@ export type AmbiancePreset =
   | "white_noise"
   | "cafe"
   | "waves"
-  | "binaural";
+  | "binaural"
+  | "stream"
+  | "fireplace"
+  | "wind"
+  | "crickets";

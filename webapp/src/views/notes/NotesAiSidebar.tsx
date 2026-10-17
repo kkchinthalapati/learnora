@@ -30,7 +30,7 @@ import styles from "./notesSidebar.module.css";
  * `bindNotesEditor`/`bindNotesQuickActions`/`bindNotesSuggestions`
  * (:2522-2628), and `AI.sendNotesChat` (js/ai.js:1388-1512).
  *
- * This is not the workspace Turbo chat with a different prompt. It keeps its
+ * This is not the workspace tutor chat with a different prompt. It keeps its
  * own conversation, and it executes no action tags: the vanilla panel's own
  * system context tells the model it "cannot run app actions", and the two
  * quick-action cards above the chat are how a quiz or a deck actually gets
@@ -361,12 +361,12 @@ export function NotesAiSidebar({
 
   return (
     <aside className={styles.panel} aria-label="Study assistant">
+      <p className={styles.marginLabel}>Study this page</p>
       <div className={styles.cards}>
         <QuickActionCard
           icon="help-circle"
-          title="Quiz me"
+          title="Quiz me on this page"
           description="Check what stuck"
-          badge="Popular"
           onActivate={() =>
             openCreateForDocument(
               { flashcards: false, quiz: true },
@@ -376,7 +376,7 @@ export function NotesAiSidebar({
         />
         <QuickActionCard
           icon="layers"
-          title="Cards"
+          title="Cards from this page"
           description="Active recall drill"
           onActivate={() =>
             openCreateForDocument(
@@ -386,8 +386,8 @@ export function NotesAiSidebar({
           }
         />
         <QuickActionCard
-          icon="sparkles"
-          title="AI Tutor"
+          icon="graduation-cap"
+          title="Study it with the tutor"
           description="Explain, Socratic, Practice, Teach"
           onActivate={() => {
             const topic = materialTitle || "Study Notes";
@@ -401,14 +401,10 @@ export function NotesAiSidebar({
 
       <div className={styles.chat}>
         <div className={styles.intro}>
-          <span className={styles.avatar}>
-            <Icon name="bot" size={20} />
-          </span>
           <div>
-            <h3 className={styles.greeting}>Study with me</h3>
+            <h3 className={styles.greeting}>Ask about this page</h3>
             <p className={styles.subtext}>
-              I&apos;m reading this document alongside you — ask me anything
-              about it.
+              The tutor reads the page as it is now, unsaved edits included.
             </p>
           </div>
         </div>

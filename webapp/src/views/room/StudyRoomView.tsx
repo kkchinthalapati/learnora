@@ -23,6 +23,10 @@ const AMBIANCE_PRESETS: { id: AmbiancePreset; label: string; icon: string }[] =
     { id: "cafe", label: "Cafe murmur", icon: "☕" },
     { id: "waves", label: "Ocean waves", icon: "🌊" },
     { id: "binaural", label: "Alpha Waves (10Hz)", icon: "🧠" },
+    { id: "stream", label: "Flowing water", icon: "💧" },
+    { id: "fireplace", label: "Fireplace", icon: "🔥" },
+    { id: "wind", label: "Wind", icon: "🍃" },
+    { id: "crickets", label: "Night crickets", icon: "🌙" },
   ];
 
 const QUICK_GLOBAL_CHEERS = ["🔥", "👏", "☕", "🧠", "💪", "✨", "🎉"];
@@ -54,7 +58,7 @@ export function StudyRoomView() {
   // Chat message draft state
   const [chatInput, setChatInput] = useState<string>("");
 
-  // Sound ambiance state
+  // Sound ambience state
   const [isAmbianceOpen, setIsAmbianceOpen] = useState<boolean>(false);
   const [currentAmbiance, setCurrentAmbiance] =
     useState<AmbiancePreset>("none");
@@ -69,7 +73,7 @@ export function StudyRoomView() {
   });
   useFocusTrap(ambiancePopoverRef, isAmbianceOpen);
 
-  // Close ambiance popover on click outside
+  // Close ambience popover on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -87,7 +91,7 @@ export function StudyRoomView() {
     };
   }, [isAmbianceOpen]);
 
-  // Clean up ambiance audio on unmount
+  // Clean up ambience audio on unmount
   useEffect(() => {
     return () => {
       ambianceEngine.stop();
@@ -169,7 +173,7 @@ export function StudyRoomView() {
         </div>
 
         <div className={styles.roomActions}>
-          {/* Sound ambiance Control */}
+          {/* Sound ambience Control */}
           <div className={styles.ambianceWrapper} ref={ambianceMenuRef}>
             <button
               type="button"
@@ -179,13 +183,13 @@ export function StudyRoomView() {
               onClick={() => setIsAmbianceOpen((prev) => !prev)}
               aria-haspopup="dialog"
               aria-expanded={isAmbianceOpen}
-              aria-label="Sound ambiance focus generator"
+              aria-label="Sound ambience focus generator"
             >
               <span>{activeAmbianceMeta ? activeAmbianceMeta.icon : "🎧"}</span>
               <span>
                 {activeAmbianceMeta
                   ? activeAmbianceMeta.label
-                  : "Sound ambiance"}
+                  : "Sound ambience"}
               </span>
               <Icon
                 name="chevron-down"
@@ -202,7 +206,7 @@ export function StudyRoomView() {
                 className={styles.ambianceMenu}
                 role="dialog"
                 aria-modal="true"
-                aria-label="Sound ambiance settings"
+                aria-label="Sound ambience settings"
               >
                 <p className={styles.ambianceTitle}>Focus soundscapes</p>
                 <div className={styles.ambianceGrid}>
@@ -245,7 +249,7 @@ export function StudyRoomView() {
                       handleVolumeChange(parseFloat(e.target.value))
                     }
                     className={styles.ambianceVolumeSlider}
-                    aria-label="Ambiance volume"
+                    aria-label="Ambience volume"
                   />
                   {currentAmbiance !== "none" && (
                     <Button

@@ -50,6 +50,8 @@ export interface CaptureBarProps {
   autoFocus?: boolean;
   /** "lg" is Home's version: a taller field and a bigger type size. */
   size?: "md" | "lg";
+  /** Draws the red margin line down the box. Home turns it off. */
+  ruled?: boolean;
   /** Overrides the field's placeholder, e.g. Home's tip. */
   placeholder?: string;
   onMoreOptions?: () => void;
@@ -79,7 +81,8 @@ export function CaptureBar({
   outputs,
   autoFocus = false,
   size = "md",
-  placeholder = "Drop a file here, paste a link or your notes, or type a topic",
+  ruled = true,
+  placeholder = "Write a topic, paste your notes or a link, or drop in a file",
   onMoreOptions,
   onDone,
 }: CaptureBarProps) {
@@ -247,7 +250,7 @@ export function CaptureBar({
               ? "Learnora will read the photo and make notes and cards."
               : kind === "file"
                 ? "Learnora will read this and make notes and cards."
-                : "PDFs, slides, Word documents, photos, recordings, YouTube or web links, pasted notes, or just a topic.";
+                : "Learnora makes notes and cards from it, then keeps track of what you get wrong.";
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -296,7 +299,7 @@ export function CaptureBar({
 
   return (
     <form
-      className={`${styles.bar} ${size === "lg" ? styles.lg : ""}`}
+      className={`${styles.bar} ${size === "lg" ? styles.lg : ""} ${ruled ? "" : styles.plain}`}
       data-dragging={dragging || undefined}
       onSubmit={handleSubmit}
       onDragOver={(event) => {
@@ -366,7 +369,7 @@ export function CaptureBar({
           onClick={() => fileInputRef.current?.click()}
           disabled={busy}
         >
-          <Icon name="paperclip" size={16} /> File or photo
+          <Icon name="paperclip" size={16} /> Add a file
         </Button>
         <Button
           variant="ghost"
@@ -374,7 +377,7 @@ export function CaptureBar({
           onClick={() => void recorder.start()}
           disabled={busy}
         >
-          <Icon name="mic" size={16} /> Record lecture
+          <Icon name="mic" size={16} /> Record a class
         </Button>
         <span className={styles.spacer} />
         <Button type="submit" variant="primary" busy={busy || preparing}>

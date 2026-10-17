@@ -4106,13 +4106,13 @@ body.dark-theme .stat-card::before {
     50% { transform: translateY(-8px); }
 }
 
-/* --- 2. Silky Smooth Turbo AI Modal Open/Close --- */
+/* --- 2. Silky Smooth tutor Modal Open/Close --- */
 /* We override the hard 'display: none' hidden class just for the AI chat to allow CSS transitions */
-#turbo-chat {
+#tutor-chat {
     transition: transform 0.4s var(--ease-spring), opacity 0.3s ease, box-shadow 0.4s ease;
     transform-origin: bottom right;
 }
-#turbo-chat.hidden {
+#tutor-chat.hidden {
     display: flex !important; 
     opacity: 0 !important;
     pointer-events: none !important;
@@ -4122,7 +4122,7 @@ body.dark-theme .stat-card::before {
 /* --- 3. Flawless Mobile Layout Adjustments --- */
 @media (max-width: 768px) {
     /* Native iOS-style bottom sheet for AI Chat */
-    #turbo-chat {
+    #tutor-chat {
         width: 100vw !important;
         height: calc(100vh - 40px) !important; /* Leave a small gap at top */
         bottom: 0 !important;
@@ -4133,7 +4133,7 @@ body.dark-theme .stat-card::before {
     }
     
     /* Instead of scaling, mobile slides completely off the bottom edge */
-    #turbo-chat.hidden {
+    #tutor-chat.hidden {
         transform: translateY(100%) scale(1) !important; 
     }
     
@@ -4187,7 +4187,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ==========================================================================
-   12. THE FINAL POLISH (Greeting, Icons, and Turbo Animations)
+   12. THE FINAL POLISH (Greeting, Icons, and tutor Animations)
 ========================================================================== */
 
 /* --- A. The Emoji "Glow-Up" --- */
@@ -4224,12 +4224,12 @@ input:focus, select:focus, textarea:focus {
     margin-right: 0;
 }
 
-/* --- B. Turbo AI Button Active State --- */
-#turbo-toggle {
+/* --- B. tutor Button Active State --- */
+#tutor-toggle {
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, box-shadow 0.3s ease !important;
 }
 /* This class gets applied by our JS when the modal opens */
-.turbo-active {
+.tutor-active {
     transform: rotate(90deg) scale(0.9) !important;
     background: var(--surface-2) !important;
     color: var(--text) !important;
@@ -4297,11 +4297,11 @@ input:focus, select:focus, textarea:focus {
     border-color: transparent !important;
 }
 /* ==========================================================================
-   14. TURBO ICON PLACEMENT FIX
+   14. TUTOR ICON PLACEMENT FIX
 ========================================================================== */
 
-/* Force the turbo button to stay anchored to the bottom right */
-#turbo-toggle {
+/* Force the tutor button to stay anchored to the bottom right */
+#tutor-toggle {
     top: auto !important; /* Clear any accidental top positioning */
     /* Use safe-area-inset to prevent overlapping with mobile home bars */
     bottom: max(32px, env(safe-area-inset-bottom, 32px)) !important;
@@ -4310,11 +4310,11 @@ input:focus, select:focus, textarea:focus {
     z-index: 990 !important;
 }
 
-/* Ensure the mini-timer doesn't overlap the turbo button on mobile */
+/* Ensure the mini-timer doesn't overlap the tutor button on mobile */
 @media (max-width: 768px) {
     .mini-timer {
         bottom: max(32px, env(safe-area-inset-bottom, 32px)) !important;
-        /* Keep it on the left so it balances the Turbo button on the right */
+        /* Keep it on the left so it balances the tutor button on the right */
         left: max(20px, env(safe-area-inset-left, 20px)) !important; 
     }
 }
@@ -4588,10 +4588,10 @@ boot
     box-shadow: var(--shadow-accent), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 20px var(--accent-glow) !important;
 }
 /* ==========================================================================
-   18. SIDEBAR DESKTOP TOGGLE & TURBO AI CLEANUP
+   18. SIDEBAR DESKTOP TOGGLE & TUTOR AI CLEANUP
 ========================================================================== */
 
-/* 1. Hide the redundant Turbo AI tab in the sidebar */
+/* 1. Hide the redundant tutor tab in the sidebar */
 .sidebar .nav-links li:has(#nav-ai-trigger) {
     display: none !important;
 }
@@ -5255,7 +5255,7 @@ body:not(.dark-theme) input::placeholder {
     bottom: 28px !important;
     left: calc(var(--sidebar-width) + ((100vw - var(--sidebar-width)) / 2)) !important;
     transform: translateX(-50%) !important;
-    z-index: 850 !important; /* Stays comfortably below the Turbo AI button (z-index 990) */
+    z-index: 850 !important; /* Stays comfortably below the tutor button (z-index 990) */
     display: flex !important;
     align-items: center !important;
     gap: 12px !important;
@@ -5322,7 +5322,7 @@ body:has(#sidebar.collapsed) .dashboard-command-bar {
     box-shadow: 0 0 16px var(--accent-glow) !important;
 }
 
-/* Mobile adjustments to prevent overlapping the Turbo button */
+/* Mobile adjustments to prevent overlapping the tutor button */
 @media (max-width: 768px) {
     .dashboard-command-bar {
         left: 50% !important;
@@ -5851,7 +5851,7 @@ body[data-font-size="lg"] {
 
 
 /* =============================================
-   NOTES EDITOR   Turbo-style split workspace
+   NOTES EDITOR   two-column split workspace
    ============================================= */
 
 .notes-toolbar {
@@ -6150,7 +6150,7 @@ body:has(#view-notes:not(.hidden)) .dashboard-command-bar {
 }
 
 /* ==========================================================================
-   NOTES AI CHAT PILL & PANEL (Turbo Aesthetic)
+   NOTES AI CHAT PILL & PANEL (tutor panel)
 ========================================================================== */
 
 /* Chat Input Container Pill */
