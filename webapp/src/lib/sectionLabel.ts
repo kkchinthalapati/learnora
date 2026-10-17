@@ -174,6 +174,8 @@ const HERO_ROUTES = [
   "/exam-detective",
   "/room",
   "/lessons",
+  /* The notes page names the lesson in its own serif header. */
+  "/notes",
   "/subjects",
   "/analytics",
   "/settings",

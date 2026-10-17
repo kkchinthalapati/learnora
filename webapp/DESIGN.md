@@ -142,6 +142,13 @@ mistakes ledger is. Keep these, and don't drift back to the generic look:
 - **Corrections in the margin**: a mistake to fix is marked in red pen
   (`--danger`), one due a retest in ochre (`--recall`).
 - **One highlighter stroke** on Home, under "learn". Nowhere else.
+- **The notes page** (`/notes/:id`) is one paper sheet in the reading serif
+  with ribbon bookmarks for its headings, a pencil case under it
+  (highlighters, pen, eraser, read aloud, focus, dictate) and pencilled
+  margin notes beside it. The three highlighters and the callouts are the
+  `mark` and `callout` formats in `lib/noteFormats.ts`, stored as classes,
+  not free colours. Tools act on click and block mousedown so the page keeps
+  its selection; never act on mousedown alone, or keyboards can't reach them.
 
 Avoid on purpose: violet or blue-violet as a default or a custom-theme
 starting colour, sparkle icons for the tutor, emoji as icons, mascots, a

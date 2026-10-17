@@ -235,18 +235,15 @@ describe("NotesView", () => {
     expect(editorEl()).toHaveAttribute("contenteditable", "true");
   });
 
-  it("goes back on the Back button", async () => {
-    const user = userEvent.setup();
+  it("links back to the lesson", async () => {
     serveNotes({ material: material(), notes: [note()] });
     renderNotes();
-    await screen.findByText("Cell division");
+    await screen.findByRole("heading", { name: "Cell division" });
 
-    await user.click(screen.getByRole("button", { name: "← Back" }));
-
-    // No history to go back to in a fresh MemoryRouter — same limitation
-    // the vanilla's plain history.back() has with no prior entry, so the
-    // notes route just stays put rather than erroring.
-    expect(screen.getByText("Cell division")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Back to lesson/ })).toHaveAttribute(
+      "href",
+      "/lessons/mat-1",
+    );
   });
 
   it("autosaves after the debounce window and reports Saved", async () => {
@@ -348,10 +345,15 @@ describe("NotesView", () => {
   });
 
   describe("Complexity Slider", () => {
+    /* The slider lives in the Rewrite menu now, opened from the header. */
+    async function openRewrite() {
+      await userEvent.click(await screen.findByRole("button", { name: "Rewrite" }));
+    }
+
     it("renders the complexity slider and defaults to Standard", async () => {
       serveNotes({ material: material(), notes: [note()] });
       renderNotes();
-      expect(await screen.findByText("Complexity:")).toBeInTheDocument();
+      await openRewrite();
       expect(screen.getByText("Standard")).toBeInTheDocument();
       expect(screen.getByRole("slider")).toHaveValue("3");
     });
@@ -359,7 +361,7 @@ describe("NotesView", () => {
     it("changes the label when the slider moves", async () => {
       serveNotes({ material: material(), notes: [note()] });
       renderNotes();
-      await screen.findByText("Complexity:");
+      await openRewrite();
 
       const slider = screen.getByRole("slider");
       fireEvent.change(slider, { target: { value: "5" } });
@@ -381,6 +383,7 @@ describe("NotesView", () => {
       renderNotes();
       await waitFor(() => expect(editorEl().textContent).toBe("Original"));
 
+      await openRewrite();
       const rewriteBtn = screen.getByRole("button", { name: "Rewrite notes" });
       await userEvent.click(rewriteBtn);
 
