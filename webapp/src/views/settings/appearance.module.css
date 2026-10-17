@@ -810,3 +810,68 @@
     transform: none;
   }
 }
+
+/* Colours in detail: one row per token, the swatch and a way back to the
+   preset. Rows stack on phones; the swatch keeps its size. */
+.detailGrid {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.detailRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.detailLabel {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  color: var(--text);
+  font-size: var(--fs-base);
+}
+
+.detailHint {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.detailInput {
+  width: 44px;
+  height: 44px;
+  padding: 2px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.detailReset {
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-3);
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.detailReset:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+
+@media (max-width: 520px) {
+  .detailRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .detailReset {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}

@@ -22,6 +22,7 @@ import { daysUntil } from "../../lib/quizForecast";
 import { MistakeLoopSection } from "../today/MistakeLoopSection";
 import { LessonRows } from "../lesson/LessonRows";
 import { SessionCompletePanel } from "../today/SessionCompletePanel";
+import { TypingHeading } from "./TypingHeading";
 import styles from "./home.module.css";
 
 /* Home (DESIGN.md rule 0.1). One question and one box to add something, then
@@ -64,19 +65,26 @@ export function HomeView() {
   return (
     <div className={styles.page}>
       <section className={styles.hero} aria-labelledby="home-title">
-        <h1 id="home-title" className={styles.title}>
-          What do you want to <span className={styles.marked}>learn</span>?
-        </h1>
+        <TypingHeading id="home-title" />
         <CaptureBar
           size="lg"
+          ruled={false}
           placeholder="Write a topic, or paste your notes or a link"
         />
         {resumeAction ? (
           <Link to={resumeAction.targetUrl} className={styles.resume}>
             <ProgressRing
               size="sm"
-              value={resumeAction.progressPercentage > 0 ? resumeAction.progressPercentage / 100 : null}
-              label={`${resumeAction.progressPercentage}% through`}
+              value={
+                resumeAction.progressPercentage !== null && resumeAction.progressPercentage > 0
+                  ? resumeAction.progressPercentage / 100
+                  : null
+              }
+              label={
+                resumeAction.progressPercentage === null
+                  ? "Progress not measured"
+                  : `${resumeAction.progressPercentage}% through`
+              }
             />
             <span className={styles.resumeTitle}>{resumeAction.title}</span>
             {resumeAction.subtitle ? (

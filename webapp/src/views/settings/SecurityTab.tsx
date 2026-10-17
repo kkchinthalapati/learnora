@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { Button } from "../../components/Button";
+import { Modal } from "../../components/Modal";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import {
@@ -33,6 +34,7 @@ export function SecurityTab() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordFeedback, setPasswordFeedback] =
     useState<FeedbackState | null>(null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [sessionsFeedback, setSessionsFeedback] =
     useState<FeedbackState | null>(null);
 
@@ -58,6 +60,7 @@ export function SecurityTab() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setPasswordOpen(false);
     } catch (err) {
       setPasswordFeedback({ kind: "error", message: (err as Error).message });
     }
@@ -104,6 +107,29 @@ export function SecurityTab() {
           </div>
         </div>
 
+        <Button variant="secondary" onClick={() => setPasswordOpen(true)}>
+          Change password
+        </Button>
+        {passwordFeedback && !passwordOpen && (
+          <InlineFeedback {...passwordFeedback} />
+        )}
+      </Card>
+
+      <Modal
+        open={passwordOpen}
+        onClose={() => setPasswordOpen(false)}
+        title="Change password"
+        subtitle="Confirm your current password, then set a new one."
+        footer={
+          <Button
+            variant="primary"
+            onClick={() => void onChangePassword()}
+            disabled={changePassword.isPending}
+          >
+            {changePassword.isPending ? "Updating..." : "Update password"}
+          </Button>
+        }
+      >
         <div className={styles.passwordStack}>
           <PasswordField
             id={currentId}
@@ -135,16 +161,10 @@ export function SecurityTab() {
             autoComplete="new-password"
           />
         </div>
-
-        <Button
-          variant="primary"
-          onClick={() => void onChangePassword()}
-          disabled={changePassword.isPending}
-        >
-          {changePassword.isPending ? "Updating..." : "Update password"}
-        </Button>
-        {passwordFeedback && <InlineFeedback {...passwordFeedback} />}
-      </Card>
+        {passwordFeedback && passwordOpen && (
+          <InlineFeedback {...passwordFeedback} />
+        )}
+      </Modal>
 
       <Card
         as="section"

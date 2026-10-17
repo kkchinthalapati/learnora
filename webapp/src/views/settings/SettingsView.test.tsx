@@ -57,7 +57,7 @@ describe("SettingsView", () => {
     renderSettings();
     expect(screen.getByRole("heading", { name: "Profile" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Danger zone" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Update password" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Change password" })).toBeInTheDocument();
   });
 
   it("moves between sections with the arrow keys, Home and End", async () => {

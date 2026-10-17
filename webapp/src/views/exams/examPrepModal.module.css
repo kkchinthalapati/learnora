@@ -521,3 +521,13 @@
     transition: none;
   }
 }
+
+/* Under an empty gauge: why there is no score yet, and what would give one. */
+.gaugeNote {
+  max-width: 34ch;
+  margin: var(--s-3) auto 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh);
+  text-align: center;
+}

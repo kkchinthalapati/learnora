@@ -214,6 +214,23 @@ describe("buildTopicStates", () => {
     expect(t.evidence).toBe(0);
   });
 
+  /* A card generated a minute ago has a "retention" of ~1 because nothing
+     has had time to fade. Counting that made a fresh deck project as nearly
+     mastered before a single review. */
+  it("treats never-reviewed cards as unmeasured, not as remembered", () => {
+    const now = new Date(`${TODAY}T12:00:00`);
+    const [t] = buildTopicStates({
+      decks: [deck({ id: "d1" })],
+      cards: Array.from({ length: 20 }, (_, i) =>
+        card({ id: `c${i}`, srs_interval: 0, next_review_date: null, last_reviewed_at: null, created_at: now.toISOString() }),
+      ),
+      attempts: [],
+      now,
+    });
+    expect(t.mastery).toBeCloseTo(UNMEASURED_MASTERY, 5);
+    expect(t.evidence).toBe(0);
+  });
+
   it("reads mastery out of real card memory state", () => {
     const now = new Date(`${TODAY}T12:00:00`);
     const [fresh] = buildTopicStates({

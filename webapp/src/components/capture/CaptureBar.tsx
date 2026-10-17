@@ -50,6 +50,8 @@ export interface CaptureBarProps {
   autoFocus?: boolean;
   /** "lg" is Home's version: a taller field and a bigger type size. */
   size?: "md" | "lg";
+  /** Draws the red margin line down the box. Home turns it off. */
+  ruled?: boolean;
   /** Overrides the field's placeholder, e.g. Home's tip. */
   placeholder?: string;
   onMoreOptions?: () => void;
@@ -79,6 +81,7 @@ export function CaptureBar({
   outputs,
   autoFocus = false,
   size = "md",
+  ruled = true,
   placeholder = "Write a topic, paste your notes or a link, or drop in a file",
   onMoreOptions,
   onDone,
@@ -296,7 +299,7 @@ export function CaptureBar({
 
   return (
     <form
-      className={`${styles.bar} ${size === "lg" ? styles.lg : ""}`}
+      className={`${styles.bar} ${size === "lg" ? styles.lg : ""} ${ruled ? "" : styles.plain}`}
       data-dragging={dragging || undefined}
       onSubmit={handleSubmit}
       onDragOver={(event) => {
