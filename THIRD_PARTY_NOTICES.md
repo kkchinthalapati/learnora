@@ -105,6 +105,20 @@ each family's `METADATA.pb` in https://github.com/google/fonts (checked
 
 Licence text: https://openfontlicense.org
 
+## Marketing video — GSAP
+
+`marketing/learnora-ad/assets/gsap.min.js` is GSAP 3.12.5 by GreenSock,
+vendored for the ad's animation timeline. It is not open source; it is
+"Subject to the terms at https://gsap.com/standard-license", as its own
+header says, and that header is kept in the file. It is not part of the
+app or the site build.
+
+The ad's other assets: app screenshots captured from the dev harness
+(`capture.mjs`), a soundtrack synthesised by `synth.mjs` (no samples), and
+`assets/learnora.jpg`, which is the earlier raster logo. That image carries
+C2PA Content Credentials naming OpenAI's image generator; the app has since
+replaced it with `learnora-mark.svg`.
+
 ## Sounds
 
 `webapp/public/sounds/` — two loops from "CC0 SFX loops" by rubberduck on

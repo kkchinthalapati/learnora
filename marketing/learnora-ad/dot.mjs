@@ -1,0 +1,26 @@
+import { createRequire } from "module";
+import path from "path";
+import { fileURLToPath, pathToFileURL } from "url";
+const require = createRequire("C:/Users/kkchi/OneDrive/Desktop/study-planner-1/webapp/package.json");
+const { chromium } = require("playwright");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
+await p.goto(pathToFileURL(path.join(HERE, "ad.html")).href);
+await p.waitForFunction(() => window.AD_READY === true);
+await p.evaluate(() => document.fonts.ready);
+await p.waitForTimeout(600);
+await p.evaluate(() => { window.TL.time(2.5, false); });
+await p.waitForTimeout(100);
+const info = await p.evaluate(() => {
+  const d = window.AD_DOT;
+  const m = document.querySelector("#qMark").getBoundingClientRect();
+  const mk = document.createElement("div");
+  mk.style.cssText = `position:absolute;left:${d.x - 6}px;top:${d.y - 6}px;width:12px;height:12px;border-radius:50%;background:red;z-index:999`;
+  document.body.appendChild(mk);
+  return { dot: d, mark: { l: m.left, t: m.top, w: m.width, h: m.height } };
+});
+console.log(JSON.stringify(info));
+const clip = { x: Math.max(0, info.mark.l - 120), y: Math.max(0, info.mark.t - 200), width: 360, height: Math.min(900, 1920 - Math.max(0, info.mark.t - 200)) };
+await p.screenshot({ path: path.join(HERE, "dot.png"), clip });
+await b.close();
