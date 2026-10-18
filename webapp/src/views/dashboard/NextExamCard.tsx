@@ -6,6 +6,7 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
 import { useExamReadiness } from "../../hooks/useExamReadiness";
+import { readinessText } from "../../lib/examReadiness";
 import { useThisWeekDeficit } from "../../hooks/usePlans";
 import { formatDuration } from "../../lib/lifeContext";
 import { localDateStr } from "../../lib/date";
@@ -114,7 +115,9 @@ export function NextExamCard({ headless = false }: { headless?: boolean } = {}) 
       ? "success"
       : readiness?.tier === "Getting there"
         ? "warning"
-        : "danger";
+        : readiness?.tier === "Not enough data"
+          ? "neutral"
+          : "danger";
 
   return (
     <>
@@ -179,10 +182,10 @@ export function NextExamCard({ headless = false }: { headless?: boolean } = {}) 
                 size="sm"
                 onClick={() => setPrepModalOpen(true)}
                 title="See how ready you are and your prep plan"
-                aria-label={`Readiness ${readiness.score}% (${readiness.tier}). Open your prep plan.`}
+                aria-label={`Readiness: ${readinessText(readiness)}. Open your prep plan.`}
               >
                 <Icon name="brain" size={13} />
-                Readiness {readiness.score}%
+                Readiness {readinessText(readiness)}
               </Chip>
             )}
           </div>

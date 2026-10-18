@@ -180,18 +180,7 @@ Output ONLY a JSON array in the exact format:
     material_id: materialId,
   }));
 
-  const existingDecks = await decksApi.fetchAll();
-  const deckTitle = `${materialTitle} Flashcards`;
-  let targetDeck =
-    existingDecks.find(
-      (d) =>
-        d.title === deckTitle &&
-        (folderId ? d.folder_id === folderId : true),
-    ) ?? existingDecks.find((d) => d.title === deckTitle);
-
-  if (!targetDeck) {
-    targetDeck = await decksApi.add(folderId, deckTitle);
-  }
+  const targetDeck = await findOrCreateLessonDeck(materialTitle, folderId);
 
   const createdCards = await flashcardsApi.addBatch(
     targetDeck.id,
@@ -202,4 +191,74 @@ Output ONLY a JSON array in the exact format:
     deck: targetDeck,
     cards: createdCards,
   };
+}
+
+/** The deck a lesson's own cards go into: "<lesson> Flashcards", in the
+ *  lesson's subject when it has one. Shared by "Make card" and cloze cards so
+ *  both file into the same place. */
+async function findOrCreateLessonDeck(materialTitle: string, folderId: string | null) {
+  const existingDecks = await decksApi.fetchAll();
+  const deckTitle = `${materialTitle} Flashcards`;
+  const found =
+    existingDecks.find(
+      (d) => d.title === deckTitle && (folderId ? d.folder_id === folderId : true),
+    ) ?? existingDecks.find((d) => d.title === deckTitle);
+  return found ?? (await decksApi.add(folderId, deckTitle));
+}
+
+export interface ClozeItem {
+  /** The sentence the phrase sits in, as written in the note. */
+  sentence: string;
+  /** The phrase marked "Learn this" — the card's answer. */
+  answer: string;
+}
+
+export const CLOZE_BLANK = "_____";
+
+/** The front of a cloze card: the sentence with the phrase blanked out. */
+export function clozeFront(item: ClozeItem): string {
+  const sentence = item.sentence.trim();
+  const at = sentence.toLowerCase().indexOf(item.answer.trim().toLowerCase());
+  if (at < 0) return `${sentence} (${CLOZE_BLANK})`;
+  return sentence.slice(0, at) + CLOZE_BLANK + sentence.slice(at + item.answer.trim().length);
+}
+
+/** Fill-in-the-blank cards from phrases marked "Learn this". No AI call: the
+ *  student chose the words, so the card is exactly their sentence. Fronts
+ *  already present in the lesson deck are skipped, so pressing the button
+ *  twice does not make duplicates. */
+export async function createClozeCards({
+  items,
+  materialId,
+  materialTitle,
+  folderId,
+}: {
+  items: ClozeItem[];
+  materialId: string;
+  materialTitle: string;
+  folderId: string | null;
+}): Promise<{ deck: FlashcardDeck; created: number; skipped: number }> {
+  const usable = items.filter((i) => i.answer.trim() && i.sentence.trim());
+  if (usable.length === 0) throw new Error("Mark some words with the Learn this highlighter first.");
+  const deck = await findOrCreateLessonDeck(materialTitle, folderId);
+  const existing = new Set(
+    (await flashcardsApi.fetchByDeck(deck.id)).map((c) => c.front.trim()),
+  );
+  const fresh = usable
+    .map((i) => ({ front: clozeFront(i), answer: i.answer.trim(), sentence: i.sentence.trim() }))
+    .filter((c, idx, all) => !existing.has(c.front) && all.findIndex((o) => o.front === c.front) === idx);
+  if (fresh.length > 0) {
+    await flashcardsApi.addBatch(
+      deck.id,
+      /* addBatch stores front and back only, so the source rides in the
+         back as the same comment createCardFromSnippet writes. */
+      fresh.map((c) => ({
+        front: c.front,
+        back: `${c.answer}
+
+<!-- source_context: ${JSON.stringify({ materialId, materialTitle, quote: c.sentence })} -->`,
+      })),
+    );
+  }
+  return { deck, created: fresh.length, skipped: usable.length - fresh.length };
 }

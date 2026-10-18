@@ -5,6 +5,7 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
 import { useExamReadiness } from "../../hooks/useExamReadiness";
+import { readinessText } from "../../lib/examReadiness";
 import { useTranslation } from "../../hooks/useTranslation";
 import { MONTH_NAMES, formatDateStr, localDateStr } from "../../lib/date";
 import { getDaysRemaining } from "../../lib/examReadiness";
@@ -96,7 +97,9 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
       ? styles.badgeReady
       : readiness?.tier === "Getting there"
         ? styles.badgeProgress
-        : styles.badgeGap;
+        : readiness?.tier === "Not enough data"
+          ? ""
+          : styles.badgeGap;
 
   return (
     <article className={styles.upcomingCard}>
@@ -121,10 +124,10 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
         {readiness && (
           <span
             className={`${styles.readinessBadge} ${badgeClass}`}
-            title={`Readiness: ${readiness.score}% (${readiness.tier})`}
+            title={`Readiness: ${readinessText(readiness)}`}
           >
             <Icon name="brain" size={12} />
-            Readiness {readiness.score}%
+            Readiness {readinessText(readiness)}
           </span>
         )}
         <button

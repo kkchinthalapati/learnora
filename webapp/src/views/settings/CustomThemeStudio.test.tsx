@@ -278,13 +278,13 @@ describe("CustomThemeStudio", () => {
 
     await user.click(screen.getByRole("button", { name: "Reset" }));
 
-    expect(hexInput()).toHaveValue("#5865F2");
+    expect(hexInput()).toHaveValue("#2F8F80");
     expect(stops()).toHaveLength(1);
     /* Unlike every other studio edit, the vanilla's reset writes through
        immediately rather than waiting for Save appearance. */
     expect(
       Storage.get<{ colors: string[]; intensity: number }>(CUSTOM_THEME_KEY),
-    ).toEqual({ colors: ["#5865F2"], intensity: 74 });
+    ).toEqual({ colors: ["#2F8F80"], intensity: 74 });
     expect(
       await screen.findByText("Custom colours reset to the Learnora default."),
     ).toBeInTheDocument();

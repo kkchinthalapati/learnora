@@ -163,7 +163,7 @@ export function LandingView() {
             <div className={styles.featureIcon}>📚</div>
             <h3 className={styles.featureTitle}>Notes &amp; Notebooks</h3>
             <p className={styles.featureDesc}>
-              Rich markdown editor with LaTeX equation support and instant AI assistant docked alongside your notes.
+              Notes that remember what you got wrong. Your tutor reads your mistakes before it answers, and equations render properly.
             </p>
           </div>
 

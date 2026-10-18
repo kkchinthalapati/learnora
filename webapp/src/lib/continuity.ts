@@ -74,7 +74,9 @@ export interface ResumeAction {
   title: string;
   subtitle: string;
   targetUrl: string;
-  progressPercentage: number;
+  /** 0-100, or null when nothing measures how far through it is (a focus
+   *  timer stores only the minutes left, not the length it started at). */
+  progressPercentage: number | null;
   timestamp: string;
   badgeLabel: string;
   iconName: "session" | "notes" | "flashcards" | "quizzes" | "timer";
@@ -408,7 +410,7 @@ export function getResumeAction(snapshot: StudySnapshot): ResumeAction | null {
         title: f.task || "Focus Session",
         subtitle: `Focus Goal • ${f.minutesRemaining}m remaining`,
         targetUrl: "/timer",
-        progressPercentage: 50,
+        progressPercentage: null,
         timestamp: f.lastActiveAt || snapshot.updatedAt || new Date().toISOString(),
         badgeLabel: "Focusing",
         iconName: "timer",
@@ -498,7 +500,7 @@ export function getRecentContinuityItems(snapshot: StudySnapshot): ResumeAction[
         title: f.task || "Focus Session",
         subtitle: `Timer • ${f.minutesRemaining}m left`,
         targetUrl: "/timer",
-        progressPercentage: 50,
+        progressPercentage: null,
         timestamp: f.lastActiveAt || snapshot.updatedAt || new Date().toISOString(),
         badgeLabel: "Timer",
         iconName: "timer",

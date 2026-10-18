@@ -187,7 +187,7 @@ describe("CommandPalette", () => {
     });
   });
 
-  it("supports direct AI prefix 'ai:' to launch TurboChat with query", async () => {
+  it("supports direct AI prefix 'ai:' to launch TutorChat with query", async () => {
     const mockClose = vi.fn();
     renderPalette({ isOpen: true, onClose: mockClose });
 
@@ -199,7 +199,7 @@ describe("CommandPalette", () => {
     await user.type(input, "ai: Explain Bayes Theorem intuitively");
 
     expect(
-      screen.getByText(/ask ai: "explain bayes theorem intuitively"/i),
+      screen.getByText(/ask the tutor: "explain bayes theorem intuitively"/i),
     ).toBeInTheDocument();
 
     await user.keyboard("{Enter}");
@@ -211,7 +211,7 @@ describe("CommandPalette", () => {
     expect(mockClose).toHaveBeenCalled();
   });
 
-  it("supports direct AI prefix '?' to send prompt to TurboChat", async () => {
+  it("supports direct AI prefix '?' to send prompt to TutorChat", async () => {
     const mockClose = vi.fn();
     renderPalette({ isOpen: true, onClose: mockClose });
 
@@ -223,7 +223,7 @@ describe("CommandPalette", () => {
     await user.type(input, "? What is the Krebs cycle?");
 
     expect(
-      screen.getByText(/ask ai: "what is the krebs cycle\?"/i),
+      screen.getByText(/ask the tutor: "what is the krebs cycle\?"/i),
     ).toBeInTheDocument();
 
     await user.keyboard("{Enter}");

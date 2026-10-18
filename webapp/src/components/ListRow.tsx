@@ -1,11 +1,11 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Link } from "react-router";
 import { Icon } from "./Icon";
 import type { IconName } from "./icons";
 import styles from "./ListRow.module.css";
 
 /* One row in a list of lessons, subjects or decks (DESIGN.md rule 0.4).
- * Leading icon, a title, one meta line, and a trailing slot for a
+ * A spine in the subject's colour, a leading icon, a serif title, one meta line, and a trailing slot for a
  * ProgressRing, chevron or menu. With `to` the whole row is one link; the
  * trailing slot sits outside it so a menu button inside never nests an
  * interactive element in an anchor. Render inside a <ul>. */
@@ -14,7 +14,7 @@ interface ListRowProps {
   title: string;
   meta?: ReactNode;
   icon?: IconName;
-  /** Tints the icon tile, e.g. a subject's colour. Any CSS colour. */
+  /** Colours the row's spine and icon, e.g. a subject's colour. Any CSS colour. */
   tint?: string | null;
   to?: string;
   onClick?: () => void;
@@ -35,11 +35,7 @@ export function ListRow({
 }: ListRowProps) {
   const body = (
     <>
-      <span
-        className={styles.tile}
-        style={tint ? { color: tint } : undefined}
-        aria-hidden="true"
-      >
+      <span className={styles.tile} aria-hidden="true">
         <Icon name={icon} size={20} />
       </span>
       <span className={styles.text}>
@@ -54,7 +50,10 @@ export function ListRow({
       <Icon name="chevron-down" size={16} className={styles.chevron} />
     ) : null);
   return (
-    <li className={styles.row}>
+    <li
+      className={styles.row}
+      style={tint ? ({ "--row-tint": tint } as CSSProperties) : undefined}
+    >
       {to ? (
         <Link to={to} className={styles.main} onClick={onClick}>
           {body}

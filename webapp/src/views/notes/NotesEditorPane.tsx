@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
+import type Quill from "quill";
 import { Button } from "../../components/Button";
-import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
+import { useFolders } from "../../hooks/useFolders";
+import { plainText, wordCount } from "../../lib/noteReading";
+import { NotesBookmarks } from "./NotesBookmarks";
+import { NotesMargin } from "./NotesMargin";
+import { NotesPencilCase } from "./NotesPencilCase";
+import { NotesSlashMenu } from "./NotesSlashMenu";
+import page from "./notesPage.module.css";
 import {
   RichTextEditor,
   type EditorRange,
@@ -137,8 +144,15 @@ export function NotesEditorPane({
   folderId,
   note,
 }: NotesEditorPaneProps) {
-  const navigate = useNavigate();
   const updateHtml = useUpdateNoteHtml();
+  const { data: folders = [] } = useFolders();
+  const subject = folders.find((f) => f.id === folderId) ?? null;
+  const [quill, setQuill] = useState<Quill | null>(null);
+  const [focus, setFocus] = useState(false);
+  const [recalling, setRecalling] = useState(false);
+  const [rewriteOpen, setRewriteOpen] = useState(false);
+  const [words, setWords] = useState(0);
+  const pageRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<SaveStatus>(note ? "idle" : "readonly");
   const editorRef = useRef<RichTextEditorHandle>(null);
 
@@ -410,11 +424,22 @@ ${fenceUntrusted(currentHtml)}
     setActiveSelection(null);
   }, []);
 
+  /* While the pointer is down inside the page, the selection is still being
+     dragged out. Quill clears and regrows it on every move, so reacting to
+     each change made the toolbar flash in and out. Instead the toolbar stays
+     hidden for the whole press, and appears once, for the finished selection,
+     on release. Keyboard selection has no press and reacts straight away. */
+  const pressingRef = useRef(false);
+  /* The last range Quill reported, kept so release can use it. Asking Quill
+     for the selection at release can come back empty when the editor has
+     lost focus during the press. */
+  const latestRangeRef = useRef<EditorRange | null>(null);
+
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor || !note) return;
 
-    editor.onSelectionChange((range) => {
+    const applySelection = (range: EditorRange | null) => {
       if (!range || range.length === 0) {
         if (!interactionLockedRef.current) {
           setActiveSelection(null);
@@ -444,9 +469,42 @@ ${fenceUntrusted(currentHtml)}
         surroundingContext: documentText.slice(contextStart, contextEnd),
       });
       setMiniChatOpen(false);
+    };
+
+    editor.onSelectionChange((range) => {
+      latestRangeRef.current = range;
+      if (pressingRef.current) {
+        setActiveSelection(null);
+        return;
+      }
+      applySelection(range);
     });
 
-    return () => editor.onSelectionChange(() => {});
+    const onDown = (event: Event) => {
+      const target = event.target as Element | null;
+      if (target?.closest?.(".ql-editor")) {
+        pressingRef.current = true;
+        setActiveSelection(null);
+      }
+    };
+    const onUp = () => {
+      if (!pressingRef.current) return;
+      pressingRef.current = false;
+      /* Quill settles the final range a moment after the release. A timer,
+         not requestAnimationFrame, which can stall while the pane is hidden. */
+      window.setTimeout(() => applySelection(latestRangeRef.current), 20);
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    document.addEventListener("pointerup", onUp, true);
+    document.addEventListener("pointercancel", onUp, true);
+
+    return () => {
+      editor.onSelectionChange(() => {});
+      document.removeEventListener("pointerdown", onDown, true);
+      document.removeEventListener("pointerup", onUp, true);
+      document.removeEventListener("pointercancel", onUp, true);
+      pressingRef.current = false;
+    };
   }, [note]);
 
   const runSelectionAction = useCallback(
@@ -689,6 +747,47 @@ ${fenceUntrusted(currentHtml)}
     flush();
   }
 
+  /* Word count for the page's foot, and the line the caret is on, which
+     focus mode keeps bright. Both read Quill directly. */
+  useEffect(() => {
+    if (!quill) return;
+    let timer: number | undefined;
+    let current: HTMLElement | null = null;
+    const count = () => setWords(wordCount(plainText(quill.getContents().ops)));
+    const onText = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(count, 300);
+    };
+    const onSelection = (range: { index: number } | null) => {
+      if (!range) return;
+      const [line] = quill.getLine(range.index);
+      const node = (line?.domNode as HTMLElement | undefined) ?? null;
+      if (node === current) return;
+      current?.removeAttribute("data-current");
+      node?.setAttribute("data-current", "");
+      current = node;
+    };
+    count();
+    quill.on("text-change", onText);
+    quill.on("selection-change", onSelection);
+    return () => {
+      window.clearTimeout(timer);
+      quill.off("text-change", onText);
+      quill.off("selection-change", onSelection);
+      current?.removeAttribute("data-current");
+    };
+  }, [quill]);
+
+  /* Escape closes the rewrite menu. */
+  useEffect(() => {
+    if (!rewriteOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setRewriteOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [rewriteOpen]);
+
   const initialHtml =
     note?.html_content ||
     (note?.markdown_content ? renderMarkdown(note.markdown_content) : "") ||
@@ -699,64 +798,83 @@ ${fenceUntrusted(currentHtml)}
         : "<p>No notes yet — Learnora is still processing this lesson.</p>");
 
   return (
-    <div className={styles.view}>
-      <div className={styles.toolbar}>
-        <div className={styles.toolbarLeft}>
-          <Button size="sm" onClick={() => void navigate(-1)}>
-            ← Back
-          </Button>
-          <span className={styles.title}>{materialTitle}</span>
+    <div className={page.view}>
+      <header>
+        <Link to={`/lessons/${encodeURIComponent(materialId)}`} className={page.back}>
+          <span aria-hidden="true">←</span> Back to lesson
+        </Link>
+        <div className={page.headRow}>
+          <div>
+            <h1 className={page.title}>{materialTitle}</h1>
+            <p className={page.meta}>
+              {subject ? (
+                <>
+                  <Link to={`/subjects/${encodeURIComponent(subject.id)}`}>{subject.name}</Link>
+                  <span aria-hidden="true">·</span>
+                </>
+              ) : null}
+              {note ? (
+                <span className={page.saveDot} data-state={status} aria-hidden="true" />
+              ) : null}
+              <span
+                className={STATUS_CLASS[status] || undefined}
+                role={status === "failed" || status === "conflict" ? "alert" : "status"}
+              >
+                {STATUS_TEXT[status] || (note ? "All changes saved" : "")}
+              </span>
+            </p>
+          </div>
+          <div className={page.actions}>
+            {undoStack.length > 0 && (
+              <Button size="sm" variant="ghost" onClick={undoLastAiEdit}>
+                {undoStack.at(-1)?.source === "inline" ? "Undo last AI edit" : "Undo rewrite"}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              aria-expanded={rewriteOpen}
+              aria-controls="notes-rewrite"
+              disabled={!note}
+              onClick={() => setRewriteOpen((o) => !o)}
+            >
+              {rewriteMutation.isPending ? "Rewriting…" : "Rewrite"}
+            </Button>
+            <Button size="sm" disabled={!note} onClick={manualSave}>
+              Save
+            </Button>
+            {rewriteOpen ? (
+              <div id="notes-rewrite" className={page.rewriteMenu} role="group" aria-label="Rewrite these notes">
+                <label htmlFor="notes-complexity" className={page.rewriteLabel}>
+                  How detailed <span>{complexityLabel}</span>
+                </label>
+                <input
+                  id="notes-complexity"
+                  type="range"
+                  min="1"
+                  max="5"
+                  value={complexity}
+                  onChange={(e) => setComplexity(Number(e.target.value))}
+                  aria-valuetext={complexityLabel}
+                />
+                <p className={page.rewriteHint}>
+                  Rewrites the whole page at this level. You can undo it afterwards.
+                </p>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={!note || rewriteMutation.isPending}
+                  onClick={() => {
+                    rewriteMutation.mutate(complexity);
+                    setRewriteOpen(false);
+                  }}
+                >
+                  {rewriteMutation.isPending ? "Rewriting…" : "Rewrite notes"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
         </div>
-        <div className={styles.toolbarRight}>
-          <span
-            className={`${styles.status}${STATUS_CLASS[status] ? ` ${STATUS_CLASS[status]}` : ""}`}
-            role={
-              status === "failed" || status === "conflict" ? "alert" : "status"
-            }
-          >
-            {STATUS_TEXT[status]}
-          </span>
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={!note}
-            onClick={manualSave}
-          >
-            Save
-          </Button>
-        </div>
-      </div>
-
-      <div className={styles.complexityBar}>
-        <label htmlFor="notes-complexity" className={styles.complexityLabel}>
-          Complexity:
-        </label>
-        <input
-          id="notes-complexity"
-          type="range"
-          min="1"
-          max="5"
-          value={complexity}
-          onChange={(e) => setComplexity(Number(e.target.value))}
-          aria-valuetext={complexityLabel}
-          className={styles.complexitySlider}
-        />
-        <span className={styles.complexityValue}>{complexityLabel}</span>
-        <Button
-          size="sm"
-          disabled={!note || rewriteMutation.isPending}
-          onClick={() => rewriteMutation.mutate(complexity)}
-        >
-          {rewriteMutation.isPending ? "Rewriting..." : "Rewrite notes"}
-        </Button>
-        {undoStack.length > 0 && (
-          <Button size="sm" variant="secondary" onClick={undoLastAiEdit}>
-            {undoStack.at(-1)?.source === "inline"
-              ? "Undo last AI edit"
-              : "Undo rewrite"}
-          </Button>
-        )}
-      </div>
+      </header>
 
       {notesOmitted ? (
         <div className={styles.processingBanner} role="status">
@@ -861,30 +979,61 @@ ${fenceUntrusted(currentHtml)}
         </div>
       ) : null}
 
-      <div className={styles.splitLayout}>
-        <Card variant="elevated" padding="none" className={styles.editorPane}>
-          <div style={{ display: "flex", width: "100%", height: "100%" }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
+      <div className={`${page.desk}${focus ? ` ${page.focus}` : ""}`}>
+        <div className={page.pageCol}>
+          <div
+            ref={pageRef}
+            className={`${page.page}${recalling ? ` ${page.covered}` : ""}`}
+          >
+            <div aria-hidden={recalling || undefined}>
               <RichTextEditor
                 ref={editorRef}
                 initialHtml={initialHtml}
-                readOnly={!note}
-                placeholder="Start typing your notes here…"
+                readOnly={!note || recalling}
+                placeholder="Start writing, or type / to add a key idea, a definition or a formula"
                 onUserChange={note ? handleUserChange : undefined}
+                toolbar={false}
+                onReady={setQuill}
               />
             </div>
+            <NotesSlashMenu quill={quill} pageRef={pageRef} readOnly={!note} />
+            {recalling ? (
+              <p className={page.coverNote}>The page is covered while you write what you remember.</p>
+            ) : null}
+            <p className={page.folio}>
+              {words} {words === 1 ? "word" : "words"}
+              {words >= 100 ? ` · about ${Math.max(1, Math.round(words / 200))} min to read` : ""}
+            </p>
           </div>
-        </Card>
+          <NotesPencilCase
+            quill={quill}
+            readOnly={!note || recalling}
+            focus={focus}
+            onToggleFocus={() => setFocus((f) => !f)}
+          />
+        </div>
 
-        <NotesAiSidebar
-          materialId={materialId}
-          folderId={folderId}
-          materialTitle={materialTitle}
-          getDocumentText={() => editorRef.current?.getPlainText() ?? ""}
-          onInsertText={
-            note ? (text) => editorRef.current?.appendText(text) : undefined
-          }
-        />
+        {recalling ? <span /> : <NotesBookmarks quill={quill} />}
+
+        <aside className={page.marginCol} aria-label="Margin">
+          <NotesMargin
+            quill={quill}
+            materialId={materialId}
+            materialTitle={materialTitle}
+            folderId={folderId}
+            recalling={recalling}
+            onRecall={setRecalling}
+          />
+          {recalling ? null : (
+            <NotesAiSidebar
+              materialId={materialId}
+              folderId={folderId}
+              materialTitle={materialTitle}
+              getDocumentText={() => editorRef.current?.getPlainText() ?? ""}
+              onInsertText={note ? (text) => editorRef.current?.appendText(text) : undefined}
+            />
+          )}
+        </aside>
       </div>
 
       {activeSelection && !diffPreview ? (

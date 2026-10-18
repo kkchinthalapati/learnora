@@ -2,6 +2,7 @@ import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { Modal } from "../../components/Modal";
 import { useExamReadiness } from "../../hooks/useExamReadiness";
+import { readinessText } from "../../lib/examReadiness";
 import type { Exam } from "../../api/types";
 import { formatDayTitle } from "./examMeta";
 import styles from "./exams.module.css";
@@ -34,7 +35,9 @@ function DayExamRow({ exam, onEditExam, onOpenPrepRoadmap }: DayExamRowProps) {
       ? styles.badgeReady
       : readiness?.tier === "Getting there"
         ? styles.badgeProgress
-        : styles.badgeGap;
+        : readiness?.tier === "Not enough data"
+          ? ""
+          : styles.badgeGap;
 
   return (
     <div className={styles.dayItem}>
@@ -65,10 +68,10 @@ function DayExamRow({ exam, onEditExam, onOpenPrepRoadmap }: DayExamRowProps) {
         {readiness && (
           <span
             className={`${styles.readinessBadge} ${badgeClass}`}
-            title={`Readiness score: ${readiness.score}% (${readiness.tier})`}
+            title={`Readiness: ${readinessText(readiness)}`}
           >
             <Icon name="brain" size={11} />
-            {readiness.score}%
+            {readinessText(readiness)}
           </span>
         )}
         <button

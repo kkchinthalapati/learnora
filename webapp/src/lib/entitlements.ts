@@ -154,10 +154,10 @@ export const FEATURES: Record<FeatureId, FeatureMeta> = {
   customAppearance: {
     id: "customAppearance",
     name: "Theme colours",
-    blurb: "Any accent colour, or build your own from scratch.",
+    blurb: "Any accent colour, or build your own, and change the surfaces and ink too.",
     pitch:
-      "Pick from thirteen curated accents or mix up to three colours of your own — every button, glow and gradient in the workspace repaints to match.",
-    minimumPlan: "pro",
+      "Pick from thirteen curated accents or mix up to three colours of your own, then change the page, cards, text and margin colours to suit how you study.",
+    minimumPlan: "plus",
   },
 };
 

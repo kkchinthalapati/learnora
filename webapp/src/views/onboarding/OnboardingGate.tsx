@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from "react-router";
 import { useAuth } from "../../context/auth";
+import { FINISH_ACCOUNT_PATH, needsAccountDetails } from "../../lib/accountDetails";
 import { shouldOnboard } from "../../lib/onboarding";
 
 /** Where the first-run wizard lives. */
@@ -19,6 +20,12 @@ export const WELCOME_PATH = "/welcome";
  * the new metadata yet. */
 export function OnboardingGate() {
   const { user } = useAuth();
+
+  /* A Google sign-up has no date of birth or AI-consent answer yet; those
+     come first, and the wizard waits for them. */
+  if (needsAccountDetails(user)) {
+    return <Navigate to={FINISH_ACCOUNT_PATH} replace />;
+  }
 
   if (shouldOnboard(user)) {
     return <Navigate to={WELCOME_PATH} replace />;

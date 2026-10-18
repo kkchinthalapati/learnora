@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Learnora — Noise to Signal</title>
+<meta name="viewport" content="width=1080">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;800;900&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,700;0,6..72,800;1,6..72,500;1,6..72,700;1,6..72,800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#06090a; --paper:#f1ede4; --teal:#5fb3a3; --mint:#8ff2d2; --verm:#ff5a2e; --ind:#7c6cf0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; background: var(--ink); overflow: hidden; }
+  #world { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; perspective: 1500px; perspective-origin: 540px 960px; background: var(--ink); color: var(--paper); font-family: Inter, system-ui, sans-serif; }
+  .scene { position: absolute; inset: 0; transform-style: preserve-3d; }
+  .abs { position: absolute; }
+  .sans { font-family: Inter, sans-serif; font-weight: 900; letter-spacing: -.045em; line-height: .8; text-transform: uppercase; white-space: nowrap; }
+  .serif { font-family: Newsreader, Georgia, serif; font-weight: 800; letter-spacing: -.03em; line-height: .88; white-space: nowrap; }
+  .mono { font-family: "JetBrains Mono", monospace; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; font-size: 24px; white-space: nowrap; }
+  .L { display: inline-block; will-change: transform; }
+
+  /* ---------- S1 hook ---------- */
+  #paper { position: absolute; inset: 0; background: var(--paper); }
+  #hk { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; color: #0a0a0a; }
+  #hkYou, #hkStud { position: absolute; left: 540px; color: #0a0a0a; transform-origin: 50% 0%; }
+  #strike { position: absolute; left: -40px; top: 1270px; width: 1160px; height: 56px; background: var(--verm); transform-origin: 0 50%; transform: rotate(-3deg) scaleX(0); }
+  #hkMono { position: absolute; left: 70px; bottom: 150px; color: #0a0a0a; }
+  #q { position: absolute; inset: 0; }
+  #qDid { position: absolute; left: 70px; top: 520px; color: var(--paper); font-size: 250px; font-style: italic; font-weight: 700; }
+  #qStick { position: absolute; left: 540px; top: 800px; transform: translateX(-50%) scaleY(1.5); transform-origin: 50% 0%; color: var(--paper); }
+  #qMark { color: var(--teal); }
+
+  /* ---------- S2 chaos ---------- */
+  
+  #bw2 { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform: translateZ(-500px); }
+  .bwline { position: absolute; left: 540px; transform: translateX(-50%); color: transparent; -webkit-text-stroke: 3px rgba(241,237,228,.17); }
+  .chip { position: absolute; left: 540px; top: 960px; margin: -40px 0 0 -120px; padding: 20px 30px; border-radius: 18px; background: #131c1a; border: 2px solid rgba(241,237,228,.16); color: var(--paper); font-weight: 800; font-size: 40px; letter-spacing: -.02em; white-space: nowrap; will-change: transform, filter; box-shadow: 0 20px 40px rgba(0,0,0,.45); }
+  .chip.doc { background: var(--paper); color: #0a0a0a; border-color: #fff; }
+  .chip.hot { background: var(--verm); color: #fff; border-color: #ff8a66; }
+  .chip.out { background: transparent; color: var(--mint); border-color: var(--teal); }
+  .chip small { display: block; font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 18px; letter-spacing: .18em; opacity: .6; margin-bottom: 6px; }
+  #tooMuch { position: absolute; left: 540px; top: 930px; width: 980px; margin-left: -490px; padding: 56px 40px 64px; background: var(--paper); color: #0a0a0a; text-align: center; transform: rotate(-3deg); }
+  #tooMuch .sans { font-size: 250px; display: block; }
+  #tooMuch i { position: absolute; left: 40px; right: 40px; bottom: 36px; height: 20px; background: var(--verm); }
+  #ticker { position: absolute; left: 0; bottom: 70px; width: 3400px; color: rgba(241,237,228,.55); }
+
+  /* ---------- S3 product ---------- */
+  #s3 { clip-path: circle(0% at 50% 50%); perspective: 1500px; perspective-origin: 540px 960px; }
+  #cam { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-style: preserve-3d; }
+  .phone { position: absolute; padding: 12px; border-radius: 72px; background: linear-gradient(145deg, #323837 0%, #0d1110 55%, #1d2423 100%); box-shadow: 0 60px 120px rgba(0,0,0,.65), 0 0 0 2px rgba(255,255,255,.07) inset, 0 0 0 1px rgba(95,179,163,.22); transform-style: preserve-3d; backface-visibility: hidden; }
+  .phone .screen { position: relative; overflow: hidden; border-radius: 60px; background: #0a0e0d; }
+  .phone .screen img { position: absolute; left: 0; display: block; }
+  .phone .gloss { position: absolute; inset: 12px; border-radius: 60px; pointer-events: none; background: linear-gradient(112deg, rgba(255,255,255,.17) 0%, rgba(255,255,255,.04) 24%, transparent 40%); mix-blend-mode: screen; }
+  .ring { position: absolute; border: 5px solid var(--mint); border-radius: 30px; box-shadow: 0 0 40px rgba(143,242,210,.45); opacity: 0; }
+  .cur { position: absolute; left: 0; top: 0; width: 74px; height: 74px; pointer-events: none; transform-style: preserve-3d; }
+  .tapr { position: absolute; left: 0; top: 0; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%; border: 4px solid var(--mint); opacity: 0; pointer-events: none; }
+  .ttl { position: absolute; left: 0; width: 1080px; padding: 0 70px; }
+  .ttl .ln { overflow: hidden; padding: 4px 0 14px; }
+  .ttl .ln span { display: block; }
+  .ttl em { font-style: italic; color: var(--mint); font-weight: 700; }
+  .bigw { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-style: preserve-3d; }
+  #slab { position: absolute; inset: 0; background: var(--teal); color: #05100d; transform: translateX(-1300px) skewX(-10deg); }
+  #slab .sans { position: absolute; left: 540px; top: 760px; transform: translateX(-50%); }
+  #car { position: absolute; left: 540px; top: 1000px; width: 0; height: 0; transform-style: preserve-3d; }
+
+  /* ---------- S5 payoff ---------- */
+  
+  #hero { position: absolute; left: 101px; top: 640px; width: 877px; height: 1012px; border-radius: 44px; overflow: hidden; background: #0f1513; border: 2px solid rgba(143,242,210,.25); box-shadow: 0 50px 110px rgba(0,0,0,.6), 0 0 90px rgba(95,179,163,.13); transform-style: preserve-3d; }
+  #hero img { position: absolute; left: 0; top: 0; width: 877px; transform: translateY(-157px); }
+  #sheen { position: absolute; top: -20%; bottom: -20%; width: 260px; left: -300px; background: linear-gradient(100deg, transparent, rgba(255,255,255,.2), transparent); transform: skewX(-18deg); mix-blend-mode: screen; }
+
+  /* ---------- S6 finish ---------- */
+  #s6 { transform-style: flat; }
+  #inkRing { position: absolute; left: 540px; top: 760px; width: 200px; height: 200px; margin: -100px 0 0 -100px; border-radius: 50%; background: var(--ink); transform: scale(0); }
+  #halo { position: absolute; left: 540px; top: 760px; width: 760px; height: 760px; margin: -380px 0 0 -380px; border-radius: 50%; background: conic-gradient(from 0deg, rgba(124,108,240,0), rgba(124,108,240,.65), rgba(95,179,163,.5), rgba(124,108,240,0) 70%); filter: blur(40px); opacity: 0; }
+  #logoCard { position: absolute; left: 540px; top: 760px; width: 440px; height: 440px; margin: -220px 0 0 -220px; border-radius: 104px; background: #f7f6ff; overflow: hidden; box-shadow: 0 50px 110px rgba(0,0,0,.6), 0 0 0 14px rgba(255,255,255,.07); }
+  #logoCard img { position: absolute; left: -62px; top: -46px; width: 565px; }
+  #tag { position: absolute; left: 0; top: 1090px; width: 1080px; text-align: center; }
+  #tag .row { display: inline-block; font-size: 132px; }
+  #cta { position: absolute; left: 540px; top: 1500px; transform: translateX(-50%); padding: 34px 64px; border-radius: 999px; background: var(--paper); color: #0a0a0a; font-weight: 800; font-size: 46px; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; }
+  #sub6 { position: absolute; left: 0; top: 1660px; width: 1080px; text-align: center; color: var(--teal); }
+
+  /* overlays */
+  #flash { position: absolute; inset: 0; background: #e9fff7; opacity: 0; pointer-events: none; }
+  #grain { position: absolute; left: -200px; top: -200px; width: 1480px; height: 2320px; opacity: .13; pointer-events: none; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.2 -.2'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>"); }
+  #vig { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, transparent 58%, rgba(0,0,0,.42) 100%); }
+</style>
+</head>
+<body>
+<div id="world">
+
+  <!-- S1: the hook -->
+  <section class="scene" id="s1">
+    <div id="q">
+      <div id="qDid" class="serif">Did it</div>
+      <div id="qStick" class="serif"></div>
+    </div>
+    <div id="paper"></div>
+    <div id="hk">
+      <div id="hkYou" class="sans"></div>
+      <div id="hkStud" class="sans"></div>
+      <div id="strike"></div>
+      <div id="hkMono" class="mono">(and did it stick?)</div>
+    </div>
+  </section>
+
+  <!-- S2: the noise -->
+  <section class="scene" id="s2">
+    <div id="bw2"></div>
+    <div id="tealCut" style="position:absolute;inset:0;background:#5fb3a3;z-index:50"></div>
+    <div id="chips"></div>
+    <div id="ticker" class="mono"></div>
+  </section>
+
+  <div id="tooMuch"><span class="sans">Too<br>much.</span><i></i></div>
+
+  <!-- S3: product -->
+  <section class="scene" id="s3">
+    <div id="bigwords"></div>
+    <div id="cam"></div>
+    <div id="titles"></div>
+    <div id="slab"><span class="sans" id="slabTxt">Sure?</span></div>
+    <div id="car"></div>
+  </section>
+
+  <!-- S5: payoff -->
+  <section class="scene" id="s5">
+    <div id="payBg" class="abs" style="inset:0"></div>
+    <div id="payChips"></div>
+    <div id="payTitle" class="abs serif" style="left:0;top:150px;width:1080px;text-align:center"></div>
+    <div id="payMono" class="abs mono" style="left:0;top:1740px;width:1080px;text-align:center;color:var(--teal)">Study what's weak · Review what's due</div>
+    <div id="heroWrap" class="abs" style="inset:0;transform-style:preserve-3d">
+      <div id="hero"><img src="assets/today_tall.png" alt=""><div id="sheen"></div></div>
+    </div>
+  </section>
+
+  <!-- S6: finish -->
+  <section class="scene" id="s6">
+    <div id="inkRing"></div>
+    <div id="halo"></div>
+    <div id="logoCard"><img src="assets/learnora.jpg" alt="Learnora"></div>
+    <div id="tag" class="serif"><div><span class="row" id="tag1"></span></div><div style="margin-top:18px"><span class="row" id="tag2"></span></div></div>
+    <div id="cta">learnora-app.vercel.app</div>
+    <div id="sub6" class="mono">Focus · Track · Achieve</div>
+  </section>
+
+  <div id="flash"></div>
+  <div id="grain"></div>
+  <div id="vig"></div>
+</div>
+
+<script src="assets/gsap.min.js"></script>
+<script src="boxes.js"></script>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const el = (cls, html, parent, tag = "div") => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; if (parent) parent.appendChild(e); return e; };
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const rr = (a, b) => a + (b - a) * rnd();
+  const sp = (target, text) => { target.innerHTML = ""; return [...text].map((c) => { const s = el("L", c === " " ? "&nbsp;" : c, target, "span"); return s; }); };
+  const fit = (node, w) => { node.style.fontSize = "100px"; const cur = node.getBoundingClientRect().width; node.style.fontSize = (100 * w / cur).toFixed(2) + "px"; };
+
+  const T = { strike: 1.0, fall: 1.45, paper: 1.72, stick: 1.78, zoom: 2.55, s2: 3.0, tooMuch: 6.9, implode: 7.72, reveal: 8.0, whip: 11.5, tap1: 12.5, tap2: 13.35, push: 14.45, car: 15.0, pay: 19.0, push2: 23.2, fin: 24.8, end: 29.0 };
+  window.AD_T = T;
+
+  const tl = gsap.timeline({ paused: true, defaults: { ease: "none" } });
+  window.TL = tl;
+
+  /* ============================== S1 — the hook ============================== */
+  const you = sp($("#hkYou"), "YOU"), stud = sp($("#hkStud"), "STUDIED.");
+  fit($("#hkYou"), 1010); fit($("#hkStud"), 1250);
+  $("#hkYou").style.top = "380px"; $("#hkStud").style.top = "1130px";
+  gsap.set(["#hkYou", "#hkStud"], { xPercent: -50, scaleY: 1.6 });
+
+  const stick = sp($("#qStick"), "STICK?");
+  fit($("#qStick"), 1010);
+  const qMark = stick[stick.length - 1]; qMark.id = "qMark";
+  const qr = qMark.getBoundingClientRect();
+  const DOT = { x: 999, y: 1042 };
+  gsap.set(stick, { scale: 0, transformOrigin: "50% 60%" });
+  gsap.set("#qDid", { x: -900 });
+  gsap.set("#q", { transformOrigin: DOT.x + "px " + DOT.y + "px" });
+  window.AD_DOT = DOT;
+
+  tl.fromTo("#hk", { scale: 1.07, filter: "blur(5px)" }, { scale: 1, filter: "blur(0px)", duration: .42, ease: "expo.out" }, 0);
+  tl.fromTo([...you, ...stud], { y: (i) => (i % 2 ? 46 : -46), rotation: (i) => (i % 2 ? 2.2 : -2.2) }, { y: 0, rotation: 0, duration: .55, ease: "back.out(2.2)", stagger: .018 }, 0);
+  tl.fromTo("#hkMono", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .4, ease: "power3.out" }, .55);
+  tl.to("#strike", { scaleX: 1, duration: .24, ease: "power4.out" }, T.strike);
+  tl.to([...you, ...stud], { y: () => 1500 + rr(0, 600), rotation: () => rr(-60, 60), duration: .52, ease: "power3.in", stagger: { each: .022, from: "edges" } }, T.fall);
+  tl.to("#strike", { y: 1800, rotation: -12, duration: .5, ease: "power3.in" }, T.fall + .02);
+  tl.to("#hkMono", { y: 600, opacity: 0, duration: .3, ease: "power3.in" }, T.fall);
+  tl.to("#paper", { y: 1920, duration: .34, ease: "power4.in" }, T.paper);
+  tl.to("#qDid", { x: 0, duration: .55, ease: "expo.out" }, T.stick - .05);
+  tl.fromTo(stick, { scale: 0, rotation: () => rr(-25, 25) }, { scale: 1, rotation: 0, duration: .62, ease: "elastic.out(1,.55)", stagger: .045 }, T.stick);
+  tl.to(qMark, { scale: 1.12, duration: .12, ease: "power2.inOut", yoyo: true, repeat: 1 }, 2.38);
+  /* the dive: snap-zoom into the dot of the question mark */
+  tl.to("#qDid", { opacity: 0, duration: .15 }, T.zoom);
+  tl.to("#q", { scale: 120, x: () => 540 - DOT.x, y: () => 960 - DOT.y, duration: .45, ease: "expo.in" }, T.zoom);
+  tl.set("#s1", { autoAlpha: 0 }, T.s2);
+
+  /* ============================== S2 — the noise ============================== */
+  gsap.set("#s2", { autoAlpha: 0 });
+  tl.set("#s2", { autoAlpha: 1 }, T.s2 - .001);
+  const bw = $("#bw2");
+  ["WHERE", "DO YOU", "START?"].forEach((t, i) => { const l = el("bwline sans", t, bw); fit(l, 1180); l.style.top = (330 + i * 470) + "px"; });
+  tl.fromTo("#bw2", { scale: .8, opacity: .5 }, { scale: 1.25, opacity: 1, duration: 4.7, ease: "power1.out" }, T.s2);
+  tl.fromTo("#tealCut", { opacity: 1 }, { opacity: 0, duration: .2, ease: "power2.out", immediateRender: false }, T.s2);
+
+  const LABELS = [["Chapter 4", "doc"], ["Past paper", ""], ["Flashcards", "out"], ["Highlights", ""], ["Re-read notes", "doc"], ["Mock exam", "hot"], ["Deadline", "hot"], ["Formula sheet", "doc"], ["Practice quiz", ""], ["Lecture slides", ""], ["Revision guide", "doc"], ["Timetable", "out"], ["Topic list", ""], ["Summary notes", "doc"], ["Textbook p.212", ""], ["To-do", "out"], ["Syllabus", "doc"], ["Homework", ""], ["Essay plan", ""], ["Lab report", "doc"], ["Tab 14", ""], ["Group chat", ""], ["Notes (final)", "doc"], ["Notes (final 2)", "doc"], ["Re-read", "out"], ["Colour-code", ""], ["Cram sheet", "hot"], ["Unit test", ""], ["Reading list", "doc"], ["Study guide", ""]];
+  const chipHost = $("#chips"); chipHost.style.cssText = "position:absolute;inset:0;transform-style:preserve-3d";
+  const chips = [];
+  const NCH = 44;
+  for (let i = 0; i < NCH; i++) {
+    const [lab, kind] = LABELS[i % LABELS.length];
+    const c = el("chip " + kind, (i % 5 === 0 ? "<small>TO DO</small>" : "") + lab, chipHost);
+    c.style.fontSize = (i % 7 === 0 ? 56 : i % 3 === 0 ? 46 : 38) + "px";
+    chips.push(c);
+    const tz = i < 24 ? rr(-380, 320) : rr(300, 900);       // first 24 stay legible, the rest sweep past the lens
+    const tx = rr(-480, 480), ty = rr(-820, 820);
+    const t0 = T.s2 + Math.pow(i / NCH, 1.6) * 1.5;
+    gsap.set(c, { x: 0, y: 0, z: -1900, scale: .5, opacity: 0, rotationX: rr(-60, 60), rotationY: rr(-60, 60), rotationZ: rr(-40, 40) });
+    tl.to(c, { x: tx, y: ty, z: tz, scale: 1, opacity: 1, rotationX: rr(-25, 25), rotationY: rr(-35, 35), rotationZ: rr(-18, 18), duration: 1.05, ease: "expo.out" }, t0);
+    tl.to(c, { x: "+=" + rr(-90, 90), y: "+=" + rr(-120, 120), z: "+=" + (tz > 300 ? 520 : 240), rotationZ: "+=" + rr(-14, 14), duration: T.implode - (t0 + 1.05), ease: "sine.inOut" }, t0 + 1.05);
+    if (tz > 300) tl.to(c, { filter: "blur(" + rr(8, 16).toFixed(1) + "px)", duration: 1.2, ease: "power1.in" }, t0 + .8);
+  }
+  /* the implosion */
+  chips.forEach((c, i) => tl.to(c, { x: 0, y: 0, z: -1600, scale: .1, rotationZ: "+=300", opacity: 0, duration: .27, ease: "power3.in" }, T.implode + (i % 6) * .006));
+  tl.to("#bw2", { scale: 0, opacity: 0, duration: .27, ease: "power3.in" }, T.implode);
+
+  /* camera shake that builds with the chaos */
+  { let t = T.s2 + .6; while (t < T.implode - .05) { const amp = 2 + 20 * Math.pow((t - T.s2) / 4.5, 2); tl.to("#s2", { x: rr(-amp, amp), y: rr(-amp, amp), rotation: rr(-amp / 40, amp / 40), duration: .05, ease: "none" }, t); t += .05; } tl.to("#s2", { x: 0, y: 0, rotation: 0, duration: .05 }, T.implode - .05); }
+
+  /* ticker */
+  $("#ticker").textContent = ("NOTES · TABS · DECKS · DEADLINES · PAST PAPERS · HIGHLIGHTS · GROUP CHATS · ").repeat(3);
+  tl.fromTo("#ticker", { x: 0, opacity: 0 }, { x: -1900, opacity: 1, duration: 4.7, ease: "none" }, T.s2);
+
+  /* TOO MUCH. slam, then a held beat of stillness */
+  gsap.set("#tooMuch", { autoAlpha: 0 });
+  tl.fromTo("#tooMuch", { autoAlpha: 1, scale: 2.6, rotation: -9, y: 120 }, { scale: 1, rotation: -3, y: 0, duration: .22, ease: "power4.in", immediateRender: false }, T.tooMuch);
+  tl.fromTo("#tooMuch i", { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 1, duration: .28, ease: "expo.out", immediateRender: false }, T.tooMuch + .24);
+  tl.to("#tooMuch", { scale: 1.035, duration: .5, ease: "sine.out" }, T.tooMuch + .22);
+  tl.to("#tooMuch", { scale: 0, rotation: 25, duration: .27, ease: "power3.in" }, T.implode);
+  tl.set("#s2", { autoAlpha: 0 }, T.reveal + .01);
+  tl.set("#tooMuch", { autoAlpha: 0 }, T.implode + .28);
+
+  /* ============================== S3 — the product ============================== */
+  const SHOT = { w: 390, h: 844 };
+  function makePhone(host, K, imgs, id) {
+    const w = SHOT.w * K, h = SHOT.h * K;
+    const p = el("phone", null, host); if (id) p.id = id;
+    p.style.width = (w + 24) + "px"; p.style.height = (h + 24) + "px";
+    const s = el("screen", null, p); s.style.width = w + "px"; s.style.height = h + "px";
+    const imgEls = {};
+    Object.entries(imgs).forEach(([k, v]) => { const im = el("", null, s, "img"); im.src = v.src; im.style.width = w + "px"; im.style.top = "0px"; if (v.hidden) im.style.opacity = 0; imgEls[k] = im; });
+    el("gloss", null, p);
+    return { p, s, imgEls, w, h, K };
+  }
+  const K1 = 1.7;
+  const cam = $("#cam");
+  const phone = makePhone(cam, K1, {
+    today: { src: "assets/today_tall.png" },
+    q0: { src: "assets/quiz0.png", hidden: true },
+    q1: { src: "assets/quiz1.png", hidden: true },
+    q2: { src: "assets/quiz2.png", hidden: true },
+  }, "phone");
+  const PH = phone.p; const PW = parseFloat(PH.style.width), PHH = parseFloat(PH.style.height);
+  PH.style.left = (540 - PW / 2) + "px"; PH.style.top = "336px";
+  /* nav strip is a real capture of the app's own tab bar */
+  const navIm = el("", null, phone.s, "img"); navIm.src = "assets/nav.png"; navIm.style.width = phone.w + "px"; navIm.style.top = (phone.h - 61 * K1) + "px"; navIm.style.zIndex = 5;
+  const scr = (cx, cy) => ({ x: 12 + cx * K1, y: 12 + cy * K1 });   // css px in screenshot -> px inside phone element
+  /* focus rings + cursor live inside the phone so they rotate with it */
+  const ring1 = el("ring", null, PH); Object.assign(ring1.style, { left: scr(18, 98).x + "px", top: scr(18, 98).y + "px", width: 355 * K1 + "px", height: 62 * K1 + "px" });
+  const ring2 = el("ring", null, PH); Object.assign(ring2.style, { left: scr(18, 640).x + "px", top: scr(18, 640).y + "px", width: 355 * K1 + "px", height: 120 * K1 + "px" });
+  const cur = el("cur", '<svg viewBox="0 0 74 74" width="74" height="74"><path d="M12 6 L12 54 L24 43 L33 64 L42 60 L33 40 L50 40 Z" fill="#fff" stroke="#05100d" stroke-width="3.5" stroke-linejoin="round"/></svg>', PH);
+  const tapr = el("tapr", null, PH);
+  [ring1, ring2].forEach((r) => r.style.zIndex = 8); cur.style.zIndex = 9; tapr.style.zIndex = 9;
+  gsap.set(cur, { x: scr(330, 760).x, y: scr(330, 760).y, opacity: 0 });
+  gsap.set(PH, { autoAlpha: 0 });
+
+  const bwHost = $("#bigwords");
+  function bigWord(txt, t0, t1, kind, topY) {
+    const w = el("bigw", null, bwHost);
+    const l = el("bwline sans", txt, w); fit(l, 1180); l.style.top = (topY || 700) + "px";
+    l.style.webkitTextStroke = kind === "solid" ? "0" : "3px rgba(241,237,228,.34)";
+    if (kind === "solid") { l.style.color = "rgba(95,179,163,.16)"; }
+    gsap.set(w, { autoAlpha: 0 });
+    tl.set(w, { autoAlpha: 1 }, t0);
+    tl.fromTo(w, { x: 170, z: -260, scale: 1.12 }, { x: -170, scale: 1.0, duration: t1 - t0, ease: "none", immediateRender: false }, t0);
+    tl.set(w, { autoAlpha: 0 }, t1);
+    return w;
+  }
+  const ttlHost = $("#titles");
+  function title(lines, t0, t1, top, size = 92) {
+    const w = el("ttl serif", null, ttlHost); w.style.top = top + "px"; w.style.fontSize = size + "px"; w.style.fontWeight = 700;
+    const inner = lines.map((ln) => { const d = el("ln", null, w); const s = el("", ln, d, "span"); return s; });
+    gsap.set(w, { autoAlpha: 0 });
+    tl.set(w, { autoAlpha: 1 }, t0);
+    tl.fromTo(inner, { yPercent: 118 }, { yPercent: 0, duration: .7, ease: "expo.out", stagger: .09, immediateRender: false }, t0);
+    tl.to(inner, { yPercent: -118, duration: .3, ease: "power3.in", stagger: .04 }, t1 - .32);
+    tl.set(w, { autoAlpha: 0 }, t1);
+    return w;
+  }
+  const kick = el("mono", "", $("#titles")); kick.style.cssText = "position:absolute;left:70px;top:58px;color:#5fb3a3"; gsap.set(kick, { autoAlpha: 0 });
+  const kickAt = (txt, t) => { tl.call(() => { kick.textContent = txt; }, null, t); };
+
+  /* --- S3A: what to study next --- */
+  tl.set("#s3", { autoAlpha: 1 }, T.reveal - .02);
+  gsap.set("#s3", { autoAlpha: 0 });
+  tl.fromTo("#s3", { clipPath: "circle(0% at 50% 50%)" }, { clipPath: "circle(150% at 50% 50%)", duration: .62, ease: "expo.out", immediateRender: false }, T.reveal - .02);
+  bigWord("NEXT.", T.reveal, T.whip + .05, "outline", 640);
+  tl.set(PH, { autoAlpha: 1 }, T.reveal);
+  gsap.set(PH, { transformOrigin: "50% 50%" });
+  tl.fromTo(PH, { rotationY: -48, rotationX: 16, x: 430, y: 260, z: -520, scale: 1.1 }, { rotationY: 0, rotationX: 0, x: 0, y: 0, z: 0, scale: 1, duration: 1.0, ease: "expo.out", immediateRender: false }, T.reveal + .05);
+  tl.set(kick, { autoAlpha: 1 }, T.reveal + .3); kickAt("01 / what to study next", T.reveal + .3);
+  title(["Know what to", "<em>study next.</em>"], T.reveal + .45, T.whip - .08, 108, 88);
+  /* close-up: camera pushes into the headline card, rings it, then pans down to the mistakes */
+  tl.fromTo(ring1, { opacity: 0, scale: .94 }, { opacity: 1, scale: 1, duration: .35, ease: "back.out(2)", immediateRender: false }, T.reveal + 1.55);
+  tl.to(cam, { scale: 1.42, y: 420, transformOrigin: "50% 0%", duration: .9, ease: "power3.inOut" }, T.reveal + 1.3);
+  tl.to(phone.imgEls.today, { y: -170 * K1, duration: .95, ease: "power3.inOut" }, T.reveal + 2.2);
+  tl.to(ring1, { opacity: 0, duration: .2 }, T.reveal + 2.15);
+  tl.set(ring2, { left: scr(18, 482).x, top: scr(18, 482).y - 170 * K1 + 12 * 0, width: 355 * K1, height: 126 * K1 }, T.reveal + 2.2);
+  tl.fromTo(ring2, { opacity: 0, scale: .94 }, { opacity: 1, scale: 1, duration: .35, ease: "back.out(2)", immediateRender: false }, T.reveal + 2.85);
+  tl.to(cam, { scale: 1, y: 0, rotationY: -14, duration: .62, ease: "power3.inOut" }, T.whip - .72);
+  tl.to(ring2, { opacity: 0, duration: .2 }, T.whip - .6);
+  tl.to(PH, { rotationY: -22, x: -60, duration: .45, ease: "power2.in" }, T.whip - .3);
+
+  /* --- whip: the word SURE? crosses the whole frame and carries us into the quiz --- */
+  fit($("#slabTxt"), 1020);
+  tl.fromTo("#slab", { x: -1300, skewX: -10 }, { x: 0, skewX: -4, duration: .22, ease: "power4.in", immediateRender: false }, T.whip - .22);
+  tl.to("#slab", { x: 1300, skewX: -12, duration: .26, ease: "power4.out" }, T.whip + .14);
+  tl.set(phone.imgEls.today, { opacity: 0 }, T.whip - .02);
+  tl.set(phone.imgEls.q0, { opacity: 1 }, T.whip - .02);
+  tl.set(navIm, { opacity: 1 }, 0);
+  tl.set(cam, { rotationY: 0 }, T.whip - .02);
+  tl.fromTo(PH, { rotationY: 38, rotationX: -6, x: 520, y: 40, z: -300, scale: 1.0 }, { rotationY: 8, rotationX: 0, x: 0, y: 0, z: 0, duration: .85, ease: "expo.out", immediateRender: false }, T.whip + .12);
+  bigWord("SURE?", T.whip + .08, T.push + .1, "outline", 640);
+  kickAt("02 / say how sure you are", T.whip + .4);
+  title(["Say how sure", "<em>you are.</em>"], T.whip + .35, T.push - .05, 108, 88);
+  /* the cursor: arcs in, taps Fairly sure, then Catalysts */
+  const fairly = scr(BOXES.fairly.x + BOXES.fairly.width / 2, BOXES.fairly.y + BOXES.fairly.height / 2);
+  const cat = scr(BOXES.catalysts.x + BOXES.catalysts.width / 2, BOXES.catalysts.y + BOXES.catalysts.height / 2);
+  tl.set(cur, { opacity: 1, x: scr(380, 800).x, y: scr(380, 800).y }, T.whip + .5);
+  tl.to(cur, { x: fairly.x - 14, duration: .8, ease: "power2.inOut" }, T.tap1 - .8);
+  tl.to(cur, { y: fairly.y - 10, duration: .8, ease: "power3.inOut" }, T.tap1 - .8);
+  const tapAt = (pt, t) => { tl.set(tapr, { x: pt.x, y: pt.y }, t); tl.fromTo(tapr, { opacity: 1, scale: .3 }, { opacity: 0, scale: 1.7, duration: .5, ease: "power2.out", immediateRender: false }, t); tl.to(cur, { scale: .86, duration: .07, yoyo: true, repeat: 1, ease: "power2.inOut" }, t - .02); };
+  tapAt(fairly, T.tap1);
+  tl.set(phone.imgEls.q1, { opacity: 1 }, T.tap1 + .02);
+  tl.to(cur, { x: cat.x - 14, duration: .6, ease: "power2.inOut" }, T.tap1 + .2);
+  tl.to(cur, { y: cat.y - 10, duration: .6, ease: "power3.inOut" }, T.tap1 + .2);
+  tapAt(cat, T.tap2);
+  tl.set(phone.imgEls.q2, { opacity: 1 }, T.tap2 + .02);
+  tl.to(cur, { opacity: 0, x: "+=60", y: "+=120", duration: .4, ease: "power2.in" }, T.tap2 + .35);
+  /* orbit while we watch */
+  tl.to(PH, { rotationY: -7, rotationX: 2, duration: 2.2, ease: "sine.inOut" }, T.whip + .9);
+  const PILL = scr(170, 120);
+  /* push-in: dive into the Correct! state and out the other side */
+  tl.call(() => {}, null, T.push);
+  tl.to(PH, { transformOrigin: PILL.x + "px " + PILL.y + "px", duration: 0 }, T.push - .001);
+  tl.to(PH, { scale: 11, rotationY: 0, rotationX: 0, x: 0, y: 0, duration: .55, ease: "expo.in" }, T.push);
+
+  /* ---- S4 carousel ---- */
+  const car = $("#car"); const K2 = 1.3; const R = 640;
+  const cardDefs = [{ k: "exams", src: "assets/exams.png", a: 0 }, { k: "card", src: "assets/card1.png", a: 78 }, { k: "prog", src: "assets/progress.png", a: 156 }];
+  const cards = cardDefs.map((d) => {
+    const slot = el("", null, car); slot.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d";
+    const ph = makePhone(slot, K2, { x: { src: d.src } });
+    const w = parseFloat(ph.p.style.width), h = parseFloat(ph.p.style.height);
+    ph.p.style.left = -w / 2 + "px"; ph.p.style.top = -h / 2 + "px";
+    const nv = el("", null, ph.s, "img"); nv.src = "assets/nav.png"; nv.style.width = ph.w + "px"; nv.style.top = (ph.h - 61 * K2) + "px";
+    gsap.set(ph.p, { z: R });
+    return { ...d, ph, slot };
+  });
+  gsap.set("#car", { autoAlpha: 0 });
+  tl.set("#car", { autoAlpha: 1 }, T.car);
+  tl.set(PH, { autoAlpha: 0 }, T.car);
+  tl.set(cam, { autoAlpha: 0 }, T.car);
+  gsap.set(car, { z: -R + 260, rotationY: 0 });
+  /* the layers fan out of one stack, each slot swinging about the carousel axis */
+  cards.forEach((c, i) => {
+    tl.fromTo(c.ph.p, { opacity: 0 }, { opacity: 1, duration: .1, immediateRender: false }, T.car);
+    tl.fromTo(c.ph.p, { z: R - i * 110 }, { z: R, duration: .55, ease: "power3.out", immediateRender: false }, T.car + .1);
+    tl.fromTo(c.slot, { rotationY: 0 }, { rotationY: c.a, duration: .9, ease: "expo.out", immediateRender: false }, T.car + .14 + i * .07);
+  });
+  tl.fromTo(car, { rotationY: 180, z: -R + 60 }, { rotationY: 0, z: -R + 260, duration: .95, ease: "expo.out", immediateRender: false }, T.car);
+  tl.to(car, { rotationY: -78, duration: .62, ease: "power3.inOut" }, 16.55);
+  tl.to(car, { rotationY: -156, duration: .62, ease: "power3.inOut" }, 17.75);
+  tl.to(car, { z: -R - 400, scale: .8, duration: .55, ease: "power3.in" }, 18.45);
+  bigWord("KNOW.", T.car, T.pay + .05, "solid", 640);
+  kickAt("03 / know where you stand", T.car + .25);
+  title(["Know how ready", "<em>you are.</em>"], T.car + .3, 16.55, 108, 88);
+  title(["Review what's", "<em>due.</em>"], 16.8, 17.75, 108, 88);
+  title(["Spot what's", "<em>fading.</em>"], 18.0, T.pay - .05, 108, 88);
+  tl.set(["#car", "#bigwords", "#cam", kick], { autoAlpha: 0 }, T.pay);
+  tl.set("#s3", { autoAlpha: 0 }, T.pay + .01);
+
+  /* ============================== S5 — signal ============================== */
+  gsap.set("#s5", { autoAlpha: 0 });
+  tl.set("#s5", { autoAlpha: 1 }, T.pay - .001);
+  const pc = $("#payChips"); pc.style.cssText = "position:absolute;inset:0;transform-style:preserve-3d";
+  const pchips = [];
+  for (let i = 0; i < 18; i++) {
+    const [lab, kind] = LABELS[(i * 3) % LABELS.length];
+    const c = el("chip " + kind, lab, pc); c.style.fontSize = "40px"; pchips.push(c);
+    gsap.set(c, { x: rr(-520, 520), y: rr(-860, 860), z: rr(-300, 400), rotationZ: rr(-20, 20), rotationY: rr(-30, 30), filter: "blur(" + rr(0, 8).toFixed(1) + "px)", opacity: 1 });
+    /* they begin where the chaos left them, then are drawn into one point behind the card */
+    tl.to(c, { x: 0, y: 140, z: -200, scale: .15, rotationZ: "+=240", opacity: 0, filter: "blur(0px)", duration: .85, ease: "power3.inOut" }, T.pay + .12 + i * .035);
+  }
+  const heroEl = $("#hero"), heroWrap = $("#heroWrap");
+  gsap.set(heroEl, { scale: .72, opacity: 0, rotationX: 14, y: 140 });
+  tl.to(heroEl, { opacity: 1, duration: .25 }, T.pay + .85);
+  tl.to(heroEl, { scale: 1, rotationX: 0, y: 0, duration: 1.05, ease: "expo.out" }, T.pay + .85);
+  tl.to("#sheen", { left: 1100, duration: 1.2, ease: "power2.inOut" }, T.pay + 1.7);
+  const pt = $("#payTitle"); pt.style.fontSize = "150px"; pt.style.lineHeight = ".9";
+  pt.innerHTML = '<div class="ln" style="overflow:hidden;padding:0 0 14px"><span style="display:block">One clear</span></div><div class="ln" style="overflow:hidden;padding:0 0 14px"><span style="display:block;font-style:italic;color:var(--mint)">next step.</span></div>';
+  const ptSp = pt.querySelectorAll("span");
+  gsap.set(ptSp, { yPercent: 115 });
+  tl.to(ptSp, { yPercent: 0, duration: .9, ease: "expo.out", stagger: .12 }, T.pay + 1.0);
+  gsap.set("#payMono", { opacity: 0 });
+  tl.to("#payMono", { opacity: 1, duration: .6, ease: "power2.out" }, T.pay + 1.9);
+  /* slow, confident camera */
+  tl.fromTo("#heroWrap", { scale: 1, rotationX: 0 }, { scale: 1.05, rotationX: -2, duration: 3.6, ease: "sine.inOut", immediateRender: false }, T.pay + 1.8);
+  /* push through the button: Learn Rates step by step */
+  const BTN = { x: 538, y: 1412 };
+  const hw = $("#heroWrap");
+  const hcur = el("cur", '<svg viewBox="0 0 74 74" width="74" height="74"><path d="M12 6 L12 54 L24 43 L33 64 L42 60 L33 40 L50 40 Z" fill="#fff" stroke="#05100d" stroke-width="3.5" stroke-linejoin="round"/></svg>', hw);
+  const htap = el("tapr", null, hw);
+  const hring = el("ring", null, hw); Object.assign(hring.style, { left: (BTN.x - 205) + "px", top: (BTN.y - 40) + "px", width: "410px", height: "80px", borderRadius: "22px" });
+  gsap.set(hcur, { x: 930, y: 1780, opacity: 0, zIndex: 9 }); gsap.set(htap, { x: BTN.x, y: BTN.y });
+  tl.set(hcur, { opacity: 1 }, T.pay + 3.0);
+  tl.to(hcur, { x: BTN.x - 12, duration: .95, ease: "power2.inOut" }, T.pay + 3.0);
+  tl.to(hcur, { y: BTN.y - 6, duration: .95, ease: "power3.inOut" }, T.pay + 3.0);
+  tl.fromTo(hring, { opacity: 0, scale: .94 }, { opacity: 1, scale: 1, duration: .3, ease: "back.out(2)", immediateRender: false }, T.pay + 3.55);
+  tl.to(hcur, { scale: .84, duration: .07, yoyo: true, repeat: 1 }, T.push2 - .1);
+  tl.fromTo(htap, { opacity: 1, scale: .3 }, { opacity: 0, scale: 1.8, duration: .45, ease: "power2.out", immediateRender: false }, T.push2 - .06);
+  tl.to(["#payTitle", "#payMono"], { opacity: 0, duration: .3, ease: "power2.in" }, T.push2 - .05);
+  tl.to("#heroWrap", { transformOrigin: BTN.x + "px " + BTN.y + "px", duration: 0 }, T.push2 - .001);
+  tl.to("#heroWrap", { scale: 14, rotationX: 0, duration: 1.6, ease: "expo.in" }, T.push2);
+  tl.set("#s5", { autoAlpha: 0 }, T.fin + .02);
+
+  /* ============================== S6 — brand ============================== */
+  gsap.set("#s6", { autoAlpha: 0 });
+  tl.set("#s6", { autoAlpha: 1 }, T.fin - .001);
+  const t1 = sp($("#tag1"), "Know your grade."), t2 = sp($("#tag2"), "Own your study.");
+  $("#tag2").style.cssText = "display:inline-block;font-style:italic;color:var(--mint)";
+  fit($("#tag1"), 960); fit($("#tag2"), 930);
+  gsap.set($("#tag1").parentNode, { transformStyle: "preserve-3d" });
+  gsap.set([...t1, ...t2], { opacity: 0, rotationX: -95, y: 60, transformOrigin: "50% 100%", transformPerspective: 900 });
+  gsap.set("#logoCard", { scale: .1, rotationX: 75, opacity: 0, transformPerspective: 1100 });
+  gsap.set("#cta", { clipPath: "inset(0 50% 0 50%)", opacity: 1 });
+  gsap.set("#sub6", { opacity: 0 });
+  /* teal bg (the button colour) -> ink opens from the logo */
+  tl.to("#inkRing", { scale: 26, duration: .75, ease: "expo.inOut" }, T.fin + .5);
+  tl.to("#logoCard", { scale: 1, rotationX: 0, opacity: 1, duration: .8, ease: "back.out(1.5)" }, T.fin + .08);
+  tl.to("#halo", { opacity: 1, duration: .9, ease: "power2.out" }, T.fin + .9);
+  tl.to("#halo", { rotation: 90, duration: 4, ease: "none" }, T.fin + .7);
+  tl.to(t1, { opacity: 1, rotationX: 0, y: 0, duration: .55, ease: "back.out(1.7)", stagger: .028 }, T.fin + 1.15);
+  tl.to(t2, { opacity: 1, rotationX: 0, y: 0, duration: .55, ease: "back.out(1.7)", stagger: .028 }, T.fin + 1.8);
+  tl.to("#logoCard", { y: -34, scale: .9, duration: .8, ease: "power3.inOut" }, T.fin + 1.2);
+  tl.to("#cta", { clipPath: "inset(0 0% 0 0%)", duration: .6, ease: "expo.out" }, T.fin + 2.55);
+  tl.to("#sub6", { opacity: 1, duration: .6 }, T.fin + 3.0);
+  tl.to("#logoCard", { y: -42, duration: 3, ease: "sine.inOut" }, T.fin + 2.0);
+
+  /* ============================== grain, impact punches ============================== */
+  for (let t = 0; t < T.end; t += 1 / 12) tl.set("#grain", { x: Math.round(rr(-180, 0)), y: Math.round(rr(-180, 0)) }, t);
+  const punch = (t, a = 1) => tl.fromTo("#world", { scale: 1 + .03 * a }, { scale: 1, duration: .28, ease: "expo.out", immediateRender: false }, t);
+  punch(T.s2, 1.3); punch(T.tooMuch + .22, 1.6); punch(T.reveal, 2); punch(T.whip + .12, 1); punch(T.car, 1.4); punch(T.fin + .2, 2);
+  tl.fromTo("#flash", { opacity: .9 }, { opacity: 0, duration: .22, ease: "power2.out", immediateRender: false }, T.reveal - .02);
+  tl.fromTo("#flash", { opacity: .7 }, { opacity: 0, duration: .2, ease: "power2.out", immediateRender: false }, T.car);
+  tl.fromTo("#flash", { opacity: .5 }, { opacity: 0, duration: .25, ease: "power2.out", immediateRender: false }, T.fin);
+  tl.to({}, { duration: .01 }, T.end);
+
+  gsap.set("#vig", { opacity: 0 });
+  tl.set("#world", { backgroundColor: "#09100f" }, T.pay - .02);
+  tl.set("#world", { backgroundColor: "#5fb3a3" }, T.fin - .001);
+  tl.to("#vig", { opacity: 1, duration: .3 }, T.paper);
+  window.AD_READY = true;
+})();
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router";
 import { Icon } from "./Icon";
 import type { IconName } from "./icons";
 import { HelpCenter } from "./HelpCenter";
+import { LearnoraMark } from "./LearnoraMark";
 import { useOptionalAuth } from "../context/auth";
 import { useOptionalChat } from "../context/chat";
 import { useOptionalCommandPalette } from "../context/commandPalette";
@@ -70,9 +71,7 @@ export function TopBar() {
     <>
       <header className={styles.bar}>
         <Link to="/" className={styles.brand} aria-label="Learnora, home">
-          <span className={styles.brandMark} aria-hidden="true">
-            L
-          </span>
+          <LearnoraMark size={30} className={styles.brandMark} />
           <span className={styles.brandName}>Learnora</span>
         </Link>
 
@@ -129,7 +128,7 @@ export function TopBar() {
               aria-label="Ask the tutor"
               title={`Ask the tutor (${MOD}J)`}
             >
-              <Icon name="sparkles" size={18} />
+              <Icon name="pencil" size={18} />
               <span className={styles.toolLabel}>Ask</span>
             </button>
           ) : null}

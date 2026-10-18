@@ -1,0 +1,866 @@
+/* The notes page as a page of the exercise book (DESIGN.md 0.8): a serif
+   header, one paper sheet with the red margin line, ribbon bookmarks on its
+   edge, a pencil case under it and pencilled notes in the margin. */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  width: min(100%, 1240px);
+  margin: 0 auto;
+  padding: var(--s-6) 0 var(--s-16);
+}
+
+/* --- header -------------------------------------------------------------- */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--touch-target-min);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--text);
+}
+
+.headRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-3xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  color: var(--text);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: var(--s-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.meta a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.saveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--success);
+}
+
+.saveDot[data-state="unsaved"],
+.saveDot[data-state="saving"] {
+  background: var(--recall);
+}
+
+.saveDot[data-state="failed"],
+.saveDot[data-state="conflict"] {
+  background: var(--danger);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  position: relative;
+}
+
+.rewriteMenu {
+  position: absolute;
+  top: calc(100% + var(--s-2));
+  right: 0;
+  z-index: var(--z-raised);
+  display: grid;
+  gap: var(--s-3);
+  width: 280px;
+  padding: var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.rewriteLabel {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+
+.rewriteLabel span {
+  color: var(--accent-text);
+}
+
+.rewriteMenu input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.rewriteHint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+}
+
+/* --- desk: page, bookmarks, margin --------------------------------------- */
+
+.desk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(240px, 300px);
+  align-items: start;
+  gap: 0 var(--s-6);
+}
+
+.pageCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.page {
+  position: relative;
+  min-height: 60vh;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-xs) var(--r-lg) var(--r-lg) var(--r-xs);
+  background: var(--surface);
+}
+
+.page :global(.ql-container.ql-snow) {
+  font-family: var(--font-head);
+  font-size: var(--fs-read);
+}
+
+.page :global(.ql-container .ql-editor) {
+  max-width: var(--measure-read);
+  min-height: 60vh;
+  padding: var(--s-8) var(--s-8) var(--s-12) calc(var(--s-12) + var(--s-6));
+  line-height: var(--lh-read);
+}
+
+.page :global(.ql-editor h1),
+.page :global(.ql-editor h2),
+.page :global(.ql-editor h3) {
+  font-family: var(--font-head);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  scroll-margin-top: calc(var(--topbar-height) + var(--s-4));
+}
+
+.page :global(.ql-editor h1) {
+  font-size: var(--fs-2xl);
+  margin: var(--s-6) 0 var(--s-2);
+}
+
+.page :global(.ql-editor h2) {
+  font-size: var(--fs-xl);
+  margin: var(--s-5) 0 var(--s-2);
+}
+
+.page :global(.ql-container .ql-editor.ql-blank::before) {
+  left: calc(var(--s-12) + var(--s-6));
+  font-style: italic;
+}
+
+/* Highlighters. Soft fills, so the words stay readable in both themes. */
+.page :global(.ln-mark-key) {
+  background: var(--accent-wash);
+  box-shadow: inset 0 -0.12em 0 var(--accent-line-strong);
+}
+
+.page :global(.ln-mark-learn) {
+  background: var(--recall-soft);
+  box-shadow: inset 0 -0.12em 0 var(--recall);
+}
+
+.page :global(.ln-mark-wrong) {
+  background: var(--danger-soft);
+  box-shadow: inset 0 -0.12em 0 var(--danger);
+}
+
+/* A drawing the tutor made for a section: centred, on a quiet card. */
+.page :global(.ln-diagram) {
+  margin: var(--s-6) auto;
+  max-width: 560px;
+  padding: var(--s-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  text-align: center;
+}
+
+.page :global(.ln-diagram svg) {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--text);
+}
+
+/* Callouts: a line set apart with a rule and a small label, in the margin's
+   pencilled italic. The label is CSS, so the saved text is only the note. */
+.page :global(.ln-callout-key),
+.page :global(.ln-callout-def),
+.page :global(.ln-callout-mistake) {
+  position: relative;
+  margin: var(--s-3) 0;
+  padding: var(--s-1) 0 var(--s-1) var(--s-4);
+  border-left: 2px solid var(--accent-line-strong);
+  font-style: italic;
+}
+
+.page :global(.ln-callout-def) {
+  border-left-color: var(--hairline-strong);
+}
+
+.page :global(.ln-callout-mistake) {
+  border-left-color: var(--danger);
+}
+
+.page :global(.ln-callout-key)::before,
+.page :global(.ln-callout-def)::before,
+.page :global(.ln-callout-mistake)::before {
+  display: block;
+  font-family: var(--font-body, inherit);
+  font-size: var(--fs-xs);
+  font-style: normal;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.page :global(.ln-callout-key)::before {
+  content: "Key idea";
+}
+
+.page :global(.ln-callout-def)::before {
+  content: "Definition";
+  color: var(--text-muted);
+}
+
+.page :global(.ln-callout-mistake)::before {
+  content: "Common mistake";
+  color: var(--danger-text);
+}
+
+.folio {
+  position: absolute;
+  right: var(--s-6);
+  bottom: var(--s-3);
+  margin: 0;
+  color: var(--text-faint);
+  font-family: var(--font-head);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Blank-page recall covers the page. */
+.covered :global(.ql-editor) {
+  filter: blur(var(--glass-blur));
+  user-select: none;
+  pointer-events: none;
+}
+
+.coverNote {
+  position: absolute;
+  inset: var(--s-8) var(--s-8) auto calc(var(--s-12) + var(--s-6));
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-style: italic;
+}
+
+/* Focus: the margin and bookmarks step back, and only the line the caret is
+   on stays bright. */
+.focus .marginCol,
+.focus .bookmarks {
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.focus .page :global(.ql-editor > *) {
+  opacity: 0.32;
+}
+
+.focus .page :global(.ql-editor > [data-current]) {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .marginCol,
+  .bookmarks,
+  .page :global(.ql-editor > *) {
+    transition: opacity var(--t) var(--ease);
+  }
+}
+
+/* --- bookmarks ----------------------------------------------------------- */
+
+.bookmarks {
+  position: sticky;
+  top: calc(var(--topbar-height) + var(--s-6));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  max-height: 70vh;
+  margin-left: calc(-1 * var(--s-6));
+  padding-top: var(--s-6);
+  padding-right: var(--s-2);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.bookmark {
+  max-width: 132px;
+  min-height: 32px;
+  padding: var(--s-1) var(--s-3) var(--s-1) var(--s-2);
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-left: 0;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: var(--surface);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.bookmark[data-level="2"],
+.bookmark[data-level="3"] {
+  margin-left: var(--s-2);
+}
+
+.bookmark:hover {
+  color: var(--text);
+}
+
+.bookmark[aria-current] {
+  border-color: var(--accent-line-strong);
+  background: var(--accent-wash);
+  color: var(--accent-text);
+  transform: translateX(var(--s-1));
+}
+
+@media (pointer: coarse) {
+  .bookmark {
+    min-height: var(--touch-target-min);
+  }
+}
+
+/* --- pencil case --------------------------------------------------------- */
+
+.caseWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding-left: var(--s-12);
+}
+
+.pencilCase {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s-1);
+}
+
+.markers {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-1);
+  padding-right: var(--s-3);
+}
+
+.marker {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 22px;
+  height: var(--touch-target-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.markerTip {
+  width: 12px;
+  height: 26px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 3px 3px 7px 7px;
+  transition: transform var(--t-fast) var(--ease);
+}
+
+.marker[data-kind="key"] .markerTip {
+  background: var(--accent-wash);
+  border-color: var(--accent-line-strong);
+}
+
+.marker[data-kind="learn"] .markerTip {
+  background: var(--recall-soft);
+  border-color: var(--recall);
+}
+
+.marker[data-kind="wrong"] .markerTip {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+.marker:hover .markerTip,
+.marker[data-armed] .markerTip {
+  transform: translateY(-6px);
+}
+
+.marker:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.tool {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  padding: var(--s-1) var(--s-2);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tool:hover:not(:disabled),
+.tool[aria-pressed="true"],
+.tool[aria-expanded="true"] {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.tool:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.toolLabel {
+  font-family: var(--font-head);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  color: inherit;
+}
+
+.markers .toolLabel {
+  align-self: flex-end;
+  padding-bottom: var(--s-1);
+  padding-left: var(--s-1);
+  color: var(--text-muted);
+}
+
+.caseHint {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.penTray {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--s-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.penBtn {
+  display: grid;
+  place-items: center;
+  min-width: var(--control-sm);
+  height: var(--control-sm);
+  padding: 0 var(--s-2);
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.penBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.penBtn[aria-pressed="true"] {
+  background: var(--accent-wash);
+  color: var(--accent-text);
+}
+
+@media (pointer: coarse) {
+  .penBtn {
+    min-width: var(--touch-target-min);
+    height: var(--touch-target-min);
+  }
+}
+
+.penSerif {
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+}
+
+.penSerifSm {
+  font-family: var(--font-head);
+  font-size: var(--fs-sm);
+}
+
+.penMono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+
+.penRule {
+  width: 1px;
+  height: 18px;
+  margin: 0 var(--s-1);
+  background: var(--hairline-strong);
+}
+
+.formulaRow,
+.slipFormula {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.formulaInput {
+  width: 160px;
+  min-height: var(--control-sm);
+  padding: 0 var(--s-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+.formulaGo {
+  min-height: var(--control-sm);
+  padding: 0 var(--s-2);
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+/* --- the "/" slip -------------------------------------------------------- */
+
+.slip {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  padding: var(--s-2) var(--s-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 2px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-md);
+  transform: rotate(-0.6deg);
+}
+
+.slipOption {
+  padding: var(--s-1) var(--s-3);
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--text-muted);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  text-align: left;
+  cursor: pointer;
+}
+
+.slipOption[aria-selected="true"] {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.slipEmpty {
+  margin: 0;
+  padding: var(--s-1) var(--s-3);
+  color: var(--text-faint);
+  font-family: var(--font-head);
+  font-style: italic;
+}
+
+/* --- margin -------------------------------------------------------------- */
+
+.marginCol {
+  position: sticky;
+  top: calc(var(--topbar-height) + var(--s-6));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  max-height: calc(100vh - var(--topbar-height) - var(--s-12));
+  padding-top: var(--s-6);
+  overflow-y: auto;
+}
+
+.margin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-1);
+}
+
+.noteLead {
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-style: italic;
+  line-height: var(--lh-snug);
+}
+
+.noteFaint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+}
+
+.noteGo {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-style: italic;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.noteGo:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.noteGo:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.noteQuiet {
+  min-height: var(--touch-target-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.mistakeList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin: var(--s-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mistake {
+  position: relative;
+  padding-left: var(--s-4);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+}
+
+/* A red-pen cross in the margin. */
+.mistake::before {
+  content: "✕";
+  position: absolute;
+  left: 0;
+  color: var(--danger-text);
+  font-family: var(--font-head);
+  font-size: var(--fs-xs);
+}
+
+.inkLearn {
+  padding: 0 2px;
+  background: var(--recall-soft);
+  color: var(--text);
+}
+
+.recallBox {
+  width: 100%;
+  margin-top: var(--s-2);
+  padding: var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: var(--fs-base);
+  line-height: var(--lh);
+  resize: vertical;
+}
+
+.recallError {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: var(--fs-sm);
+}
+
+.recallActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+/* --- narrow screens ------------------------------------------------------ */
+
+@media (max-width: 1080px) {
+  .desk {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-6);
+  }
+
+  .bookmarks {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    order: -1;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .bookmark {
+    border-left: 1px solid var(--hairline);
+    border-radius: var(--r-sm);
+  }
+
+  .bookmark[aria-current] {
+    transform: none;
+  }
+
+  .marginCol {
+    position: static;
+    max-height: none;
+    padding-top: 0;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .page::before {
+    left: var(--s-6);
+  }
+
+  .page :global(.ql-container .ql-editor) {
+    padding: var(--s-6) var(--s-4) var(--s-12) var(--s-10);
+  }
+
+  .page :global(.ql-container .ql-editor.ql-blank::before) {
+    left: var(--s-10);
+  }
+
+  .caseWrap {
+    padding-left: 0;
+  }
+}
+
+/* Marked phrases in the margin: a tag per kind, then each phrase as a
+   link back to its place on the page. */
+.markGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-2);
+}
+
+.markTag {
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.markTag[data-kind="key"] {
+  color: var(--accent-text);
+}
+
+.markTag[data-kind="wrong"] {
+  color: var(--danger-text);
+}
+
+.markTag[data-kind="learn"] {
+  color: var(--recall-text);
+}
+
+.markJump {
+  min-height: var(--touch-target-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--hairline-strong);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.markJump:hover {
+  color: var(--accent-text);
+  text-decoration-color: currentColor;
+}

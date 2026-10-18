@@ -43,7 +43,7 @@ const TYPE_COPY: Record<CreateEntityType, { title: string; subtitle: string }> =
    subject, card counts) is behind "More options", and is where a caller
    lands that already names a saved material or asks for a quiz. */
 const CAPTURE_SUBTITLE =
-  "Drop a file, paste a link or your notes, record a lecture, or just type a topic.";
+  "Bring what you're studying. Learnora makes notes and cards from it, then remembers what you get wrong.";
 
 export function CreateModal({ options, onClose }: CreateModalProps) {
   const view = options?.type ?? "material";

@@ -1,5 +1,11 @@
 import type { AmbiancePreset } from "./types";
 
+/* Recorded loops from the CC0 pack in public/sounds (see its LICENCE.md). */
+const SAMPLE_URLS = {
+  rain: `${import.meta.env.BASE_URL}sounds/rain.ogg`,
+  stream: `${import.meta.env.BASE_URL}sounds/water-flowing.ogg`,
+} as const;
+
 /* Web Audio API Focus Sound Generator
  * Synthesizes ambient focus sounds in real time without external MP3 assets.
  */
@@ -10,6 +16,10 @@ class AmbianceEngine {
   private currentPreset: AmbiancePreset = "none";
   private currentVolume: number = 0.5;
   private activeNodes: { stop?: () => void; disconnect?: () => void }[] = [];
+  /* Recorded loops, decoded once. Presets with a file start from synthesis
+     and swap to the recording when it has decoded, so a slow download never
+     leaves the room silent. */
+  private samples = new Map<string, AudioBuffer>();
 
   private initContext(): AudioContext {
     if (!this.ctx) {
@@ -83,7 +93,14 @@ class AmbianceEngine {
 
     switch (preset) {
       case "rain":
-        this.buildRain(ctx, master);
+        this.playSampleOrSynth(ctx, master, preset, SAMPLE_URLS.rain, () =>
+          this.buildRain(ctx, master),
+        );
+        break;
+      case "stream":
+        this.playSampleOrSynth(ctx, master, preset, SAMPLE_URLS.stream, () =>
+          this.buildWaves(ctx, master),
+        );
         break;
       case "white_noise":
         this.buildWhiteNoise(ctx, master);
@@ -97,7 +114,71 @@ class AmbianceEngine {
       case "binaural":
         this.buildBinaural(ctx, master);
         break;
+      case "fireplace":
+        this.buildFireplace(ctx, master);
+        break;
+      case "wind":
+        this.buildWind(ctx, master);
+        break;
+      case "crickets":
+        this.buildCrickets(ctx, master);
+        break;
     }
+  }
+
+  private playSampleOrSynth(
+    ctx: AudioContext,
+    dest: GainNode,
+    preset: AmbiancePreset,
+    url: string,
+    synth: () => void,
+  ): void {
+    const cached = this.samples.get(url);
+    if (cached) {
+      this.startSampleLoop(ctx, dest, cached);
+      return;
+    }
+    synth();
+    void this.loadSample(ctx, url).then((buffer) => {
+      // Only swap if this preset is still the one playing on the same output.
+      if (!buffer || this.masterGain !== dest || this.currentPreset !== preset) return;
+      for (const node of this.activeNodes) {
+        try {
+          node.stop?.();
+        } catch {
+          // already stopped
+        }
+        try {
+          node.disconnect?.();
+        } catch {
+          // already disconnected
+        }
+      }
+      this.activeNodes = [];
+      this.startSampleLoop(ctx, dest, buffer);
+    });
+  }
+
+  private async loadSample(ctx: AudioContext, url: string): Promise<AudioBuffer | null> {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const buffer = await ctx.decodeAudioData(await response.arrayBuffer());
+      this.samples.set(url, buffer);
+      return buffer;
+    } catch {
+      // Browsers that can't decode Ogg keep the synthesised version.
+      return null;
+    }
+  }
+
+  private startSampleLoop(ctx: AudioContext, dest: GainNode, buffer: AudioBuffer): void {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    source.connect(dest);
+    source.start();
+    this.activeNodes.push(source);
   }
 
   private createNoiseBuffer(ctx: AudioContext, type: "pink" | "brown" | "white"): AudioBuffer {
@@ -267,6 +348,100 @@ class AmbianceEngine {
     oscR.start();
 
     this.activeNodes.push(oscL, oscR, merger, gain);
+  }
+
+  /* Fireplace: a low brown-noise rumble with crackles. The crackles are
+     baked into a looping buffer (sparse, fast-decaying spikes), so there is
+     no timer to drift or leak. */
+  private buildFireplace(ctx: AudioContext, dest: GainNode): void {
+    const seconds = 4;
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * seconds, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let decay = 0;
+    for (let i = 0; i < data.length; i++) {
+      if (Math.random() < 0.0009) decay = 1;
+      decay *= 0.9965;
+      data[i] = (Math.random() * 2 - 1) * decay * 0.6;
+    }
+    const crackle = ctx.createBufferSource();
+    crackle.buffer = buffer;
+    crackle.loop = true;
+    const crackleGain = ctx.createGain();
+    crackleGain.gain.setValueAtTime(0.5, ctx.currentTime);
+
+    const rumble = ctx.createBufferSource();
+    rumble.buffer = this.createNoiseBuffer(ctx, "brown");
+    rumble.loop = true;
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = "lowpass";
+    lowpass.frequency.setValueAtTime(320, ctx.currentTime);
+    const rumbleGain = ctx.createGain();
+    rumbleGain.gain.setValueAtTime(0.35, ctx.currentTime);
+
+    crackle.connect(crackleGain);
+    crackleGain.connect(dest);
+    rumble.connect(lowpass);
+    lowpass.connect(rumbleGain);
+    rumbleGain.connect(dest);
+
+    crackle.start();
+    rumble.start();
+    this.activeNodes.push(crackle, crackleGain, rumble, lowpass, rumbleGain);
+  }
+
+  /* Wind: pink noise through a band-pass whose centre drifts slowly, so gusts
+     come and go rather than hissing flat. */
+  private buildWind(ctx: AudioContext, dest: GainNode): void {
+    const source = ctx.createBufferSource();
+    source.buffer = this.createNoiseBuffer(ctx, "pink");
+    source.loop = true;
+
+    const band = ctx.createBiquadFilter();
+    band.type = "bandpass";
+    band.frequency.setValueAtTime(500, ctx.currentTime);
+    band.Q.setValueAtTime(0.6, ctx.currentTime);
+
+    const lfo = ctx.createOscillator();
+    lfo.frequency.setValueAtTime(0.07, ctx.currentTime);
+    const lfoDepth = ctx.createGain();
+    lfoDepth.gain.setValueAtTime(260, ctx.currentTime);
+    lfo.connect(lfoDepth);
+    lfoDepth.connect(band.frequency);
+
+    source.connect(band);
+    band.connect(dest);
+    source.start();
+    lfo.start();
+    this.activeNodes.push(source, band, lfo, lfoDepth);
+  }
+
+  /* Night crickets: two quiet high tones, each pulsed at a chirp rate. Kept
+     very low so it sits under the work rather than competing with it. */
+  private buildCrickets(ctx: AudioContext, dest: GainNode): void {
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
+    gain.connect(dest);
+
+    const nodes: AudioNode[] = [gain];
+    for (const [freq, rate] of [[4300, 5.2], [4900, 6.7]] as const) {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      const pulse = ctx.createGain();
+      pulse.gain.setValueAtTime(0.5, ctx.currentTime);
+      const lfo = ctx.createOscillator();
+      lfo.frequency.setValueAtTime(rate, ctx.currentTime);
+      const lfoDepth = ctx.createGain();
+      lfoDepth.gain.setValueAtTime(0.5, ctx.currentTime);
+      lfo.connect(lfoDepth);
+      lfoDepth.connect(pulse.gain);
+      osc.connect(pulse);
+      pulse.connect(gain);
+      osc.start();
+      lfo.start();
+      nodes.push(osc, pulse, lfo, lfoDepth);
+    }
+    this.activeNodes.push(...nodes);
   }
 }
 

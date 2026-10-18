@@ -4,7 +4,11 @@ import type { ReactElement } from "react";
  * currentColor. The vanilla registry stores raw SVG markup strings and
  * injects them with innerHTML; here each entry is real JSX so nothing in
  * this app ever needs dangerouslySetInnerHTML for an icon. Filled dots
- * (fill="currentColor" stroke="none") are accent details, as before. */
+ * (fill="currentColor" stroke="none") are accent details, as before.
+ *
+ * Some entries come from Lucide (ISC) or Feather (MIT); THIRD_PARTY_NOTICES.md
+ * at the repo root lists which, with both licences. Add a row there when an
+ * icon is taken from either set. */
 
 export const ICONS = {
   dashboard: (
@@ -315,7 +319,7 @@ export const ICONS = {
       <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z" />
     </>
   ),
-  /* TurboChat's fullscreen toggle. Was the raw glyph "⛶", inconsistent with
+  /* TutorChat's fullscreen toggle. Was the raw glyph "⛶", inconsistent with
      every other icon in the app being a registered stroke SVG. */
   maximize: (
     <>

@@ -3,7 +3,7 @@
  * Every other tool in this category is an artifact factory. NotebookLM answers
  * questions from your sources. Notion gives you a database and asks you to
  * build the system yourself — which is the exact skill our users don't have.
- * Turbo AI and its cousins turn a PDF into flashcards. All three optimise the
+ * Flashcard generators turn a PDF into flashcards. All three optimise the
  * *material*. None of them own the *outcome*, and none of them can, because
  * none of them holds the two models you need to:
  *
@@ -77,6 +77,11 @@ export const MIN_STABILITY_DAYS = 1.5;
 
 /** Half of the widest confidence band, in points, at zero evidence. */
 export const MAX_CONFIDENCE_BAND = 22;
+
+/** Below this much measured evidence (reviews and checks, not time) the
+ *  forecast has nothing it measured to project from, and the Progress page
+ *  says so instead of showing a score built from assumptions. */
+export const MIN_FORECAST_EVIDENCE = 0.1;
 
 /** A topic with no cards and no quiz history is not "0% mastered", it is
  *  unmeasured — and treating unmeasured as zero would make a student who has
@@ -183,7 +188,13 @@ export interface TrajectoryForecast {
   driftScore: number;
   /** Points the remaining plan is worth: projected − drift. */
   planValue: number;
-  confidence: { lower: number; upper: number; evidence: number };
+  confidence: {
+    lower: number;
+    upper: number;
+    evidence: number;
+    /** Evidence from checks and reviewed cards only (no timer minutes). */
+    measured: number;
+  };
   curve: TrajectoryPoint[];
   interventions: Intervention[];
   /** Total study minutes the student actually has before the exam. */
@@ -415,8 +426,16 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
       return { id: deck.id, label: deck.title, ...blended, weight: 1, cardCount: 0 };
     }
 
+    /* Only a reviewed card says anything about memory. A card generated this
+       minute has a "retention" of ~1 because nothing has had time to fade,
+       which used to make a fresh deck project as nearly mastered. Unreviewed
+       cards count as unmeasured instead. */
+    const reviewed = cards.filter(
+      (c) => Boolean(c.last_reviewed_at) || (c.srs_interval ?? 0) > 0,
+    );
     const retention =
-      cards.reduce((sum, c) => sum + computeRetentionProbability(c, now), 0) /
+      (reviewed.reduce((sum, c) => sum + computeRetentionProbability(c, now), 0) +
+        (cardCount - reviewed.length) * UNMEASURED_MASTERY) /
       cardCount;
     const evidence =
       cards.reduce((sum, c) => sum + cardEvidence(c), 0) / cardCount;
@@ -429,7 +448,6 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
        (nothing has had time to fade), which says nothing about knowing it.
        The checks-only figure starts from reviewed cards alone, so a fresh
        deck is "unmeasured" there rather than "solid". */
-    const reviewed = cards.filter((c) => (c.srs_interval ?? 0) > 0 || Boolean(c.next_review_date));
     const measuredBase = reviewed.length
       ? Math.max(
           0,
@@ -444,7 +462,9 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
     const blended = applyEvents(
       {
         mastery: Math.max(0, Math.min(1, retention - penalty)),
-        evidence: Math.min(1, evidence * 0.7 + Math.min(1, cardCount / 20) * 0.3),
+        /* Review history only: owning twenty cards is not evidence of
+           knowing them (this used to add up to 0.3 for card count alone). */
+        evidence: Math.min(1, evidence),
         stabilityDays: Math.max(MIN_STABILITY_DAYS, stabilityDays),
       },
       deckEvents,
@@ -832,6 +852,12 @@ export function forecast(input: TrajectoryInput): TrajectoryForecast {
       (topics.reduce((sum, t) => sum + t.weight, 0) || 1)
     : 0;
   const band = Math.round((1 - evidence) * MAX_CONFIDENCE_BAND);
+  /* The same average over checks and reviews only, with timer minutes left
+     out: what the forecast actually knows, as opposed to how long was spent. */
+  const measured = topics.length
+    ? topics.reduce((sum, t) => sum + t.weight * (t.measuredEvidence ?? t.evidence), 0) /
+      (topics.reduce((sum, t) => sum + t.weight, 0) || 1)
+    : 0;
 
   const needed = minutesToTarget(
     topics,
@@ -860,6 +886,7 @@ export function forecast(input: TrajectoryInput): TrajectoryForecast {
       lower: Math.max(0, projectedScore - band),
       upper: Math.min(100, projectedScore + band),
       evidence,
+      measured,
     },
     curve,
     interventions,

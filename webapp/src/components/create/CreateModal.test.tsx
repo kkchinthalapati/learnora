@@ -42,7 +42,7 @@ describe("CreateModal", () => {
     expect(
       screen.getByRole("textbox", { name: "What do you want to learn?" }),
     ).toHaveFocus();
-    expect(screen.getByRole("button", { name: /Record lecture/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Record a class/ })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Upload/ })).not.toBeInTheDocument();
   });
 
@@ -61,7 +61,7 @@ describe("CreateModal", () => {
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     expect(screen.getByRole("tab", { name: /Upload/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Record lecture/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Record a class/ })).not.toBeInTheDocument();
   });
 
   it("names what it will do with what was typed", async () => {

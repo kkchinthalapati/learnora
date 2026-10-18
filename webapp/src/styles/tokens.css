@@ -512,4 +512,6 @@ body {
   --shadow-focus: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
   --shadow-drawer: -16px 0 40px -16px rgba(24, 20, 14, 0.2);
   --scrim: rgba(26, 24, 21, 0.12);
+
+  --ruling: color-mix(in srgb, var(--text) 7%, transparent);
 }

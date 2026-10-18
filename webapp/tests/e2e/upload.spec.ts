@@ -87,7 +87,7 @@ test("uploads a text file and builds flashcards from it", async ({ page, backend
   });
   await expect(dialog.getByText("enzymes.txt")).toBeVisible();
   await chooseBiology(dialog);
-  await dialog.getByRole("button", { name: "Generate study resources" }).click();
+  await dialog.getByRole("button", { name: "Make my study set" }).click();
 
   /* The file reached storage and a material row points at it. */
   await expect.poll(() => backend.storage.size).toBe(1);
@@ -115,7 +115,7 @@ test("uploads a PDF and sends its words to the AI", async ({ page, backend }) =>
     buffer: makePdf(NOTES),
   });
   await chooseBiology(dialog);
-  await dialog.getByRole("button", { name: "Generate study resources" }).click();
+  await dialog.getByRole("button", { name: "Make my study set" }).click();
 
   await expect.poll(() => backend.storage.size).toBe(1);
   await expect
@@ -137,7 +137,7 @@ test("refuses a file over 10MB before uploading anything", async ({ page, backen
     mimeType: "application/pdf",
     buffer: Buffer.alloc(11 * 1024 * 1024, 1),
   });
-  await dialog.getByRole("button", { name: "Generate study resources" }).click();
+  await dialog.getByRole("button", { name: "Make my study set" }).click();
 
   await expect(dialog.getByRole("alert")).toContainText("The limit is 10MB");
   expect(backend.storage.size).toBe(0);
@@ -155,7 +155,7 @@ test("shrinks a photo in the browser and sends it to the image model for notes",
   await expect(dialog.getByText("Resized so it uploads faster.")).toBeVisible();
   await expect(dialog.getByText("whiteboard.jpg")).toBeVisible();
   await chooseBiology(dialog);
-  await dialog.getByRole("button", { name: "Generate study resources" }).click();
+  await dialog.getByRole("button", { name: "Make my study set" }).click();
 
   /* The shrunk JPEG, not the original PNG, is what reached storage. */
   await expect.poll(() => backend.storage.size).toBe(1);

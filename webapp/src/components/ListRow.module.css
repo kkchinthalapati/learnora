@@ -1,9 +1,19 @@
+/* A list is one page of an exercise book (DESIGN.md rule 0.8): rows share
+   one surface, ruled apart by hairlines, with the red margin line running
+   down past the leading icon. Each row's left edge carries a spine in its
+   subject's colour. This replaced a stack of separate rounded cards with a
+   grey icon tile, the shape every AI-notes app uses for its file list. */
+
 .list {
+  --margin-x: calc(var(--s-4) + 24px + var(--s-3));
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
   list-style: none;
 }
 
@@ -11,21 +21,36 @@
   position: relative;
   display: flex;
   align-items: center;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+  background:
+    transparent;
+  transition: background-color var(--t-fast) var(--ease);
+}
+
+.row + .row {
+  border-top: 1px solid var(--hairline);
 }
 
 .row:hover {
-  border-color: var(--hairline-strong);
-  background: var(--surface-hover);
+  background-color: var(--surface-hover);
+}
+
+/* The spine: the subject's colour where the row has one, a quiet rule
+   where it doesn't. */
+.row::before {
+  content: "";
+  position: absolute;
+  top: var(--s-3);
+  bottom: var(--s-3);
+  left: 0;
+  width: 3px;
+  border-radius: 0 var(--r-pill) var(--r-pill) 0;
+  background: var(--row-tint, var(--hairline-strong));
 }
 
 .main {
   display: flex;
   align-items: center;
-  gap: var(--s-4);
+  gap: var(--s-6);
   flex: 1;
   min-width: 0;
   min-height: var(--touch-target-min);
@@ -48,11 +73,9 @@ div.main {
   display: grid;
   place-items: center;
   flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-  color: var(--accent-text);
+  width: 24px;
+  height: 24px;
+  color: var(--row-tint, var(--accent-text));
 }
 
 .text {
@@ -64,8 +87,10 @@ div.main {
 
 .title {
   overflow: hidden;
-  font-size: var(--fs-md);
-  font-weight: 600;
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  line-height: var(--lh-snug);
   color: var(--text);
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -339,9 +339,9 @@ test.describe("Quizzes", () => {
     const wizard = page.getByRole("dialog");
     await wizard.getByRole("tab", { name: "Topic" }).click();
     await wizard.getByLabel("Topic").fill("Photosynthesis");
-    /* The panel's submit was renamed to "Generate study resources"; the unit
+    /* The panel's submit was renamed to "Make my study set"; the unit
        suite moved with it and this one did not. */
-    await wizard.getByRole("button", { name: "Generate study resources" }).click();
+    await wizard.getByRole("button", { name: "Make my study set" }).click();
 
     await expect
       .poll(() => backend.table("quizzes").length, { timeout: 30_000 })

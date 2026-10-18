@@ -1,4 +1,5 @@
 import { Icon } from "../../components/Icon";
+import { renderMathText } from "../../lib/markdownToReact";
 import styles from "./quiz.module.css";
 
 /* The quiz host — ports index.html:920-926 + `showHost`/`hideHost`
@@ -47,9 +48,9 @@ export function QuizHost({
       </span>
       <p className={styles.hostMessage}>
         {verdict ? (
-          <strong className={styles.hostVerdict}>{verdict}</strong>
+          <strong className={styles.hostVerdict}>{renderMathText(verdict)}</strong>
         ) : null}
-        {message}
+        {renderMathText(message)}
       </p>
     </div>
   );

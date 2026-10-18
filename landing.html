@@ -15,7 +15,8 @@
     <meta name="twitter:description" content="The only study app that forecasts your exam score and tells you what every hour is worth.">
     <meta name="twitter:image" content="https://learnora-app.vercel.app/learnora.jpg">
     <link rel="canonical" href="https://learnora-app.vercel.app/">
-    <link rel="icon" href="learnora.jpg" type="image/jpeg">
+    <link rel="icon" href="learnora-mark.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="learnora.jpg" type="image/jpeg">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -24,11 +25,6 @@
       "description": "AI-powered study app that forecasts your exam score and tells you what every hour of study is worth.",
       "url": "https://learnora-app.vercel.app",
       "applicationCategory": "EducationalApplication",
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "250"
-      },
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -57,7 +53,7 @@
     <meta name="author" content="Learnora">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -66,22 +62,30 @@
         }
 
         :root {
-            --primary: #7c3aed;
-            --primary-dark: #6d28d9;
-            --accent: #ec4899;
-            --bg: #0f172a;
-            --bg-light: #1e293b;
-            --text: #f1f5f9;
-            --text-muted: #cbd5e1;
-            --border: #334155;
+            --primary: #5fb3a3;
+            --primary-dark: #4a9d8f;
+            --accent: #e0b25c;
+            --bg: #0d0c0a;
+            --bg-light: #1b1916;
+            --text: #f0ece4;
+            --text-muted: #a8a094;
+            --border: #2c2924;
         }
 
         body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg);
             color: var(--text);
             line-height: 1.6;
             overflow-x: hidden;
+        }
+
+        /* Same type as the app: Newsreader for headings, Instrument Sans
+           for everything else. */
+        h1, h2, h3 {
+            font-family: 'Newsreader', Georgia, 'Times New Roman', serif;
+            font-weight: 500;
+            letter-spacing: -0.01em;
         }
 
         /* Animated background */
@@ -91,8 +95,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 20% 50%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+            background: radial-gradient(circle at 20% 50%, rgba(95, 179, 163, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(224, 178, 92, 0.1) 0%, transparent 50%);
             pointer-events: none;
             z-index: -1;
             animation: drift 15s ease-in-out infinite;
@@ -108,7 +112,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(13, 12, 10, 0.8);
             backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--border);
             padding: 1rem 2rem;
@@ -174,7 +178,7 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);
+            box-shadow: 0 10px 25px rgba(95, 179, 163, 0.3);
         }
 
         .btn-secondary {
@@ -184,7 +188,7 @@
         }
 
         .btn-secondary:hover {
-            background: rgba(124, 58, 237, 0.1);
+            background: rgba(95, 179, 163, 0.1);
         }
 
         /* Hero Section */
@@ -228,7 +232,7 @@
             border-radius: 12px;
             overflow: hidden;
             border: 1px solid var(--border);
-            background: rgba(30, 41, 59, 0.5);
+            background: rgba(27, 25, 22, 0.5);
             aspect-ratio: 16/9;
             display: flex;
             align-items: center;
@@ -279,7 +283,7 @@
         }
 
         .vision-card {
-            background: rgba(30, 41, 59, 0.5);
+            background: rgba(27, 25, 22, 0.5);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 2rem;
@@ -287,7 +291,7 @@
         }
 
         .vision-card:hover {
-            background: rgba(30, 41, 59, 0.8);
+            background: rgba(27, 25, 22, 0.8);
             border-color: var(--primary);
             transform: translateY(-5px);
         }
@@ -302,8 +306,8 @@
             width: 52px;
             height: 52px;
             border-radius: 14px;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(236, 72, 153, 0.12));
-            border: 1px solid rgba(167, 139, 250, 0.25);
+            background: linear-gradient(135deg, rgba(95, 179, 163, 0.2), rgba(224, 178, 92, 0.12));
+            border: 1px solid rgba(124, 198, 184, 0.25);
             margin-bottom: 1rem;
         }
 
@@ -339,7 +343,7 @@
         }
 
         .feature {
-            background: rgba(30, 41, 59, 0.4);
+            background: rgba(27, 25, 22, 0.4);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 1.5rem;
@@ -348,7 +352,7 @@
         }
 
         .feature:hover {
-            background: rgba(124, 58, 237, 0.1);
+            background: rgba(95, 179, 163, 0.1);
             border-color: var(--primary);
         }
 
@@ -406,7 +410,7 @@
         }
 
         .plan-card {
-            background: rgba(30, 41, 59, 0.5);
+            background: rgba(27, 25, 22, 0.5);
             border: 2px solid var(--border);
             border-radius: 12px;
             padding: 2.5rem;
@@ -419,12 +423,12 @@
            keep the stronger tint that .pro gives it. */
         .plan-card.annual {
             border-color: var(--primary);
-            background: rgba(124, 58, 237, 0.05);
+            background: rgba(95, 179, 163, 0.05);
         }
 
         .plan-card.pro {
             border-color: var(--primary);
-            background: rgba(124, 58, 237, 0.1);
+            background: rgba(95, 179, 163, 0.1);
         }
 
         .plan-card:hover {
@@ -483,7 +487,7 @@
 
         /* CTA Section */
         .cta {
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(236, 72, 153, 0.2));
+            background: linear-gradient(135deg, rgba(95, 179, 163, 0.2), rgba(224, 178, 92, 0.2));
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 3rem 2rem;
@@ -548,7 +552,7 @@
             justify-content: center;
             width: 40px;
             height: 40px;
-            background: rgba(124, 58, 237, 0.1);
+            background: rgba(95, 179, 163, 0.1);
             border-radius: 8px;
             color: var(--primary);
             text-decoration: none;
@@ -623,8 +627,8 @@
     <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
         <defs>
             <linearGradient id="icon-grad" gradientUnits="userSpaceOnUse" x1="2" y1="2" x2="22" y2="22">
-                <stop offset="0" stop-color="#a78bfa"/>
-                <stop offset="1" stop-color="#f472b6"/>
+                <stop offset="0" stop-color="#7cc6b8"/>
+                <stop offset="1" stop-color="#e0b25c"/>
             </linearGradient>
         </defs>
     </svg>
@@ -655,17 +659,17 @@
             <a href="#plans" class="btn btn-secondary">Explore Plans</a>
         </div>
         <div class="hero-demo">
-            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(236, 72, 153, 0.1)); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--text-muted); flex-direction: column; text-align: center; padding: 2rem;">
+            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, rgba(95, 179, 163, 0.2), rgba(224, 178, 92, 0.1)); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--text-muted); flex-direction: column; text-align: center; padding: 2rem;">
                 <svg class="trajectory-preview" viewBox="0 0 320 120" aria-hidden="true">
                     <path d="M160 62 L210 42 L260 26 L310 12 L310 48 L260 54 L210 58 Z" fill="url(#band-grad)"/>
-                    <polyline points="10 98 60 88 110 80 160 62" fill="none" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                    <polyline points="160 62 210 50 260 40 310 30" fill="none" stroke="#f472b6" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 8"/>
-                    <circle cx="160" cy="62" r="5" fill="#a78bfa"/>
-                    <circle cx="310" cy="30" r="5" fill="#f472b6"/>
+                    <polyline points="10 98 60 88 110 80 160 62" fill="none" stroke="#7cc6b8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="160 62 210 50 260 40 310 30" fill="none" stroke="#e0b25c" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 8"/>
+                    <circle cx="160" cy="62" r="5" fill="#7cc6b8"/>
+                    <circle cx="310" cy="30" r="5" fill="#e0b25c"/>
                     <defs>
                         <linearGradient id="band-grad" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0" stop-color="#a78bfa" stop-opacity="0.05"/>
-                            <stop offset="1" stop-color="#f472b6" stop-opacity="0.3"/>
+                            <stop offset="0" stop-color="#7cc6b8" stop-opacity="0.05"/>
+                            <stop offset="1" stop-color="#e0b25c" stop-opacity="0.3"/>
                         </linearGradient>
                     </defs>
                 </svg>

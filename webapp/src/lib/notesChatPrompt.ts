@@ -13,7 +13,7 @@
  * paraphrased — it is the behaviour, and rewording it changes what every
  * student's assistant does with no way to tell from a diff.
  *
- * Two exceptions. The self-introduction dropped "Turbo" — a name that
+ * Two exceptions. The self-introduction dropped an old assistant name — one that
  * appeared nowhere else in the app (not in this codebase, not in the
  * vanilla's UI copy, not in the workspace assistant's own self-introduction)
  * — so a student who asked either assistant "what's your name?" got two

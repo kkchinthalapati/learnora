@@ -13,6 +13,7 @@ import {
   type Mode,
 } from "../../lib/appearance";
 import { CustomThemeStudio } from "./CustomThemeStudio";
+import { UI_COLOUR_TOKENS } from "../../lib/uiOverrides";
 import settings from "./settings.module.css";
 import styles from "./appearance.module.css";
 
@@ -92,7 +93,15 @@ function OptionCard({
 }
 
 export function AppearanceTab() {
-  const { appearance, setAppearance, save, reset } = useAppearance();
+  const {
+    appearance,
+    setAppearance,
+    save,
+    reset,
+    uiOverrides,
+    setUiOverride,
+    resetUiOverrides,
+  } = useAppearance();
   const { showToast } = useToast();
 
   const activePresetName =
@@ -201,6 +210,52 @@ export function AppearanceTab() {
               </span>
             </div>
             <CustomThemeStudio />
+          </div>
+          <div className={`${settings.field} ${settings.fieldStack}`}>
+            <div className={settings.fieldLabel}>
+              <span className={settings.labelText}>Colours in detail</span>
+              <p className={settings.fieldDesc}>
+                Change single colours on top of the preset. Each one is saved as you pick it.
+              </p>
+            </div>
+            <div className={styles.detailGrid}>
+              {UI_COLOUR_TOKENS.map((token) => {
+                const current = uiOverrides[token.prop];
+                return (
+                  <div key={token.prop} className={styles.detailRow}>
+                    <label className={styles.detailLabel}>
+                      <span>{token.label}</span>
+                      <span className={styles.detailHint}>{token.hint}</span>
+                    </label>
+                    <input
+                      type="color"
+                      className={styles.detailInput}
+                      value={current ?? "#808080"}
+                      onChange={(event) => setUiOverride(token.prop, event.target.value)}
+                      aria-label={`${token.label} colour`}
+                    />
+                    <button
+                      type="button"
+                      className={styles.detailReset}
+                      disabled={!current}
+                      onClick={() => setUiOverride(token.prop, null)}
+                    >
+                      Use preset
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetUiOverrides}
+                disabled={Object.keys(uiOverrides).length === 0}
+              >
+                Reset all colours
+              </Button>
+            </div>
           </div>
         </ProGate>
 

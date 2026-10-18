@@ -12,7 +12,7 @@ import { SettingsProvider } from "./context/SettingsProvider";
 import { TimerProvider } from "./context/TimerProvider";
 import { ChatProvider } from "./context/ChatProvider";
 import { CommandPaletteProvider } from "./context/CommandPaletteProvider";
-import { TurboChat } from "./components/chat/TurboChat";
+import { TutorChat } from "./components/chat/TutorChat";
 import { FocusStudyHUD } from "./views/timer/FocusStudyHUD";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AppRoutes } from "./routes";
@@ -57,7 +57,7 @@ function SignedInOverlays() {
   return (
     <>
       <FocusStudyHUD />
-      <TurboChat />
+      <TutorChat />
     </>
   );
 }

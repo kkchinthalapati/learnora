@@ -19,7 +19,23 @@ import type {
  * 1. Exam Readiness & Milestone Roadmap Architecture (Prompt Specification)
  * ========================================================================= */
 
-export type ReadinessTier = "Needs work" | "Getting there" | "Exam ready";
+export type ReadinessTier =
+  | "Not enough data"
+  | "Needs work"
+  | "Getting there"
+  | "Exam ready";
+
+/* Readiness is a claim about what a student knows, so it needs evidence of
+ * knowing: answered quiz questions or reviewed cards for this subject.
+ * Uploads and timer minutes are effort; they still count toward the score
+ * once there is evidence, but on their own they used to carry a student to
+ * "Getting there" (~60%) without a single question answered. Below both
+ * thresholds the score is null and the UI says "Not enough data". */
+export const MIN_READINESS_QUIZ_QUESTIONS = 10;
+export const MIN_READINESS_REVIEWED_CARDS = 15;
+/** "Exam ready" also needs mastery itself at this level: effort can lift the
+ *  composite, but it cannot certify a student ready on its own. */
+export const EXAM_READY_MIN_MASTERY = 70;
 
 /** Mastery points deducted per open misconception, by severity. A severed
  *  prerequisite the Debugger found costs three times what a point Sparring
@@ -71,8 +87,15 @@ export interface ExamReadinessBreakdown {
 }
 
 export interface ExamReadiness {
-  score: number; // 0-100
+  /** 0-100, or null when there isn't enough evidence to say (see above). */
+  score: number | null;
   tier: ReadinessTier;
+  /** What the score rests on, so a view can say why it has no number. */
+  evidence: {
+    quizQuestions: number;
+    reviewedCards: number;
+    enough: boolean;
+  };
   breakdown: ExamReadinessBreakdown;
   weakTopics: string[];
   /** Diagnosed misconceptions for this exam's subject that are still open.
@@ -280,18 +303,29 @@ export function computeExamReadiness(
     Number(((targetStudyMinutes - totalStudyMinutes) / 60).toFixed(1)),
   );
 
-  // Aggregate weighted score
-  const score = Math.min(
-    100,
-    Math.max(0, Math.round(coverage * 0.3 + mastery * 0.4 + studyTime * 0.3)),
-  );
+  // Evidence of knowing, as opposed to effort.
+  const quizQuestions = validAttempts.reduce((acc, a) => acc + a.total, 0);
+  const reviewedCards = cards.filter(
+    (c) => Boolean(c.last_reviewed_at) || (c.srs_interval ?? 0) > 0,
+  ).length;
+  const enough =
+    quizQuestions >= MIN_READINESS_QUIZ_QUESTIONS ||
+    reviewedCards >= MIN_READINESS_REVIEWED_CARDS;
 
-  // Tier classification: 80+ is Exam ready, 45-79 is Getting there, < 45 is Needs work
-  let tier: ReadinessTier = "Needs work";
-  if (score >= 80) {
-    tier = "Exam ready";
-  } else if (score >= 45) {
-    tier = "Getting there";
+  // Aggregate weighted score
+  const score = enough
+    ? Math.min(
+        100,
+        Math.max(0, Math.round(coverage * 0.3 + mastery * 0.4 + studyTime * 0.3)),
+      )
+    : null;
+
+  // Tier: 80+ and mastery >= 70 is Exam ready, 45+ Getting there, else Needs work.
+  let tier: ReadinessTier = "Not enough data";
+  if (score !== null) {
+    if (score >= 80 && mastery >= EXAM_READY_MIN_MASTERY) tier = "Exam ready";
+    else if (score >= 45) tier = "Getting there";
+    else tier = "Needs work";
   }
 
   // Extract weak topics
@@ -328,6 +362,7 @@ export function computeExamReadiness(
   return {
     score,
     tier,
+    evidence: { quizQuestions, reviewedCards, enough },
     breakdown: {
       coverage,
       mastery,
@@ -355,7 +390,7 @@ export function generatePrepRoadmap(
   const days = Math.max(0, readiness.daysRemaining);
   const examName = exam.exam_name || "Exam";
   const weak = readiness.weakTopics;
-  const isReady = readiness.score >= 75;
+  const isReady = readiness.tier === "Exam ready";
 
   let p1EndOffset = 0;
   let p2StartOffset = 0;
@@ -421,11 +456,11 @@ export function generatePrepRoadmap(
       ) {
         return "upcoming";
       }
-      return readiness.score >= 85 ? "completed" : "current";
+      return (readiness.score ?? 0) >= 85 ? "completed" : "current";
     }
     return readiness.breakdown.coverage >= 80 &&
       readiness.breakdown.mastery >= 70 &&
-      readiness.score >= 85
+      (readiness.score ?? 0) >= 85
       ? "current"
       : "upcoming";
   };
@@ -1004,4 +1039,10 @@ export function matchExamFolder<T extends { id: string; name: string }>(
       );
     }) ?? null
   );
+}
+
+/** The readiness figure as a student sees it: a percentage, or a plain
+ *  "Not enough data" when nothing measures what they know yet. */
+export function readinessText(readiness: Pick<ExamReadiness, "score">): string {
+  return readiness.score === null ? "Not enough data" : `${readiness.score}%`;
 }

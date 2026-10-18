@@ -18,6 +18,12 @@ import { CUSTOM_THEME_KEY } from "../lib/appearance";
 import { useAuth } from "./auth";
 import { useEntitlements } from "../hooks/useSubscription";
 import { AppearanceContext, type AppearanceApi } from "./appearance";
+import {
+  applyUiOverrides,
+  readUiOverrides,
+  writeUiOverrides,
+  type UiOverrides,
+} from "../lib/uiOverrides";
 
 /* Ports js/ui.js's `_activeAppearanceState` + initTheme (:698-742, :1028-1063).
  *
@@ -38,6 +44,11 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   );
   const [customTheme, setCustomThemeState] = useState<CustomTheme>(() =>
     readStoredCustomTheme(),
+  );
+  /* Colour overrides on top of the preset. Stored on their own key so a
+     preset change never wipes them; applied only while the plan allows it. */
+  const [uiOverrides, setUiOverridesState] = useState<UiOverrides>(() =>
+    readUiOverrides(),
   );
   /* Bumped on every save/reset so `dirty` recomputes against fresh storage —
      reading localStorage during render would otherwise be invisible to React. */
@@ -72,6 +83,13 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     applyAppearanceToDom(effectiveAppearance, customTheme);
   }, [effectiveAppearance, customTheme]);
+
+  /* Same rule as the accent: while the plan is loading keep what's on the
+     page, once it's known, a free account gets the defaults back. */
+  useEffect(() => {
+    if (entitlementsPending) return;
+    applyUiOverrides(can("customAppearance") ? uiOverrides : {});
+  }, [uiOverrides, can, entitlementsPending]);
 
   /* Reset appearance when user logs out or switches accounts — don't carry
      device-local appearance across different user sessions. */
@@ -159,6 +177,23 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     return !(sameAppearance && sameTheme);
   }, [appearance, customTheme, savedAt]);
 
+  /* Saved straight away, like resetCustomColours: a colour is a single pick,
+     not a draft to audition. `prop: null` clears that one token. */
+  const setUiOverride = useCallback((prop: string, value: string | null) => {
+    setUiOverridesState((prev) => {
+      const next = { ...prev };
+      if (value) next[prop] = value;
+      else delete next[prop];
+      writeUiOverrides(next);
+      return next;
+    });
+  }, []);
+
+  const resetUiOverrides = useCallback(() => {
+    writeUiOverrides({});
+    setUiOverridesState({});
+  }, []);
+
   const value = useMemo<AppearanceApi>(
     () => ({
       appearance,
@@ -169,6 +204,9 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       save,
       reset,
       resetCustomColours,
+      uiOverrides,
+      setUiOverride,
+      resetUiOverrides,
     }),
     [
       appearance,
@@ -179,6 +217,9 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       save,
       reset,
       resetCustomColours,
+      uiOverrides,
+      setUiOverride,
+      resetUiOverrides,
     ],
   );
 

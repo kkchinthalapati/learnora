@@ -119,6 +119,42 @@ Dark is the default (`lib/appearance.ts`). Design and check every screen in
 dark first, then light. Accent presets stay in Settings; everything reads
 `--accent` and its roles, so a preset can never break a screen.
 
+### 0.8 Our look: the exercise book (2026-10)
+
+Learnora's layout is shared with the whole category (a capture box, a list of
+lessons, notes with a tutor). What makes a screenshot ours is the exercise
+book: the page where you put right what you got wrong, which is what the
+mistakes ledger is. Keep these, and don't drift back to the generic look:
+
+- **The mark** (`LearnoraMark`, `public/learnora-mark.svg`): a margin and a
+  ruled line that make an "L", with an ochre tick inside. No filled tile, no
+  lowercase geometric wordmark, no gradient. `learnora.jpg` is the same mark
+  rendered for places that need a raster.
+- **The margin line**: `--margin-rule`, a faint red line down lists
+  (`ListRow`, Home's "Fix these") and the capture box. Decoration only,
+  never a status.
+- **Ruled lines**: `--ruling` under what you write in the capture box, which
+  is set in the serif with an italic placeholder.
+- **Spines, not icon tiles**: a list row leads with a 3px spine in its
+  subject's colour and a bare 24px icon. Rows share one ruled surface; they
+  are not a stack of separate rounded cards.
+- **Serif titles in lists**: row titles use `--font-head`.
+- **Corrections in the margin**: a mistake to fix is marked in red pen
+  (`--danger`), one due a retest in ochre (`--recall`).
+- **One highlighter stroke** on Home, under "learn". Nowhere else.
+- **The notes page** (`/notes/:id`) is one paper sheet in the reading serif
+  with ribbon bookmarks for its headings, a pencil case under it
+  (highlighters, pen, eraser, read aloud, focus, dictate) and pencilled
+  margin notes beside it. The three highlighters and the callouts are the
+  `mark` and `callout` formats in `lib/noteFormats.ts`, stored as classes,
+  not free colours. Tools act on click and block mousedown so the page keeps
+  its selection; never act on mousedown alone, or keyboards can't reach them.
+
+Avoid on purpose: violet or blue-violet as a default or a custom-theme
+starting colour, sparkle icons for the tutor, emoji as icons, mascots, a
+tile grid of coloured file-type icons, and copy that lists file formats
+("PDFs, slides, YouTube…") instead of saying what Learnora does with them.
+
 ---
 
 ## 1. Tokens

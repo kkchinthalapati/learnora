@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router";
 import { LegacyToolRedirect } from "./views/session/LegacyToolRedirect";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { FINISH_ACCOUNT_PATH } from "./lib/accountDetails";
 import {
   OnboardingGate,
   WELCOME_PATH,
@@ -135,6 +136,9 @@ const LazyStudyProfileWizard = lazy(async () => ({
 const LazyWelcomeView = lazy(async () => ({
   default: (await import("./views/onboarding/WelcomeView")).WelcomeView,
 }));
+const LazyFinishAccountView = lazy(async () => ({
+  default: (await import("./views/auth/FinishAccountView")).FinishAccountView,
+}));
 const LazySettingsView = lazy(async () => ({
   default: (await import("./views/settings/SettingsView")).SettingsView,
 }));
@@ -249,6 +253,16 @@ export function AppRoutes() {
           element={
             <DeferredView>
               <LazyWelcomeView />
+            </DeferredView>
+          }
+        />
+        {/* A Google sign-up adds its date of birth and AI-consent answer here
+            before anything else, the same way /welcome follows sign-up. */}
+        <Route
+          path={FINISH_ACCOUNT_PATH}
+          element={
+            <DeferredView>
+              <LazyFinishAccountView />
             </DeferredView>
           }
         />

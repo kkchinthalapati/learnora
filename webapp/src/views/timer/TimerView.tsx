@@ -82,6 +82,10 @@ const FOCUS_SOUNDS: ReadonlyArray<{ id: AmbiancePreset; label: string }> = [
   /* "Alpha waves" promised a brain effect the sound can't deliver; it is a
      low steady hum, so it says so. */
   { id: "binaural", label: "Low hum" },
+  { id: "stream", label: "Flowing water" },
+  { id: "fireplace", label: "Fireplace" },
+  { id: "wind", label: "Wind" },
+  { id: "crickets", label: "Night crickets" },
 ];
 
 interface RecentFocusSession {

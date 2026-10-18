@@ -134,7 +134,12 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
   }, [exams]);
 
   const { readiness: examReadiness } = useExamReadiness(upcomingExam);
-  const examReadinessScore = examReadiness?.score ?? 0;
+  /* The badge is "Exam ready", so it follows the tier, which also needs
+     mastery: a composite of 80 carried by uploads and hours stops at 79. */
+  const examReadinessScore =
+    examReadiness?.tier === "Exam ready"
+      ? (examReadiness.score ?? 0)
+      : Math.min(79, examReadiness?.score ?? 0);
 
   /* Speed Demon consumes the per-question timing QuizRunner stamps into each
    * stored answer; attempts without timing never count (isFastQuizAttempt). */

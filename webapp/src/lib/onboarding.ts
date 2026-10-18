@@ -464,7 +464,7 @@ export const FOCUS_AREAS: ReadonlyArray<{
   {
     id: "understanding",
     label: "Understand hard topics",
-    hint: "Explain it until it actually clicks",
+    hint: "Find the step you get wrong, then fix it",
     icon: "brain",
   },
   {

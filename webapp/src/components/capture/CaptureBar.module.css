@@ -1,14 +1,18 @@
-/* The capture bar: one field, two helpers, one action. */
+/* The capture bar: one field, two helpers, one action — laid out as a page
+   of an exercise book (DESIGN.md rule 0.8). The red margin line runs down
+   the left, and what you write sits on ruled lines in the serif. */
 
 .bar,
 .recordingPanel {
+  --margin-x: var(--s-8);
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
-  padding: var(--s-4);
+  padding: var(--s-4) var(--s-4) var(--s-4) calc(var(--margin-x) + var(--s-4));
   border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  background: var(--surface);
+  border-radius: var(--r-lg);
+  background:
+    var(--surface);
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
@@ -37,8 +41,9 @@
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: var(--fs-md);
-  line-height: 1.5;
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  line-height: 1.6;
 }
 
 /* The bar is the field's frame; the global textarea border would double it. */
@@ -49,11 +54,19 @@
   border: 0;
   outline: none;
   box-shadow: none;
-  background: transparent;
+  /* Ruled lines, one per line of text, scrolling with what's written. */
+  background: repeating-linear-gradient(
+      transparent 0,
+      transparent calc(1.6em - 1px),
+      var(--ruling) calc(1.6em - 1px),
+      var(--ruling) 1.6em
+    )
+    local;
 }
 
 .input::placeholder {
   color: var(--text-muted);
+  font-style: italic;
 }
 
 .fileChip {
@@ -169,10 +182,16 @@
 
 /* Home's box (size="lg"): roomier, and the field reads as the page's
    question rather than a form control. */
+/* Without the margin line, the box is a plain card with ordinary padding. */
+.bar.plain {
+  --margin-x: 0px;
+  background: var(--surface);
+}
+
 .lg {
+  --margin-x: var(--s-10);
   gap: var(--s-4);
-  padding: var(--s-5);
-  border-radius: var(--r-2xl);
+  padding: var(--s-5) var(--s-5) var(--s-5) calc(var(--margin-x) + var(--s-5));
 }
 
 .lg .input {

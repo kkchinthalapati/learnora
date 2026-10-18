@@ -5,6 +5,10 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useAddTask } from "../../hooks/useTasks";
 import { useExamReadiness } from "../../hooks/useExamReadiness";
+import {
+  MIN_READINESS_QUIZ_QUESTIONS,
+  MIN_READINESS_REVIEWED_CARDS,
+} from "../../lib/examReadiness";
 import type { Exam } from "../../api/types";
 import type { PrepMilestoneTask } from "../../lib/examReadiness";
 import styles from "./examPrepModal.module.css";
@@ -100,13 +104,16 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
         ? "1 Day Remaining"
         : `${daysLeft} Days Remaining`;
 
-  const score = readiness?.score ?? 0;
-  const tier = readiness?.tier ?? "Needs work";
+  /* null until this subject has quiz answers or reviewed cards: the gauge
+     stays empty and says so, rather than drawing a score from uploads and
+     timer minutes alone. */
+  const score = readiness?.score ?? null;
+  const tier = readiness?.tier ?? "Not enough data";
 
   // Circular gauge math: radius 42, circumference ~ 263.89
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
+  const strokeDashoffset = circumference - ((score ?? 0) / 100) * circumference;
 
   const tierClass =
     tier === "Exam ready"
@@ -226,10 +233,21 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
                   />
                 </svg>
                 <div className={styles.gaugeCenter}>
-                  <span className={styles.gaugeValue}>{score}%</span>
+                  <span className={styles.gaugeValue}>
+                    {score === null ? "—" : `${score}%`}
+                  </span>
                   <span className={styles.gaugeTier}>{tier}</span>
                 </div>
               </div>
+              {readiness && readiness.score === null ? (
+                <p className={styles.gaugeNote}>
+                  Nothing has tested this subject yet. Answer{" "}
+                  {MIN_READINESS_QUIZ_QUESTIONS} quiz questions or review{" "}
+                  {MIN_READINESS_REVIEWED_CARDS} cards and a score appears.
+                  So far: {readiness.evidence.quizQuestions} questions,{" "}
+                  {readiness.evidence.reviewedCards} cards.
+                </p>
+              ) : null}
             </div>
 
             {/* Three-Factor Breakdown Bars */}
