@@ -521,6 +521,9 @@ export function TutorChat() {
               onAddToNotebook={handleAddToNotebook}
               sendPhase={sendPhase}
               onCancel={cancel}
+              onAsk={(question) => {
+                if (!isSending) void send(question);
+              }}
               /* Only the latest failure can be retried: once a retry has
                  been answered, an older "Try again" would ask twice. */
               onRetry={

@@ -565,3 +565,24 @@ export const questionBank = (cbseMaths as Array<{ ref: string; q: string; c: str
   answer_type: e.num ? "numeric" : "mcq",
   numeric_answer: e.num ?? null,
 }));
+
+/** One of every Ask-drawer card, for looking at them without a live model
+ *  (type "openui demo" in the harness). */
+export const sampleOpenUiReply = `Here is how a catalyst works, laid out as cards.
+
+\`\`\`openui
+root = Stack([k, m, w, t, tl, cmp, bars, more, f, q, fu])
+k = Callout("key", "A catalyst speeds up a reaction without changing where equilibrium sits.")
+m = Callout("mistake", "Thinking a catalyst is used up or shifts the equilibrium position.")
+w = WorkedExample("A first-order reaction has k = 0.5 s$^{-1}$ and [A] = 4 mol dm$^{-3}$. Find the rate.", ["First order means rate = k[A].", "Substitute: rate = 0.5 × 4.", "Check the units: s$^{-1}$ × mol dm$^{-3}$ = mol dm$^{-3}$ s$^{-1}$."], "rate = 2 mol dm$^{-3}$ s$^{-1}$")
+t = KeyTerms("Words to know", [["Activation energy", "The minimum energy a collision needs in order to react."], ["Catalyst", "Speeds a reaction up and is not used up."], ["Equilibrium", "Forward and backward rates are equal."]])
+tl = Timeline("A catalysed reaction", [["Start", "Reactants bind to the catalyst surface."], ["Middle", "Bonds weaken and rearrange at lower energy cost."], ["End", "Products leave and the catalyst is free again."]])
+cmp = CompareTable(["", "Without catalyst", "With catalyst"], [["Activation energy", "High", "Lower"], ["Rate", "Slow", "Faster"], ["Equilibrium position", "Same", "Same"]])
+bars = BarChart("Time to reach equilibrium", ["No catalyst", "Iron catalyst"], [60, 12], "min")
+more = Accordion([["Why does the position not move?", "The catalyst speeds up the forward and backward reactions by the same factor."], ["Do enzymes count?", "Yes. Enzymes are biological catalysts."]])
+f = Flashcards([["What does a catalyst lower?", "The activation energy."], ["Is a catalyst used up?", "No. It is regenerated."]])
+q = MiniQuiz("What does a catalyst change?", ["The equilibrium position", "How fast equilibrium is reached", "The enthalpy change"], 1, "It speeds up both directions equally, so equilibrium arrives sooner but does not move.")
+fu = FollowUps(["Quiz me on this", "Show a harder example", "Make flashcards"])
+\`\`\`
+
+Tap a card to try it.`;

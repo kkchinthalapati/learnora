@@ -106,5 +106,11 @@ export function richenNoteHtml(html: string): string {
       if (!m || !kind) return whole;
       return `<p class="ln-callout-${kind}">${inner.slice(m[0].length)}</p>`;
     })
-    .replace(/==([^=<>\n]+)==/g, '<span class="ln-mark-key">$1</span>');
+    /* The marked words may carry inline emphasis ("==**term**==" renders as
+       "==<strong>term</strong>=="); a bare [^<] class left those as literal
+       equals signs, most visibly at the start of a bullet. */
+    .replace(
+      /==((?:[^=<>\n]|<\/?(?:strong|em|b|i|code)>)+)==/g,
+      '<span class="ln-mark-key">$1</span>',
+    );
 }

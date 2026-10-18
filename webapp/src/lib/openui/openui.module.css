@@ -1,0 +1,489 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin: var(--s-3) 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--fs-sm);
+  color: var(--text);
+}
+
+.panel p,
+.panel ol,
+.panel dl,
+.panel ul {
+  margin: 0;
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.eyebrow,
+.label {
+  margin: 0;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.problem {
+  font-weight: 600;
+}
+
+/* Callout */
+
+.callout {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+  padding: var(--s-3);
+  border: 1px solid var(--accent-line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--r-lg);
+  background: var(--accent-wash);
+  font-size: var(--fs-sm);
+  color: var(--text);
+}
+
+.callout p {
+  margin: var(--s-1) 0 0;
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.callout_definition {
+  border-color: var(--info);
+  background: var(--surface-sunk);
+}
+
+.callout_definition .mark {
+  background: var(--info);
+}
+
+.callout_definition .label {
+  color: var(--info);
+}
+
+.callout_mistake {
+  border-color: var(--danger);
+  background: var(--surface-sunk);
+}
+
+.callout_mistake .mark {
+  background: var(--danger);
+}
+
+.callout_mistake .label {
+  color: var(--danger);
+}
+
+.callout_formula {
+  border-color: var(--warning);
+  background: var(--surface-sunk);
+}
+
+.callout_formula .mark {
+  background: var(--warning);
+}
+
+.callout_formula .label {
+  color: var(--warning);
+}
+
+/* Steps / worked example */
+
+.steps {
+  padding-left: 0;
+  list-style: none;
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.steps li {
+  counter-increment: step;
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-start;
+}
+
+.steps li::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.answer {
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+}
+
+.answer strong {
+  margin-right: var(--s-1);
+  color: var(--accent-text);
+}
+
+/* Key terms */
+
+.terms {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.terms dt {
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.terms dd {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* Timeline */
+
+.timeline {
+  padding: 0 0 0 var(--s-3);
+  list-style: none;
+  border-left: 2px solid var(--accent-line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.timeline li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.when {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-text);
+}
+
+/* Accordion */
+
+.accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.accordion details {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-raised);
+  font-size: var(--fs-sm);
+}
+
+.accordion summary {
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--s-3);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.accordion summary {
+  justify-content: space-between;
+  list-style: none;
+}
+
+.accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.accordion summary::after {
+  content: "+";
+  font-size: var(--fs-lg);
+  color: var(--accent-text);
+}
+
+.accordion details[open] summary::after {
+  content: "–";
+}
+
+.accordion details p {
+  margin: 0;
+  padding: 0 var(--s-3) var(--s-3);
+  color: var(--text-secondary);
+}
+
+/* Table */
+
+.scroll {
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  min-width: 100%;
+}
+
+.table th,
+.table td {
+  padding: var(--s-2);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Bar chart */
+
+.bars {
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.bars li {
+  display: grid;
+  grid-template-columns: minmax(4rem, 28%) 1fr auto;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.barLabel {
+  color: var(--text-secondary);
+}
+
+.barTrack {
+  height: 0.75rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-sunk);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+
+.barNegative {
+  background: var(--danger);
+}
+
+.barValue {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Flashcards */
+
+.flash {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s-2);
+  min-height: 8rem;
+  padding: var(--s-4);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-lg);
+  background: var(--accent-wash);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+
+.flash:hover {
+  background: var(--accent-soft);
+}
+
+.flashBack {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.flashSide {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.flashText {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.flashHint {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.row {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.ghost {
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.ghost:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Quiz */
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.option {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+
+.option:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.option:disabled {
+  cursor: default;
+}
+
+.letter {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.right {
+  border-color: var(--success);
+  background: var(--surface-sunk);
+}
+
+.right .letter {
+  background: var(--success);
+  color: var(--text-on-accent);
+}
+
+.wrong {
+  border-color: var(--danger);
+}
+
+.why {
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--surface-sunk);
+}
+
+.note {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+/* Follow-ups */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.chip {
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+  background: var(--accent-wash);
+  color: var(--accent-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+
+.chip:hover {
+  background: var(--accent-soft);
+}

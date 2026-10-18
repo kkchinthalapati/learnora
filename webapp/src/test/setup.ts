@@ -1,11 +1,23 @@
 import "@testing-library/jest-dom/vitest";
-import { afterAll, afterEach, beforeAll } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { server } from "./mocks/server";
 
 // RTL auto-cleanup only registers when test globals are enabled; we keep
 // globals off (explicit imports), so unmount rendered trees ourselves.
 afterEach(cleanup);
+
+// Experimental flags default on in development, which is what a test runs as.
+// The OpenUI cards add a lazy import and a long prompt section to every chat
+// send, so they are off unless a test turns them on, as the other chat tests
+// expect.
+beforeEach(() => {
+  try {
+    localStorage.setItem("learnora:flag:openUi", "false");
+  } catch {
+    /* no storage in this environment */
+  }
+});
 
 // `onUnhandledRequest: "error"` so a request no handler covers fails the
 // test loudly instead of the real (network-less) fetch hanging or throwing

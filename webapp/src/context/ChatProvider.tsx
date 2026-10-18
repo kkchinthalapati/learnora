@@ -62,6 +62,7 @@ import {
 import { decodeBase64UTF8, extractFlashcardJSON } from "../lib/aiJson";
 import { THEME_PRESETS, type Mode } from "../lib/appearance";
 import { useAppearance } from "./appearance";
+import { isFlagOn } from "../lib/flags";
 import { useDialog } from "./dialog";
 import { useSettings } from "./settings";
 import { useTimer } from "./timer";
@@ -704,6 +705,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           conciseness: adaptiveNudge?.conciseness ?? settings.aiConciseness,
           adaptiveNudge: adaptiveNudge?.instruction,
           guessFirst: options?.guessFirst === true,
+          openUiSection: isFlagOn("openUi")
+            ? (await import("../lib/openui/blocks")).openUiPromptSection()
+            : "",
           performanceEvidence,
           misconceptionLedger,
           webEvidence: webResponse

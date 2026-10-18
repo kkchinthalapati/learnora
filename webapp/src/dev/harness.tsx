@@ -169,6 +169,11 @@ function install(supabaseUrl: string) {
       } catch {
         /* an unreadable body just means the generic reply below */
       }
+      /* Typing "openui demo" returns one of every card, so the Ask drawer's
+         OpenUI rendering can be looked at without a live model. */
+      if (/openui demo/i.test(prompt)) {
+        return json({ text: fx.sampleOpenUiReply });
+      }
       if (/diagram|draw|sketch|\bsvg\b/i.test(prompt)) {
         return json({
           text: `Here is the whole set on one circle.\n\n\`\`\`svg\n${fx.sampleDiagramSvg}\n\`\`\`\n\nNotice that the angle at the centre (2x) is always double the angle at the circumference (x) standing on the same arc.`,

@@ -17,6 +17,10 @@ export const FLAGS = {
   guessFirst: "guessFirst",
   /** Teach mode lists what the explanation skipped / covered as chips. */
   teachGapChips: "teachGapChips",
+  /** The Ask drawer may answer with OpenUI cards (callouts, steps, tables,
+   *  a check question) inside the Markdown reply. A card that fails to parse
+   *  falls back to the Markdown path with a notice. */
+  openUi: "openUi",
 } as const;
 
 export type FlagName = keyof typeof FLAGS;
