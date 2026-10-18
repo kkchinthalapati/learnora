@@ -424,11 +424,22 @@ ${fenceUntrusted(currentHtml)}
     setActiveSelection(null);
   }, []);
 
+  /* While the pointer is down inside the page, the selection is still being
+     dragged out. Quill clears and regrows it on every move, so reacting to
+     each change made the toolbar flash in and out. Instead the toolbar stays
+     hidden for the whole press, and appears once, for the finished selection,
+     on release. Keyboard selection has no press and reacts straight away. */
+  const pressingRef = useRef(false);
+  /* The last range Quill reported, kept so release can use it. Asking Quill
+     for the selection at release can come back empty when the editor has
+     lost focus during the press. */
+  const latestRangeRef = useRef<EditorRange | null>(null);
+
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor || !note) return;
 
-    editor.onSelectionChange((range) => {
+    const applySelection = (range: EditorRange | null) => {
       if (!range || range.length === 0) {
         if (!interactionLockedRef.current) {
           setActiveSelection(null);
@@ -458,9 +469,42 @@ ${fenceUntrusted(currentHtml)}
         surroundingContext: documentText.slice(contextStart, contextEnd),
       });
       setMiniChatOpen(false);
+    };
+
+    editor.onSelectionChange((range) => {
+      latestRangeRef.current = range;
+      if (pressingRef.current) {
+        setActiveSelection(null);
+        return;
+      }
+      applySelection(range);
     });
 
-    return () => editor.onSelectionChange(() => {});
+    const onDown = (event: Event) => {
+      const target = event.target as Element | null;
+      if (target?.closest?.(".ql-editor")) {
+        pressingRef.current = true;
+        setActiveSelection(null);
+      }
+    };
+    const onUp = () => {
+      if (!pressingRef.current) return;
+      pressingRef.current = false;
+      /* Quill settles the final range a moment after the release. A timer,
+         not requestAnimationFrame, which can stall while the pane is hidden. */
+      window.setTimeout(() => applySelection(latestRangeRef.current), 20);
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    document.addEventListener("pointerup", onUp, true);
+    document.addEventListener("pointercancel", onUp, true);
+
+    return () => {
+      editor.onSelectionChange(() => {});
+      document.removeEventListener("pointerdown", onDown, true);
+      document.removeEventListener("pointerup", onUp, true);
+      document.removeEventListener("pointercancel", onUp, true);
+      pressingRef.current = false;
+    };
   }, [note]);
 
   const runSelectionAction = useCallback(

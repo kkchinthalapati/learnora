@@ -2,9 +2,6 @@
    top of the page, everything after it is a list. */
 
 .page {
-  /* No margin line on Home: the capture box and every list here are plain
-     cards. The token stays on in Lists and Capture elsewhere. */
-  --margin-rule: transparent;
   display: flex;
   flex-direction: column;
   gap: var(--s-10);

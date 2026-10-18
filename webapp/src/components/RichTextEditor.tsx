@@ -2,7 +2,7 @@ import { useEffect, useImperativeHandle, useRef, type RefObject } from "react";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 import { loadMathTypesetter } from "../lib/quillMath";
-import { registerNoteFormats } from "../lib/noteFormats";
+import { registerNoteFormats, richenNoteHtml } from "../lib/noteFormats";
 import styles from "./RichTextEditor.module.css";
 
 /* Hand-rolled Quill wrapper (archive/REACT_MIGRATION.md Decision #8) rather than
@@ -42,6 +42,7 @@ const ALLOWED_FORMATS = [
      through clipboard.convert like any other registered format. */
   "mark",
   "callout",
+  "diagram",
   "bold",
   "italic",
   "underline",
@@ -74,7 +75,7 @@ function setContentsFromHtml(quill: Quill, html: string): void {
     quill.setContents([], "silent");
     return;
   }
-  const delta = quill.clipboard.convert({ html });
+  const delta = quill.clipboard.convert({ html: richenNoteHtml(html) });
   quill.setContents(delta, "silent");
 }
 

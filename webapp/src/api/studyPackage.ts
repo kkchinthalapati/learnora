@@ -116,11 +116,12 @@ export const NOTES_INSTRUCTIONS = `You are a premium AI study guide creator and 
 
 Analyze the provided study material and write comprehensive, well-structured Markdown study notes:
 - Start with a welcoming title using ## and a brief intro addressing the student directly ("Let's break down...", "Here's your guide to...")
-- Use ### for main topics and #### for subtopics
+- Use ### for main topics and #### for subtopics. Start each ### heading with one emoji that fits the subject itself (a cell for biology, a flask for chemistry, a graph for maths, a scroll for history). Never use rocket, sparkle, fire, 100, target or lightbulb emoji.
 - Bold **key terms** when first introduced
+- In each section, wrap the single most important term in ==double equals== so it can be highlighted
+- Use these blockquote lines, at most three per section: "> **Definition:** ..." for a definition, "> **Key idea:** ..." for the one idea to remember, "> **Common mistake:** ..." for what students usually get wrong, and "> **Formula:** ..." for a formula
 - Use bullet lists for related concepts
 - Include code blocks with \`\`\`language syntax if the material involves programming
-- Use > blockquotes for important definitions or formulas
 - Keep the tone conversational and encouraging — like a friendly tutor, not a textbook
 - Be thorough — cover all major concepts from the material
 

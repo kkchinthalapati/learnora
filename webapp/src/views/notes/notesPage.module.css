@@ -144,18 +144,6 @@
   background: var(--surface);
 }
 
-/* The red margin line of a school exercise book. */
-.page::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: var(--s-12);
-  width: 1px;
-  background: var(--margin-rule);
-  pointer-events: none;
-}
-
 .page :global(.ql-container.ql-snow) {
   font-family: var(--font-head);
   font-size: var(--fs-read);
@@ -206,6 +194,24 @@
 .page :global(.ln-mark-wrong) {
   background: var(--danger-soft);
   box-shadow: inset 0 -0.12em 0 var(--danger);
+}
+
+/* A drawing the tutor made for a section: centred, on a quiet card. */
+.page :global(.ln-diagram) {
+  margin: var(--s-6) auto;
+  max-width: 560px;
+  padding: var(--s-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  text-align: center;
+}
+
+.page :global(.ln-diagram svg) {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--text);
 }
 
 /* Callouts: a line set apart with a rule and a small label, in the margin's
@@ -808,4 +814,53 @@
   .caseWrap {
     padding-left: 0;
   }
+}
+
+/* Marked phrases in the margin: a tag per kind, then each phrase as a
+   link back to its place on the page. */
+.markGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-2);
+}
+
+.markTag {
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.markTag[data-kind="key"] {
+  color: var(--accent-text);
+}
+
+.markTag[data-kind="wrong"] {
+  color: var(--danger-text);
+}
+
+.markTag[data-kind="learn"] {
+  color: var(--recall-text);
+}
+
+.markJump {
+  min-height: var(--touch-target-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--hairline-strong);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.markJump:hover {
+  color: var(--accent-text);
+  text-decoration-color: currentColor;
 }

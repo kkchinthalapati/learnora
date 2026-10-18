@@ -26,7 +26,6 @@ export const UI_COLOUR_TOKENS: readonly UiColourToken[] = [
   { prop: "--surface", label: "Cards and lists", hint: "Lists, cards and the capture box." },
   { prop: "--text", label: "Text", hint: "Headings and body text." },
   { prop: "--recall", label: "Due and memory", hint: "Cards due, mistakes to retest." },
-  { prop: "--margin-rule", label: "Margin line", hint: "The line down lists and the capture box." },
 ];
 
 const HEX = /^#[0-9a-fA-F]{6}$/;

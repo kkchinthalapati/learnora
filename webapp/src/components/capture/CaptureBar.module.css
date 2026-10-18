@@ -12,7 +12,6 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--r-lg);
   background:
-    linear-gradient(var(--margin-rule), var(--margin-rule)) var(--margin-x) 0 / 1px 100% no-repeat,
     var(--surface);
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }

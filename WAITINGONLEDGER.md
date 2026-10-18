@@ -78,6 +78,19 @@ I have not diffed deployed source against `main` for the functions other than
 None of these can be read by an agent. Run `supabase secrets list` and tick
 what exists. Names only: never paste values anywhere.
 
+### 4.0 Google sign-in
+
+| Item | Status |
+|------|--------|
+| **Google OAuth client** in Google Cloud Console (OAuth consent screen, Web application client). Authorised redirect URI: the Supabase callback `https://<project-ref>.supabase.co/auth/v1/callback`. | UNVERIFIED |
+| **Google provider enabled** in Supabase Auth → Providers → Google, with the client ID and secret from the step above. Add the app URL to Auth → URL Configuration → Redirect URLs. | UNVERIFIED |
+| **Turn the button on** for a build: set `VITE_GOOGLE_SIGNIN=true` in the hosting environment. Leave it unset until the two rows above are done, or the button will fail for everyone. | UNVERIFIED |
+
+Code: `GoogleSignInButton.tsx`, `FinishAccountView.tsx` (DOB and AI-consent
+step for Google sign-ups, `lib/accountDetails.ts`), and the gate in
+`OnboardingGate.tsx`. Google sign-ups must answer the date of birth and
+consent before the app opens; email sign-ups already do at the form.
+
 ### 4.1 Billing (Stripe)
 
 | Item | Status |

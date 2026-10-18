@@ -385,3 +385,17 @@
   color: var(--text);
   border: 1px solid var(--accent-soft);
 }
+
+/* Google sign-in sits above the email form, with a quiet divider under it. */
+.googleBlock {
+  display: grid;
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+
+.orDivider {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  text-align: center;
+}

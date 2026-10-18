@@ -513,11 +513,5 @@ body {
   --shadow-drawer: -16px 0 40px -16px rgba(24, 20, 14, 0.2);
   --scrim: rgba(26, 24, 21, 0.12);
 
-  /* 2026-10 identity: the exercise book. --margin-rule is the faint red
-     margin line of a school notebook, drawn down lists and the capture box.
-     It is decoration only — never a status, never text — so it can sit
-     below contrast minimums. --ruling is the page's ruled line. Both mix
-     from live tokens, so they follow dark mode and every preset. */
-  --margin-rule: color-mix(in srgb, var(--danger) 42%, transparent);
   --ruling: color-mix(in srgb, var(--text) 7%, transparent);
 }

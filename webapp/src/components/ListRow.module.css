@@ -22,7 +22,6 @@
   display: flex;
   align-items: center;
   background:
-    linear-gradient(var(--margin-rule), var(--margin-rule)) var(--margin-x) 0 / 1px 100% no-repeat,
     transparent;
   transition: background-color var(--t-fast) var(--ease);
 }

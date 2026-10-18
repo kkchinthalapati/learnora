@@ -3,6 +3,10 @@ import { Link } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type Quill from "quill";
 import { createClozeCards } from "../../api/aiInlineActions";
+import { callEdge } from "../../api/ai";
+import { buildDiagramTaskPrompt } from "../../lib/diagramPrompt";
+import { extractSvgSource } from "../../lib/diagramSvg";
+import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import { useFolders } from "../../hooks/useFolders";
 import { flashcardsKeys } from "../../hooks/useFlashcards";
@@ -46,6 +50,7 @@ export function NotesMargin({
   const { data: folders = [] } = useFolders();
   const { ranked } = useMisconceptions();
   const { showToast } = useToast();
+  const { settings } = useSettings();
   const queryClient = useQueryClient();
   const [phrases, setPhrases] = useState<MarkedPhrase[]>([]);
   const [headingTexts, setHeadingTexts] = useState<string[]>([]);
@@ -83,12 +88,53 @@ export function NotesMargin({
     };
   }, [quill]);
 
+  /* A drawing for the section the caret is in, or for the selected words.
+     The drawing is sanitised when it is inserted (lib/noteFormats). */
+  const draw = useMutation({
+    mutationFn: async () => {
+      if (!quill) throw new Error("The page is still loading.");
+      const range = quill.getSelection(true) ?? { index: Math.max(0, quill.getLength() - 1), length: 0 };
+      const selected = range.length > 0 ? quill.getText(range.index, range.length).trim() : "";
+      const heading = headingsOf(quill.getContents().ops)
+        .filter((h) => h.index <= range.index)
+        .at(-1)?.text;
+      const topic = selected || heading || materialTitle;
+      const response = await callEdge({
+        history: [{ role: "user", content: buildDiagramTaskPrompt(topic) }],
+        tool: "notebookStudio",
+        settings,
+      });
+      const svg = extractSvgSource(response.text);
+      if (!svg) throw new Error("No drawing came back this time. Try again.");
+      return { svg, at: range.index + range.length };
+    },
+    onSuccess: ({ svg, at }) => {
+      if (!quill) return;
+      quill.insertText(at, "\n", "user");
+      quill.insertEmbed(at + 1, "diagram", svg, "user");
+      quill.insertText(at + 2, "\n", "user");
+      quill.setSelection(at + 3, 0, "user");
+      showToast("Drawing added to the page.");
+    },
+    onError: (error) => showToast((error as Error).message, { error: true }),
+  });
+
   const learn = phrases.filter((p) => p.kind === "learn");
+  const keyIdeas = phrases.filter((p) => p.kind === "key");
+  const wrong = phrases.filter((p) => p.kind === "wrong");
+
+  /* A highlight is a place to go back to: the margin lists each one and
+     puts the caret on it, so marking is a way of finding things again. */
+  const jumpTo = (phrase: MarkedPhrase) => {
+    if (!quill) return;
+    quill.setSelection(phrase.index, phrase.text.length, "user");
+    quill.focus();
+  };
 
   const cloze = useMutation({
     mutationFn: () =>
       createClozeCards({
-        items: learn.map((p) => ({ sentence: p.sentence, answer: p.text })),
+        items: [...learn, ...keyIdeas].map((p) => ({ sentence: p.sentence, answer: p.text })),
         materialId,
         materialTitle,
         folderId,
@@ -140,27 +186,72 @@ export function NotesMargin({
         </section>
       ) : null}
 
-      <section className={styles.note}>
-        {learn.length > 0 ? (
-          <>
-            <p className={styles.noteLead}>
-              {learn.length === 1 ? "One phrase" : `${learn.length} phrases`} marked to learn on this page.
-            </p>
+      {keyIdeas.length + wrong.length + learn.length > 0 ? (
+        <section className={styles.note} aria-label="Marked on this page">
+          <p className={styles.noteLead}>Marked on this page</p>
+          {keyIdeas.length > 0 ? (
+            <div className={styles.markGroup}>
+              <span className={styles.markTag} data-kind="key">Key ideas</span>
+              {keyIdeas.map((p) => (
+                <button key={`k${p.index}`} type="button" className={styles.markJump} onClick={() => jumpTo(p)}>
+                  {p.text}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {wrong.length > 0 ? (
+            <div className={styles.markGroup}>
+              <span className={styles.markTag} data-kind="wrong">I get this wrong</span>
+              {wrong.map((p) => (
+                <button key={`w${p.index}`} type="button" className={styles.markJump} onClick={() => jumpTo(p)}>
+                  {p.text}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {learn.length > 0 ? (
+            <div className={styles.markGroup}>
+              <span className={styles.markTag} data-kind="learn">Learn this</span>
+              {learn.map((p) => (
+                <button key={`l${p.index}`} type="button" className={styles.markJump} onClick={() => jumpTo(p)}>
+                  {p.text}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {learn.length + keyIdeas.length > 0 ? (
             <button
               type="button"
               className={styles.noteGo}
               disabled={cloze.isPending}
               onClick={() => cloze.mutate()}
             >
-              {cloze.isPending ? "Making cards…" : "Turn them into cards →"}
+              {cloze.isPending ? "Making cards…" : `Turn ${learn.length + keyIdeas.length} into cards →`}
             </button>
-          </>
-        ) : (
+          ) : null}
+        </section>
+      ) : (
+        <section className={styles.note}>
           <p className={styles.noteLead}>
-            Mark words with the <span className={styles.inkLearn}>learn this</span> highlighter
-            and they can become fill-in-the-blank cards.
+            Select a phrase and pick a highlighter. Key ideas, things you get wrong and things to
+            learn are listed here, and can become cards.
           </p>
-        )}
+        </section>
+      )}
+
+      <section className={styles.note}>
+        <p className={styles.noteLead}>Show it as a picture</p>
+        <button
+          type="button"
+          className={styles.noteGo}
+          disabled={draw.isPending || !quill}
+          onClick={() => draw.mutate()}
+        >
+          {draw.isPending ? "Drawing…" : "Draw this section →"}
+        </button>
+        <p className={styles.noteFaint}>
+          Select a phrase first to draw that instead.
+        </p>
       </section>
 
       <section className={styles.note}>
