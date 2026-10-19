@@ -648,10 +648,15 @@ async function callProviderStream(
   const controller = new AbortController();
   const onParentAbort = () => controller.abort();
   opts.signal.addEventListener("abort", onParentAbort);
-  let firstWords: ReturnType<typeof setTimeout> | undefined = setTimeout(
-    () => controller.abort(),
-    STREAM_IDLE_MS,
-  );
+  /* Aborts the call if no event arrives for STREAM_IDLE_MS. Re-armed on every
+     event, so a stream that stalls after its first words fails over just as one
+     that never starts does, instead of waiting out the whole request budget. */
+  let idle: ReturnType<typeof setTimeout> | undefined;
+  const armIdle = () => {
+    if (idle !== undefined) clearTimeout(idle);
+    idle = setTimeout(() => controller.abort(), STREAM_IDLE_MS);
+  };
+  armIdle();
 
   let text = "";
   try {
@@ -670,6 +675,7 @@ async function callProviderStream(
     if (!response.body) throw new Error(`${provider.id} sent no body.`);
 
     await readSse(response.body, (payload) => {
+      armIdle();
       if (payload === "[DONE]") return;
       const json = JSON.parse(payload);
       if (json.error) throw new Error(`${provider.id} error: ${JSON.stringify(json.error)}`);
@@ -684,15 +690,11 @@ async function callProviderStream(
 
       const piece = dialect === "anthropic" ? anthropicDelta(json) : openAiDelta(json);
       if (!piece) return;
-      if (firstWords !== undefined) {
-        clearTimeout(firstWords);
-        firstWords = undefined;
-      }
       text += piece;
       onDelta(piece);
     });
   } finally {
-    if (firstWords !== undefined) clearTimeout(firstWords);
+    if (idle !== undefined) clearTimeout(idle);
     opts.signal.removeEventListener("abort", onParentAbort);
     // Closes the connection if reading stopped early; harmless once it ended.
     controller.abort();
@@ -842,7 +844,7 @@ function streamReply(ctx: {
   };
 
   const run = async () => {
-    const geminiKey = geminiPermitted() ? Deno.env.get("GEMINI_API_KEY") : undefined;
+    const geminiKey = geminiPermitted() && geminiOpenTo(ctx.plan) ? Deno.env.get("GEMINI_API_KEY") : undefined;
     if (geminiKey) {
       const models = (Deno.env.get("GEMINI_MODELS") || "gemini-3.6-flash")
         .split(",").map((m) => m.trim()).filter(Boolean);
@@ -1200,6 +1202,11 @@ async function generateImage(
   const permitted = permittedProviderIds(Deno.env.get("AI_PROVIDER_ALLOWLIST"));
   for (const provider of IMAGE_PROVIDERS) {
     const label = `image:${provider.id}`;
+    // Gemini's image model is on the same free tier as its text model.
+    if (provider.id === "gemini" && !geminiOpenTo(plan)) {
+      debugErrors[label] = "Gemini is billed for this project, so free accounts are not offered it.";
+      continue;
+    }
     // Paid image models are for paying accounts only (see PAID_IMAGE_PROVIDERS).
     if (plan === "free" && PAID_IMAGE_PROVIDERS.has(provider.id)) {
       debugErrors[label] = "Paid image model: not offered on the free plan.";
@@ -1346,6 +1353,14 @@ type RateLimitVerdict =
 /** Providers whose key or billing was refused (401/402/403), skipped for a
  *  while in this instance rather than costing every request a round trip. */
 const deadKeys = createDeadKeyRegistry();
+
+/* Gemini runs on Google's free tier, which is what free accounts depend on. If
+   the Google project behind GEMINI_API_KEY is on paid billing, set
+   GEMINI_BILLED=true: free accounts then stop reaching Gemini, the same as
+   every other paid provider. Left unset, Gemini is offered to free accounts. */
+function geminiOpenTo(plan: Plan): boolean {
+  return plan !== "free" || Deno.env.get("GEMINI_BILLED") !== "true";
+}
 
 /** Gemini sits outside the chain (it reads attachments), so it is checked
  *  against the same policy separately. */
@@ -1947,7 +1962,7 @@ Deno.serve(async (req) => {
         let checkedBy = "second-model";
         const secondaryCall = async (system: string, prompt: string, label: string): Promise<string | null> => {
             if (TOTAL_BUDGET_MS - (Date.now() - startedAt) < 12_000) return null;
-            const checkKey = geminiPermitted() ? Deno.env.get('GEMINI_API_KEY') : undefined;
+            const checkKey = geminiPermitted() && geminiOpenTo(plan) ? Deno.env.get('GEMINI_API_KEY') : undefined;
             if (checkKey) {
                 try {
                     const modelName = (Deno.env.get('QUIZ_VERIFIER_MODEL')
@@ -2039,7 +2054,7 @@ Deno.serve(async (req) => {
         // CHANNEL 1: GEMINI — first because it is the only provider in the chain
         // that reads an image/PDF attachment inline.
         // =========================================================================
-        const geminiKey = geminiPermitted() ? Deno.env.get('GEMINI_API_KEY') : undefined;
+        const geminiKey = geminiPermitted() && geminiOpenTo(plan) ? Deno.env.get('GEMINI_API_KEY') : undefined;
         if (geminiKey) {
             // Retired models are dropped rather than guessed at: 1.5-flash
             // went first ("not found for API version v1beta"), and on
