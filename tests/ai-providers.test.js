@@ -34,7 +34,8 @@ function slice(startMarker, endMarker) {
 /* The two regions under test, taken separately so neither drags in the
    unrelated code that sits between them. */
 const TABLE_SRC = slice('const BUILTIN_PROVIDERS', '/* Structured JSON takes');
-const CALLER_SRC = slice('/* Response readers', 'function safetyRefusalResponse');
+// Ends before the streaming section (it is TypeScript the vm snippet never runs).
+const CALLER_SRC = slice('/* Response readers', '/* ── STREAMING');
 
 /* TypeScript the snippets carry, stripped so plain `vm` can run them. Each
    entry must match, so an annotation that changes shape fails loudly here
@@ -42,7 +43,7 @@ const CALLER_SRC = slice('/* Response readers', 'function safetyRefusalResponse'
 const TS_STRIPS = [
   [/const BUILTIN_PROVIDERS: AIProvider\[\]/, 'const BUILTIN_PROVIDERS'],
   [/function parseExtraProviders\(\): AIProvider\[\]/, 'function parseExtraProviders()'],
-  [/function providerChain\(radoxAllowed: boolean\): AIProvider\[\]/, 'function providerChain(radoxAllowed)'],
+  [/function providerChain\(radoxAllowed: boolean, plan: Plan\): AIProvider\[\]/, 'function providerChain(radoxAllowed, plan)'],
   [/function resolveProviderUrl\(provider: AIProvider\): string \| null/, 'function resolveProviderUrl(provider)'],
   [/let parsed: unknown;/, 'let parsed;'],
   [/const out: AIProvider\[\] = \[\];/, 'const out = [];'],

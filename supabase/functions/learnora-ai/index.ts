@@ -253,8 +253,23 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
     jsonMode: true,
     cost: "free",
   },
+
+
+  /* ---- Free credits that eventually run out ------------------------- */
   {
-    // Free `:free` models. Weakest in the chain, so it is the last free stop.
+    // build.nvidia.com hands new accounts a pool of free credits; it bills
+    // once they are spent, which is why it sits below the standing free tiers.
+    id: "nvidia",
+    keyEnv: "NVIDIA_API_KEY",
+    modelEnv: "NVIDIA_MODEL",
+    defaultModel: "meta/llama-3.3-70b-instruct",
+    url: "https://integrate.api.nvidia.com/v1/chat/completions",
+    jsonMode: true,
+    cost: "credits",
+  },
+  {
+    // Paid per token from the first request (the `:free` variant was retired),
+    // so it sits after the free-credit tier and free accounts never reach it.
     id: "openrouter",
     keyEnv: "OPENROUTER_API_KEY",
     modelEnv: "OPENROUTER_MODEL",
@@ -272,20 +287,7 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
     url: "https://openrouter.ai/api/v1/chat/completions",
     extraHeaders: { "HTTP-Referer": "https://learnora.app", "X-Title": "Learnora" },
     jsonMode: false,
-    cost: "free",
-  },
-
-  /* ---- Free credits that eventually run out ------------------------- */
-  {
-    // build.nvidia.com hands new accounts a pool of free credits; it bills
-    // once they are spent, which is why it sits below the standing free tiers.
-    id: "nvidia",
-    keyEnv: "NVIDIA_API_KEY",
-    modelEnv: "NVIDIA_MODEL",
-    defaultModel: "meta/llama-3.3-70b-instruct",
-    url: "https://integrate.api.nvidia.com/v1/chat/completions",
-    jsonMode: true,
-    cost: "credits",
+    cost: "paid",
   },
 
   /* ---- Paid, and last on purpose ------------------------------------ */
@@ -778,22 +780,44 @@ function streamReply(ctx: {
     }
   };
 
-  // Text already on screen when the chain moves on has to be taken back.
-  let visible = false;
-  const onDelta = (piece: string) => {
-    visible = true;
-    send({ delta: piece });
-  };
-  const failedMidway = () => {
-    if (!visible) return;
-    send({ reset: true });
-    visible = false;
-  };
+  /* What the current attempt has produced, and how much of it the client has
+     been sent. The last HOLD_CHARS are held back until more text arrives, so a
+     phrase the screen only recognises once it is complete cannot reach the
+     student in pieces before the screen has seen it whole. */
+  const HOLD_CHARS = 240;
+  let attempt = "";
+  let sent = 0;
+  let halted = false;
 
   const refuse = (trigger: string) => {
     const message = isSelfHarmContent(trigger) ? SELF_HARM_REFUSAL : SAFETY_REFUSAL;
     send({ replace: message, refused: true });
     send({ done: true, refused: true, modelUsed: "safety-filter" });
+  };
+
+  const onDelta = (piece: string) => {
+    if (halted) return;
+    attempt += piece;
+    // The screen runs on everything produced so far, before any of it is sent.
+    if (screenForUnsafeContent(attempt)) {
+      halted = true;
+      console.warn("[safety] streamed output refused by screen", { mode: ctx.mode, userId: ctx.userId });
+      cancelled.abort();
+      refuse(`${ctx.currentMsg}\n${attempt}`);
+      return;
+    }
+    const safeEnd = attempt.length - HOLD_CHARS;
+    if (safeEnd > sent) {
+      send({ delta: attempt.slice(sent, safeEnd) });
+      sent = safeEnd;
+    }
+  };
+
+  // Text the client has been sent is taken back when the chain moves on.
+  const failedMidway = () => {
+    if (sent > 0) send({ reset: true });
+    attempt = "";
+    sent = 0;
   };
 
   const succeed = (text: string, modelUsed: string, provider: string, model: string) => {
@@ -804,6 +828,9 @@ function streamReply(ctx: {
       refuse(`${ctx.currentMsg}\n${text}`);
       return;
     }
+    // The held-back tail goes out now that the whole reply has passed the screen.
+    if (text.length > sent) send({ delta: text.slice(sent) });
+    sent = text.length;
     recordOutcome(ctx.logId, {
       provider,
       model,
@@ -832,6 +859,8 @@ function streamReply(ctx: {
           ctx.debugErrors[`gemini (${modelName})`] = err.message || String(err);
           if (/\[(401|402|403)\b/.test(String(err?.message ?? ""))) deadKeys.markDead("gemini");
           console.error(`Gemini (${modelName}) Error:`, err);
+          // A halt has already sent the refusal; the cancel that follows is not a failure.
+          if (halted) return;
           failedMidway();
         }
       }
@@ -865,6 +894,7 @@ function streamReply(ctx: {
         ctx.debugErrors[provider.id] = err.message || String(err);
         if (isDeadKeyError(ctx.debugErrors[provider.id])) deadKeys.markDead(provider.id);
         console.error(`${provider.id} Error:`, err);
+        if (halted) return;
         failedMidway();
       }
     }

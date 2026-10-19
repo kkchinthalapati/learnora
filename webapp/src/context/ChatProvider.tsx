@@ -36,7 +36,7 @@ import {
   pathForNavigateTarget,
   type ActionHandlers,
 } from "../lib/chatActions";
-import { stripActionTagBlocks, fenceUntrusted } from "../lib/actionTags";
+import { stripActionTagBlocks, streamingVisibleText, fenceUntrusted } from "../lib/actionTags";
 import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
 import { isImageFile, prepareStudyImage, StudyImageError } from "../lib/studyImage";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
@@ -738,7 +738,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           {
             onDelta: (piece) => {
               streamed += piece;
-              const shown = stripActionTagBlocks(streamed).trim();
+              const shown = streamingVisibleText(streamed).trim();
               if (!shown) return;
               showStreamed({ pending: false, streaming: true, text: shown });
             },
@@ -748,7 +748,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             },
             onReplace: (replaced) => {
               streamed = replaced;
-              showStreamed({ pending: false, streaming: true, text: stripActionTagBlocks(replaced).trim() });
+              showStreamed({ pending: false, streaming: true, text: streamingVisibleText(replaced).trim() });
             },
           },
           controller.signal,

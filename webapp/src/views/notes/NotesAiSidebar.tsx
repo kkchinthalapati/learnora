@@ -11,7 +11,7 @@ import {
   trimHistory,
   type ChatMessage as HistoryMessage,
 } from "../../api/ai";
-import { stripActionTagBlocks, fenceUntrusted } from "../../lib/actionTags";
+import { stripActionTagBlocks, streamingVisibleText, fenceUntrusted } from "../../lib/actionTags";
 import { isPdf, planPdfUpload, truncationNote } from "../../lib/pdfText";
 import type { AttachedFile } from "../../context/chat";
 import { decodeBase64UTF8 } from "../../lib/aiJson";
@@ -254,7 +254,7 @@ export function NotesAiSidebar({
           {
             onDelta: (piece) => {
               streamed += piece;
-              const shown = stripActionTagBlocks(streamed).trim();
+              const shown = streamingVisibleText(streamed).trim();
               if (!shown) return;
               showStreamed({ pending: false, streaming: true, text: shown });
             },
@@ -264,7 +264,7 @@ export function NotesAiSidebar({
             },
             onReplace: (replaced) => {
               streamed = replaced;
-              showStreamed({ pending: false, streaming: true, text: stripActionTagBlocks(replaced).trim() });
+              showStreamed({ pending: false, streaming: true, text: streamingVisibleText(replaced).trim() });
             },
           },
         );
