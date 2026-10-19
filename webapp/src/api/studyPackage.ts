@@ -27,6 +27,7 @@
  *     the hole `lib/actionTags.ts` exists to close.
  */
 
+import { isFlagOn } from "../lib/flags";
 import { AiError, callEdge, type FilePayload } from "./ai";
 import { extractWebContent } from "./aiWebSearch";
 import {
@@ -212,12 +213,19 @@ export async function generateNotes({
     ? `${buildNotesPrompt(inlineText)}\n\n${PHOTO_NOTES_INSTRUCTIONS}`
     : buildNotesPrompt(inlineText);
 
+  /* With cards on, the notes may carry a few OpenUI cards (key terms, worked
+     examples, comparison tables) that the notes editor draws in place. */
+  const cards = isFlagOn("openUi")
+    ? (await import("../lib/openui/blocks")).notesCardSection()
+    : "";
+
   const { text, refused } = await callEdge({
     history: [{ role: "user", content: prompt }],
     file: attachment,
     mode: "notes",
     tool: "notes",
     settings,
+    ...(cards ? { context: cards } : {}),
   });
 
   /* `notes` isn't a JSON mode, so a safety refusal comes back as a 200 with

@@ -7,11 +7,11 @@ import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import {
   AiError,
-  callEdge,
+  callEdgeStream,
   trimHistory,
   type ChatMessage as HistoryMessage,
 } from "../../api/ai";
-import { stripActionTagBlocks, fenceUntrusted } from "../../lib/actionTags";
+import { stripActionTagBlocks, streamingVisibleText, fenceUntrusted } from "../../lib/actionTags";
 import { isPdf, planPdfUpload, truncationNote } from "../../lib/pdfText";
 import type { AttachedFile } from "../../context/chat";
 import { decodeBase64UTF8 } from "../../lib/aiJson";
@@ -21,6 +21,7 @@ import {
 } from "../../lib/notesChatPrompt";
 import type { ChatMessage } from "../../context/chat";
 import type { IconName } from "../../components/icons";
+import { loadOpenUiSection } from "../../lib/openui/load";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import chatStyles from "../../components/chat/chat.module.css";
 import styles from "./notesSidebar.module.css";
@@ -196,7 +197,7 @@ export function NotesAiSidebar({
       const finish = (patch: Partial<ChatMessage>) =>
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === pendingId ? { ...m, pending: false, ...patch } : m,
+            m.id === pendingId ? { ...m, pending: false, streaming: false, ...patch } : m,
           ),
         );
 
@@ -230,17 +231,43 @@ export function NotesAiSidebar({
           documentContext,
           appendedFileContext,
           query,
+          openUiSection: await loadOpenUiSection(),
         });
 
-        const { text } = await callEdge({
-          history: [
-            ...trimHistory(historyRef.current),
-            { role: "user", content: systemContext },
-          ],
-          file: filePayload,
-          tool: "chat",
-          settings,
-        });
+        /* The reply is shown as it forms, action tags stripped; the full text
+           is checked for the insert tag once it is complete, below. */
+        let streamed = "";
+        const showStreamed = (patch: Partial<ChatMessage>) =>
+          setMessages((prev) =>
+            prev.map((m) => (m.id === pendingId ? { ...m, ...patch } : m)),
+          );
+        const { text } = await callEdgeStream(
+          {
+            history: [
+              ...trimHistory(historyRef.current),
+              { role: "user", content: systemContext },
+            ],
+            file: filePayload,
+            tool: "chat",
+            settings,
+          },
+          {
+            onDelta: (piece) => {
+              streamed += piece;
+              const shown = streamingVisibleText(streamed).trim();
+              if (!shown) return;
+              showStreamed({ pending: false, streaming: true, text: shown });
+            },
+            onReset: () => {
+              streamed = "";
+              showStreamed({ pending: true, streaming: false, text: "" });
+            },
+            onReplace: (replaced) => {
+              streamed = replaced;
+              showStreamed({ pending: false, streaming: true, text: streamingVisibleText(replaced).trim() });
+            },
+          },
+        );
 
         /* INSERT_INTO_NOTE is the one tag this panel actually executes —
            extracted before stripping, since stripping only removes it from

@@ -72,6 +72,38 @@ export function registerNoteFormats(): void {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Quill.register(DiagramBlot as any, true);
+
+  /* A card in the note: OpenUI Lang the tutor wrote for this section (key
+     terms, a worked example, a comparison table…), stored as source in
+     `data-code` and drawn read-only by React. Only the source is kept — the
+     drawn markup is stripped before the note is saved (RichTextEditor's
+     getHtml), so a stored note never carries rendered HTML back in. The
+     card is one block: it can be moved past or deleted, not typed into. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  class OpenUiCardBlot extends BlockEmbed {
+    static blotName = "openui";
+    static tagName = "div";
+    static className = "ln-openui";
+    static create(value: string): HTMLElement {
+      const node: HTMLElement = super.create(value);
+      const code = String(value ?? "");
+      node.setAttribute("data-code", code);
+      node.setAttribute("contenteditable", "false");
+      void import("./openui/mountCard").then((m) => m.mountCard(node, code));
+      return node;
+    }
+    static value(node: HTMLElement): string {
+      return node.getAttribute("data-code") ?? "";
+    }
+    detach() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const node = (this as any).domNode as HTMLElement;
+      void import("./openui/mountCard").then((m) => m.unmountCard(node));
+      super.detach();
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Quill.register(OpenUiCardBlot as any, true);
   Quill.register("formats/callout", callout, true);
 }
 
@@ -106,5 +138,11 @@ export function richenNoteHtml(html: string): string {
       if (!m || !kind) return whole;
       return `<p class="ln-callout-${kind}">${inner.slice(m[0].length)}</p>`;
     })
-    .replace(/==([^=<>\n]+)==/g, '<span class="ln-mark-key">$1</span>');
+    /* The marked words may carry inline emphasis ("==**term**==" renders as
+       "==<strong>term</strong>=="); a bare [^<] class left those as literal
+       equals signs, most visibly at the start of a bullet. */
+    .replace(
+      /==((?:[^=<>\n]|<\/?(?:strong|em|b|i|code)>)+)==/g,
+      '<span class="ln-mark-key">$1</span>',
+    );
 }

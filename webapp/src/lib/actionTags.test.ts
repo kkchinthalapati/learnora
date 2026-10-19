@@ -4,6 +4,7 @@ import {
   fenceUntrusted,
   stripActionTagBlocks,
   stripActionTags,
+  streamingVisibleText,
 } from "./actionTags";
 
 describe("stripActionTags (untrusted input going into a prompt)", () => {
@@ -84,5 +85,22 @@ describe("stripActionTagBlocks (model output going to the screen)", () => {
        tag cannot swallow the text between two unrelated blocks. */
     const out = stripActionTagBlocks("<ADD_TASK>keep</SET_THEME>this");
     expect(out).toBe("<ADD_TASK>keep</SET_THEME>this");
+  });
+});
+
+describe("streamingVisibleText", () => {
+  it("holds back an action tag that has opened but not closed", () => {
+    expect(streamingVisibleText("Done. <ADD_TASK>Read chapter")).toBe("Done. ");
+  });
+
+  it("holds back a tag whose name is still arriving", () => {
+    expect(streamingVisibleText("Sure <ADD_T")).toBe("Sure ");
+    expect(streamingVisibleText("Sure <")).toBe("Sure ");
+    expect(streamingVisibleText("Sure </ADD")).toBe("Sure ");
+  });
+
+  it("drops complete tag blocks and keeps ordinary text", () => {
+    expect(streamingVisibleText("A <ADD_TASK>x</ADD_TASK> and B")).toBe("A  and B");
+    expect(streamingVisibleText("a < b and c")).toBe("a < b and c");
   });
 });

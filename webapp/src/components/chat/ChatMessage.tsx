@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import { AiReply } from "./AiReply";
 import { Icon } from "../Icon";
 import { Button } from "../Button";
 import {
-  renderMarkdownNodes,
   renderMarkdownSegments,
   renderMathText,
   type MarkdownSegment,
@@ -196,8 +196,12 @@ export function ChatMessageBubble({
   sendPhase,
   onCancel,
   onRetry,
+  onAsk,
 }: {
   message: Message;
+  /** Sends a card's follow-up chip as the student's next message. Omitted
+   *  where the surface cannot send, which hides the chips. */
+  onAsk?: (text: string) => void;
   /** Persists `message.cards` as a real deck. Omitted where a cards-shaped
    *  message can never occur (the notes sidebar generates no such replies —
    *  see NotesAiSidebar's header comment), so the button silently isn't
@@ -313,8 +317,9 @@ export function ChatMessageBubble({
     );
     body = renderMarkdownSegments(segments, { diagrams: true });
   } else if (cleanDisplayContent) {
-    /* The tutor may answer with a ```mermaid diagram (lib/chatPrompt.ts). */
-    body = renderMarkdownNodes(cleanDisplayContent, { diagrams: true });
+    /* The tutor may answer with a ```mermaid diagram or ```openui cards
+       (lib/chatPrompt.ts); AiReply draws both. */
+    body = <AiReply text={cleanDisplayContent} onAsk={onAsk} streaming={message.streaming} />;
   } else {
     /* Every visible word was an action tag — the vanilla said the same
        (js/ai.js:1256). */

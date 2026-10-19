@@ -42,6 +42,11 @@ export interface ChatContext {
   /** Ask for the student's guess before explaining (the drawer's
    *  experimental guess-first default, lib/flags `guessFirst`). */
   guessFirst?: boolean;
+  /** The OPENUI CARDS prompt section (lib/openui/blocks.ts). Passed in
+   *  rather than imported so this file stays free of React and CSS, and
+   *  empty when the `openUi` flag is off — the model is then never told the
+   *  cards exist. */
+  openUiSection?: string;
   /** The student's real quiz performance, rendered by
    *  `lib/studentEvidence.ts`'s `formatEvidenceForPrompt`. Omitted when the
    *  rows could not be read — the chat still works, it just knows less, the
@@ -147,6 +152,7 @@ export function buildSystemContext({
   conciseness = "medium",
   adaptiveNudge = "",
   guessFirst = false,
+  openUiSection = "",
   performanceEvidence = "",
   misconceptionLedger = "",
   webEvidence = "",
@@ -199,7 +205,7 @@ DIAGRAMS:
 - An svg drawing: open with <svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg"> (always a viewBox, never width or height) and give it a <title>. Use stroke="currentColor" and fill="currentColor" so it follows the student's theme, with at most three accent colours that read on either background — #2E9E6B, #2563EB, #C2410C. Label every part the answer refers to, at font-size="15" or larger, in plain characters (A, θ, 2x) — TeX is not typeset inside a drawing. Only these elements: g, defs, title, desc, path, line, polyline, polygon, rect, circle, ellipse, text, tspan, marker, linearGradient, radialGradient, stop, clipPath. Never script, style, image, use, foreignObject, links or animation — they are stripped and the drawing arrives broken.
 - Never say you are unable to create or draw a diagram, and never tell the student to sketch it themselves.
 - The diagram supports the answer, it never replaces it: still explain in words. Skip it for short factual answers, for maths working (write TeX instead), and when nothing visual was asked.
-
+${openUiSection ? `\n${openUiSection}\n` : ""}
 CAPABILITIES:
 - To create a task, emit the tag <ADD_TASK>the task name</ADD_TASK>. The app executes this tag and displays it to the student as the task's name, so lead into it naturally (e.g. "Done — I've added this to your tasks: <ADD_TASK>Review Chapter 3</ADD_TASK>") and do not repeat the same name elsewhere in the sentence. Only create a task when the student clearly asks you to. If the student states or implies a deadline ("by Friday", "before the 12th", "due next week"), work it out from TODAY IS above and append it as \`||DUE:YYYY-MM-DD\` — e.g. <ADD_TASK>Review Chapter 3||DUE:2026-08-07</ADD_TASK>. Omit the \`||DUE:\` suffix entirely when no deadline was given; never guess one.
 - To mark an existing task done, emit <COMPLETE_TASK>the exact task name</COMPLETE_TASK> — the name must match one listed in WORKSPACE STATE above exactly (WORKSPACE STATE names never carry a "(due …)" suffix in the tag, even if the task is listed with one there). Several may be emitted in one reply for "mark these done" requests.

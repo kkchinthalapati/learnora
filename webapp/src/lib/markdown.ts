@@ -14,7 +14,9 @@
  * this function with reserved widget tokens today, so there is nothing to
  * preserve compatibility with. */
 
+import DOMPurify from "dompurify";
 import { hasMathDelimiter, splitMath } from "./mathSyntax";
+import { hasOpenUiBlock, splitOpenUiBlocks } from "./openui/fence";
 
 /* Maths is lifted out before the prose pipeline runs and put back after.
  *
@@ -41,6 +43,17 @@ function escapeAttribute(value: string): string {
 }
 
 const MATH_TOKEN = (index: number) => `\u0000MATH${index}\u0000`;
+const CARD_TOKEN = (index: number) => `\u0000CARD${index}\u0000`;
+const FIGURE_TOKEN = (index: number) => `\u0000FIGURE${index}\u0000`;
+
+/* The profile the notes editor uses for a drawing (lib/noteFormats.ts,
+   sanitizeDiagram). A model's SVG is untrusted, so nothing that runs or links
+   survives. */
+const FIGURE_PURIFY = {
+  USE_PROFILES: { svg: true, svgFilters: true },
+  FORBID_TAGS: ["style", "script", "foreignObject", "image", "use", "a"],
+  FORBID_ATTR: ["href", "xlink:href"],
+};
 
 export function renderMarkdown(md: string | null | undefined): string {
   if (!md) return "";
@@ -50,6 +63,32 @@ export function renderMarkdown(md: string | null | undefined): string {
      escape rather than \0 for the same reason the swap-back regex is. */
   // oxlint-disable-next-line no-control-regex
   let source = md.replace(/\u0000/g, "");
+
+  /* SVG diagrams (a ```svg fence holding one <svg>) become the editor's
+     diagram figure, the same markup "Draw this section" stores. Lifted out
+     first, so an SVG's attributes are never read as Markdown. */
+  const figures: string[] = [];
+  source = source.replace(/```(?:svg|diagram)[ \t]*\r?\n([\s\S]*?)```/g, (whole, body: string) => {
+    const svg = body.trim();
+    if (!/^<svg[\s>]/i.test(svg)) return whole;
+    figures.push(String(DOMPurify.sanitize(svg, FIGURE_PURIFY)));
+    return `\n${FIGURE_TOKEN(figures.length - 1)}\n`;
+  });
+
+  /* OpenUI cards come out before the maths, so TeX inside a card's text is
+     not lifted as an equation. Each becomes the notes editor's card embed
+     (lib/noteFormats.ts), its source kept whole in data-code. */
+  const cards: string[] = [];
+  if (hasOpenUiBlock(source)) {
+    source = splitOpenUiBlocks(source)
+      .map((segment) => {
+        if (segment.kind === "text") return segment.text;
+        cards.push(segment.code);
+        return `\n${CARD_TOKEN(cards.length - 1)}\n`;
+      })
+      .join("");
+  }
+
   if (hasMathDelimiter(source)) {
     source = splitMath(source)
       .map((part) => {
@@ -141,6 +180,24 @@ export function renderMarkdown(md: string | null | undefined): string {
       const tex = equations[Number(index)];
       if (tex === undefined) return whole;
       return `<span class="ql-formula" data-value="${escapeAttribute(tex)}"></span>`;
+    });
+  }
+
+  if (figures.length > 0) {
+    // oxlint-disable-next-line no-control-regex
+    html = html.replace(/(?:<br\/>)*\u0000FIGURE(\d+)\u0000(?:<br\/>)*/g, (whole, index: string) => {
+      const svg = figures[Number(index)];
+      if (svg === undefined) return whole;
+      return `<figure class="ln-diagram">${svg}</figure>`;
+    });
+  }
+
+  if (cards.length > 0) {
+    // oxlint-disable-next-line no-control-regex
+    html = html.replace(/(?:<br\/>)*\u0000CARD(\d+)\u0000(?:<br\/>)*/g, (whole, index: string) => {
+      const code = cards[Number(index)];
+      if (code === undefined) return whole;
+      return `<div class="ln-openui" data-code="${escapeAttribute(code)}"></div>`;
     });
   }
 

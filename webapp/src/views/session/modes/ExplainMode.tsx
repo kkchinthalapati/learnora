@@ -15,6 +15,7 @@ import type { MisconceptionCandidate } from "../../../lib/misconceptions";
 import { askInSession, buildSessionContext, type SessionTurn } from "../../../api/aiSession";
 import { useRecordMisconceptions } from "../../../hooks/useMisconceptions";
 import { useSettings } from "../../../context/settings";
+import { AiReply } from "../../../components/chat/AiReply";
 import { Pending } from "../Pending";
 import { SessionComposer } from "../SessionComposer";
 import { useAiTask } from "../useAiTask";
@@ -50,6 +51,8 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
     [session.data.explain],
   );
   const [asking, setAsking] = useState(false);
+  /* The follow-up answer as it forms, while the request is in flight. */
+  const [liveAnswer, setLiveAnswer] = useState("");
 
   const save = (patch: Partial<ExplainData>) =>
     ctl.setModeData<ExplainData>("explain", { ...data, ...patch });
@@ -115,6 +118,7 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
     const withQuestion = [...history, { role: "user" as const, content: question }];
     save({ thread: { ...data.thread, [step]: withQuestion } });
     setAsking(true);
+    setLiveAnswer("");
     task.run(
       () =>
         askInSession({
@@ -128,9 +132,12 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
           }),
           topic: [session.subject, session.objective].filter(Boolean).join(" "),
           settings,
+          cards: true,
+          onDelta: (piece) => setLiveAnswer((so) => so + piece),
         }),
       (answer) => {
         setAsking(false);
+        setLiveAnswer("");
         ctl.setModeData<ExplainData>("explain", {
           ...data,
           thread: {
@@ -281,13 +288,19 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
               <StudentTurn key={i}>{turn.content}</StudentTurn>
             ) : (
               <TutorTurn key={i}>
-                <p>{turn.content}</p>
+                <AiReply text={turn.content} diagrams={false} />
               </TutorTurn>
             ),
           )}
 
+          {task.pending && liveAnswer ? (
+            <TutorTurn>
+              <AiReply text={liveAnswer} diagrams={false} streaming />
+            </TutorTurn>
+          ) : null}
+
           <Pending
-            pending={task.pending}
+            pending={task.pending && !liveAnswer}
             error={task.error}
             stopped={task.stopped}
             caption={

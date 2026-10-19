@@ -23,6 +23,14 @@ describe("richenNoteHtml", () => {
       `<p>The <span class="ln-mark-key">active site</span> binds.</p>`,
     );
   });
+
+  it("highlights words that carry inline emphasis, as at the start of a bullet", () => {
+    expect(
+      richenNoteHtml("<ul><li>==<strong>Separate Legal Personality</strong>== – the concept</li></ul>"),
+    ).toBe(
+      `<ul><li><span class="ln-mark-key"><strong>Separate Legal Personality</strong></span> – the concept</li></ul>`,
+    );
+  });
 });
 
 describe("sanitizeDiagram", () => {

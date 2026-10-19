@@ -1,8 +1,12 @@
 import { useEffect, useImperativeHandle, useRef, type RefObject } from "react";
 import Quill from "quill";
+import { Delta } from "quill/core";
 import "quill/dist/quill.snow.css";
 import { loadMathTypesetter } from "../lib/quillMath";
 import { registerNoteFormats, richenNoteHtml } from "../lib/noteFormats";
+import { renderMarkdown } from "../lib/markdown";
+import { hasOpenUiBlock } from "../lib/openui/fence";
+
 import styles from "./RichTextEditor.module.css";
 
 /* Hand-rolled Quill wrapper (archive/REACT_MIGRATION.md Decision #8) rather than
@@ -43,6 +47,8 @@ const ALLOWED_FORMATS = [
   "mark",
   "callout",
   "diagram",
+  /* OpenUI cards (lib/noteFormats): source in data-code, drawn by React. */
+  "openui",
   "bold",
   "italic",
   "underline",
@@ -172,15 +178,29 @@ export function RichTextEditor({
           .getContents()
           .ops.map((op) => {
             if (typeof op.insert === "string") return op.insert;
-            const formula = (op.insert as { formula?: string } | undefined)
-              ?.formula;
-            return typeof formula === "string" ? `$${formula}$` : "";
+            const embed = op.insert as { formula?: string; openui?: string } | undefined;
+            if (typeof embed?.formula === "string") return `$${embed.formula}$`;
+            /* A card's source is readable enough for the model, and it is the
+               only copy of what the card says. */
+            if (typeof embed?.openui === "string") {
+              return `\n\`\`\`openui\n${embed.openui}\n\`\`\`\n`;
+            }
+            return "";
           })
           .join("");
       },
       appendText: (text) => {
         const quill = quillRef.current;
         if (!quill || !text.trim()) return;
+        /* Text carrying a card is converted like a generated note, so the
+           card lands in the note as a card rather than as its source. */
+        if (hasOpenUiBlock(text)) {
+          const end = quill.getLength() - 1;
+          const delta = quill.clipboard.convert({ html: richenNoteHtml(renderMarkdown(text)) });
+          quill.updateContents(new Delta().retain(end).concat(delta), "user");
+          quill.setSelection(quill.getLength() - 1, 0, "silent");
+          return;
+        }
         // getLength() counts Quill's own trailing newline, so this is always
         // "just before that" — the true end of the document's content.
         const end = quill.getLength() - 1;
@@ -192,7 +212,16 @@ export function RichTextEditor({
         );
         quill.setSelection(quill.getLength() - 1, 0, "silent");
       },
-      getHtml: () => quillRef.current?.root.innerHTML ?? "",
+      getHtml: () => {
+        const root = quillRef.current?.root;
+        if (!root) return "";
+        if (!root.querySelector(".ln-openui")) return root.innerHTML;
+        /* Cards are saved as their source alone; the drawn markup is
+           React's and is rebuilt from `data-code` when the note opens. */
+        const copy = root.cloneNode(true) as HTMLElement;
+        copy.querySelectorAll(".ln-openui").forEach((card) => card.replaceChildren());
+        return copy.innerHTML;
+      },
       setHtml: (html) => {
         const quill = quillRef.current;
         if (!quill) return;

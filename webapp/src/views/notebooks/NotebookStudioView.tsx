@@ -5,7 +5,8 @@ import { Icon } from "../../components/Icon";
 import { Modal } from "../../components/Modal";
 import { useNotebook } from "../../hooks/useNotebooks";
 import type { SourceType } from "../../types/notebooks";
-import { callEdge } from "../../api/ai";
+import { callEdge, callEdgeStream } from "../../api/ai";
+import { AiReply } from "../../components/chat/AiReply";
 import { decksApi } from "../../api/decks";
 import { flashcardsApi } from "../../api/flashcards";
 import { CREATE_DEFAULTS, generateDeck } from "../../api/studyPackage";
@@ -15,6 +16,7 @@ import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
 import { WebSourceImportModal } from "./WebSourceImportModal";
 import { renderMarkdownNodes } from "../../lib/markdownToReact";
+import { loadOpenUiSection } from "../../lib/openui/load";
 import { extractSvgSource } from "../../lib/diagramSvg";
 import {
   DIAGRAM_CHAT_HINT,
@@ -87,6 +89,8 @@ export function NotebookStudioView() {
   >("canvas");
   const [chatInput, setChatInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  /* The tutor's reply as it forms, while the request is in flight. */
+  const [liveReply, setLiveReply] = useState("");
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isWebSearchOpen, setIsWebSearchOpen] = useState(false);
 
@@ -289,16 +293,23 @@ ${DIAGRAM_CHAT_HINT}`;
         ? "MISCONCEPTION LEDGER: still loading. You do not know this student's diagnosed misconceptions right now, so do not claim they have any or that they have none."
         : formatMisconceptionsForPrompt(ledger);
 
-      const response = await callEdge({
+      const cardsBlock = await loadOpenUiSection();
+      setLiveReply("");
+      const response = await callEdgeStream({
         history: [
           {
             role: "user",
-            content: `${systemPrompt}\n\n${evidenceBlock}\n\n${ledgerBlock}\n\nSTUDY SOURCES:\n${sourcesContext}\n\nSTUDENT QUESTION:\n${promptToSend}`,
+            content: `${systemPrompt}\n\n${evidenceBlock}\n\n${ledgerBlock}${cardsBlock ? `\n\n${cardsBlock}` : ""}\n\nSTUDY SOURCES:\n${sourcesContext}\n\nSTUDENT QUESTION:\n${promptToSend}`,
           },
         ],
         tool: "notebookStudio",
         settings,
+      }, {
+        onDelta: (piece) => setLiveReply((so) => so + piece),
+        onReset: () => setLiveReply(""),
+        onReplace: (replaced) => setLiveReply(replaced),
       });
+      setLiveReply("");
 
       const citedIndexes = new Set(
         Array.from(
@@ -320,6 +331,7 @@ ${DIAGRAM_CHAT_HINT}`;
         citations: citations.length > 0 ? citations : undefined,
       });
     } catch (cause) {
+      setLiveReply("");
       addChatMessage({
         role: "assistant",
         content:
@@ -897,9 +909,7 @@ Use British English throughout.`;
                             <div className={styles.userText}>{msg.content}</div>
                           ) : (
                             <div className={styles.replyProse}>
-                              {renderMarkdownNodes(msg.content, {
-                                diagrams: true,
-                              })}
+                              <AiReply text={msg.content} />
                             </div>
                           )}
 
@@ -926,6 +936,13 @@ Use British English throughout.`;
                           )}
                         </div>
                       ))}
+                      {isGenerating && liveReply ? (
+                        <div className={`${styles.messageBubble} ${styles.assistantMessage}`}>
+                          <div className={styles.replyProse}>
+                            <AiReply text={liveReply} diagrams streaming />
+                          </div>
+                        </div>
+                      ) : null}
                       <div ref={chatBottomRef} />
                     </div>
 
@@ -1068,7 +1085,7 @@ Use British English throughout.`;
                         <div className={styles.userText}>{msg.content}</div>
                       ) : (
                         <div className={styles.replyProse}>
-                          {renderMarkdownNodes(msg.content, { diagrams: true })}
+                          <AiReply text={msg.content} />
                         </div>
                       )}
 
@@ -1095,6 +1112,13 @@ Use British English throughout.`;
                       )}
                     </div>
                   ))}
+                  {isGenerating && liveReply ? (
+                    <div className={`${styles.messageBubble} ${styles.assistantMessage}`}>
+                      <div className={styles.replyProse}>
+                        <AiReply text={liveReply} diagrams streaming />
+                      </div>
+                    </div>
+                  ) : null}
                   <div ref={chatBottomRef} />
                 </div>
 

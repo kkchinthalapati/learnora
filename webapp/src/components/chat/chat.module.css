@@ -856,3 +856,9 @@
   border-color: var(--accent-ring);
   background: var(--surface-2);
 }
+
+.cardNotice {
+  margin: var(--s-1) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}

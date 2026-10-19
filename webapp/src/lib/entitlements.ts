@@ -286,7 +286,7 @@ export type Quotas = Record<AiToolId, number> & {
    most extreme daily user ever sees the ceiling. */
 export const QUOTAS: Record<Plan, Quotas> = {
   free: {
-    chat: 15,
+    chat: 10,
     notes: 3,
     flashcards: 3,
     quiz: 3,
@@ -296,8 +296,8 @@ export const QUOTAS: Record<Plan, Quotas> = {
     feynman: 2,
     examDeconstructor: 2,
     sparring: 2,
-    notebookStudio: 5,
-    image: 2,
+    notebookStudio: 3,
+    image: 1,
     notebooks: 3,
     importedCalendars: 0,
   },

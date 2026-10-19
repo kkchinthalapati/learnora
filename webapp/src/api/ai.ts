@@ -236,44 +236,7 @@ export async function callEdge(
         void queryClient.invalidateQueries({ queryKey: aiUsageKeys.today });
       }
 
-      if (!response.ok) {
-        const errorBody = (await response.json().catch(() => ({}))) as {
-          error?: string;
-          text?: string;
-          refused?: boolean;
-        };
-        /* `text` as well as `error`, because the edge function's rate-limit
-           replies are not shaped alike: `rateLimitResponse` puts the message
-           under `error` for the JSON modes (quiz, flashcards, plan) and under
-           `text` for everything else — chat, notes, the tutor. Reading only
-           `error` meant the modes a student uses most answered a spent daily
-           allowance with the generic failure line, and the copy that actually
-           explains it ("They reset at midnight — or Learnora Pro raises the
-           limit") never reached anyone. */
-        throw new AiError(
-          /* A 5xx body is the server talking to itself ("Internal error"),
-             not to the student. Only 4xx bodies — rate limits, refusals,
-             bad input — carry copy written for a person. */
-          response.status >= 500
-            ? GENERIC_FAILURE
-            : errorBody.error || errorBody.text || GENERIC_FAILURE,
-          {
-            // 4xx means the request itself is wrong (bad/expired token, bad
-            // payload) — retrying it just burns another round trip.
-            //
-            // 429 included: both ceilings behind it are measured in hours (a
-            // daily allowance that resets at midnight UTC) or minutes (the
-            // burst window), so a 2-second replay cannot clear either. It only
-            // delayed the message by the retry backoff and spent a second
-            // round trip proving the server meant it.
-            retryable: response.status >= 500,
-            // A content refusal carries its own explanation and must be shown
-            // verbatim rather than flattened into "generation failed".
-            refused: errorBody.refused === true,
-            status: response.status,
-          },
-        );
-      }
+      if (!response.ok) throw await failedResponse(response);
 
       const fullText = await response.text();
       let text = fullText;
@@ -337,6 +300,204 @@ export async function callEdge(
   /* Unreachable: the loop either returns or throws. Present so the function
    * has no implicit `undefined` return, which the vanilla did have. */
   throw lastError instanceof Error ? lastError : new AiError(GENERIC_FAILURE);
+}
+
+/** The error for a response the edge function answered with a non-2xx status. */
+async function failedResponse(response: Response): Promise<AiError> {
+  const errorBody = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    text?: string;
+    refused?: boolean;
+  };
+  /* `text` as well as `error`, because the edge function's rate-limit
+     replies are not shaped alike: `rateLimitResponse` puts the message
+     under `error` for the JSON modes (quiz, flashcards, plan) and under
+     `text` for everything else — chat, notes, the tutor. Reading only
+     `error` meant the modes a student uses most answered a spent daily
+     allowance with the generic failure line, and the copy that actually
+     explains it ("They reset at midnight — or Learnora Pro raises the
+     limit") never reached anyone. */
+  return new AiError(
+    /* A 5xx body is the server talking to itself ("Internal error"),
+       not to the student. Only 4xx bodies — rate limits, refusals,
+       bad input — carry copy written for a person. */
+    response.status >= 500
+      ? GENERIC_FAILURE
+      : errorBody.error || errorBody.text || GENERIC_FAILURE,
+    {
+      // 4xx means the request itself is wrong (bad/expired token, bad
+      // payload) — retrying it just burns another round trip.
+      //
+      // 429 included: both ceilings behind it are measured in hours (a
+      // daily allowance that resets at midnight UTC) or minutes (the
+      // burst window), so a 2-second replay cannot clear either. It only
+      // delayed the message by the retry backoff and spent a second
+      // round trip proving the server meant it.
+      retryable: response.status >= 500,
+      // A content refusal carries its own explanation and must be shown
+      // verbatim rather than flattened into "generation failed".
+      refused: errorBody.refused === true,
+      status: response.status,
+    },
+  );
+}
+
+/** What a streamed reply tells the caller while it forms. */
+export interface StreamHandlers {
+  /** A piece of the reply, in order. */
+  onDelta?: (piece: string) => void;
+  /** Drop what has been shown: the chain moved on after showing some of it. */
+  onReset?: () => void;
+  /** Show this instead of everything so far (a refusal found after streaming). */
+  onReplace?: (text: string) => void;
+}
+
+/** Reads an SSE body, calling `onData` with each event's data payload. The
+ *  same reader as _shared/streaming.js on the server; keep the two in step. */
+async function readEvents(
+  body: ReadableStream<Uint8Array>,
+  onData: (payload: string) => void,
+): Promise<void> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const dataOf = (block: string): string | null => {
+    const lines: string[] = [];
+    for (const line of block.split("\n")) {
+      if (line.startsWith("data:")) lines.push(line.slice(5).replace(/^ /, ""));
+    }
+    return lines.length ? lines.join("\n") : null;
+  };
+  const drain = () => {
+    let at: number;
+    while ((at = buffer.indexOf("\n\n")) !== -1) {
+      const payload = dataOf(buffer.slice(0, at));
+      buffer = buffer.slice(at + 2);
+      if (payload !== null) onData(payload);
+    }
+  };
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    // Normalised over the whole buffer: a CR at the end of one chunk may pair
+    // with the LF that starts the next.
+    buffer = (buffer + decoder.decode(value, { stream: true })).replace(/\r\n/g, "\n");
+    drain();
+  }
+  buffer = (buffer + decoder.decode()).replace(/\r\n/g, "\n");
+  drain();
+  if (buffer.trim()) {
+    const payload = dataOf(buffer);
+    if (payload !== null) onData(payload);
+  }
+}
+
+/** Like `callEdge`, but the reply is delivered as it forms. Resolves with the
+ *  same `EdgeResult` once the reply is complete.
+ *
+ *  Not retried: a retry after text has been shown would repeat it, and the
+ *  student has already seen the start of the answer. Callers that need a
+ *  second try can call `callEdge`. */
+export async function callEdgeStream(
+  payload: EdgePayload,
+  handlers: StreamHandlers,
+  externalSignal?: AbortSignal,
+): Promise<EdgeResult> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  const withSession =
+    activeSessionKey && !payload.sessionKey ? { ...payload, sessionKey: activeSessionKey } : payload;
+  const body = JSON.stringify({ ...withSession, stream: true });
+
+  if (!(await ensureAiConsent(data.session?.user?.user_metadata))) {
+    throw new AiError(AI_CONSENT_DECLINED_MESSAGE, { retryable: false });
+  }
+  if (externalSignal?.aborted) throw new AiError(CANCELLED_MESSAGE, { retryable: false });
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  /* The deadline covers the whole reply, not just the first byte: the
+     server's own budget is shorter, so this only trips if the connection
+     itself stalls. */
+  const attempt = new AbortController();
+  const onExternalAbort = () => attempt.abort();
+  const deadline = setTimeout(() => attempt.abort(), REQUEST_TIMEOUT_MS);
+  externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
+
+  try {
+    const response = await fetch(EDGE_URL, {
+      method: "POST",
+      headers,
+      body,
+      signal: attempt.signal,
+    });
+    if (response.ok || response.status === 429) {
+      void queryClient.invalidateQueries({ queryKey: aiUsageKeys.today });
+    }
+    if (!response.ok) throw await failedResponse(response);
+
+    /* A reply that came back whole (a cached answer, or a server that did not
+       stream it) is delivered in one piece through the same handlers. */
+    if (!(response.headers.get("content-type") ?? "").startsWith("text/event-stream")) {
+      const parsed = (await response.json().catch(() => ({}))) as {
+        text?: string;
+        refused?: boolean;
+      };
+      const text = typeof parsed.text === "string" ? parsed.text : "";
+      if (text) handlers.onDelta?.(text);
+      return { text, ...(parsed.refused === true ? { refused: true } : {}) };
+    }
+
+    let text = "";
+    let refused = false;
+    let finished = false;
+    let failure: string | undefined;
+    await readEvents(response.body!, (payload) => {
+      const event = JSON.parse(payload) as {
+        delta?: string;
+        reset?: boolean;
+        replace?: string;
+        refused?: boolean;
+        done?: boolean;
+        error?: string;
+      };
+      if (typeof event.delta === "string") {
+        text += event.delta;
+        handlers.onDelta?.(event.delta);
+      } else if (event.reset) {
+        text = "";
+        handlers.onReset?.();
+      } else if (typeof event.replace === "string") {
+        text = event.replace;
+        handlers.onReplace?.(text);
+      }
+      if (event.refused) refused = true;
+      if (event.error) failure = event.error;
+      if (event.done) finished = true;
+    });
+
+    if (failure) throw new AiError(failure, { retryable: true });
+    // The stream ended without its closing event: the connection dropped.
+    if (!finished) throw new AiError(NETWORK_MESSAGE);
+    return { text, ...(refused ? { refused } : {}) };
+  } catch (err) {
+    const name = (err as Error)?.name;
+    if (name === "TimeoutError" || name === "AbortError") {
+      throw externalSignal?.aborted
+        ? new AiError(CANCELLED_MESSAGE, { retryable: false })
+        : new AiError(TIMEOUT_MESSAGE, { retryable: false });
+    }
+    if (err instanceof AiError) throw err;
+    throw new AiError(
+      typeof navigator !== "undefined" && navigator.onLine === false
+        ? OFFLINE_MESSAGE
+        : NETWORK_MESSAGE,
+    );
+  } finally {
+    clearTimeout(deadline);
+    externalSignal?.removeEventListener("abort", onExternalAbort);
+  }
 }
 
 /** Trim history to the last `MAX_HISTORY` messages. */

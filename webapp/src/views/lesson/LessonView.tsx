@@ -27,7 +27,7 @@ import {
   progressLabel,
   progressValue,
 } from "../../lib/lessons";
-import { renderMarkdownNodes } from "../../lib/markdownToReact";
+import { AiReply } from "../../components/chat/AiReply";
 import { useDocumentTitle } from "../../lib/routeTitle";
 import { mistakeTitle } from "../../lib/mistakeLoop";
 import text from "../../styles/text.module.css";
@@ -248,7 +248,7 @@ function NotesPanel({
         </Link>
       </div>
       <article className={`${text.prose} ${styles.prose}`}>
-        {renderMarkdownNodes(markdown, { diagrams: true })}
+        <AiReply text={markdown} notes />
       </article>
     </div>
   );

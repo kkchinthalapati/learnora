@@ -7,7 +7,7 @@ import { useOptionalAuth } from "./auth";
 import { loadTranscript, saveTranscript } from "../lib/chatTranscript";
 import {
   AiError,
-  callEdge,
+  callEdgeStream,
   trimHistory,
   type ChatMessage as HistoryMessage,
 } from "../api/ai";
@@ -36,7 +36,7 @@ import {
   pathForNavigateTarget,
   type ActionHandlers,
 } from "../lib/chatActions";
-import { stripActionTagBlocks, fenceUntrusted } from "../lib/actionTags";
+import { stripActionTagBlocks, streamingVisibleText, fenceUntrusted } from "../lib/actionTags";
 import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
 import { isImageFile, prepareStudyImage, StudyImageError } from "../lib/studyImage";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
@@ -62,6 +62,7 @@ import {
 import { decodeBase64UTF8, extractFlashcardJSON } from "../lib/aiJson";
 import { THEME_PRESETS, type Mode } from "../lib/appearance";
 import { useAppearance } from "./appearance";
+import { loadOpenUiSection } from "../lib/openui/load";
 import { useDialog } from "./dialog";
 import { useSettings } from "./settings";
 import { useTimer } from "./timer";
@@ -570,7 +571,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const finish = (patch: Partial<ChatMessage>) =>
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === pendingId ? { ...m, pending: false, ...patch } : m,
+            m.id === pendingId ? { ...m, pending: false, streaming: false, ...patch } : m,
           ),
         );
 
@@ -704,6 +705,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           conciseness: adaptiveNudge?.conciseness ?? settings.aiConciseness,
           adaptiveNudge: adaptiveNudge?.instruction,
           guessFirst: options?.guessFirst === true,
+          openUiSection: await loadOpenUiSection(),
           performanceEvidence,
           misconceptionLedger,
           webEvidence: webResponse
@@ -715,7 +717,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const priorHistory = trimHistory(historyRef.current);
         /* Research is done by this point — everything above awaited it. */
         setSendPhase("thinking");
-        const { text } = await callEdge(
+        /* The reply is shown as it forms. Action tags are stripped from what
+           is shown; the full text is handled once it is complete, below. */
+        let streamed = "";
+        const showStreamed = (patch: Partial<ChatMessage>) =>
+          setMessages((prev) =>
+            prev.map((m) => (m.id === pendingId ? { ...m, ...patch } : m)),
+          );
+        const { text } = await callEdgeStream(
           {
             /* The student's words alone are the user turn; the app's rules
                and workspace data go in `context`, which the edge function
@@ -726,8 +735,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             tool: "chat",
             settings,
           },
-          undefined,
-          undefined,
+          {
+            onDelta: (piece) => {
+              streamed += piece;
+              const shown = streamingVisibleText(streamed).trim();
+              if (!shown) return;
+              showStreamed({ pending: false, streaming: true, text: shown });
+            },
+            onReset: () => {
+              streamed = "";
+              showStreamed({ pending: true, streaming: false, text: "" });
+            },
+            onReplace: (replaced) => {
+              streamed = replaced;
+              showStreamed({ pending: false, streaming: true, text: streamingVisibleText(replaced).trim() });
+            },
+          },
           controller.signal,
         );
 

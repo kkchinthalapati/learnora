@@ -79,3 +79,18 @@ export function stripActionTagBlocks(text: string | null | undefined): string {
     "",
   );
 }
+
+/** The text a student may see while a reply is still streaming: the complete
+ *  action-tag blocks removed, and anything from an action tag that has opened
+ *  but not yet closed (or from a tag still being typed) held back. Nothing
+ *  half-written reaches the screen as if it were a pending or confirmed action;
+ *  the full reply is handled once it is complete. */
+export function streamingVisibleText(text: string | null | undefined): string {
+  let shown = stripActionTagBlocks(text);
+  const open = new RegExp(`<(${TAG_NAMES})(?:\s|>|\|)`).exec(shown);
+  if (open) shown = shown.slice(0, open.index);
+  // A tag cut off while its name is still arriving: "<ADD_T", "<", "</ADD".
+  const partial = /<\/?[A-Z_|]*$/.exec(shown);
+  if (partial) shown = shown.slice(0, partial.index);
+  return shown;
+}

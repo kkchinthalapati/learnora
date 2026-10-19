@@ -1009,7 +1009,7 @@ describe("TutorChat", () => {
       await userEvent.click(chip);
       expect(chip).toHaveAttribute("aria-pressed", "true");
       /* Free plan, nothing used yet: the image allowance is 2. */
-      expect(await screen.findByText(/2 left today/)).toBeInTheDocument();
+      expect(await screen.findByText(/1 left today/)).toBeInTheDocument();
       expect(bodies).toHaveLength(0);
 
       await userEvent.type(
