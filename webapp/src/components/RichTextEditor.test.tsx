@@ -168,3 +168,38 @@ describe("RichTextEditor", () => {
     expect(document.querySelector(".ql-editor")).not.toBeInTheDocument();
   });
 });
+
+describe("RichTextEditor OpenUI cards", () => {
+  const CARD = 'root = Stack([t])\nt = KeyTerms("Words to know", [["Catalyst", "Speeds a reaction up."]])';
+  const html = `<p>Before</p><div class="ln-openui" data-code="${CARD.replace(/"/g, "&quot;")}"></div><p>After</p>`;
+
+  it("draws a stored card and saves only its source", async () => {
+    const ref = createRef<RichTextEditorHandle>();
+    render(<RichTextEditor ref={ref} initialHtml={html} />);
+    await waitFor(() => expect(document.body.textContent).toContain("Speeds a reaction up."));
+
+    const saved = ref.current!.getHtml();
+    const doc = new DOMParser().parseFromString(`<body>${saved}</body>`, "text/html");
+    const card = doc.querySelector("div.ln-openui");
+    expect(card?.getAttribute("data-code")).toBe(CARD);
+    expect(card?.innerHTML).toBe("");
+    // The live document still shows the drawn card.
+    expect(document.querySelector(".ql-editor .ln-openui")?.textContent).toContain("Catalyst");
+  });
+
+  it("gives the notes AI the card's source as text", async () => {
+    const ref = createRef<RichTextEditorHandle>();
+    render(<RichTextEditor ref={ref} initialHtml={html} />);
+    await waitFor(() => expect(ref.current?.getPlainText()).toContain("KeyTerms"));
+    expect(ref.current!.getPlainText()).toMatch(/Before[\s\S]*```openui[\s\S]*After/);
+  });
+
+  it("puts an AI-inserted card in as a card, not as its source", async () => {
+    const ref = createRef<RichTextEditorHandle>();
+    render(<RichTextEditor ref={ref} initialHtml="<p>Start</p>" onUserChange={() => {}} />);
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    act(() => ref.current!.appendText(`Here are the terms.\n\n\`\`\`openui\n${CARD}\n\`\`\``));
+    await waitFor(() => expect(document.querySelector(".ql-editor .ln-openui")).not.toBeNull());
+    expect(document.querySelector(".ql-editor")?.textContent).not.toContain("root = Stack");
+  });
+});

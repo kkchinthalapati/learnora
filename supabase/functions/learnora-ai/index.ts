@@ -16,7 +16,13 @@ import {
   permittedProviderIds,
   radoxPermittedForAge,
 } from "../_shared/providerPolicy.js";
-import { addBodyUsage, addGeminiUsage, newUsage } from "../_shared/tokenUsage.js";
+import { addBodyUsage, addGeminiUsage, addUsage, newUsage } from "../_shared/tokenUsage.js";
+import {
+  anthropicDelta,
+  encodeEvent,
+  openAiDelta,
+  readSse,
+} from "../_shared/streaming.js";
 import { cacheableRef, requestHash } from "../_shared/itemCache.js";
 
 /** Tokens one request spent across all its model calls (_shared/tokenUsage.js). */
@@ -385,7 +391,7 @@ function parseExtraProviders(): AIProvider[] {
 
 /* Built-ins first, operator additions after. Recomputed per request so a
    secret change takes effect without a redeploy. */
-function providerChain(radoxAllowed: boolean): AIProvider[] {
+function providerChain(radoxAllowed: boolean, plan: Plan): AIProvider[] {
   /* Only providers students were told about (see _shared/providerPolicy.js),
      narrowed further by AI_PROVIDER_ALLOWLIST, and minus any whose key was
      refused recently. An AI_EXTRA_PROVIDERS entry is dropped here unless it
@@ -395,6 +401,9 @@ function providerChain(radoxAllowed: boolean): AIProvider[] {
   return [...BUILTIN_PROVIDERS, ...parseExtraProviders()].filter(
     (p) =>
       permitted.has(p.id) &&
+      // Free accounts only reach providers that cost nothing: a free student
+      // whose free providers all fail gets a plain "try again", not a bill.
+      (plan !== "free" || p.cost === "free") &&
       !deadKeys.isDead(p.id) &&
       (p.id !== "radox" || radoxAllowed),
   );
@@ -579,6 +588,329 @@ async function callProvider(
   }
 }
 
+/* ── STREAMING ─────────────────────────────────────────────────────────────
+   The same provider chain as the blocking path, with each call switched to
+   its streaming form and the text forwarded as it arrives. The wire format is
+   _shared/streaming.js. Free-form replies only: JSON modes need the whole text
+   to parse, and an attachment or image takes the blocking path. */
+
+/* Longest a provider may stay silent before its first words, and between
+   chunks once it has started. After the first words the request budget
+   (TOTAL_BUDGET_MS) is what ends a slow reply. */
+const STREAM_IDLE_MS = TIMEOUT_MS.chat;
+
+/* A safety verdict from inside a stream. It ends the chain, as a verdict
+   does on the blocking path. */
+class StreamVerdict extends Error {}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+  });
+  return Promise.race([promise, limit]).finally(() => clearTimeout(timer));
+}
+
+async function callProviderStream(
+  provider: AIProvider,
+  opts: {
+    systemInstruction: string;
+    history: any[];
+    userContent: string;
+    signal: AbortSignal;
+    usage: TokenUsage;
+  },
+  onDelta: (text: string) => void,
+): Promise<string> {
+  const key = Deno.env.get(provider.keyEnv);
+  if (!key) throw new Error(`${provider.keyEnv} is not set in Supabase secrets.`);
+  const url = resolveProviderUrl(provider);
+  if (!url) {
+    throw new Error(
+      `${provider.accountEnv} is not set in Supabase secrets, and ${provider.id} needs it to build its endpoint URL.`,
+    );
+  }
+
+  const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
+  const dialect: ProviderDialect = provider.dialect || "openai";
+  const { headers, body } = buildProviderRequest(provider, model, key, {
+    systemInstruction: opts.systemInstruction,
+    history: opts.history,
+    userContent: opts.userContent,
+    wantsJson: false,
+  });
+  body.stream = true;
+  // Without this, OpenAI-style providers send no token counts for a stream.
+  if (dialect !== "anthropic") body.stream_options = { include_usage: true };
+
+  const controller = new AbortController();
+  const onParentAbort = () => controller.abort();
+  opts.signal.addEventListener("abort", onParentAbort);
+  let firstWords: ReturnType<typeof setTimeout> | undefined = setTimeout(
+    () => controller.abort(),
+    STREAM_IDLE_MS,
+  );
+
+  let text = "";
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      signal: controller.signal,
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw new Error(
+        `${provider.id} returned ${response.status}: ${JSON.stringify(data?.error ?? data ?? {})}`,
+      );
+    }
+    if (!response.body) throw new Error(`${provider.id} sent no body.`);
+
+    await readSse(response.body, (payload) => {
+      if (payload === "[DONE]") return;
+      const json = JSON.parse(payload);
+      if (json.error) throw new Error(`${provider.id} error: ${JSON.stringify(json.error)}`);
+
+      if (dialect === "anthropic") {
+        // Input tokens arrive first, output tokens last; each is counted once.
+        if (json.type === "message_start") addUsage(opts.usage, json.message?.usage?.input_tokens, 0);
+        if (json.type === "message_delta") addUsage(opts.usage, 0, json.usage?.output_tokens);
+      } else {
+        addBodyUsage(opts.usage, json);
+      }
+
+      const piece = dialect === "anthropic" ? anthropicDelta(json) : openAiDelta(json);
+      if (!piece) return;
+      if (firstWords !== undefined) {
+        clearTimeout(firstWords);
+        firstWords = undefined;
+      }
+      text += piece;
+      onDelta(piece);
+    });
+  } finally {
+    if (firstWords !== undefined) clearTimeout(firstWords);
+    opts.signal.removeEventListener("abort", onParentAbort);
+    // Closes the connection if reading stopped early; harmless once it ended.
+    controller.abort();
+  }
+
+  if (text.trim() === "") throw new Error(`${provider.id} returned an empty completion.`);
+  return text;
+}
+
+async function streamGemini(
+  modelName: string,
+  apiKey: string,
+  opts: {
+    systemInstruction: string;
+    history: any[];
+    currentMsg: string;
+    mode?: string;
+    usage: TokenUsage;
+  },
+  onDelta: (text: string) => void,
+): Promise<string> {
+  const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({
+    model: modelName,
+    systemInstruction: opts.systemInstruction,
+  });
+  const chatHistory = (opts.history || []).slice(0, -1).map((m: any) => ({
+    role: m.role === "user" ? "user" : "model",
+    parts: [{ text: m.content }],
+  }));
+  const chat = model.startChat({ history: chatHistory });
+  const label = `Gemini (${modelName})`;
+
+  const result: any = await withTimeout(
+    chat.sendMessageStream(opts.currentMsg),
+    timeoutFor(opts.mode),
+    label,
+  );
+  const chunks = result.stream[Symbol.asyncIterator]();
+  let text = "";
+  for (;;) {
+    // Each chunk is awaited against the idle limit. `.text()` throws on a
+    // blocked candidate, and the caller reads that as a safety verdict.
+    const next: IteratorResult<any> = await withTimeout(chunks.next(), STREAM_IDLE_MS, label);
+    if (next.done) break;
+    const piece: string = next.value.text();
+    if (!piece) continue;
+    text += piece;
+    onDelta(piece);
+  }
+
+  const final: any = await withTimeout(result.response, STREAM_IDLE_MS, label);
+  addGeminiUsage(opts.usage, { response: final });
+  if (isGeminiSafetyBlock(final)) throw new StreamVerdict(`${modelName} blocked the request`);
+  if (text.trim() === "") throw new Error(`${label} returned empty text`);
+  return text;
+}
+
+/* Runs the chain as a stream and returns the response immediately; the work
+   continues in the background and feeds the stream as it goes. The client
+   sees `delta` events while the reply forms, then a `done` (or `error`). */
+function streamReply(ctx: {
+  history: any[];
+  currentMsg: string;
+  mode?: string;
+  systemInstruction: string;
+  userId: string;
+  logId?: string;
+  startedAt: number;
+  debugErrors: Record<string, string>;
+  usage: TokenUsage;
+  radoxAllowed: boolean;
+  plan: Plan;
+  corsHeaders: Record<string, string>;
+}): Response {
+  const encoder = new TextEncoder();
+  const cancelled = new AbortController();
+  const deadline = AbortSignal.any([AbortSignal.timeout(TOTAL_BUDGET_MS), cancelled.signal]);
+  let out!: ReadableStreamDefaultController<Uint8Array>;
+
+  const send = (event: Record<string, unknown>) => {
+    try {
+      out.enqueue(encoder.encode(encodeEvent(event)));
+    } catch {
+      // The reader has gone; nothing more to deliver.
+    }
+  };
+
+  // Text already on screen when the chain moves on has to be taken back.
+  let visible = false;
+  const onDelta = (piece: string) => {
+    visible = true;
+    send({ delta: piece });
+  };
+  const failedMidway = () => {
+    if (!visible) return;
+    send({ reset: true });
+    visible = false;
+  };
+
+  const refuse = (trigger: string) => {
+    const message = isSelfHarmContent(trigger) ? SELF_HARM_REFUSAL : SAFETY_REFUSAL;
+    send({ replace: message, refused: true });
+    send({ done: true, refused: true, modelUsed: "safety-filter" });
+  };
+
+  const succeed = (text: string, modelUsed: string, provider: string, model: string) => {
+    // Same output screen as the blocking path. Text already streamed is
+    // replaced, not left on screen, if the screen trips.
+    if (screenForUnsafeContent(text)) {
+      console.warn("[safety] streamed output refused by screen", { mode: ctx.mode, userId: ctx.userId });
+      refuse(`${ctx.currentMsg}\n${text}`);
+      return;
+    }
+    recordOutcome(ctx.logId, {
+      provider,
+      model,
+      startedAt: ctx.startedAt,
+      failed: Object.keys(ctx.debugErrors),
+      usage: ctx.usage,
+    });
+    send({ done: true, modelUsed });
+  };
+
+  const run = async () => {
+    const geminiKey = geminiPermitted() ? Deno.env.get("GEMINI_API_KEY") : undefined;
+    if (geminiKey) {
+      const models = (Deno.env.get("GEMINI_MODELS") || "gemini-3.6-flash")
+        .split(",").map((m) => m.trim()).filter(Boolean);
+      for (const modelName of models) {
+        if (deadline.aborted) break;
+        try {
+          const text = await streamGemini(modelName, geminiKey, { ...ctx, usage: ctx.usage }, onDelta);
+          return succeed(text, modelName, "gemini", modelName);
+        } catch (err: any) {
+          if (err instanceof StreamVerdict || isSafetyError(err)) {
+            console.warn(`[safety] ${modelName} refused the request`, { mode: ctx.mode, userId: ctx.userId });
+            return refuse(ctx.currentMsg);
+          }
+          ctx.debugErrors[`gemini (${modelName})`] = err.message || String(err);
+          if (/\[(401|402|403)\b/.test(String(err?.message ?? ""))) deadKeys.markDead("gemini");
+          console.error(`Gemini (${modelName}) Error:`, err);
+          failedMidway();
+        }
+      }
+    } else {
+      ctx.debugErrors["gemini"] = "GEMINI_API_KEY secret is not set in Supabase.";
+    }
+
+    for (const provider of providerChain(ctx.radoxAllowed, ctx.plan)) {
+      if (!Deno.env.get(provider.keyEnv)) {
+        ctx.debugErrors[provider.id] = `${provider.keyEnv} is not set in Supabase.`;
+        continue;
+      }
+      if (!resolveProviderUrl(provider)) {
+        ctx.debugErrors[provider.id] =
+          `${provider.accountEnv} is not set in Supabase, and ${provider.id} needs it to build its endpoint URL.`;
+        continue;
+      }
+      if (deadline.aborted) {
+        ctx.debugErrors[provider.id] = "Skipped — request budget exhausted.";
+        continue;
+      }
+      const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
+      try {
+        const text = await callProviderStream(
+          provider,
+          { systemInstruction: ctx.systemInstruction, history: ctx.history, userContent: ctx.currentMsg, signal: deadline, usage: ctx.usage },
+          onDelta,
+        );
+        return succeed(text, `${provider.id}/${model}`, provider.id, model);
+      } catch (err: any) {
+        ctx.debugErrors[provider.id] = err.message || String(err);
+        if (isDeadKeyError(ctx.debugErrors[provider.id])) deadKeys.markDead(provider.id);
+        console.error(`${provider.id} Error:`, err);
+        failedMidway();
+      }
+    }
+
+    console.error("AI pipeline failure", { debugErrors: ctx.debugErrors, error: "All AI channels offline." });
+    await refundRequest(
+      ctx.logId,
+      "failed_all",
+      ctx.startedAt,
+      Object.keys(ctx.debugErrors).filter((id) => !/not set|Skipped/.test(ctx.debugErrors[id])),
+    );
+    send({ error: "AI is temporarily unavailable. Please try again in a moment." });
+  };
+
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      out = controller;
+      run()
+        .catch((err) => {
+          console.error("stream pipeline failure", err);
+          send({ error: "AI is temporarily unavailable. Please try again in a moment." });
+        })
+        .finally(() => {
+          try {
+            out.close();
+          } catch {
+            // Already closed by a cancel.
+          }
+        });
+    },
+    cancel() {
+      cancelled.abort();
+    },
+  });
+
+  return new Response(body, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      // Stops a proxy from holding the events back until the reply ends.
+      "X-Accel-Buffering": "no",
+      ...ctx.corsHeaders,
+    },
+  });
+}
+
 /* `trigger` is the text that tripped the screen (the student's message or
    the model's answer). Self-harm gets crisis resources instead of the
    general "ask me about your studies" refusal. */
@@ -653,6 +985,10 @@ type ImageProvider = {
   defaultModel: string;
   accountEnv?: string;
 };
+
+/* Image models that bill per picture. Free accounts never reach them: the
+   free image allowance is spent on the providers that cost nothing. */
+const PAID_IMAGE_PROVIDERS = new Set(["openai"]);
 
 const IMAGE_PROVIDERS: ImageProvider[] = [
   {
@@ -826,6 +1162,7 @@ async function generateImage(
   prompt: string,
   signal: AbortSignal,
   debugErrors: Record<string, string>,
+  plan: Plan,
 ): Promise<{ image: GeneratedImage; modelUsed: string }> {
   /* Same disclosure policy as the text chain (_shared/providerPolicy.js):
      only providers students were told about, narrowed by
@@ -833,6 +1170,11 @@ async function generateImage(
   const permitted = permittedProviderIds(Deno.env.get("AI_PROVIDER_ALLOWLIST"));
   for (const provider of IMAGE_PROVIDERS) {
     const label = `image:${provider.id}`;
+    // Paid image models are for paying accounts only (see PAID_IMAGE_PROVIDERS).
+    if (plan === "free" && PAID_IMAGE_PROVIDERS.has(provider.id)) {
+      debugErrors[label] = "Paid image model: not offered on the free plan.";
+      continue;
+    }
     if (!permitted.has(provider.id) || deadKeys.isDead(provider.id)) {
       debugErrors[label] = "Not permitted by AI_PROVIDER_ALLOWLIST, or its key was recently refused.";
       continue;
@@ -920,9 +1262,9 @@ const DEFAULT_TOOL = "chat";
    only the number here is what actually stops a request. */
 const AI_TOOL_QUOTAS: Record<Plan, Record<string, number>> = {
   free: {
-    chat: 15, notes: 3, flashcards: 3, quiz: 3, plan: 1,
+    chat: 10, notes: 3, flashcards: 3, quiz: 3, plan: 1,
     debugger: 2, preMortem: 2, feynman: 2, examDeconstructor: 2,
-    sparring: 2, notebookStudio: 5, image: 2,
+    sparring: 2, notebookStudio: 3, image: 1,
   },
   plus: {
     chat: 60, notes: 10, flashcards: 10, quiz: 10, plan: 3,
@@ -968,7 +1310,7 @@ function rateLimitResponse(
  * burst slips through while the table is unreachable) for a much worse one
  * (AI goes fully offline because a side-table had a bad moment). */
 type RateLimitVerdict =
-  | { allowed: true; logId?: string }
+  | { allowed: true; logId?: string; plan: Plan }
   | { allowed: false; message: string };
 
 /** Providers whose key or billing was refused (401/402/403), skipped for a
@@ -1316,7 +1658,7 @@ async function checkAndLogRateLimit(
 
     if (countError) {
       console.error("[rate-limit] count query failed, failing open", countError);
-      return { allowed: true };
+      return { allowed: true, plan };
     }
 
     if ((count ?? 0) >= burstMax) {
@@ -1363,10 +1705,11 @@ async function checkAndLogRateLimit(
       console.error("[rate-limit] log insert failed (request still allowed)", insertError);
     }
 
-    return { allowed: true, logId: logRow?.id };
+    return { allowed: true, logId: logRow?.id, plan };
   } catch (err) {
     console.error("[rate-limit] unexpected failure, failing open", err);
-    return { allowed: true };
+    // The plan is unknown here, so the strictest tier applies.
+    return { allowed: true, plan: "free" };
   }
 }
 
@@ -1425,7 +1768,7 @@ Deno.serve(async (req) => {
     const usage: TokenUsage = newUsage();
 
     try {
-        const { history, file, settings, mode, tool, context, sessionKey, quizMeta, itemCache } = await req.json();
+        const { history, file, settings, mode, tool, context, sessionKey, quizMeta, itemCache, stream } = await req.json();
         const s = settings || {};
 
         /* Instructions and workspace data written by the app, kept out of the
@@ -1476,6 +1819,7 @@ Deno.serve(async (req) => {
             return rateLimitResponse(mode, jsonHeaders, rateLimit.message);
         }
         logId = rateLimit.logId;
+        const plan = rateLimit.plan;
 
         // Screen before spending a token. `history` carries the workspace
         // context prelude, so the newest turn is screened on its own and
@@ -1497,6 +1841,7 @@ Deno.serve(async (req) => {
                     buildImagePrompt(description),
                     AbortSignal.timeout(TOTAL_BUDGET_MS),
                     debugErrors,
+                    rateLimit.plan,
                 );
             } catch (err) {
                 if (err instanceof ImageSafetyBlock) {
@@ -1534,6 +1879,27 @@ Deno.serve(async (req) => {
                 mimeType,
                 modelUsed: generated.modelUsed,
             }), { headers: jsonHeaders });
+        }
+
+        /* Free-form replies can stream. A client that asks for it gets the
+           same chain, guards and logging, with the text forwarded as it forms.
+           A cached reply, a JSON mode or an attachment keeps the blocking path. */
+        const wantsStream = stream === true && !isJsonMode(mode) && !file && !cacheRef;
+        if (wantsStream) {
+            return streamReply({
+                history,
+                currentMsg,
+                mode,
+                systemInstruction,
+                userId: user.id,
+                logId,
+                startedAt,
+                debugErrors,
+                usage,
+                radoxAllowed,
+                plan,
+                corsHeaders,
+            });
         }
 
         // Bounds the whole chain. Without it a run of slow providers keeps the
@@ -1574,7 +1940,7 @@ Deno.serve(async (req) => {
                     console.warn(`[${label}] Gemini call failed`, err);
                 }
             }
-            for (const provider of providerChain(radoxAllowed)) {
+            for (const provider of providerChain(radoxAllowed, plan)) {
                 if (!Deno.env.get(provider.keyEnv) || !resolveProviderUrl(provider)) continue;
                 if (budgetExhausted()) return null;
                 try {
@@ -1798,7 +2164,7 @@ Deno.serve(async (req) => {
         // Each is tried until one returns usable text; unconfigured ones are
         // skipped without being treated as failures.
         // =========================================================================
-        for (const provider of providerChain(radoxAllowed)) {
+        for (const provider of providerChain(radoxAllowed, plan)) {
             if (!Deno.env.get(provider.keyEnv)) {
                 debugErrors[provider.id] = `${provider.keyEnv} is not set in Supabase.`;
                 continue;

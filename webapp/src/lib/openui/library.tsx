@@ -484,3 +484,12 @@ export const askLibrary = createLibrary({
     },
   ],
 });
+
+/** The library for a note's study guide. Quizzes, flashcards and follow-up
+ *  chips belong to their own tools and to the chat, not to the notes process,
+ *  so they are removed here rather than merely discouraged: a guide that
+ *  asked for one would report it as an unknown component instead of drawing
+ *  a quiz nobody asked this page to make. */
+export const guideLibrary = askLibrary.extend({
+  components: { remove: ["MiniQuiz", "Flashcards", "FollowUps"] },
+});

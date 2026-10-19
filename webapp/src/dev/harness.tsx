@@ -122,6 +122,24 @@ const RPCS: Record<string, unknown> = {
   remove_friend: null,
 };
 
+/** The reply as server-sent events, a few characters at a time, ending with
+ *  the closing event — the same wire format learnora-ai streams. */
+function sseReply(text: string): Response {
+  const enc = new TextEncoder();
+  const pieces = text.match(/[\s\S]{1,18}/g) ?? [];
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      for (const piece of pieces) {
+        controller.enqueue(enc.encode(`data: ${JSON.stringify({ delta: piece })}\n\n`));
+        await new Promise((r) => setTimeout(r, 35));
+      }
+      controller.enqueue(enc.encode(`data: ${JSON.stringify({ done: true, modelUsed: "harness" })}\n\n`));
+      controller.close();
+    },
+  });
+  return new Response(stream, { headers: { "Content-Type": "text/event-stream; charset=utf-8" } });
+}
+
 function json(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
     status: 200,
@@ -171,7 +189,12 @@ function install(supabaseUrl: string) {
       }
       /* Typing "openui demo" returns one of every card, so the Ask drawer's
          OpenUI rendering can be looked at without a live model. */
-      if (/openui demo/i.test(prompt)) {
+      /* A streamed request gets the reply as server-sent events, a few
+         characters at a time, so the progressive display can be looked at. */
+      if (/"stream":\s*true/.test(prompt) && /openui demo/i.test(prompt)) {
+        return sseReply(fx.sampleOpenUiReply);
+      }
+      if (/openui demo|Build the study guide/i.test(prompt)) {
         return json({ text: fx.sampleOpenUiReply });
       }
       if (/diagram|draw|sketch|\bsvg\b/i.test(prompt)) {

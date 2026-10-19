@@ -1,10 +1,8 @@
-import { Fragment, Suspense, lazy, useEffect, useState } from "react";
-import { isFlagOn } from "../../lib/flags";
-import { hasOpenUiBlock, splitOpenUiBlocks } from "../../lib/openui/fence";
+import { useEffect, useState } from "react";
+import { AiReply } from "./AiReply";
 import { Icon } from "../Icon";
 import { Button } from "../Button";
 import {
-  renderMarkdownNodes,
   renderMarkdownSegments,
   renderMathText,
   type MarkdownSegment,
@@ -28,12 +26,6 @@ import { AiErrorCard } from "../learning/AiErrorCard";
  * through `esc()`, and the model's reply through `renderMarkdown` (which
  * escapes first). Here both are React children, so escaping is structural
  * rather than a call someone has to remember. */
-
-/* Loaded on first use: the renderer and its Zod schemas are only needed by a
-   student who has the `openUi` flag and receives a card. */
-const OpenUiBlock = lazy(() => import("./OpenUiBlock"));
-
-const showsOpenUi = (text: string) => isFlagOn("openUi") && hasOpenUiBlock(text);
 
 function ActionWidgetChip({ widget }: { widget: ActionWidget }) {
   return (
@@ -324,23 +316,10 @@ export function ChatMessageBubble({
           },
     );
     body = renderMarkdownSegments(segments, { diagrams: true });
-  } else if (cleanDisplayContent && showsOpenUi(cleanDisplayContent)) {
-    /* Markdown runs stay Markdown; only the ```openui blocks go to the card
-       renderer, which says so itself when a block can't be fully drawn. */
-    body = splitOpenUiBlocks(cleanDisplayContent).map((segment, i) =>
-      segment.kind === "openui" ? (
-        <Suspense key={i} fallback={null}>
-          <OpenUiBlock code={segment.code} onAsk={onAsk} />
-        </Suspense>
-      ) : (
-        <Fragment key={i}>
-          {renderMarkdownNodes(segment.text, { diagrams: true })}
-        </Fragment>
-      ),
-    );
   } else if (cleanDisplayContent) {
-    /* The tutor may answer with a ```mermaid diagram (lib/chatPrompt.ts). */
-    body = renderMarkdownNodes(cleanDisplayContent, { diagrams: true });
+    /* The tutor may answer with a ```mermaid diagram or ```openui cards
+       (lib/chatPrompt.ts); AiReply draws both. */
+    body = <AiReply text={cleanDisplayContent} onAsk={onAsk} streaming={message.streaming} />;
   } else {
     /* Every visible word was an action tag — the vanilla said the same
        (js/ai.js:1256). */

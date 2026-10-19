@@ -103,11 +103,11 @@ describe("quotas", () => {
   });
 
   it("reports remaining and exceeded against the plan's limit", () => {
-    const usage = quotaUsage("free", "chat", 10);
+    const usage = quotaUsage("free", "chat", 5);
     expect(usage.limit).toBe(quotaFor("free", "chat"));
-    expect(usage.remaining).toBe(usage.limit - 10);
+    expect(usage.remaining).toBe(usage.limit - 5);
     expect(usage.exceeded).toBe(false);
-    expect(usage.fraction).toBeCloseTo(10 / usage.limit, 6);
+    expect(usage.fraction).toBeCloseTo(5 / usage.limit, 6);
   });
 
   it("marks a quota exceeded at the limit, not past it", () => {

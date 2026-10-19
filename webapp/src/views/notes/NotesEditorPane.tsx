@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type Quill from "quill";
 import { Button } from "../../components/Button";
@@ -40,6 +40,13 @@ import { InlineAiToolbar } from "./InlineAiToolbar";
 import { InlineDiffPreview } from "./InlineDiffPreview";
 import { InlineMiniChat } from "./InlineMiniChat";
 import styles from "./notes.module.css";
+import { isFlagOn } from "../../lib/flags";
+
+/* Loaded on first open: the guide pulls in the card renderer, which a student
+   who never builds one should not pay for. */
+const NotesStudyGuide = lazy(() =>
+  import("./NotesStudyGuide").then((m) => ({ default: m.NotesStudyGuide })),
+);
 
 export const SAVE_DEBOUNCE_MS = 2000;
 const SAVED_STATUS_LINGER_MS = 2000;
@@ -151,6 +158,8 @@ export function NotesEditorPane({
   const [focus, setFocus] = useState(false);
   const [recalling, setRecalling] = useState(false);
   const [rewriteOpen, setRewriteOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const guideAvailable = isFlagOn("openUi");
   const [words, setWords] = useState(0);
   const pageRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<SaveStatus>(note ? "idle" : "readonly");
@@ -839,6 +848,16 @@ ${fenceUntrusted(currentHtml)}
             >
               {rewriteMutation.isPending ? "Rewriting…" : "Rewrite"}
             </Button>
+            {guideAvailable ? (
+              <Button
+                size="sm"
+                aria-expanded={guideOpen}
+                disabled={!note}
+                onClick={() => setGuideOpen((o) => !o)}
+              >
+                Study guide
+              </Button>
+            ) : null}
             <Button size="sm" disabled={!note} onClick={manualSave}>
               Save
             </Button>
@@ -977,6 +996,17 @@ ${fenceUntrusted(currentHtml)}
             </Button>
           </div>
         </div>
+      ) : null}
+
+      {guideAvailable && guideOpen ? (
+        <Suspense fallback={null}>
+          <NotesStudyGuide
+            materialId={materialId}
+            title={materialTitle}
+            getNoteText={() => editorRef.current?.getPlainText() ?? ""}
+            onClose={() => setGuideOpen(false)}
+          />
+        </Suspense>
       ) : null}
 
       <div className={`${page.desk}${focus ? ` ${page.focus}` : ""}`}>

@@ -55,6 +55,8 @@ export interface ChatMessage {
   fileName?: string;
   /** AI message still waiting on the model. */
   pending?: boolean;
+  /** Text is still arriving from the model. */
+  streaming?: boolean;
   /** A reply that asked the student to guess first, so the bubble can offer
    *  "give me a hint" / "just explain it". */
   guessPrompt?: boolean;

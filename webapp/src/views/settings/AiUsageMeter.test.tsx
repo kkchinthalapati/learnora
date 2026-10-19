@@ -47,9 +47,9 @@ describe("AiUsageMeter", () => {
     mockedUseAiUsage.mockReturnValue(state("free", { chat: 7 }));
     renderWithProviders(<AiUsageMeter isPro={false} />);
 
-    // free chat is 15/day; 15 - 7. The remaining count is what a decision
+    // free chat is 10/day; 10 - 7. The remaining count is what a decision
     // turns on.
-    expect(await screen.findByText(/8 of 15 left/i)).toBeInTheDocument();
+    expect(await screen.findByText(/3 of 10 left/i)).toBeInTheDocument();
   });
 
   it("exposes the count to assistive tech, not just the bar width", async () => {
@@ -58,10 +58,10 @@ describe("AiUsageMeter", () => {
 
     const bar = await screen.findByRole("progressbar", { name: CHAT_NAME });
     expect(bar).toHaveAttribute("aria-valuenow", "7");
-    expect(bar).toHaveAttribute("aria-valuemax", "15");
+    expect(bar).toHaveAttribute("aria-valuemax", "10");
     expect(bar).toHaveAttribute(
       "aria-valuetext",
-      `7 of 15 ${CHAT_NAME} generations used today`,
+      `7 of 10 ${CHAT_NAME} generations used today`,
     );
   });
 

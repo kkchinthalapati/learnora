@@ -107,3 +107,56 @@ describe("renderMarkdown maths", () => {
     expect(renderMarkdown(plain)).not.toContain("ql-formula");
   });
 });
+
+describe("renderMarkdown OpenUI cards", () => {
+  const NOTE = [
+    "## Rates",
+    "",
+    "Rate depends on concentration.",
+    "",
+    "```openui",
+    'root = Stack([w])',
+    'w = WorkedExample("Find the rate.", ["rate = k[A]"], "2 mol dm$^{-3}$ s$^{-1}$")',
+    "```",
+    "",
+    "After the card.",
+  ].join("\n");
+
+  it("turns a card fence into the editor's card embed with its source intact", () => {
+    const html = renderMarkdown(NOTE);
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+    const card = doc.querySelector("div.ln-openui");
+    expect(card).not.toBeNull();
+    // TeX inside the card is left alone, not lifted out as an equation.
+    expect(card?.getAttribute("data-code")).toContain('"2 mol dm$^{-3}$ s$^{-1}$"');
+    expect(card?.getAttribute("data-code")).toMatch(/^root = Stack/);
+    expect(html).toContain("Rate depends on concentration.");
+    expect(html).toContain("After the card.");
+    expect(html).not.toContain("```");
+  });
+
+  it("cannot be used to inject markup through the card source", () => {
+    const html = renderMarkdown('```openui\nroot = Stack([k])\nk = Callout("key", "\\"><img src=x onerror=alert(1)>")\n```');
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+    expect(doc.querySelector("img")).toBeNull();
+    expect(doc.querySelector("div.ln-openui")?.getAttribute("data-code")).toContain("<img src=x");
+  });
+});
+
+describe("renderMarkdown SVG diagrams", () => {
+  it("turns a ```svg fence into the editor's diagram figure, sanitised", () => {
+    const md = "## Cycle\n\n```svg\n<svg viewBox=\"0 0 10 10\" xmlns=\"http://www.w3.org/2000/svg\"><title>Cycle</title><circle cx=\"5\" cy=\"5\" r=\"4\" onload=\"alert(1)\"/><script>alert(2)</script></svg>\n```\n\nAfter.";
+    const html = renderMarkdown(md);
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+    const fig = doc.querySelector("figure.ln-diagram svg");
+    expect(fig).not.toBeNull();
+    expect(doc.querySelector("script")).toBeNull();
+    expect(fig?.querySelector("circle")?.getAttribute("onload")).toBeNull();
+    expect(html).toContain("After.");
+  });
+
+  it("leaves a ```svg fence that is not an SVG as a plain code block", () => {
+    const html = renderMarkdown("```svg\nnot a drawing\n```");
+    expect(html).not.toContain("ln-diagram");
+  });
+});

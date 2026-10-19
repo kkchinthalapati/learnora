@@ -1,11 +1,12 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Renderer } from "@openuidev/react-lang";
-import { openUiPromptSection } from "./blocks";
+import { openUiPromptSection, openUiReference } from "./blocks";
 import { hasOpenUiBlock, splitOpenUiBlocks } from "./fence";
-import { askLibrary } from "./library";
+import { askLibrary, guideLibrary } from "./library";
 import { AskContext } from "./askContext";
 import { buildSystemContext } from "../chatPrompt";
+import { buildNotesSystemContext } from "../notesChatPrompt";
 
 const CARD = `root = Stack([k, q])
 k = Callout("mistake", "Assuming a catalyst shifts equilibrium.")
@@ -19,10 +20,21 @@ describe("splitOpenUiBlocks", () => {
     expect(segments[1]).toEqual({ kind: "openui", code: CARD });
   });
 
-  it("leaves an unterminated fence as text", () => {
-    const text = "Look:\n```openui\nroot = Stack([";
-    expect(splitOpenUiBlocks(text)).toEqual([{ kind: "text", text }]);
+  it("still surfaces a card whose fence was cut off before it closed", () => {
+    const text = 'Look:\n```openui\nroot = Stack([k])\nk = Callout("key", "Cut off.")';
+    const segments = splitOpenUiBlocks(text);
+    expect(segments.map((s) => s.kind)).toEqual(["text", "openui"]);
     expect(hasOpenUiBlock(text)).toBe(true);
+  });
+
+  it("accepts openui-lang fences and a bare program with no fence", () => {
+    expect(hasOpenUiBlock("```openui-lang\nroot = Stack([])\n```")).toBe(true);
+    const bare = 'Intro.\nroot = Stack([k])\nk = Callout("key", "Bare.")\nOutro.';
+    expect(splitOpenUiBlocks(bare).map((s) => s.kind)).toEqual(["text", "openui", "text"]);
+  });
+
+  it("does not mistake ordinary prose or code for a card", () => {
+    expect(hasOpenUiBlock("x = 5 is a fact.\nroot = the base of a tree")).toBe(false);
   });
 
   it("does not touch mermaid or svg fences", () => {
@@ -37,9 +49,19 @@ describe("prompt", () => {
     for (const name of ["Stack", "Callout", "Steps", "WorkedExample", "KeyTerms", "Timeline", "Accordion", "CompareTable", "BarChart", "Flashcards", "MiniQuiz", "FollowUps"]) {
       expect(section).toContain(name);
     }
+    expect(openUiReference()).not.toContain("ANSWER STYLE");
+    expect(section).toContain(openUiReference());
     const base = { pendingTasks: "None", upcomingExams: "None", activeContext: "x", query: "q" };
-    expect(buildSystemContext(base)).not.toContain("OPENUI CARDS");
-    expect(buildSystemContext({ ...base, openUiSection: section })).toContain("OPENUI CARDS");
+    expect(buildSystemContext(base)).not.toContain("ANSWER STYLE");
+    expect(buildSystemContext({ ...base, openUiSection: section })).toContain("ANSWER STYLE");
+  });
+});
+
+describe("notes chat prompt", () => {
+  it("carries the card section only when given one", () => {
+    const base = { documentContext: "Mitosis.", query: "explain" };
+    expect(buildNotesSystemContext(base)).not.toContain("ANSWER STYLE");
+    expect(buildNotesSystemContext({ ...base, openUiSection: openUiPromptSection() })).toContain("ANSWER STYLE");
   });
 });
 
@@ -125,5 +147,22 @@ fu = FollowUps(["Quiz me on this"])`;
       />,
     );
     expect(screen.queryByText("Empty")).toBeNull();
+  });
+});
+
+describe("study guide library", () => {
+  it("cannot draw a quiz, flashcards or follow-ups, and reports them", () => {
+    const errors: { code: string }[][] = [];
+    render(
+      <Renderer
+        library={guideLibrary}
+        response={'root = Stack([k, q])\nk = Callout("key", "Kept.")\nq = MiniQuiz("Q?", ["a", "b"], 0, "why")'}
+        isStreaming={false}
+        onError={(e) => errors.push(e)}
+      />,
+    );
+    expect(screen.getByText("Kept.")).toBeTruthy();
+    expect(screen.queryByText("Q?")).toBeNull();
+    expect(errors.flat().length).toBeGreaterThan(0);
   });
 });

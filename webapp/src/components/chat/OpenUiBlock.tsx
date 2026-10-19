@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Renderer, type OpenUIError } from "@openuidev/react-lang";
+import { Renderer, type Library, type OpenUIError } from "@openuidev/react-lang";
 import { AskContext } from "../../lib/openui/askContext";
-import { askLibrary } from "../../lib/openui/library";
+import { askLibrary, guideLibrary } from "../../lib/openui/library";
 import styles from "./chat.module.css";
 
 /* One ```openui block from a reply, drawn with the Ask library.
@@ -14,28 +14,38 @@ import styles from "./chat.module.css";
 export default function OpenUiBlock({
   code,
   onAsk,
+  library,
+  notes = false,
+  streaming = false,
 }: {
   code: string;
+  /** Still arriving: the card may be partial, so no notice is drawn yet. */
+  streaming?: boolean;
+  /** Which components the block may use. Defaults to the notes set when
+   *  `notes` is on, otherwise the chat's full set. */
+  library?: Library;
+  /** A page of notes: no quizzes, flashcards or follow-up chips. */
+  notes?: boolean;
   /** Sends a follow-up as the student's next message; absent where the
    *  surface cannot send, which hides the follow-up chips. */
   onAsk?: (text: string) => void;
 }) {
   const [errors, setErrors] = useState<OpenUIError[]>([]);
-  const failed = errors.some((e) => e.severity !== "warning");
+  const failed = !streaming && errors.some((e) => e.severity !== "warning");
 
   return (
     <div data-testid="openui-block">
       <AskContext.Provider value={onAsk ?? null}>
         <Renderer
-          library={askLibrary}
+          library={library ?? (notes ? guideLibrary : askLibrary)}
           response={code}
-          isStreaming={false}
+          isStreaming={streaming}
           onError={setErrors}
         />
       </AskContext.Provider>
       {failed ? (
         <p className={styles.cardNotice} role="note">
-          Part of this card couldn’t be shown.
+          Some of this card couldn’t be drawn, so it was left out. The rest is above.
         </p>
       ) : null}
     </div>

@@ -30,12 +30,12 @@ describe("ChatMessageBubble OpenUI cards", () => {
   it("says so when part of a card cannot be drawn", async () => {
     localStorage.setItem("learnora:flag:openUi", "true");
     draw('```openui\nroot = Stack([x])\nx = Nonsense("a")\n```');
-    expect(await screen.findByRole("note")).toHaveTextContent(/couldn’t be shown/i);
+    expect(await screen.findByRole("note")).toHaveTextContent(/couldn’t be drawn/i);
   });
 
-  it("leaves the reply as it was when the flag is off", () => {
+  it("still draws a card that arrives with the flag off, never its source", async () => {
     draw(CARD);
-    expect(screen.queryByText("Key idea")).toBeNull();
-    expect(screen.queryByTestId("openui-block")).toBeNull();
+    expect(await screen.findByText("Key idea")).toBeTruthy();
+    expect(screen.queryByText(/root = Stack/)).toBeNull();
   });
 });

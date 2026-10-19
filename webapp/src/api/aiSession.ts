@@ -7,7 +7,8 @@
  * answer the student flagged. Both go through the ordinary metered chat tool.
  */
 
-import { callEdge } from "./ai";
+import { loadOpenUiSection } from "../lib/openui/load";
+import { callEdge, callEdgeStream } from "./ai";
 import { levelRules, studentStandard } from "../lib/studentLevel";
 import { loadGroundingPassages } from "./grounding";
 import { formatGroundingForPrompt } from "../lib/grounding";
@@ -54,6 +55,8 @@ export async function askInSession({
   topic,
   settings,
   signal,
+  cards = false,
+  onDelta,
 }: {
   question: string;
   history: SessionTurn[];
@@ -62,6 +65,12 @@ export async function askInSession({
   topic?: string;
   settings?: Settings;
   signal?: AbortSignal;
+  /** Offer the model the OpenUI cards for this answer. Only for modes whose
+   *  pacing they suit (Explain follow-ups); Socratic, Teach and Practice are
+   *  built around short turns and stay prose. */
+  cards?: boolean;
+  /** Shows the answer as it forms, when given. */
+  onDelta?: (piece: string) => void;
 }): Promise<string> {
   /* The level travels with every in-session answer, as it does with the
      plan and the checks, so a follow-up is pitched where the plan was. */
@@ -70,17 +79,16 @@ export async function askInSession({
     loadGroundingPassages(`${question} ${topic ?? ""}`, 2),
   ]);
   const grounding = formatGroundingForPrompt(passages, fenceUntrusted);
-  const { text } = await callEdge(
-    {
-      history: [...history.slice(-8), { role: "user", content: question }],
-      context: [context, level ? levelRules(level, specLine) : "", grounding].filter(Boolean).join("\n"),
-      tool: "chat",
-      settings,
-    },
-    undefined,
-    undefined,
-    signal,
-  );
+  const cardsSection = cards ? await loadOpenUiSection() : "";
+  const request = {
+    history: [...history.slice(-8), { role: "user" as const, content: question }],
+    context: [context, level ? levelRules(level, specLine) : "", grounding, cardsSection].filter(Boolean).join("\n"),
+    tool: "chat" as const,
+    settings,
+  };
+  const { text } = onDelta
+    ? await callEdgeStream(request, { onDelta }, signal)
+    : await callEdge(request, undefined, undefined, signal);
   return text.trim();
 }
 
