@@ -57,10 +57,12 @@ export async function readSse(body, onData) {
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+    // Normalised over the whole buffer: a CR at the end of one chunk may pair
+    // with the LF that starts the next.
+    buffer = (buffer + decoder.decode(value, { stream: true })).replace(/\r\n/g, "\n");
     drain();
   }
-  buffer += decoder.decode().replace(/\r\n/g, "\n");
+  buffer = (buffer + decoder.decode()).replace(/\r\n/g, "\n");
   drain();
   if (buffer.trim()) {
     const payload = dataOf(buffer);

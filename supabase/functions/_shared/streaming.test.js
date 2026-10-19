@@ -34,6 +34,17 @@ Deno.test("readSse accepts CRLF line endings and a final event without a blank l
   assertEquals(seen, ['{"delta":"a"}', '{"delta":"b"}']);
 });
 
+Deno.test("readSse keeps events apart when a CRLF is split between chunks", async () => {
+  const seen = [];
+  // The blank line that ends the first event is "\r\n\r" in one chunk and its
+  // final "\n" in the next. Both events must still come out separately.
+  await readSse(
+    bodyOf('data: {"delta":"a"}\r\n\r', '\ndata: {"delta":"b"}\r\n\r\n'),
+    (p) => seen.push(p),
+  );
+  assertEquals(seen, ['{"delta":"a"}', '{"delta":"b"}']);
+});
+
 Deno.test("openAiDelta reads content and ignores usage-only chunks", () => {
   assertEquals(openAiDelta({ choices: [{ delta: { content: "Hi" } }] }), "Hi");
   assertEquals(openAiDelta({ choices: [], usage: { prompt_tokens: 3 } }), "");

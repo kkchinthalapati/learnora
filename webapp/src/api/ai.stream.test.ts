@@ -44,6 +44,27 @@ describe("callEdgeStream", () => {
     expect(result).toEqual({ text: "Hello" });
   });
 
+  it("keeps events apart when a CRLF is split between chunks", async () => {
+    server.use(
+      http.post(EDGE_URL, () => {
+        const enc = new TextEncoder();
+        const stream = new ReadableStream({
+          start(c) {
+            // The blank line ending the first event is split across chunks.
+            c.enqueue(enc.encode('data: {"delta":"Hi"}\r\n\r'));
+            c.enqueue(enc.encode('\ndata: {"done":true}\r\n\r\n'));
+            c.close();
+          },
+        });
+        return new HttpResponse(stream, { headers: { "Content-Type": "text/event-stream" } });
+      }),
+    );
+    const pieces: string[] = [];
+    const result = await callEdgeStream(payload, { onDelta: (p) => pieces.push(p) });
+    expect(pieces).toEqual(["Hi"]);
+    expect(result.text).toBe("Hi");
+  });
+
   it("clears shown text on reset and keeps only what follows", async () => {
     server.use(
       http.post(EDGE_URL, () =>
