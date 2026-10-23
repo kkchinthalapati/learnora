@@ -146,8 +146,11 @@ async function applyPasswordChange(newPassword: string): Promise<void> {
 
 export type SignupOutcome = "ok" | "verification-sent";
 
+export type OAuthProvider = "google" | "apple";
+
 /** Why a date of birth can't be used, or null when it can. Shared by email
- *  sign-up and the finish-account step that Google sign-ups go through. */
+ *  sign-up and the finish-account step that Google and Apple sign-ups go
+ *  through. */
 export function dobProblem(dob: string): string | null {
   if (!dob) return "Please enter your date of birth.";
   const age = calculateAge(dob);
@@ -165,19 +168,19 @@ export const authApi = {
     if (error) throw new Error(friendlyAuthError(error));
   },
 
-  /** Starts Google sign-in. The browser leaves for Google and comes back to
-   *  the app; a new account is then sent to /finish-account for its date of
-   *  birth and consent, which Google does not supply. */
-  async loginWithGoogle(): Promise<void> {
+  /** Starts Google or Apple sign-in. The browser leaves for the provider and
+   *  comes back to the app; a new account is then sent to /finish-account for
+   *  its date of birth and consent, which neither provider supplies. */
+  async loginWithOAuth(provider: OAuthProvider): Promise<void> {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
+      provider,
       options: { redirectTo: authRedirect("/") },
     });
     if (error) throw new Error(friendlyAuthError(error));
   },
 
   /** Saves the date of birth and the AI-consent answer for an account that
-   *  was created without them (Google sign-up). */
+   *  was created without them (Google or Apple sign-up). */
   async completeAccount(dob: string, consentGiven: boolean): Promise<void> {
     const problem = dobProblem(dob);
     if (problem) throw new Error(problem);

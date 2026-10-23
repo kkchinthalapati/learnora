@@ -10,7 +10,7 @@ import { needsAccountDetails } from "../../lib/accountDetails";
 import { AuthShell } from "./AuthShell";
 import styles from "./auth.module.css";
 
-/* One step for a Google sign-up: a date of birth (13+, the same rule as the
+/* One step for a Google or Apple sign-up: a date of birth (13+, the same rule as the
  * email form) and the AI-consent answer, which must be given explicitly.
  * Nothing else in the app is reachable until both are saved; see the gate in
  * routes.tsx. */
@@ -48,7 +48,7 @@ export function FinishAccountView() {
   return (
     <AuthShell
       title="Finish setting up"
-      subtitle="Google didn't tell us your date of birth. Two quick questions, then you're in."
+      subtitle="We still need your date of birth. Two quick questions, then you're in."
     >
       <form className={styles.form} onSubmit={submit} noValidate>
         <div className={styles.inputGroup}>

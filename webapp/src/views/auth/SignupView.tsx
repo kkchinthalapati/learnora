@@ -9,7 +9,7 @@ import {
 import { useSignup } from "../../hooks/useAuthActions";
 import { validateNewPassword } from "../../lib/passwordStrength";
 import { AuthShell } from "./AuthShell";
-import { GoogleSignInButton } from "./GoogleSignInButton";
+import { OAuthSignInButtons } from "./OAuthSignInButtons";
 import { useAuthStatus } from "./useAuthStatus";
 import { RedirectIfSignedIn } from "./RedirectIfSignedIn";
 import styles from "./auth.module.css";
@@ -108,7 +108,7 @@ export function SignupView() {
         subtitle="It takes a minute, and your first lesson comes right after."
         status={statusNode}
       >
-        <GoogleSignInButton label="Sign up with Google" />
+        <OAuthSignInButtons verb="Sign up" />
         <form className={styles.form} onSubmit={(e) => void onSubmit(e)}>
           <div className={styles.inputGroup}>
             <label htmlFor={nameId}>Full name</label>

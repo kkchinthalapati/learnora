@@ -21,7 +21,7 @@ export const WELCOME_PATH = "/welcome";
 export function OnboardingGate() {
   const { user } = useAuth();
 
-  /* A Google sign-up has no date of birth or AI-consent answer yet; those
+  /* A Google or Apple sign-up has no date of birth or AI-consent answer yet; those
      come first, and the wizard waits for them. */
   if (needsAccountDetails(user)) {
     return <Navigate to={FINISH_ACCOUNT_PATH} replace />;
