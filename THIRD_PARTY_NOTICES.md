@@ -94,8 +94,9 @@ each family's `METADATA.pb` in https://github.com/google/fonts (checked
 
 | Family | Designer | Licence | Loaded by |
 |---|---|---|---|
-| Newsreader | Production Type | OFL | `webapp/index.html`, `landing.html` |
-| Instrument Sans | Rodrigo Fuenzalida, Jordan Egstad | OFL | `webapp/index.html`, `landing.html` |
+| Newsreader | Production Type | OFL | `webapp/index.html`, `landing.html`, `public.css` |
+| Instrument Sans | Rodrigo Fuenzalida, Jordan Egstad | OFL | `webapp/index.html`, `landing.html`, `public.css` |
+| Caveat | Impallari Type | OFL | `landing.html` |
 | Source Serif 4 | Frank Grießhammer | OFL | `webapp/index.html` |
 | Outfit | Smartsheet Inc, Rodrigo Fuenzalida | OFL | `webapp/index.html`, `webapp/harness.html`, `404.html` |
 | Plus Jakarta Sans | Tokotype | OFL | `webapp/index.html`, `webapp/harness.html`, `404.html` |

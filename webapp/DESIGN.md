@@ -149,6 +149,15 @@ mistakes ledger is. Keep these, and don't drift back to the generic look:
   `mark` and `callout` formats in `lib/noteFormats.ts`, stored as classes,
   not free colours. Tools act on click and block mousedown so the page keeps
   its selection; never act on mousedown alone, or keyboards can't reach them.
+- **The landing page** (`landing.html`, `landing.css`, `landing.js` at the
+  repo root) is set on the same book: white paper, feint blue rules, the red
+  margin, red-pen mistakes in a hand font (Caveat, demos and dates only) and
+  teal for every primary action. Buttons, demo sheets and labels are
+  stickers: a 1.5px ink edge and a hard offset shadow (`--hard-*`). Two
+  bands break the paper: the mistakes section on the book's teal cover and
+  the closing call to action on highlighter yellow. Its demos are sample content written in
+  advance and say so; keep it that way, and keep its claims to what the app
+  does (`lib/entitlements.ts` for allowances).
 
 Avoid on purpose: violet or blue-violet as a default or a custom-theme
 starting colour, sparkle icons for the tutor, emoji as icons, mascots, a
