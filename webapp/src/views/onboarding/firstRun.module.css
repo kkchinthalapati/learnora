@@ -28,18 +28,6 @@
   font-weight: 600;
 }
 
-.mark {
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-sm);
-  background: var(--accent);
-  color: var(--accent-on);
-  font-size: var(--fs-sm);
-}
-
 .progress {
   display: flex;
   gap: var(--s-1);

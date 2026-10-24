@@ -25,8 +25,9 @@
   padding: clamp(24px, 4vw, 36px);
   border-radius: var(--r-xl);
   background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-lg);
+  /* A sticker sheet over the page (DESIGN.md 0.8). */
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-lg);
   animation: content-in var(--t) var(--ease);
 }
 

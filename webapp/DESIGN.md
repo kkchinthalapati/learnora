@@ -96,8 +96,11 @@ only these:
 - **Colour** semantic only: `--text`, `--text-muted`, `--text-faint`,
   `--surface`, `--surface-2`, `--hairline`, `--accent`, `--accent-text`,
   `--success|warning|danger(-text)`, `--recall` for "due". No hex in a module.
-- **Elevation** flat: hairline borders, no shadows on cards. Only menus,
-  modals and drawers cast `--shadow-md` or larger.
+- **Elevation** flat by default: hairline borders, no soft shadows on cards.
+  Menus and drawers cast `--shadow-md` or larger. The exception is the
+  sticker (0.8): `--edge` plus a hard `--hard-sm|md|lg` offset, on main
+  actions, `elevated`/interactive Cards, dialogs, chosen chips and the
+  capture box only.
 - **Motion** `--t-fast` / `--t`, with `--ease`, inside
   `prefers-reduced-motion: no-preference` or reset under `reduce`.
 
@@ -141,7 +144,24 @@ mistakes ledger is. Keep these, and don't drift back to the generic look:
 - **Serif titles in lists**: row titles use `--font-head`.
 - **Corrections in the margin**: a mistake to fix is marked in red pen
   (`--danger`), one due a retest in ochre (`--recall`).
-- **One highlighter stroke** on Home, under "learn". Nowhere else.
+- **One highlighter stroke** on Home, under "learn", in `--highlight`
+  yellow. Nowhere else in the app.
+- **One face**: Literata for everything (`--font`, `--font-head`,
+  `--font-read`), so the app reads as a printed workbook rather than a
+  SaaS dashboard with a serif on top. Caveat (`--font-hand`) is the red
+  pen, for margin corrections and dates only. A font picked in Settings →
+  Appearance still overrides all of it.
+- **Stickers**: what you act on stands off the page. A 1.5px `--edge` and
+  a hard offset shadow (`--hard-sm`, `--hard-md`, `--hard-lg`) that lifts
+  on hover and presses flat on click. Shared `Button` primary, secondary
+  and danger; `elevated` and interactive `Card`; `Modal`; a pressed
+  `Chip`; the capture box; and view-local main actions through
+  `styles/sticker.module.css`. Lists, inputs, ghost buttons and toggles
+  stay flat, or the page turns into a pile of labels. In dark mode the edge
+  is `--line-strong` and the shadow is the accent pushed into the page.
+- **Paper and ink**: white paper with a cool cast (`--bg` #fafaf6) and
+  blue-black ink (`--text` #17202e); dark mode is the same book at night
+  (#12161d). Not cream, not brown-black.
 - **The notes page** (`/notes/:id`) is one paper sheet in the reading serif
   with ribbon bookmarks for its headings, a pencil case under it
   (highlighters, pen, eraser, read aloud, focus, dictate) and pencilled
@@ -150,14 +170,13 @@ mistakes ledger is. Keep these, and don't drift back to the generic look:
   not free colours. Tools act on click and block mousedown so the page keeps
   its selection; never act on mousedown alone, or keyboards can't reach them.
 - **The landing page** (`landing.html`, `landing.css`, `landing.js` at the
-  repo root) is set on the same book: white paper, feint blue rules, the red
-  margin, red-pen mistakes in a hand font (Caveat, demos and dates only) and
-  teal for every primary action. Buttons, demo sheets and labels are
-  stickers: a 1.5px ink edge and a hard offset shadow (`--hard-*`). Two
-  bands break the paper: the mistakes section on the book's teal cover and
-  the closing call to action on highlighter yellow. Its demos are sample content written in
-  advance and say so; keep it that way, and keep its claims to what the app
-  does (`lib/entitlements.ts` for allowances).
+  repo root) is the same book with the volume up: two bands break its paper,
+  the mistakes section on the book's teal cover and the closing call to
+  action on highlighter yellow. The app keeps to paper. Its demos are sample
+  content written in advance and say so; keep it that way, and keep its
+  claims to what the app does (`lib/entitlements.ts` for allowances).
+  `404.html`, `public.css` and `api/_site-content.js` share the look.
+  `/app/landing` only redirects to it.
 
 Avoid on purpose: violet or blue-violet as a default or a custom-theme
 starting colour, sparkle icons for the tutor, emoji as icons, mascots, a
@@ -250,7 +269,7 @@ import text from "../../styles/text.module.css";
 
 | Primitive | Covers |
 |---|---|
-| `Button` | `primary` (one per screen, flat fill) · `secondary` · `ghost` (lowest-emphasis text action) · `danger` (text-style) / `warning` / `success` · `size="sm" \| "lg"` · `busy` (keeps its width, sets `aria-busy`) |
+| `Button` | `primary` (one per screen, sticker: accent fill, ink edge, hard shadow) · `secondary` · `ghost` (lowest-emphasis text action) · `danger` (text-style) / `warning` / `success` · `size="sm" \| "lg"` · `busy` (keeps its width, sets `aria-busy`) |
 | `IconButton` | icon-only action, 44px hit area, needs `aria-label` |
 | `Chip` | compact pill — filter/toggle (`pressed`), quick action, or clickable status (`soft` + `tone`). `tone`: `neutral` / `accent` / `success` / `warning` / `danger` |
 | `Card` | `panel` (default) · `elevated` · `row` · `subtle`; `padding` + `radius` props |

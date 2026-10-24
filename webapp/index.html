@@ -11,7 +11,7 @@
          above — the manifest itself still needs its own start_url/scope
          hardcoded to /app/ since it's a static file Vite doesn't process. -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#0d0c0a" />
+    <meta name="theme-color" content="#12161d" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,10 +23,11 @@
          OFL, purpose-built low-vision/dyslexia-friendly face) as a 5th
          option, rather than shipping one more entry into the same gap.
 
-         Source Serif 4 (OFL) is the reading face for long AI prose — see
-         --font-read in tokens.css. A text serif is easier to read a few
-         paragraphs of explanation in than the UI sans, which is drawn for
-         labels and buttons. -->
+         Literata (OFL) is the one face for UI, headings and long AI prose
+         since 2026-10, and Caveat the red-pen hand on the mistakes loop —
+         see --font and --font-hand in tokens.css. Plus Jakarta Sans,
+         Newsreader, Instrument Sans and Source Serif 4 are no longer loaded:
+         nothing names them any more. -->
     <!-- One href. This tag carried two: the first (kept below) names the
          current families, the second was the pre-Newsreader set left behind by
          an edit. A duplicate attribute is a parse error the browser recovers
@@ -52,14 +53,14 @@
          decision to the stylesheet that names them. The <noscript> copy keeps
          the fonts for scripted-off browsers, where the swap can never run. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..800;1,7..72,400..600&family=Caveat:wght@500..700&family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap"
       rel="stylesheet"
       media="print"
       data-font-swap
     />
     <noscript>
       <link
-        href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..800;1,7..72,400..600&family=Caveat:wght@500..700&family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap"
         rel="stylesheet"
       />
     </noscript>

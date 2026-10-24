@@ -68,8 +68,8 @@
     --spine-7: #8a5a2b;
 
     /* Type */
-    --font-display: "Newsreader", Georgia, "Times New Roman", serif;
-    --font-ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-display: "Literata", Georgia, "Times New Roman", serif;
+    --font-ui: "Literata", Georgia, "Times New Roman", serif;
     --font-hand: "Caveat", "Segoe Print", "Comic Sans MS", cursive;
     --fs-hero: clamp(2.75rem, 1.5rem + 3.9vw, 5rem);
     --fs-h2: clamp(2.1rem, 1.4rem + 2.6vw, 3.5rem);

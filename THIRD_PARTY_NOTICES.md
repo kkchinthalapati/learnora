@@ -90,16 +90,13 @@ none are copied into this repository or the build. The OFL's notice
 conditions apply to redistributing the font files, which this project does
 not do, so this section is informational. Licence and designers as listed in
 each family's `METADATA.pb` in https://github.com/google/fonts (checked
-2026-10-17).
+2026-10-17; Literata and Caveat 2026-10-24).
 
 | Family | Designer | Licence | Loaded by |
 |---|---|---|---|
-| Newsreader | Production Type | OFL | `webapp/index.html`, `landing.html`, `public.css` |
-| Instrument Sans | Rodrigo Fuenzalida, Jordan Egstad | OFL | `webapp/index.html`, `landing.html`, `public.css` |
-| Caveat | Impallari Type | OFL | `landing.html` |
-| Source Serif 4 | Frank Grießhammer | OFL | `webapp/index.html` |
-| Outfit | Smartsheet Inc, Rodrigo Fuenzalida | OFL | `webapp/index.html`, `webapp/harness.html`, `404.html` |
-| Plus Jakarta Sans | Tokotype | OFL | `webapp/index.html`, `webapp/harness.html`, `404.html` |
+| Literata | TypeTogether | OFL | `webapp/index.html`, `webapp/harness.html`, `landing.html`, `404.html`, `public.css`, `api/_site-content.js` |
+| Caveat | Impallari Type | OFL | `webapp/index.html`, `webapp/harness.html`, `landing.html`, `404.html` |
+| Outfit | Smartsheet Inc, Rodrigo Fuenzalida | OFL | `webapp/index.html`, `webapp/harness.html` |
 | Inter | Rasmus Andersson | OFL | `webapp/index.html`, `webapp/harness.html` |
 | JetBrains Mono | JetBrains, Philipp Nurullin, Konstantin Bulenkov | OFL | `webapp/index.html`, `webapp/harness.html` |
 | Atkinson Hyperlegible | Braille Institute, Applied Design Works, Elliott Scott, Megan Eiswerth, Linus Boman, Theodore Petrosky | OFL | `webapp/index.html`, `webapp/harness.html` |

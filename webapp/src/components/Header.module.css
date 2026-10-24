@@ -38,9 +38,9 @@
   color: var(--text);
   font-family: var(--font-head);
   font-size: var(--fs-3xl);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -188,6 +188,7 @@
 }
 
 .signUpBtn {
+  composes: sticker from "../styles/sticker.module.css";
   font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-on-accent) !important;
@@ -197,6 +198,8 @@
   text-decoration: none;
   white-space: nowrap;
   transition: opacity 0.15s;
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
 }
 
 .signUpBtn:hover {

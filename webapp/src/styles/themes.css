@@ -22,18 +22,18 @@ body.dark-theme {
    *
    * The accent stays teal (brand continuity) but drops ~40% saturation.
    * #2dd4bf is a neon that glows against any dark surface and forces every
-   * other element to shout to compete; #5fb3a3 is a verdigris that sits on
+   * other element to shout to compete; a verdigris (#4fc3ae since 2026-10) sits on
    * the page. It still clears 7.8:1 on --bg, so it works as text, not just
    * as a fill — which is what lets us stop painting filled pills everywhere.
    * ---------------------------------------------------------------------- */
-  --accent-rgb: 95, 179, 163;
-  --accent: #5fb3a3;
-  --accent-hover: #7cc6b8;
-  --accent-press: #4a9d8f;
-  --accent-soft: rgba(95, 179, 163, 0.13);
-  --accent-ring: rgba(95, 179, 163, 0.38);
-  --accent-on: #0d0c0a;
-  --accent-glow: rgba(95, 179, 163, 0.28);
+  --accent-rgb: 79, 195, 174;
+  --accent: #4fc3ae;
+  --accent-hover: #74d4c2;
+  --accent-press: #39a895;
+  --accent-soft: rgba(79, 195, 174, 0.13);
+  --accent-ring: rgba(79, 195, 174, 0.38);
+  --accent-on: #06201b;
+  --accent-glow: rgba(79, 195, 174, 0.28);
 
   --success: #6fb98a;
   --success-soft: #15291e;
@@ -44,13 +44,15 @@ body.dark-theme {
   --info: #85a7dc;
   --info-text: #9cb8e6;
   --info-soft: #172235;
-  --info-on: #0d0c0a;
+  --info-on: #06201b;
   /* All three semantic fills are light enough that a white label drops under
      AA; ink is the label in dark mode. Unchanged in intent from the previous
      ramp, re-measured against the new hues. */
-  --success-on: #0d0c0a;
-  --warning-on: #0d0c0a;
-  --danger-on: #0d0c0a;
+  /* A shade darker than --bg: the Hard exam chip's second stop (--danger-2)
+     needs it to clear 4.5:1 (4.65:1; --bg itself scored 4.36). */
+  --success-on: #0b0e13;
+  --warning-on: #0b0e13;
+  --danger-on: #0b0e13;
   --danger-2: #c25f50;
 
   /* Dark-mode counterparts to the --*-text split in tokens.css. These used
@@ -62,36 +64,37 @@ body.dark-theme {
   --warning-text: #e3b46c;
   --danger-text: #e88a7b;
 
-  /* Warm-neutral paper ramp. Each step is a ~4% lift, which is enough to
-     separate a surface from the page without a shadow — elevation here is
-     carried by tone and a hairline, not by a glow. */
-  --bg: #0d0c0a;
-  --bg-tint-1: rgba(95, 179, 163, 0.05);
+  /* Ink-blue paper ramp (2026-10, matches landing.html's dark mode): the
+     exercise book at night rather than the warm brown it was. Each step is a
+     ~4% lift, which is enough to separate a surface from the page without a
+     shadow — elevation here is carried by tone and a hairline, not a glow. */
+  --bg: #12161d;
+  --bg-tint-1: rgba(79, 195, 174, 0.05);
   --bg-tint-2: rgba(217, 165, 87, 0.035);
-  --surface: #141310;
-  --surface-2: #1b1916;
-  --surface-hover: #22201c;
-  --surface-active: #2a2723;
-  --surface-sunk: #1e1c18;
-  --surface-raised: #211f1a;
+  --surface: #181d26;
+  --surface-2: #1d232d;
+  --surface-hover: #232a35;
+  --surface-active: #2a323e;
+  --surface-sunk: #151a22;
+  --surface-raised: #1e242e;
 
-  --glass-bg: rgba(20, 19, 16, 0.72);
-  --glass-bg-strong: rgba(27, 25, 22, 0.9);
-  --glass-border: rgba(240, 236, 228, 0.1);
-  --glass-border-subtle: rgba(240, 236, 228, 0.07);
-  --glass-highlight: rgba(240, 236, 228, 0.12);
+  --glass-bg: rgba(24, 29, 38, 0.72);
+  --glass-bg-strong: rgba(29, 35, 45, 0.9);
+  --glass-border: rgba(233, 237, 243, 0.1);
+  --glass-border-subtle: rgba(233, 237, 243, 0.07);
+  --glass-highlight: rgba(233, 237, 243, 0.12);
   --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
   /* Bone white rather than #f3f4f6 — pure cold white on a warm ground reads
      as a rendering error. --text-faint was the worst accessibility defect in
      the token set: at #64748b it scored 2.65-3.88:1 across its 50 use sites,
      all of them at 12-13px. #8a8175 clears 4.9:1 on --bg. */
-  --text: #f0ece4;
-  --text-muted: #a8a094;
-  --text-faint: #8a8175;
+  --text: #e9edf3;
+  --text-muted: #b8c0cc;
+  --text-faint: #939dab;
 
-  --line: #2c2924;
-  --line-strong: #6b655a;
+  --line: #283040;
+  --line-strong: #6b7688;
 
   /* Editorial elevation: a hairline and a tone step, not a three-layer glow.
      The old ramp stacked up to three shadows per surface and applied them to
@@ -109,12 +112,18 @@ body.dark-theme {
   --recall: #e0b25c;
   --recall-text: #e0b25c;
   --recall-soft: rgba(224, 178, 92, 0.14);
-  --paper: #1a1915;
+  --paper: #151a22;
   --sidebar-bg: var(--surface-2);
-  --hairline: rgba(240, 236, 228, 0.1);
-  --hairline-strong: rgba(240, 236, 228, 0.16);
-  --text-secondary: #cbc4b8;
-  --track: #22201c;
+  --hairline: rgba(233, 237, 243, 0.1);
+  --hairline-strong: rgba(233, 237, 243, 0.16);
+  --text-secondary: #cfd5de;
+  --track: #232a35;
+  --highlight: rgba(247, 205, 90, 0.34);
+  /* Stickers: a black offset disappears on this page, so the edge is the
+     strong line and the shadow is the accent pushed into the page. It
+     follows whichever accent preset is live. */
+  --edge: var(--line-strong);
+  --hard: color-mix(in srgb, var(--accent) 55%, var(--bg));
   --shadow-drawer: -16px 0 40px -16px rgba(0, 0, 0, 0.7);
   --scrim: rgba(0, 0, 0, 0.4);
   /* --shadow-accent was repeated here verbatim, which is what it took to beat
@@ -213,12 +222,14 @@ body.dark-theme[data-theme-color] {
   --accent-text: var(--accent);
 }
 
+/* The landing page's teal (landing.css --brand), so the site and the app
+   are one brand. */
 body[data-theme-color="default"] {
-  --accent-rgb: 22, 105, 97;
+  --accent-rgb: 14, 107, 95;
   --accent-rgb-2: 180, 140, 60;
-  --accent: #166961;
-  --accent-hover: #10534d;
-  --accent-press: #0b3d39;
+  --accent: #0e6b5f;
+  --accent-hover: #0a564c;
+  --accent-press: #07423a;
 }
 
 /* The accent Learnora shipped with before the theme system existed. */
@@ -351,14 +362,14 @@ body[data-theme-color="hacker"] {
  * ------------------------------------------------------------------------ */
 
 body.dark-theme[data-theme-color="default"] {
-  /* Verdigris, not neon. Matches the base dark ramp above — this preset is
-     what actually ships for a signed-in user, so leaving it at #13988e/#18bcb0
-     meant the editorial accent was declared and then immediately overridden
-     (the preset scores 0,2,1 against the base block's 0,1,1). */
-  --accent-rgb: 95, 179, 163;
-  --accent: #5fb3a3;
-  --accent-hover: #7cc6b8;
-  --accent-press: #4a9d8f;
+  /* Matches the base dark ramp above — this preset is what actually ships
+     for a signed-in user, so leaving it at #13988e/#18bcb0 meant the accent
+     was declared and then immediately overridden (the preset scores 0,2,1
+     against the base block's 0,1,1). Same teal as landing.html's dark mode. */
+  --accent-rgb: 79, 195, 174;
+  --accent: #4fc3ae;
+  --accent-hover: #74d4c2;
+  --accent-press: #39a895;
 }
 
 body.dark-theme[data-theme-color="original"] {

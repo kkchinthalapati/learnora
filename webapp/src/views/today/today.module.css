@@ -259,9 +259,12 @@
 }
 
 .primary {
+  composes: sticker from "../../styles/sticker.module.css";
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
 }
 
 .primary:hover {

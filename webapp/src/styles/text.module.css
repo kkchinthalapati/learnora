@@ -130,26 +130,26 @@
 }
 
 /* ---- 2026-09 redesign roles --------------------------------------------- *
- * Newsreader 500 carries every heading tier; Source Serif (--font-read)
- * carries tutor prose; JetBrains Mono carries the caps meta line. All three
- * families fall back to the student's picked font (index.css). */
+ * Literata carries every heading tier (--font-head) and tutor prose
+ * (--font-read); JetBrains Mono carries the caps meta line. All of them
+ * fall back to the student's picked font (index.css). */
 
 /* Today headline, results headline, onboarding. 52px at desktop. */
 .display {
   font-family: var(--font-head);
   font-size: var(--fs-4xl);
-  font-weight: 500;
+  font-weight: 650;
   line-height: var(--lh-display);
-  letter-spacing: var(--tracking-display);
+  letter-spacing: -0.035em;
   color: var(--text);
 }
 
 .pageTitle {
   font-family: var(--font-head);
   font-size: var(--fs-3xl);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   color: var(--text);
 }
 
@@ -157,7 +157,7 @@
 .claim {
   font-family: var(--font-head);
   font-size: var(--fs-2xl);
-  font-weight: 500;
+  font-weight: 600;
   line-height: var(--lh-tight);
   letter-spacing: var(--tracking-tight);
   color: var(--text);

@@ -188,6 +188,7 @@
 
 /* Visual affordance only — the card around it is the link. */
 .cardCta {
+  composes: sticker from "../../styles/sticker.module.css";
   margin-top: var(--s-3);
   padding: 6px 12px;
   border-radius: var(--r-md);
@@ -196,6 +197,8 @@
   background: var(--accent);
   color: var(--accent-on);
   box-shadow: var(--shadow-sm);
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
 }
 
 .cardFooter {
@@ -223,9 +226,12 @@
 }
 
 .footerLinkPrimary {
+  composes: sticker from "../../styles/sticker.module.css";
   background: var(--accent);
   border-color: var(--glass-border);
   color: var(--accent-on);
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
 }
 
 .footerLinkPrimary:hover {

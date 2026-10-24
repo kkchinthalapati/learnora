@@ -135,6 +135,7 @@
 }
 
 .primary {
+  composes: sticker from "../../styles/sticker.module.css";
   min-height: var(--control-lg);
   padding: 0 var(--s-6);
   border: 1px solid var(--accent);
@@ -144,6 +145,8 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
 }
 
 .primary:hover:not(:disabled) {

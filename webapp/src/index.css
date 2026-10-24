@@ -59,7 +59,9 @@ textarea {
   color: var(--text);
   padding: 12px 16px;
   background: var(--surface);
-  border: 1px solid var(--line);
+  /* A drawn box on the page (2026-10): the strong line at 1.5px, so a field
+     reads as a place to write before anything is in it. */
+  border: 1.5px solid var(--line-strong);
   border-radius: var(--r-md);
   outline: none;
   box-shadow: none;
@@ -215,8 +217,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
  * undifferentiated grey field regardless of what the spacing did.
  *
  * :where() contributes no specificity, so this scores (0,0,0) and any module
- * that wants a sans heading still wins without !important. Newsreader is a
- * variable face (300-700) so the font-weight declarations already scattered
+ * that wants a different heading still wins without !important. Literata is
+ * a variable face (200-900) so the font-weight declarations already scattered
  * across the modules resolve to real weights, not synthesised ones.
  * ------------------------------------------------------------------------ */
 
@@ -225,13 +227,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
   line-height: var(--lh-tight);
   letter-spacing: var(--tracking-tight);
-  /* Newsreader's optical-size axis: tighter fitting and finer detail as the
+  /* Literata's optical-size axis: tighter fitting and finer detail as the
      type grows, which is the whole point of using a text face at display size. */
   font-optical-sizing: auto;
   /* Long headings break at a sensible point rather than dropping one orphan
      word onto a line of its own. :where() keeps specificity at zero, so any
      module that needs a different wrap still wins. */
   text-wrap: balance;
+}
+
+/* Page and section titles set tight and heavy, as on landing.html. */
+:where(h1, h2) {
+  letter-spacing: -0.025em;
 }
 
 /* Body copy: avoid orphans without the line-length levelling that balance

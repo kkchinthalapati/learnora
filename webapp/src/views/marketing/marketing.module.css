@@ -44,8 +44,11 @@
 }
 
 .primaryAction {
+  composes: sticker from "../../styles/sticker.module.css";
   background: var(--accent);
   color: var(--text-on-accent);
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
 }
 
 .primaryAction:hover {

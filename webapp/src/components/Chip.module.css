@@ -125,9 +125,11 @@
   color: var(--chip-text);
 }
 
+/* A chosen chip is a small sticker, as on landing.html. */
 .pressed {
   background: var(--chip-color);
-  border-color: transparent;
+  border-color: var(--edge);
+  box-shadow: var(--hard-sm);
   color: var(--chip-on);
 }
 

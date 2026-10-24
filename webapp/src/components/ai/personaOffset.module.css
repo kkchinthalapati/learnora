@@ -291,6 +291,7 @@
 }
 
 .applyBtn {
+  composes: sticker from "../../styles/sticker.module.css";
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -305,6 +306,8 @@
   font-weight: 600;
   cursor: pointer;
   transition: background var(--t-fast) var(--ease);
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {
