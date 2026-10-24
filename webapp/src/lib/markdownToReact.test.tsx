@@ -568,3 +568,11 @@ describe("svg fences", () => {
     expect(chat()).toHaveTextContent("<circle");
   });
 });
+
+describe("==highlight== in a lesson", () => {
+  it("renders ==text== as a highlighted mark, not literal equals signs", () => {
+    const { container } = render(<>{renderMarkdownNodes("Core concepts of ==geometry== here.")}</>);
+    expect(container.querySelector("mark")?.textContent).toBe("geometry");
+    expect(container.textContent).not.toContain("==");
+  });
+});

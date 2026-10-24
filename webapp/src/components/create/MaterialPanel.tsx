@@ -13,6 +13,11 @@ import { useQuizDraft } from "../../hooks/useQuizDraft";
 import { Storage } from "../../lib/storage";
 import { isPdf, planPdfUpload } from "../../lib/pdfText";
 import {
+  GOOGLE_DRIVE_ENABLED,
+  importFromDrive,
+  DriveImportError,
+} from "../../lib/googleDrive";
+import {
   isImageFile,
   prepareStudyImage,
   STUDY_IMAGE_ACCEPT,
@@ -305,6 +310,24 @@ export function MaterialPanel({
     setIsDragging(false);
     if (event.dataTransfer.files.length) {
       takeFile(event.dataTransfer.files[0]);
+    }
+  };
+
+  const [importingDrive, setImportingDrive] = useState(false);
+  const handleDriveImport = async () => {
+    setError(null);
+    setImportingDrive(true);
+    try {
+      const picked = await importFromDrive(MAX_UPLOAD_BYTES);
+      if (picked) takeFile(picked);
+    } catch (caught) {
+      setError(
+        caught instanceof DriveImportError
+          ? caught.message
+          : "Google Drive import failed. Try again or upload the file instead.",
+      );
+    } finally {
+      setImportingDrive(false);
     }
   };
 
@@ -699,6 +722,20 @@ export function MaterialPanel({
                     onChange={handleFileInputChange}
                   />
                 </label>
+                {GOOGLE_DRIVE_ENABLED && (
+                  <button
+                    type="button"
+                    className={styles.fileButton}
+                    disabled={importingDrive}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleDriveImport();
+                    }}
+                  >
+                    <Icon name="folder" size={14} />
+                    {importingDrive ? "Opening Drive…" : "Google Drive"}
+                  </button>
+                )}
                 {/* `capture` opens the rear camera on a phone and is ignored
                     on a desktop, where this is simply an image picker. */}
                 <label

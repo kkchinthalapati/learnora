@@ -31,6 +31,8 @@ import { AiReply } from "../../components/chat/AiReply";
 import { useDocumentTitle } from "../../lib/routeTitle";
 import { mistakeTitle } from "../../lib/mistakeLoop";
 import text from "../../styles/text.module.css";
+import { isFlagOn } from "../../lib/flags";
+import { cardifyNotes } from "../../lib/openui/cardify";
 import styles from "./lesson.module.css";
 
 /* A lesson (DESIGN.md rule 0.1): one thing you're learning, and everything
@@ -248,7 +250,7 @@ function NotesPanel({
         </Link>
       </div>
       <article className={`${text.prose} ${styles.prose}`}>
-        <AiReply text={markdown} notes />
+        <AiReply text={isFlagOn("openUi") ? cardifyNotes(markdown) : markdown} notes />
       </article>
     </div>
   );

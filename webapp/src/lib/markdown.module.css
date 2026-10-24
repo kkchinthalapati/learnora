@@ -206,3 +206,11 @@
   font-family: var(--font-mono, ui-monospace, monospace);
   color: var(--text-muted);
 }
+
+/* ==key idea== in a lesson or a reply: the same highlighter the notes use. */
+.highlight {
+  background: var(--accent-wash);
+  box-shadow: inset 0 -0.12em 0 var(--accent-line-strong);
+  border-radius: 2px;
+  padding: 0 0.1em;
+}
