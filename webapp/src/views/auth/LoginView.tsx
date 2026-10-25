@@ -4,7 +4,7 @@ import { Button } from "../../components/Button";
 import { PasswordField } from "../../components/PasswordField";
 import { useLogin } from "../../hooks/useAuthActions";
 import { AuthShell } from "./AuthShell";
-import { GoogleSignInButton } from "./GoogleSignInButton";
+import { OAuthSignInButtons } from "./OAuthSignInButtons";
 import { useAuthStatus } from "./useAuthStatus";
 import { RedirectIfSignedIn } from "./RedirectIfSignedIn";
 import {
@@ -68,7 +68,7 @@ export function LoginView() {
           ) : null)
         }
       >
-        <GoogleSignInButton label="Continue with Google" />
+        <OAuthSignInButtons verb="Continue" />
         <form className={styles.form} onSubmit={(e) => void onSubmit(e)}>
           <div className={styles.inputGroup}>
             <label htmlFor={emailId}>Email</label>

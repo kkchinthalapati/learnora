@@ -80,7 +80,7 @@ I have not diffed deployed source against `main` for the functions other than
 None of these can be read by an agent. Run `supabase secrets list` and tick
 what exists. Names only: never paste values anywhere.
 
-### 4.0 Google sign-in
+### 4.0 Google and Apple sign-in
 
 | Item | Status |
 |------|--------|
@@ -88,10 +88,18 @@ what exists. Names only: never paste values anywhere.
 | **Google provider enabled** in Supabase Auth → Providers → Google, with the client ID and secret from the step above. Add the app URL to Auth → URL Configuration → Redirect URLs. | UNVERIFIED |
 | **Turn the button on** for a build: set `VITE_GOOGLE_SIGNIN=true` in the hosting environment. Leave it unset until the two rows above are done, or the button will fail for everyone. | UNVERIFIED |
 
-Code: `GoogleSignInButton.tsx`, `FinishAccountView.tsx` (DOB and AI-consent
-step for Google sign-ups, `lib/accountDetails.ts`), and the gate in
-`OnboardingGate.tsx`. Google sign-ups must answer the date of birth and
-consent before the app opens; email sign-ups already do at the form.
+Apple sign-in (added 2026-10-23) uses the same code path and needs:
+
+| Item | Status |
+|------|--------|
+| **Apple Developer Program** membership (paid). In Certificates, Identifiers & Profiles: an App ID with "Sign in with Apple", a **Services ID** (this is the client ID) with the domain and return URL set to the Supabase callback `https://<project-ref>.supabase.co/auth/v1/callback`, and a **Sign in with Apple key** (.p8). | UNVERIFIED |
+| **Apple provider enabled** in Supabase Auth → Providers → Apple, with the Services ID and the secret generated from the .p8 key, Team ID and Key ID. The generated secret **expires every 6 months** and must be regenerated, or Apple sign-in stops working. | UNVERIFIED |
+| **Turn the button on** for a build: set `VITE_APPLE_SIGNIN=true` in the hosting environment, only after the two rows above are done. | UNVERIFIED |
+
+Code: `OAuthSignInButtons.tsx`, `FinishAccountView.tsx` (DOB and AI-consent
+step for Google and Apple sign-ups, `lib/accountDetails.ts`), and the gate in
+`OnboardingGate.tsx`. Google and Apple sign-ups must answer the date of birth
+and consent before the app opens; email sign-ups already do at the form.
 
 ### 4.1 Billing (Stripe)
 

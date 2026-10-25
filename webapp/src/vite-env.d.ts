@@ -11,6 +11,11 @@ interface ImportMetaEnv {
    *  keeps error reporting inert there — see lib/monitoring.ts. Set it in the
    *  Vercel project's environment variables to turn reporting on. */
   readonly VITE_SENTRY_DSN?: string;
+  /** "true" shows "Continue with Google" / "Continue with Apple" on the sign-in
+   *  and sign-up screens. Leave unset until the provider is enabled in
+   *  Supabase — see views/auth/OAuthSignInButtons.tsx. */
+  readonly VITE_GOOGLE_SIGNIN?: string;
+  readonly VITE_APPLE_SIGNIN?: string;
 }
 
 interface ImportMeta {

@@ -386,8 +386,8 @@
   border: 1px solid var(--accent-soft);
 }
 
-/* Google sign-in sits above the email form, with a quiet divider under it. */
-.googleBlock {
+/* Google / Apple sign-in sits above the email form, with a quiet divider under it. */
+.oauthBlock {
   display: grid;
   gap: var(--s-2);
   margin-bottom: var(--s-4);

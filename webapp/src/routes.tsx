@@ -256,7 +256,7 @@ export function AppRoutes() {
             </DeferredView>
           }
         />
-        {/* A Google sign-up adds its date of birth and AI-consent answer here
+        {/* A Google or Apple sign-up adds its date of birth and AI-consent answer here
             before anything else, the same way /welcome follows sign-up. */}
         <Route
           path={FINISH_ACCOUNT_PATH}

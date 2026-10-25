@@ -11,6 +11,10 @@ describe("needsAccountDetails", () => {
     expect(needsAccountDetails(user({ provider: "google" }, {}))).toBe(true);
   });
 
+  it("asks a new Apple account too", () => {
+    expect(needsAccountDetails(user({ provider: "apple" }, {}))).toBe(true);
+  });
+
   it("is satisfied once both are stored, even when consent is refused", () => {
     expect(
       needsAccountDetails(
