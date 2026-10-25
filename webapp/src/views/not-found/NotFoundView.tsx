@@ -1,8 +1,11 @@
 import { Link, useNavigate } from "react-router";
+import { useDocumentTitle } from "../../lib/routeTitle";
 import styles from "./NotFoundView.module.css";
 
 export function NotFoundView() {
   const navigate = useNavigate();
+  /* Unknown paths match no route title, so the tab just read "Learnora". */
+  useDocumentTitle("Page not found");
 
   return (
     <div className={styles.container}>

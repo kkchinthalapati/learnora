@@ -308,7 +308,7 @@ test("friction: out of AI, broken server, no wifi, small screen", async ({
 
   log.did("Adding a task anyway, because I want to remember to revise chem");
   await safe(log, "add task offline", async () => {
-    const input = page.getByLabel("New Task Input");
+    const input = page.getByLabel("Task name");
     await input.fill("Revise chem equations");
     await input.press("Enter");
     await page.waitForTimeout(3000);
