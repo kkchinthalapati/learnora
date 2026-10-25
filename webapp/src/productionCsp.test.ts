@@ -83,8 +83,12 @@ describe("production CSP img-src (vercel.json)", () => {
     ).toBe(false);
   });
 
+  it("admits Google's own picture host (sign-in avatars and Drive thumbnails)", () => {
+    expectAdmittedEverywhere("https://lh3.googleusercontent.com/a/photo");
+  });
+
   it.each([
-    ["an OAuth provider's picture", "https://lh3.googleusercontent.com/a/photo"],
+    ["a lookalike of Google's picture host", "https://lh3.googleusercontent.com.evil.example/a/photo"],
     ["a user-set tracking pixel", "https://tracker.example/pixel.gif"],
     [
       "another Supabase project's storage",
