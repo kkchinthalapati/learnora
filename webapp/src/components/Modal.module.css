@@ -18,11 +18,12 @@
 }
 
 .content {
+  --modal-pad: clamp(24px, 4vw, 36px);
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
-  padding: clamp(24px, 4vw, 36px);
+  padding: var(--modal-pad);
   border-radius: var(--r-xl);
   background: var(--surface);
   /* A sticker sheet over the page (DESIGN.md 0.8). */
@@ -74,11 +75,22 @@
   color: var(--text);
 }
 
+/* The actions stay on screen when a long dialog scrolls (the upgrade
+   comparison is taller than a laptop screen), so the button that does the
+   thing is never below the fold. It sits flush with the dialog's bottom edge,
+   over the scrolling content. */
 .actions {
+  position: sticky;
+  bottom: calc(-1 * var(--modal-pad));
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--s-3);
-  margin-top: var(--s-6);
+  margin: var(--s-6) calc(-1 * var(--modal-pad)) calc(-1 * var(--modal-pad));
+  padding: var(--s-4) var(--modal-pad) var(--modal-pad);
+  border-top: 1px solid var(--hairline);
+  border-radius: 0 0 var(--r-xl) var(--r-xl);
+  background: var(--surface);
 }
 
 @keyframes overlay-in {

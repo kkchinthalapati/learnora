@@ -57,9 +57,11 @@ describe("AppearanceTab", () => {
     renderWithProviders(<AppearanceTab />);
 
     /* The gate waits on the entitlements query; under a full parallel run
-       that took over the default 1s and the test flaked (2026-10-15). */
+       that took over the default 1s and the test flaked (2026-10-15).
+       Theme colours unlock on Plus, so the gate offers both plans ("See
+       plans") rather than claiming the feature needs Pro. */
     expect(
-      await screen.findByRole("button", { name: /see what pro adds/i }, { timeout: 5000 }),
+      await screen.findByRole("button", { name: /see plans/i }, { timeout: 5000 }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Pacific Deep")).toBeNull();
   });

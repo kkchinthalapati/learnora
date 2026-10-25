@@ -1,8 +1,9 @@
 /* Paywall and Pro-gate surfaces. Deliberately quiet: no gradients, no
- * countdowns, no pulsing badge. The pitch is the feature, not the packaging. */
+ * countdowns, no pulsing badge, no icon tiles. The exercise book (DESIGN.md
+ * 0.8): the chosen plan is a sticker, and the comparison is one ruled page. */
 
 .dialog {
-  max-width: 520px;
+  max-width: 680px;
 }
 
 .body {
@@ -12,210 +13,298 @@
   margin: var(--s-4) 0 var(--s-2);
 }
 
-.planTabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* --- Billing period: one switch for both plans ---------------------------- */
+
+.periodRow {
+  display: flex;
 }
 
-.planTab {
-  padding: var(--s-3) var(--s-4);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-md, 8px);
+.period {
+  display: inline-flex;
+  padding: 3px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface-sunk);
+}
+
+.periodOption {
+  min-height: var(--tap-min);
+  padding: 0 var(--s-4);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.periodOption:hover {
+  color: var(--text);
+}
+
+.periodOption[aria-checked="true"] {
+  border-color: var(--edge);
   background: var(--surface);
   color: var(--text);
-  font-size: var(--fs-sm);
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.planTab:hover {
-  background: var(--surface-hover);
-}
-
-.planTab:focus-visible {
-  outline: 2px solid var(--accent-ring);
-  outline-offset: 2px;
-}
-
-.planTabOn {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-text);
-}
-
-.plusPitch {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-  line-height: 1.55;
-}
-
-.priceList {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--s-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.price {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  padding: var(--s-4);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-md, 8px);
-  background: var(--surface);
-  text-align: left;
-  cursor: pointer;
-}
-
-.price:hover {
-  background: var(--surface-hover);
-}
-
-.price:focus-visible {
-  outline: 2px solid var(--accent-ring);
-  outline-offset: 2px;
-}
-
-.priceOn {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.priceHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-2);
-}
-
-.priceLabel {
-  color: var(--text-muted);
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .saving {
-  padding: 1px 8px;
-  border-radius: var(--r-pill);
-  background: var(--success-soft);
   color: var(--success-text);
-  font-size: var(--fs-xs);
-  font-weight: 600;
 }
 
-.priceAmount {
-  color: var(--text);
-  font-family: var(--font-head);
-  font-size: var(--fs-xl);
-  font-weight: 700;
-}
+/* --- The plans: radio cards, the chosen one a sticker --------------------- */
 
-.priceInterval {
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-  font-weight: 400;
-}
-
-.priceNote {
-  color: var(--text-faint);
-  font-size: var(--fs-xs);
-}
-
-.features {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
+.plans {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-4);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.feature {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s-3);
+.plans[data-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.tick {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-}
-
-.featureName {
-  display: block;
+.plan {
+  display: grid;
+  gap: var(--s-1);
+  width: 100%;
+  height: 100%;
+  padding: var(--s-4) var(--s-5);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
   color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+}
+
+.plan:hover {
+  border-color: var(--text-muted);
+}
+
+.plan:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.plan[aria-checked="true"] {
+  border-color: var(--edge);
+  box-shadow: var(--hard-md);
+}
+
+.planName {
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 650;
+}
+
+.planPrice {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.planInterval {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.planNote {
+  color: var(--text-muted);
   font-size: var(--fs-sm);
 }
 
-.featureBlurb {
-  display: block;
-  color: var(--text-muted);
-  font-size: var(--fs-xs);
+.planTagline {
+  margin-top: var(--s-2);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--hairline);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
   line-height: 1.45;
 }
 
-.promise {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  margin: 0;
-  color: var(--text-faint);
-  font-size: var(--fs-xs);
+/* --- The comparison: one ruled page --------------------------------------- */
+
+.compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
 }
 
-/* --- ProGate ---------------------------------------------------------- */
+.caption {
+  margin-bottom: var(--s-2);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-weight: 650;
+  text-align: left;
+}
+
+.compare th,
+.compare td {
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--ruling);
+  vertical-align: top;
+}
+
+.compare thead th {
+  color: var(--text-muted);
+  font-weight: 650;
+  text-align: center;
+  border-bottom: 1.5px solid var(--line-strong);
+}
+
+.compare tbody th {
+  font-weight: 500;
+  text-align: left;
+}
+
+.compare td {
+  width: 18%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* The chosen plan's column reads as the one being bought. */
+.compare thead th[data-on] {
+  color: var(--text);
+}
+
+.compare td[data-on] {
+  background: var(--accent-wash);
+  color: var(--text);
+  font-weight: 650;
+}
+
+.compare td svg {
+  color: var(--success-text);
+  vertical-align: -3px;
+}
+
+.group th {
+  padding-top: var(--s-4);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  border-bottom: 0;
+}
+
+/* The feature the gate came from leads the list, with an accent spine. */
+tr[data-lead] th {
+  font-weight: 650;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.toolBlurb {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.dash {
+  color: var(--text-faint);
+}
+
+.footnote {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+.promise {
+  margin: 0;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--hairline);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .plans {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-3);
+  }
+  /* On a phone the table below says what each plan adds; the tagline would
+     push it, and the comparison, off the first screen. */
+  .planTagline {
+    display: none;
+  }
+  .plan {
+    padding: var(--s-3) var(--s-4);
+  }
+  .compare th,
+  .compare td {
+    padding: var(--s-2);
+  }
+  .toolBlurb {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan {
+    transition: none;
+  }
+}
+
+/* --- ProGate's default invitation ----------------------------------------- */
 
 .gate {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
+  justify-items: start;
   gap: var(--s-3);
-  padding: var(--s-5);
-  border: 1px dashed var(--glass-border);
-  border-radius: var(--r-lg, 12px);
-  background: var(--surface-2);
+  padding: var(--s-6);
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
 }
 
-.gateIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-text);
+.gateTag {
+  padding: 2px var(--s-2);
+  border: 1.5px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--highlight);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
 }
 
 .gateTitle {
   margin: 0;
-  color: var(--text);
-  font-family: var(--font-head);
-  font-size: var(--fs-md);
+  font-size: var(--fs-xl);
 }
 
 .gateCopy {
   max-width: 52ch;
   margin: 0;
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-  line-height: 1.5;
+  color: var(--text-secondary);
 }

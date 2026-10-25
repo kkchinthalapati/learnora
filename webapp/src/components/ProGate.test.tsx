@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/mocks/server";
@@ -7,6 +7,7 @@ import { SUPABASE_URL } from "../lib/supabase";
 import { mockAuthSession } from "../test/mockSession";
 import { fakeSession, renderWithAuth } from "../test/auth";
 import { ProGate } from "./ProGate";
+import { QUOTAS, getLocalizedPlanPricing } from "../lib/entitlements";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 
@@ -137,6 +138,68 @@ describe("ProGate", () => {
 
     expect(
       await screen.findByText(/Everything you already use stays free/i),
+    ).toBeInTheDocument();
+  });
+
+  it("compares plans with the allowances the server enforces, and names what it will charge", async () => {
+    const user = userEvent.setup();
+    servePlan(null);
+    render();
+    await user.click(
+      await screen.findByRole("button", { name: /see what pro adds/i }),
+    );
+    const dialog = await screen.findByRole("dialog");
+
+    /* A Pro gate offers Pro only: Free and Pro columns, the clicked
+       feature as the first tool. Numbers come from QUOTAS. */
+    const headers = within(dialog)
+      .getAllByRole("columnheader")
+      .map((h) => h.textContent);
+    expect(headers).toEqual(["Allowance", "Free", "Pro"]);
+    const chat = within(dialog).getByRole("row", {
+      name: /Chat & quick edits/,
+    });
+    expect(chat).toHaveTextContent(`${QUOTAS.free.chat}`);
+    expect(chat).toHaveTextContent(`${QUOTAS.pro.chat}`);
+    const forecast = within(dialog).getByRole("row", { name: /Exam forecast/ });
+    expect(forecast).toHaveTextContent(/Not included/);
+    expect(forecast).toHaveTextContent(/Included/);
+
+    const { plans, format } = getLocalizedPlanPricing();
+    const yearly = plans.pro.prices.find((p) => p.id === "annual")!;
+    const monthly = plans.pro.prices.find((p) => p.id === "monthly")!;
+    expect(
+      screen.getByRole("button", {
+        name: `Upgrade to Pro · ${format(yearly.amountPence)}/year`,
+      }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /monthly/i }));
+    expect(
+      screen.getByRole("button", {
+        name: `Upgrade to Pro · ${format(monthly.amountPence)}/month`,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers Plus too when the feature unlocks on Plus", async () => {
+    const user = userEvent.setup();
+    servePlan(null);
+    renderWithAuth(
+      <ProGate feature="customAppearance">
+        <p>the paid thing</p>
+      </ProGate>,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+    await user.click(await screen.findByRole("button", { name: /see plans/i }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent(/Theme colours comes with Plus and Pro/);
+    expect(
+      within(dialog).getByRole("radio", { name: /^Plus/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      within(dialog).getByRole("radio", { name: /^Pro/ }),
     ).toBeInTheDocument();
   });
 });

@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { Button } from "./Button";
-import { Icon } from "./Icon";
 import { PaywallModal } from "./PaywallModal";
 import { Skeleton } from "./Skeleton";
 import { useEntitlements } from "../hooks/useSubscription";
@@ -57,13 +56,13 @@ export function ProGate({
         fallback(open)
       ) : (
         <div className={styles.gate}>
-          <span className={styles.gateIcon} aria-hidden="true">
-            <Icon name="sparkles" size={18} />
+          <span className={styles.gateTag}>
+            {meta.minimumPlan === "plus" ? "Plus" : "Pro"}
           </span>
           <h3 className={styles.gateTitle}>{meta.name}</h3>
           <p className={styles.gateCopy}>{meta.pitch}</p>
           <Button variant="primary" size="sm" onClick={open}>
-            See what Pro adds
+            {meta.minimumPlan === "plus" ? "See plans" : "See what Pro adds"}
           </Button>
         </div>
       )}
