@@ -75,6 +75,7 @@
 }
 
 .primaryLink {
+  composes: sticker from "../../styles/sticker.module.css";
   display: inline-flex;
   align-items: center;
   min-height: var(--touch-target-min);
@@ -85,6 +86,8 @@
   color: var(--accent-on);
   font-weight: 600;
   text-decoration: none;
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
 }
 
 .primaryLink:hover {

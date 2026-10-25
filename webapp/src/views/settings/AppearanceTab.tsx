@@ -29,9 +29,11 @@ const FONTS: ReadonlyArray<{
   glyph: string;
   cls: string;
 }> = [
+  /* The id stays "jakarta" so saved preferences carry over; it has always
+     meant "the app's own face", which is Literata since 2026-10. */
   {
     id: "jakarta",
-    title: "Plus Jakarta",
+    title: "Literata",
     glyph: "Aa",
     cls: styles.fontJakarta,
   },

@@ -28,9 +28,9 @@
   margin: 0;
   font-family: var(--font-head);
   font-size: var(--fs-3xl);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   color: var(--text);
 }
 

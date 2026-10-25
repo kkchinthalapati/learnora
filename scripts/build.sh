@@ -38,6 +38,8 @@ VANILLA_PATHS=(
   study-planner-imageandlogo.jpg
   public.css
   landing.html
+  landing.css
+  landing.js
   about.html
   contact.html
   privacy.html

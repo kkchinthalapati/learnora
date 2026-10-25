@@ -1,38 +1,32 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router";
 import { LandingView } from "./LandingView";
 import { AboutView, ContactView, DevelopersView } from "./MarketingPages";
 
 describe("Marketing Views", () => {
   describe("LandingView", () => {
-    it("renders hero, 1-click guest timer button, and localized pricing", () => {
-      render(
+    const realLocation = window.location;
+    afterEach(() => {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: realLocation,
+      });
+    });
+
+    it("sends an old /app/landing link to the one landing page at /", () => {
+      const replace = vi.fn();
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { ...realLocation, replace },
+      });
+      const { container } = render(
         <MemoryRouter initialEntries={["/landing"]}>
           <LandingView />
         </MemoryRouter>,
       );
-
-      // Hero
-      expect(
-        screen.getByRole("heading", { name: /Know Your Grade/i }),
-      ).toBeInTheDocument();
-
-      // 1-Click Focus Timer button
-      const timerBtn = screen.getByRole("link", {
-        name: /Try 25m Focus Timer/i,
-      });
-      expect(timerBtn).toBeInTheDocument();
-      expect(timerBtn).toHaveAttribute("href", "/timer");
-
-      // Pricing follows the detected region (jsdom reports en-US → USD)
-      expect(screen.getByText("$0")).toBeInTheDocument();
-      expect(screen.getByText("$3.99")).toBeInTheDocument();
-      expect(screen.getByText("$7.99")).toBeInTheDocument();
-
-      // No region-specific payment rail for a card-only market
-      expect(screen.queryByText(/Supports UPI/i)).not.toBeInTheDocument();
-      expect(screen.getByText(/Cancel anytime/i)).toBeInTheDocument();
+      expect(replace).toHaveBeenCalledWith("/");
+      expect(container).toBeEmptyDOMElement();
     });
   });
 

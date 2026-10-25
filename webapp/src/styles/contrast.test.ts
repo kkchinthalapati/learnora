@@ -313,10 +313,14 @@ describe("redesign accent roles", () => {
     }
   }
 
-  it("lands on the handoff's hexes for the fallback teal", () => {
+  /* The wash is still the handoff's. The deep label moved with the ink: it is
+     the accent walked toward --text, and --text became the exercise book's
+     blue-black #17202e in 2026-10 (was brown-black #1a1815, which put it on
+     the handoff's #0b5c55). */
+  it("lands on the expected hexes for the fallback teal", () => {
     const tokens = baseTokensFor(false);
     const near = (a: string, b: string) => contrast(a, b) < 1.1;
     expect(near(resolveMix(tokens, "--accent-wash"), "#e1ece9")).toBe(true);
-    expect(near(resolveMix(tokens, "--accent-deep"), "#0b5c55")).toBe(true);
+    expect(near(resolveMix(tokens, "--accent-deep"), "#116360")).toBe(true);
   });
 });

@@ -104,7 +104,7 @@ function renderInlineMarkdown(text: string): ReactNode[] {
      Links sit after code spans and before emphasis. Only http(s) targets
      become anchors: a `[x](javascript:…)` in a model reply stays text. */
   const pattern =
-    /(`[^`\n]+`)|(\[[^\]\n]+\]\(https?:\/\/[^\s)]+\))|(\*\*\*(?!\s).+?\*\*\*)|(\*\*(?!\s).+?\*\*)|(\*(?!\s).+?\*)/g;
+    /(`[^`\n]+`)|(\[[^\]\n]+\]\(https?:\/\/[^\s)]+\))|(==(?!\s)[^\n]+?==)|(\*\*\*(?!\s).+?\*\*\*)|(\*\*(?!\s).+?\*\*)|(\*(?!\s).+?\*)/g;
   let last = 0;
   let match: RegExpExecArray | null;
 
@@ -133,6 +133,13 @@ function renderInlineMarkdown(text: string): ReactNode[] {
         <code key={nextKey()} className={styles.code}>
           {token.slice(1, -1)}
         </code>,
+      );
+    } else if (token.startsWith("==")) {
+      /* ==key idea== marks the phrase the student should remember. */
+      out.push(
+        <mark key={nextKey()} className={styles.highlight}>
+          {renderInline(token.slice(2, -2))}
+        </mark>,
       );
     } else if (token.startsWith("***")) {
       out.push(

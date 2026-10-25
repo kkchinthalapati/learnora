@@ -1,7 +1,11 @@
-/* webapp/DESIGN.md 0.5: flat. A hairline edge, no shadow, the one radius and
- * spacing scale (--r-*, --s-*) — the same surface as ListRow, so a card and a
- * list row next to each other read as one system. Only menus, modals and
- * drawers cast shadows. Never nest a Card inside a Card. */
+/* webapp/DESIGN.md 0.5: panel, row and subtle are flat — a hairline edge,
+ * no shadow, the same surface as ListRow, so a card and a list row next to
+ * each other read as one system. Never nest a Card inside a Card.
+ *
+ * 2026-10 (the exercise book, DESIGN.md 0.8): "elevated" and interactive
+ * cards are stickers — a 1.5px --edge and a hard offset shadow — so the one
+ * card a screen leads with stands off the page. An interactive card lifts
+ * on hover and presses flat on click, like the buttons. */
 
 .card {
   border: 1px solid var(--hairline);
@@ -12,6 +16,8 @@
   flex-direction: column;
   min-width: 0;
   background: var(--surface);
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-md);
 }
 
 .panel {
@@ -26,16 +32,26 @@
   background: var(--surface-sunk);
 }
 
-/* Interactive cards answer hover the way ListRow does. */
+/* Interactive cards are stickers that lift towards you on hover. */
 .interactive {
   cursor: pointer;
   background: var(--surface);
-  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
+  transition:
+    transform var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
 }
 
 .interactive:hover {
-  border-color: var(--hairline-strong);
-  background: var(--surface-hover);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--hard);
+}
+
+.interactive:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--hard);
 }
 
 .interactive:focus-visible {
@@ -79,5 +95,9 @@
   .hoverElevation,
   .interactive {
     transition: none;
+  }
+  .interactive:hover,
+  .interactive:active {
+    transform: none;
   }
 }

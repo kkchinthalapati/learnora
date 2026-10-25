@@ -9,16 +9,19 @@
   flex-direction: column;
   gap: var(--s-3);
   padding: var(--s-4) var(--s-4) var(--s-4) calc(var(--margin-x) + var(--s-4));
-  border: 1px solid var(--glass-border);
+  /* A sticker page (DESIGN.md 0.8): the ink edge and hard shadow the
+     landing page puts on its capture box. */
+  border: 1.5px solid var(--edge);
   border-radius: var(--r-lg);
   background:
     var(--surface);
+  box-shadow: var(--hard-md);
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 .bar:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: var(--hard-md), 0 0 0 3px var(--accent-soft);
 }
 
 .bar[data-dragging] {

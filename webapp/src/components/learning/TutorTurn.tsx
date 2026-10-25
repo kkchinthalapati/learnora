@@ -5,7 +5,7 @@ import styles from "./learning.module.css";
 interface TutorTurnProps {
   /** Mono caps line above the turn: "Step 3 · Explain". */
   meta?: string;
-  /** Newsreader claim heading — the one sentence the step is about. */
+  /** Display-face claim heading — the one sentence the step is about. */
   claim?: string;
   claimLevel?: 2 | 3;
   /** The explanation. Keep it to about three sentences; a check follows. */

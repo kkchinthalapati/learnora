@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
+import { LearnoraMark } from "../../components/LearnoraMark";
 import { AiErrorCard } from "../../components/learning/AiErrorCard";
 import { MasteryLadder } from "../../components/learning/MasteryLadder";
 import { TutorTurn } from "../../components/learning/TutorTurn";
@@ -395,9 +396,7 @@ export function FirstRunView() {
     <div className={styles.shell}>
       <header className={styles.top}>
         <span className={styles.brand}>
-          <span className={styles.mark} aria-hidden="true">
-            L
-          </span>
+          <LearnoraMark size={28} />
           Learnora
         </span>
         <ol className={styles.progress} aria-label={`Step ${stepIndex + 1} of 3`}>

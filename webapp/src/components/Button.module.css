@@ -1,8 +1,13 @@
 /* Originally ported from style.css's `button` / .btn-* rules; restyled flat
  * for the 2026-09 redesign, then to the 2026-10 revamp's component sheet
- * (design_handoff/design/Design System.dc.html → Button): 12px radius at
- * 44px, 14px at 52px, a 2px --focus-ring, a pulse for loading and a dashed
- * "not yet" look for disabled. Still no gradients, sheen or hover lift. */
+ * (design_handoff/design/Design System.dc.html → Button): a 2px
+ * --focus-ring, a pulse for loading and a dashed "not yet" look for disabled.
+ *
+ * Late 2026-10 (the exercise book, as on landing.html): buttons that act —
+ * primary, secondary, danger — are stickers. A pill with a 1.5px --edge and
+ * a hard offset shadow that lifts on hover and presses flat on click. Ghost,
+ * warning and success stay flat; they are the quiet tier. Still no
+ * gradients or sheen. */
 
 .btn {
   display: inline-flex;
@@ -14,9 +19,9 @@
   font-size: var(--fs-base);
   font-weight: 600;
   line-height: 1.2;
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-5);
   border: 1px solid transparent;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-full);
   cursor: pointer;
   color: var(--text);
   background: transparent;
@@ -24,6 +29,7 @@
     background var(--dur-fast) var(--ease-out),
     border-color var(--dur-fast) var(--ease-out),
     color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
     transform var(--dur-fast) var(--ease-out);
 }
 
@@ -36,28 +42,45 @@
   transform: translateY(1px);
 }
 
-/* Flat accent fill. One per screen is the whole hierarchy. */
+/* The sticker. */
+.primary,
+.secondary,
+.danger {
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
+}
+.primary:hover:not(:disabled, [aria-disabled="true"]),
+.secondary:hover:not(:disabled, [aria-disabled="true"]),
+.danger:hover:not(:disabled, [aria-disabled="true"]) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--hard);
+}
+.primary:active:not(:disabled, [aria-disabled="true"]),
+.secondary:active:not(:disabled, [aria-disabled="true"]),
+.danger:active:not(:disabled, [aria-disabled="true"]) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--hard);
+}
+
+/* Accent fill. One per screen is the whole hierarchy. */
 .primary {
   background: var(--accent);
   color: var(--on-accent);
-  border-color: var(--accent);
+  font-weight: 700;
   text-shadow: var(--accent-on-shadow);
 }
 .primary:hover:not(:disabled, [aria-disabled="true"]),
 .primary:active:not(:disabled, [aria-disabled="true"]) {
   background: var(--accent-hover);
-  border-color: var(--accent-hover);
 }
 
 .secondary {
   background: var(--surface);
   color: var(--text);
-  border-color: var(--line-strong);
 }
 .secondary:hover:not(:disabled, [aria-disabled="true"]),
 .secondary:active:not(:disabled, [aria-disabled="true"]) {
   background: var(--surface-sunk);
-  border-color: var(--text);
 }
 
 /* Lowest-emphasis action ("Something else", "Show me how"): accent text,
@@ -79,12 +102,10 @@
 .danger {
   background: var(--danger);
   color: var(--on-danger);
-  border-color: var(--danger);
 }
 .danger:hover:not(:disabled, [aria-disabled="true"]),
 .danger:active:not(:disabled, [aria-disabled="true"]) {
   background: var(--danger-text);
-  border-color: var(--danger-text);
 }
 .danger:focus-visible {
   outline-color: var(--danger);
@@ -152,12 +173,12 @@
 }
 .primary[aria-busy="true"]:disabled {
   background: var(--accent);
-  border: 1px solid var(--accent);
+  border: 1.5px solid var(--edge);
   color: var(--on-accent);
 }
 .secondary[aria-busy="true"]:disabled {
   background: var(--surface);
-  border: 1px solid var(--line-strong);
+  border: 1.5px solid var(--edge);
   color: var(--text);
 }
 .ghost[aria-busy="true"]:disabled {
@@ -165,7 +186,7 @@
 }
 .danger[aria-busy="true"]:disabled {
   background: var(--danger);
-  border: 1px solid var(--danger);
+  border: 1.5px solid var(--edge);
   color: var(--on-danger);
 }
 
@@ -173,7 +194,6 @@
 .lg {
   min-height: 52px;
   padding: 0 var(--space-6);
-  border-radius: var(--radius-md);
   font-size: var(--text-body);
 }
 
@@ -208,8 +228,8 @@
   .btn {
     transition: none;
   }
-  .btn:active,
-  .btn:hover:not(:disabled) {
+  .btn:active:not(:disabled, [aria-disabled="true"]),
+  .btn:hover:not(:disabled, [aria-disabled="true"]) {
     transform: none;
   }
   .spinner {

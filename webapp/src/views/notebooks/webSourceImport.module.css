@@ -61,6 +61,7 @@
 }
 
 .searchBtn {
+  composes: sticker from "../../styles/sticker.module.css";
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -77,6 +78,8 @@
   cursor: pointer;
   white-space: nowrap;
   transition: background var(--t-fast) var(--ease);
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--hard-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {

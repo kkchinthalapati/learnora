@@ -112,16 +112,19 @@
   --danger-text: #96352d;
 
   /* --- Page surfaces --- */
-  --bg: #f7f5f0;
+  /* 2026-10 exercise book: white paper with a cool cast and blue-black ink,
+     as on landing.html, instead of the warm cream and brown-black before.
+     Cream read as a café menu; an exercise book is white. */
+  --bg: #fafaf6;
   --bg-tint-1: rgba(15, 118, 110, 0.05);
   --bg-tint-2: rgba(180, 140, 60, 0.035);
   --surface: #ffffff;
-  --surface-2: #f0ede5;
-  --surface-hover: #e8e4da;
-  --surface-active: #ded9cc;
+  --surface-2: #f0f1ec;
+  --surface-hover: #e7e9e2;
+  --surface-active: #dcdfd6;
   /* Revamp surface roles: a recessed well (quote boxes, notes, skeletons)
      and a floating sheet/popover surface. */
-  --surface-sunk: #f2efe8;
+  --surface-sunk: #f2f3ee;
   --surface-raised: #ffffff;
 
   /* --- Glass --- */
@@ -131,19 +134,19 @@
      opaque light surfaces that used it. Its dark-mode counterpart is 0.1 and
      reads fine, which is why every prior audit — run in dark mode — missed
      that the border system only ever worked in one theme. */
-  --glass-border: rgba(26, 24, 21, 0.14);
-  --glass-border-subtle: rgba(28, 24, 18, 0.08);
+  --glass-border: rgba(23, 32, 46, 0.14);
+  --glass-border-subtle: rgba(23, 32, 46, 0.08);
   --glass-highlight: rgba(255, 255, 255, 0.9);
   --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --glass-blur: 18px;
   --glass-saturate: saturate(150%);
 
   /* --- Text --- */
-  --text: #1a1815;
-  --text-muted: #625c50;
+  --text: #17202e;
+  --text-muted: #4f5868;
   /* Was #9a9384 (3.1:1 on --bg) — under AA at every one of its 50 sites,
-     all of which set it at 12-13px. This clears 4.6:1. */
-  --text-faint: #78715f;
+     all of which set it at 12-13px. This clears 5.6:1. */
+  --text-faint: #5d6573;
   --text-on-accent: #ffffff;
 
   /* --- Borders & lines --- */
@@ -154,10 +157,10 @@
      when you need just the colour. Declared on `body` at the foot of this
      file, because --glass-border-subtle is one of the tokens the themes
      re-declare. */
-  --line: #e2ddd1;
+  --line: #e1e3dc;
   /* Control edges (chips, inputs, secondary buttons) and the dashed
-     "untested" outline. 3.4:1 on --surface, so it reads as a boundary. */
-  --line-strong: #8f8778;
+     "untested" outline. 3.35:1 on --surface, so it reads as a boundary. */
+  --line-strong: #868d98;
 
   /* --- Radius --- */
   /* Tightened one step across the board. The app was rendering essentially
@@ -190,31 +193,33 @@
   /* One shadow per elevation, not three stacked. Reserved for surfaces that
      actually float above the page (modals, popovers, the focus HUD); in-flow
      cards get a hairline and a tone step instead. */
-  --shadow-sm: 0 1px 2px rgba(24, 20, 14, 0.06);
-  --shadow-md: 0 4px 12px -2px rgba(24, 20, 14, 0.1);
-  --shadow-lg: 0 16px 40px -12px rgba(24, 20, 14, 0.18);
+  --shadow-sm: 0 1px 2px rgba(23, 32, 46, 0.06);
+  --shadow-md: 0 4px 12px -2px rgba(23, 32, 46, 0.1);
+  --shadow-lg: 0 16px 40px -12px rgba(23, 32, 46, 0.18);
   /* --shadow-accent is themed (it wraps --accent-ring) and lives on `body`. */
 
   /* --- Typography --- */
-  /* Instrument Serif carries the editorial voice: high-contrast, sharp, and
-     categorically not what an AI product looks like. It is a *display* face —
-     used at 24px and up, never for UI copy. Instrument Sans is its designed
-     companion, a neutral grotesque that stays out of the way. Outfit and Plus
-     Jakarta Sans (the previous pairing) are two geometric sans of nearly the
-     same colour and width, so headings and body read as one undifferentiated
-     texture; that flatness is a large part of why the app looked templated. */
-  --font:
-    "Instrument Sans", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-head: "Newsreader", "Spectral", Georgia, "Times New Roman", serif;
-  /* Figures in stats, timers and tables must not reflow as they tick. */
-  --font-numeric: "Instrument Sans", system-ui, sans-serif;
-  /* Reading face for long AI prose (the Socratic Coach's answer). The UI sans
-     is drawn for labels and buttons; a text serif carries several paragraphs
-     of explanation more comfortably. Overridden back to --font whenever the
-     student has picked a font in Settings → Appearance, so an accessibility
-     choice is never silently outranked (src/index.css). */
-  --font-read:
-    "Source Serif 4", ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  /* 2026-10 (exercise book, same as landing.html): one face for everything.
+     Literata is a text serif drawn for long reading on screens, with real
+     weights from 400 to 700 and an optical-size axis, so it holds up as a
+     40px page title and as a 13px label. A grotesque for the UI under a serif
+     for headings (Instrument Sans + Newsreader before this) was what made the
+     app read as a SaaS template; a printed workbook doesn't switch faces. The
+     student's own pick in Settings → Appearance still overrides --font. */
+  --font: "Literata", Georgia, "Times New Roman", serif;
+  --font-head: "Literata", Georgia, "Times New Roman", serif;
+  /* Figures in stats, timers and tables must not reflow as they tick.
+     Literata has tabular figures; :where(.tabular) in index.css turns them on. */
+  --font-numeric: "Literata", Georgia, serif;
+  /* Reading face for long AI prose (the Socratic Coach's answer). Now the
+     same face as the UI, kept as its own token because a font picked in
+     Settings → Appearance overrides it too, so an accessibility choice is
+     never silently outranked (src/index.css). */
+  --font-read: "Literata", ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  /* Red-pen handwriting: margin corrections and dates on the mistakes loop
+     only (DESIGN.md 0.8). Never body copy, never a label someone must read
+     to act. */
+  --font-hand: "Caveat", "Segoe Print", "Comic Sans MS", cursive;
   --fs-xs: 12px;
   --fs-sm: 13px;
   --fs-base: 15px;
@@ -306,21 +311,24 @@
   --recall: #ad7d2a;
   --recall-text: #76511b;
   --recall-soft: #f6ecd9;
+  /* The highlighter: one stroke on Home and the stickers' yellow. A fill
+     behind ink text, never a text colour. */
+  --highlight: #fbe39a;
 
   /* Surfaces the redesign names. --paper is a half-step lighter than --bg:
      the test room, the Ask drawer and the session top bar sit on it. */
-  --paper: #fbfaf7;
-  --sidebar-bg: #f0ece3;
+  --paper: #fdfdfb;
+  --sidebar-bg: #f3f4ef;
   /* Opaque hairlines. --glass-border-subtle is translucent, which reads fine
      on --surface but muddies on --paper; these are the two in-flow weights
      (divider/card edge, and control edge). */
-  --hairline: #e2ddd1;
-  --hairline-strong: #d5cfc2;
+  --hairline: #e1e3dc;
+  --hairline-strong: #cfd3ca;
   /* Secondary body text — between --text and --text-muted. */
-  --text-secondary: #3d3830;
+  --text-secondary: #343e4d;
   /* Track/fill behind segmented controls, empty week-day squares, and the
      quiet button's hover. */
-  --track: #ece8df;
+  --track: #eceee8;
 
   /* Type roles. --fs-4xl (clamp 38→52) is the display tier and --fs-3xl
      (clamp 30→38) the page title; these fill the reading sizes between. */
@@ -346,12 +354,12 @@
    * older --s-*, --r-*, --fs-*, --t-* scales stay for existing consumers.
    * ---------------------------------------------------------------------- */
 
-  /* Type. Newsreader is display/H1/H2 only (≥22px), never questions or
-     answers. --font-reading is the handoff's --font-read (Atkinson
-     Hyperlegible, reading mode only); renamed because --font-read is already
-     the AI-prose serif above. */
-  --font-display: "Newsreader", Georgia, serif;
-  --font-body: "Instrument Sans", system-ui, sans-serif;
+  /* Type. Display and body are both Literata now (see --font above).
+     --font-reading is the handoff's --font-read (Atkinson Hyperlegible,
+     reading mode only); renamed because --font-read is already the AI-prose
+     face above. */
+  --font-display: "Literata", Georgia, serif;
+  --font-body: "Literata", Georgia, serif;
   --font-reading: "Atkinson Hyperlegible", system-ui, sans-serif;
   --text-display: 44px;
   --leading-display: 1.05;
@@ -510,8 +518,19 @@ body {
   --accent-line: color-mix(in srgb, var(--accent) 22%, var(--surface));
   --accent-line-strong: color-mix(in srgb, var(--accent) 40%, var(--surface));
   --shadow-focus: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
-  --shadow-drawer: -16px 0 40px -16px rgba(24, 20, 14, 0.2);
-  --scrim: rgba(26, 24, 21, 0.12);
+  --shadow-drawer: -16px 0 40px -16px rgba(23, 32, 46, 0.2);
+  --scrim: rgba(23, 32, 46, 0.12);
 
   --ruling: color-mix(in srgb, var(--text) 7%, transparent);
+
+  /* Stickers (2026-10, as on landing.html): a 1.5px ink edge and a hard
+     offset shadow, like a label stuck on an exercise book. Buttons that act,
+     sticker cards, dialogs and selected chips wear it; lists, inputs and
+     quiet controls stay flat. Dark mode re-points --edge and --hard in
+     themes.css, because an ink-coloured offset vanishes on a dark page. */
+  --edge: var(--text);
+  --hard: var(--text);
+  --hard-sm: 3px 3px 0 var(--hard);
+  --hard-md: 5px 5px 0 var(--hard);
+  --hard-lg: 7px 7px 0 var(--hard);
 }

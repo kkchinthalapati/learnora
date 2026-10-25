@@ -138,10 +138,10 @@
 .marked {
   padding: 0 0.06em;
   background: linear-gradient(
-    transparent 58%,
-    var(--accent-line-strong) 58%,
-    var(--accent-line-strong) 90%,
-    transparent 90%
+    transparent 56%,
+    var(--highlight) 56%,
+    var(--highlight) 94%,
+    transparent 94%
   );
   box-decoration-break: clone;
 }
@@ -177,13 +177,18 @@
   }
 }
 
-/* Words that stand out inside the typed heading: an accent underline, or an
-   italic in the accent colour. */
+/* Words that stand out inside the typed heading: the same highlighter
+   stroke as .marked (the still version of this heading), or an italic in the
+   accent colour. */
 .emUnderline {
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-decoration-thickness: 0.07em;
-  text-underline-offset: 0.14em;
+  padding: 0 0.06em;
+  background: linear-gradient(
+    transparent 56%,
+    var(--highlight) 56%,
+    var(--highlight) 94%,
+    transparent 94%
+  );
+  box-decoration-break: clone;
 }
 
 .emItalic {

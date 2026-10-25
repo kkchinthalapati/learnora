@@ -18,7 +18,18 @@ import { renderMathText } from "../markdownToReact";
 import { useAsk } from "./askContext";
 import styles from "./openui.module.css";
 
-const text = (s: string): ReactNode => renderMathText(s);
+/* Card text is maths-aware, and ==phrase== is the key-idea highlight the
+   notes and lessons use everywhere else. */
+const text = (s: string): ReactNode =>
+  s.split(/(==[^=\n]+?==)/).map((part, i) =>
+    /^==[^=\n]+==$/.test(part) ? (
+      <mark key={i} className={styles.highlight}>
+        {renderMathText(part.slice(2, -2))}
+      </mark>
+    ) : (
+      <span key={i}>{renderMathText(part)}</span>
+    ),
+  );
 
 /** Rows the model got wrong (a missing cell, a one-item pair) are dropped
  *  rather than drawn half-empty. */

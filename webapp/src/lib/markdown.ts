@@ -17,6 +17,8 @@
 import DOMPurify from "dompurify";
 import { hasMathDelimiter, splitMath } from "./mathSyntax";
 import { hasOpenUiBlock, splitOpenUiBlocks } from "./openui/fence";
+import { cardifyNotes } from "./openui/cardify";
+import { isFlagOn } from "./flags";
 
 /* Maths is lifted out before the prose pipeline runs and put back after.
  *
@@ -63,6 +65,9 @@ export function renderMarkdown(md: string | null | undefined): string {
      escape rather than \0 for the same reason the swap-back regex is. */
   // oxlint-disable-next-line no-control-regex
   let source = md.replace(/\u0000/g, "");
+  /* Labelled lines (Definition:, Key idea:, …) are boxed as cards, the same
+     way a model-written card would be. See lib/openui/cardify.ts. */
+  if (isFlagOn("openUi")) source = cardifyNotes(source);
 
   /* SVG diagrams (a ```svg fence holding one <svg>) become the editor's
      diagram figure, the same markup "Draw this section" stores. Lifted out

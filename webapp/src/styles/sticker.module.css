@@ -1,0 +1,37 @@
+/* The sticker's movement (DESIGN.md 0.8), for main-action controls that are
+ * not the shared <Button>. A rule composes this and then sets its own
+ * `border: 1.5px solid var(--edge)` and `box-shadow: var(--hard-sm)` at rest,
+ * so the edge never depends on which stylesheet happens to load last. It
+ * lifts on hover and presses flat on click, like Button.module.css. */
+
+.sticker {
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.sticker:hover:not(:disabled, [aria-disabled="true"]) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--hard);
+}
+
+.sticker:active:not(:disabled, [aria-disabled="true"]) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--hard);
+}
+
+.sticker:disabled,
+.sticker[aria-disabled="true"] {
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker {
+    transition: none;
+  }
+  .sticker:hover:not(:disabled, [aria-disabled="true"]),
+  .sticker:active:not(:disabled, [aria-disabled="true"]) {
+    transform: none;
+  }
+}
