@@ -65,3 +65,51 @@ export function useRecordRetest() {
     [qc],
   );
 }
+
+/**
+ * A finished "tell them apart" drill (views/tellapart), written to the rows
+ * whose own belief is that confusion (lib/confusionPairs.ts `named`):
+ *
+ * - two or more mis-sorts: evidence, once per row per drill, quoting the
+ *   first statement missed. It is the mix-up happening again, so the loop
+ *   reopens the row and voids its repair, the same as a wrong quiz answer.
+ * - a clean sort: a correction with no question behind it, so the loop moves
+ *   the row to "improving" at most. Sorting six statements is not a new
+ *   question days after a re-teach, so it can never mark a row fixed.
+ * - one mis-sort: a slip, nothing written.
+ *
+ * Returns what was written, so the screen says only what happened.
+ */
+export function useRecordTellApart() {
+  const qc = useQueryClient();
+  return useCallback(
+    async (
+      rows: readonly Pick<Misconception, "id">[],
+      outcome: "evidence" | "correction" | "none",
+      opts: { runId: string; firstMiss?: string },
+    ): Promise<boolean> => {
+      if (outcome === "none" || rows.length === 0) return false;
+      const detail =
+        outcome === "evidence"
+          ? `Mixed the two up again in a tell-them-apart drill: "${(opts.firstMiss ?? "").slice(0, 200)}".`
+          : "Told the two apart in a tell-them-apart drill without a miss.";
+      const writes = rows.map((row) =>
+        recordLoopObservation({
+          misconceptionId: row.id,
+          kind: outcome,
+          sourceTool: "review",
+          questionKey: outcome === "evidence" && opts.firstMiss ? questionKey(opts.firstMiss) : null,
+          idempotencyKey: observationKey("tell-apart", row.id, opts.runId, outcome),
+          detail,
+        }),
+      );
+      const settled = await Promise.allSettled(writes);
+      for (const r of settled) {
+        if (r.status === "rejected") console.warn("[mistakeLoop] tell-apart not recorded:", r.reason);
+      }
+      void qc.invalidateQueries({ queryKey: misconceptionsKeys.all });
+      return settled.some((r) => r.status === "fulfilled");
+    },
+    [qc],
+  );
+}

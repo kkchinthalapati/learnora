@@ -15,6 +15,7 @@ import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { isLoopSupported } from "../../api/misconceptions";
+import { activePairs, loadPairState, nextDuePair, tellApartHref } from "../../lib/confusionPairs";
 import { localDateStr } from "../../lib/date";
 import { progressByLesson } from "../../lib/lessons";
 import { needsRepair, retestsDue } from "../../lib/mistakeLoop";
@@ -40,7 +41,7 @@ export function HomeView() {
   const folders = useFolders();
   const cards = useFlashcards();
   const { data: dueCount = 0 } = useFlashcardsDueCount();
-  const { ranked: misconceptions } = useMisconceptions();
+  const { ranked: misconceptions, all: ledger } = useMisconceptions();
   const exams = useExams();
 
   const progress = useMemo(() => progressByLesson(cards.data ?? []), [cards.data]);
@@ -58,7 +59,13 @@ export function HomeView() {
     isLoopSupported() &&
     (retestsDue(misconceptions, now).length > 0 ||
       misconceptions.some((m) => needsRepair(m) && (m.repairText || m.catalogueId)));
-  const showFix = dueCount > 0 || hasMistakes;
+  /* The pair of ideas the student mixes up that is due a side-by-side sort
+     (lib/confusionPairs.ts). One at a time, so it stays a small task. */
+  const duePair = useMemo(
+    () => nextDuePair(activePairs(ledger), loadPairState(), now),
+    [ledger, now],
+  );
+  const showFix = dueCount > 0 || hasMistakes || duePair !== null;
 
   const lessons = (materials.data ?? []).slice(0, LESSON_LIMIT);
 
@@ -123,6 +130,20 @@ export function HomeView() {
                 title={`${dueCount} ${dueCount === 1 ? "card" : "cards"} due`}
                 meta="Spaced review across all your lessons"
                 to="/review/daily-drill"
+              />
+            </ListRows>
+          ) : null}
+          {duePair ? (
+            <ListRows label="Ideas you mix up">
+              <ListRow
+                icon="list-checks"
+                title={`Tell ${duePair.pair.a.term.toLowerCase()} and ${duePair.pair.b.term.toLowerCase()} apart`}
+                meta={
+                  duePair.kind === "named"
+                    ? "You’ve mixed these two up. Two minutes, side by side"
+                    : "You’ve slipped on both. Two minutes, side by side"
+                }
+                to={tellApartHref(duePair.pair.id)}
               />
             </ListRows>
           ) : null}

@@ -155,6 +155,9 @@ const LazyProgressView = lazy(async () => ({
 const LazySessionView = lazy(async () => ({
   default: (await import("./views/session/SessionView")).SessionView,
 }));
+const LazyTellApartView = lazy(async () => ({
+  default: (await import("./views/tellapart/TellApartView")).TellApartView,
+}));
 const LazyCheckBackView = lazy(async () => ({
   default: (await import("./views/checkback/CheckBackView")).CheckBackView,
 }));
@@ -296,6 +299,16 @@ export function AppRoutes() {
             element={
               <DeferredView>
                 <LazyCheckBackView />
+              </DeferredView>
+            }
+          />
+          {/* Two ideas students mix up, sorted side by side
+              (lib/confusionPairs.ts): focus mode, the same way out. */}
+          <Route
+            path="/tell-apart/:pairId"
+            element={
+              <DeferredView>
+                <LazyTellApartView />
               </DeferredView>
             }
           />

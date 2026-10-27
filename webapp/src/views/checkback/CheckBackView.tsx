@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
+import { ButtonLink } from "../../components/ButtonLink";
+import { namedPairForRow, tellApartHref } from "../../lib/confusionPairs";
 import { Skeleton } from "../../components/Skeleton";
 import { WrongAnswerNote } from "../../components/learning/WrongAnswerNote";
 import { ReportProblem } from "../../components/learning/ReportProblem";
@@ -108,6 +110,9 @@ function CheckBack({
   const exams = useExams();
   const { settings } = useSettings();
   const recordRetest = useRecordRetest();
+  /* A mix-up that is two ideas swapped has a second way in. */
+  const { all: ledger } = useMisconceptions();
+  const pair = namedPairForRow(ledger, m);
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [picked, setPicked] = useState<number | null>(null);
   const [checked, setChecked] = useState<{
@@ -282,6 +287,11 @@ function CheckBack({
                     Fixing: a short re-teach first, then a new check-back in a
                     couple of days.
                   </p>
+                  {pair ? (
+                    <ButtonLink variant="ghost" className={styles.argue} to={tellApartHref(pair.pair.id)}>
+                      Sort {pair.pair.a.term.toLowerCase()} and {pair.pair.b.term.toLowerCase()} side by side
+                    </ButtonLink>
+                  ) : null}
                 </>
               )}
               {checked.queued ? (

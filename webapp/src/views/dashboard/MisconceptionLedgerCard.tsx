@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { activePairs, tellApartHref } from "../../lib/confusionPairs";
 import { useNavigate } from "react-router";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
 import { detectFromDiagnosis } from "../../lib/misconceptionCatalogue";
@@ -73,6 +74,17 @@ export function MisconceptionLedgerCard() {
   const [fixing, setFixing] = useState<string | null>(null);
 
   const shown = expanded ? ranked : ranked.slice(0, VISIBLE_ROWS);
+
+  /* Rows whose own belief is mixing two ideas up get a side-by-side sort
+     (lib/confusionPairs.ts), keyed by row id. */
+  const pairsByRow = useMemo(() => {
+    const byRow = new Map<string, string>();
+    for (const p of activePairs(all)) {
+      if (p.kind !== "named") continue;
+      for (const r of p.rows) if (!byRow.has(r.id)) byRow.set(r.id, p.pair.id);
+    }
+    return byRow;
+  }, [all]);
 
   /* Hands the concept to whichever tool the student picks next, using the
      bridge that already exists for tool-to-tool handoff — so "work on this"
@@ -203,6 +215,11 @@ export function MisconceptionLedgerCard() {
                   {mixUpState(m, now) === "check_back_ready" ? (
                     <Button variant="primary" onClick={() => navigate(checkBackHref(m.id))}>
                       Try it · 1 min
+                    </Button>
+                  ) : null}
+                  {pairsByRow.get(m.id) ? (
+                    <Button variant="ghost" onClick={() => navigate(tellApartHref(pairsByRow.get(m.id)!))}>
+                      Tell apart
                     </Button>
                   ) : null}
                   {detectFromDiagnosis(m.concept, m.summary) && (
