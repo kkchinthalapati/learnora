@@ -80,3 +80,40 @@ describe("MisconceptionLedgerCard as Mix-ups (revamp step 3)", () => {
     expect(within(card).getByText("How this works")).toBeInTheDocument();
   });
 });
+
+describe("MisconceptionLedgerCard habits across subjects", () => {
+  beforeEach(() => mockAuthSession("user-1"));
+  afterEach(() => vi.restoreAllMocks());
+
+  it("says when the same kind of mistake is in two subjects, with a way in, and keeps it to the ones the ledger shows", async () => {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/misconceptions`, () =>
+        HttpResponse.json([
+          row({ id: "p", subject: "Physics", concept: "Free fall", concept_key: "free fall", summary: "Heavier objects fall faster.", catalogue_id: "phys-heavier-falls-faster" }),
+          row({ id: "b", subject: "Biology", concept: "Antibiotics and viruses", concept_key: "antibiotics viruses", summary: "Antibiotics kill viruses.", catalogue_id: "bio-antibiotics-viruses" }),
+          row({ id: "h", subject: "History", concept: "Causes", concept_key: "causes", summary: "One cause." }),
+        ]),
+      ),
+    );
+    renderWithAuth(<MisconceptionLedgerCard />, { session: fakeSession() }, { withRouter: true });
+
+    const group = await screen.findByRole("region", { name: "Same mistake, different subjects" });
+    expect(within(group).getByRole("heading", { name: "Stretching a rule too far" })).toBeInTheDocument();
+    expect(within(group).getByText(/^Shows up in (Physics and Biology|Biology and Physics)\./)).toBeInTheDocument();
+    expect(within(group).getByRole("link", { name: "See where" })).toHaveAttribute(
+      "href",
+      "/analytics/habits/overgeneralisation",
+    );
+    expect(within(group).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  it("shows no habits group when nothing crosses subjects", async () => {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/misconceptions`, () => HttpResponse.json([row({})])),
+    );
+    renderWithAuth(<MisconceptionLedgerCard />, { session: fakeSession() }, { withRouter: true });
+    await screen.findByRole("region", { name: "Mistakes you're fixing" });
+    await screen.findByText("Plant respiration");
+    expect(screen.queryByText("Same mistake, different subjects")).not.toBeInTheDocument();
+  });
+});

@@ -55,7 +55,10 @@ vi.mock("../library/useLibraryActions", () => ({
 vi.mock("../../hooks/useQuizzes", () => ({ useQuizzes: () => ({ data: [] }) }));
 vi.mock("../../hooks/useFlashcards", () => ({ useAllDueFlashcards: () => ({ data: [] }) }));
 vi.mock("../../hooks/useNotebooks", () => ({ useNotebooks: () => ({ notebooks: [] }) }));
-vi.mock("../../hooks/useMisconceptions", () => ({ useMisconceptions: () => ({ forSubject: () => [] }) }));
+const ledger = vi.hoisted(() => ({ rows: [] as Array<Record<string, unknown>> }));
+vi.mock("../../hooks/useMisconceptions", () => ({
+  useMisconceptions: () => ({ forSubject: () => [], all: ledger.rows }),
+}));
 vi.mock("../lesson/LessonRows", () => ({
   LessonRows: ({ lessons, label }: { lessons: Material[]; label: string }) => (
     <ul aria-label={label}>
@@ -112,7 +115,56 @@ describe("SubjectsView", () => {
 });
 
 describe("SubjectView", () => {
-  beforeEach(() => mockAuthSession("user-1"));
+  beforeEach(() => {
+    mockAuthSession("user-1");
+    ledger.rows = [];
+  });
+
+  /* A mistake as the ledger holds it, filed under a catalogue belief. */
+  const mistake = (catalogueId: string, subject: string, patch: Record<string, unknown> = {}) => ({
+    id: catalogueId,
+    subject,
+    concept: catalogueId,
+    conceptKey: catalogueId,
+    summary: "A belief.",
+    status: "open",
+    severity: "moderate",
+    originTool: "quiz",
+    timesObserved: 2,
+    timesCorrected: 0,
+    firstSeenAt: "2026-10-01T00:00:00Z",
+    lastSeenAt: "2026-10-10T00:00:00Z",
+    resolvedAt: null,
+    catalogueId,
+    ...patch,
+  });
+
+  it("links to a habit this subject shares with another, and says nothing when it has none", () => {
+    ledger.rows = [
+      mistake("phys-heavier-falls-faster", "Physics"),
+      mistake("bio-antibiotics-viruses", "Biology"),
+    ];
+    renderAt("/subjects/f-bio");
+    const mistakes = screen.getByRole("list", { name: "Mistakes in Biology" });
+    const link = within(mistakes).getByRole("link", { name: /Stretching a rule too far/ });
+    expect(link).toHaveAttribute("href", "/analytics/habits/overgeneralisation");
+    expect(link).toHaveTextContent(/Shows up in (Biology and Physics|Physics and Biology)\./);
+    renderAt("/subjects/f-hist");
+    expect(screen.queryByRole("list", { name: "Mistakes in History" })).not.toBeInTheDocument();
+  });
+
+  it("shows the carry-over to the subject where it was fixed, even with no open mistake there", () => {
+    ledger.rows = [
+      mistake("bio-antibiotics-viruses", "Biology", { status: "resolved", resolvedAt: "2026-10-12T00:00:00Z" }),
+      mistake("phys-heavier-falls-faster", "Physics"),
+    ];
+    renderAt("/subjects/f-bio");
+    expect(
+      within(screen.getByRole("list", { name: "Mistakes in Biology" })).getByText(
+        "You fixed this in Biology. Watch for it in Physics.",
+      ),
+    ).toBeInTheDocument();
+  });
 
   it("shows one subject's exam, its own share of the week, and its lessons", () => {
     renderAt("/subjects/f-bio");
