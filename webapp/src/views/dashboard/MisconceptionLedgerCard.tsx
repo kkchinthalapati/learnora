@@ -4,6 +4,8 @@ import { MisconceptionRepair } from "../../components/learning/MisconceptionRepa
 import { detectFromDiagnosis } from "../../lib/misconceptionCatalogue";
 import { isNamedPattern, mistakeTitle } from "../../lib/mistakeLoop";
 import { Button } from "../../components/Button";
+import { ButtonLink } from "../../components/ButtonLink";
+import { canArguePastYou, pastYouHref } from "../../lib/pastYou";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
@@ -214,6 +216,11 @@ export function MisconceptionLedgerCard() {
                       Quick fix
                     </Button>
                   )}
+                  {canArguePastYou(m) ? (
+                    <ButtonLink variant="ghost" to={pastYouHref(m.id)}>
+                      Argue with past you
+                    </ButtonLink>
+                  ) : null}
                   <Button variant="secondary" onClick={() => handleWorkOnIt(m)}>
                     Work on it
                   </Button>

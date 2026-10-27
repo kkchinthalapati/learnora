@@ -158,6 +158,9 @@ const LazySessionView = lazy(async () => ({
 const LazyCheckBackView = lazy(async () => ({
   default: (await import("./views/checkback/CheckBackView")).CheckBackView,
 }));
+const LazyPastYouView = lazy(async () => ({
+  default: (await import("./views/pastyou/PastYouView")).PastYouView,
+}));
 const LazyCaptureView = lazy(async () => ({
   default: (await import("./views/capture/CaptureView")).CaptureView,
 }));
@@ -296,6 +299,16 @@ export function AppRoutes() {
             element={
               <DeferredView>
                 <LazyCheckBackView />
+              </DeferredView>
+            }
+          />
+          {/* Talk past you out of it (lib/pastYou.ts): focus mode, the
+              same way out as the check-back. */}
+          <Route
+            path="/past-you/:misconceptionId"
+            element={
+              <DeferredView>
+                <LazyPastYouView />
               </DeferredView>
             }
           />

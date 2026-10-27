@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { recordLoopObservation } from "../lib/offlineSync";
-import { retestDueAt } from "../lib/mistakeLoop";
+import { needsRepair, retestDueAt } from "../lib/mistakeLoop";
 import { armFor, experimentTag, RETEST_DELAY, RETEST_DELAY_DAYS } from "../lib/experiments";
 import { observationKey, questionKey } from "../lib/questionKey";
 import type { Misconception, MisconceptionTool } from "../lib/misconceptions";
@@ -18,7 +18,10 @@ type Row = Pick<Misconception, "id" | "timesObserved" | "originTool">;
 export function useRecordRepair() {
   const qc = useQueryClient();
   return useCallback(
-    (row: Row, opts: { sourceId: string; checkQuestion?: string; tool?: MisconceptionTool }) => {
+    (
+      row: Row,
+      opts: { sourceId: string; checkQuestion?: string; tool?: MisconceptionTool; detail?: string },
+    ) => {
       const now = new Date();
       const arm = armFor(RETEST_DELAY, row.id);
       void recordLoopObservation({
@@ -31,7 +34,7 @@ export function useRecordRepair() {
            clock, but a fresh mistake (a new times_observed) needs a new one. */
         idempotencyKey: observationKey("repair", row.id, String(row.timesObserved), opts.sourceId),
         dueAt: retestDueAt(now, row.timesObserved, RETEST_DELAY_DAYS[arm]),
-        detail: `Re-teach and contrast shown. ${experimentTag(RETEST_DELAY, arm)}`,
+        detail: `${opts.detail ?? "Re-teach and contrast shown."} ${experimentTag(RETEST_DELAY, arm)}`,
       })
         .then(() => qc.invalidateQueries({ queryKey: misconceptionsKeys.all }))
         .catch((err) => console.warn("[mistakeLoop] repair not recorded:", err));
@@ -63,5 +66,54 @@ export function useRecordRetest() {
         });
     },
     [qc],
+  );
+}
+
+/**
+ * Past you conceded (views/pastyou). Two writes, and neither says "fixed":
+ *
+ * - The argument is the re-teach, so a row that hasn't had one since it was
+ *   last seen gets a repair, which schedules its check-back. A row already
+ *   repaired keeps the check-back it has; a second repair would push a due
+ *   date further away.
+ * - Explaining it well enough to convince someone is the student showing
+ *   they have it right, so a correction. With no question behind it, the
+ *   loop's rule moves the row to "improving" at most: only the check-back,
+ *   on a new question days later, can resolve it.
+ *
+ * No evidence is ever written from the argument itself. Arguing naturally
+ * restates the other side ("you say heavier things fall faster, but…"),
+ * which the catalogue's detector would read as the student stating it.
+ *
+ * Returns when the check-back is due, for the screen to say so.
+ */
+export function useRecordPastYou() {
+  const qc = useQueryClient();
+  const recordRepair = useRecordRepair();
+  return useCallback(
+    (m: Misconception, opts: { sessionId: string; argument: string }): string | null => {
+      const quote = opts.argument.trim().slice(0, 280);
+      let checkBackAt = m.retestDueAt ?? null;
+      if (needsRepair(m)) {
+        recordRepair(m, {
+          sourceId: `past-you:${opts.sessionId}`,
+          tool: "feynman",
+          detail: `Talked past you out of it: "${quote}".`,
+        });
+        checkBackAt = retestDueAt(new Date(), m.timesObserved, RETEST_DELAY_DAYS[armFor(RETEST_DELAY, m.id)]);
+      }
+      void recordLoopObservation({
+        misconceptionId: m.id,
+        kind: "correction",
+        sourceTool: "feynman",
+        questionKey: null,
+        idempotencyKey: observationKey("past-you", m.id, opts.sessionId),
+        detail: `Talked past you out of it: "${quote}".`,
+      })
+        .then(() => qc.invalidateQueries({ queryKey: misconceptionsKeys.all }))
+        .catch((err) => console.warn("[mistakeLoop] past-you correction not recorded:", err));
+      return checkBackAt;
+    },
+    [qc, recordRepair],
   );
 }
