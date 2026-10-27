@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { ButtonLink } from "../../components/ButtonLink";
 import { namedPairForRow, tellApartHref } from "../../lib/confusionPairs";
+import { canArguePastYou, pastYouHref } from "../../lib/pastYou";
 import { Skeleton } from "../../components/Skeleton";
 import { WrongAnswerNote } from "../../components/learning/WrongAnswerNote";
 import { ReportProblem } from "../../components/learning/ReportProblem";
@@ -290,6 +291,11 @@ function CheckBack({
                   {pair ? (
                     <ButtonLink variant="ghost" className={styles.argue} to={tellApartHref(pair.pair.id)}>
                       Sort {pair.pair.a.term.toLowerCase()} and {pair.pair.b.term.toLowerCase()} side by side
+                    </ButtonLink>
+                  ) : null}
+                  {canArguePastYou(m) ? (
+                    <ButtonLink variant="ghost" className={styles.argue} to={pastYouHref(m.id)}>
+                      Re-teach it by arguing with past you
                     </ButtonLink>
                   ) : null}
                 </>

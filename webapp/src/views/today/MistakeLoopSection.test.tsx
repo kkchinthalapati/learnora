@@ -57,9 +57,13 @@ describe("provisional misconceptions on Today", () => {
   });
 
   it("label an AI repair as unverified, and 'Got it' records the repair", async () => {
-    renderWithAuth(<MistakeLoopSection misconceptions={[row({ timesObserved: 2 })]} now={NOW} />, {
-      session: fakeSession(),
-    });
+    renderWithAuth(
+      <MistakeLoopSection misconceptions={[row({ timesObserved: 2 })]} now={NOW} />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+    /* A named belief can also be argued out with past you. */
+    expect(screen.getByRole("link", { name: "Argue with past you" })).toHaveAttribute("href", "/past-you/m1");
     await userEvent.click(screen.getByRole("button", { name: "Fix it" }));
     expect(screen.getByText("Suggested by AI, not yet verified")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Got it" }));
