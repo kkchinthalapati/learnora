@@ -204,6 +204,10 @@
   background: var(--surface-sunk);
 }
 
+.argue {
+  justify-self: start;
+}
+
 .verdict {
   margin: 0;
   font-size: var(--text-h3);

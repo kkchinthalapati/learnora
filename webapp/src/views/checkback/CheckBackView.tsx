@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
+import { ButtonLink } from "../../components/ButtonLink";
+import { canArguePastYou, pastYouHref } from "../../lib/pastYou";
 import { Skeleton } from "../../components/Skeleton";
 import { WrongAnswerNote } from "../../components/learning/WrongAnswerNote";
 import { ReportProblem } from "../../components/learning/ReportProblem";
@@ -282,6 +284,11 @@ function CheckBack({
                     Fixing: a short re-teach first, then a new check-back in a
                     couple of days.
                   </p>
+                  {canArguePastYou(m) ? (
+                    <ButtonLink variant="ghost" className={styles.argue} to={pastYouHref(m.id)}>
+                      Re-teach it by arguing with past you
+                    </ButtonLink>
+                  ) : null}
                 </>
               )}
               {checked.queued ? (

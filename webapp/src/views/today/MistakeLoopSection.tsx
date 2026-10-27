@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { renderMathText } from "../../lib/markdownToReact";
 import { Button } from "../../components/Button";
+import { ButtonLink } from "../../components/ButtonLink";
+import { canArguePastYou, pastYouHref } from "../../lib/pastYou";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
 import { WrongAnswerNote } from "../../components/learning/WrongAnswerNote";
 import { ReportProblem } from "../../components/learning/ReportProblem";
@@ -34,6 +36,11 @@ function RepairRow({ m }: { m: Misconception }) {
     <li className={styles.row}>
       <span className={styles.dot} data-kind="repair" aria-hidden="true" />
       <span className={styles.rowLabel}>{mistakeTitle(m)}</span>
+      {canArguePastYou(m) ? (
+        <ButtonLink size="sm" variant="ghost" className={styles.argue} to={pastYouHref(m.id)}>
+          Argue with past you
+        </ButtonLink>
+      ) : null}
       <Button size="sm" variant="secondary" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
         {open ? "Hide" : "Fix it"}
       </Button>

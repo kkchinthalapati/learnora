@@ -98,7 +98,7 @@ const TABLES: Record<string, unknown[]> = {
   weekly_plans: fx.plans,
   notebooks: fx.notebooks,
   misconceptions: fx.misconceptions,
-  misconception_observations: [],
+  misconception_observations: fx.misconceptionObservations,
   question_bank: fx.questionBank,
   profiles: [
     {
@@ -193,6 +193,14 @@ function install(supabaseUrl: string) {
          characters at a time, so the progressive display can be looked at. */
       if (/"stream":\s*true/.test(prompt) && /openui demo/i.test(prompt)) {
         return sseReply(fx.sampleOpenUiReply);
+      }
+      /* Talk past you out of it: the next scripted line, by how many
+         arguments the student has sent so far. */
+      if (/Talk past you out of it/.test(prompt)) {
+        const sent = Math.max(0, (prompt.match(/"role":"user"/g) ?? []).length - 1);
+        const line = fx.pastYouScript[Math.min(sent, fx.pastYouScript.length - 1)];
+        await new Promise((r) => setTimeout(r, 900));
+        return json({ text: JSON.stringify(line) });
       }
       if (/openui demo|Build the study guide/i.test(prompt)) {
         return json({ text: fx.sampleOpenUiReply });

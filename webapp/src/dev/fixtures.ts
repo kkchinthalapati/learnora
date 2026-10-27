@@ -580,6 +580,51 @@ export const misconceptions = [
     retest_due_at: null,
     excluded_question_keys: [],
   },
+  /* A named belief still waiting for its re-teach: the one to argue with
+     past you about (?route=/past-you/mc-belief). */
+  {
+    id: "mc-belief",
+    subject: "Physics",
+    concept: "Free fall",
+    concept_key: "free fall",
+    summary: "Heavier objects fall faster than lighter ones.",
+    status: "open",
+    severity: "moderate",
+    origin_tool: "quiz",
+    times_observed: 2,
+    times_corrected: 0,
+    first_seen_at: isoDaysAgo(15),
+    last_seen_at: isoDaysAgo(2),
+    resolved_at: null,
+    provisional: false,
+    error_type: null,
+    catalogue_id: "phys-heavier-falls-faster",
+    repair_text: null,
+    contrast_text: null,
+    repaired_at: null,
+    retest_due_at: null,
+    excluded_question_keys: [],
+  },
+];
+
+export const misconceptionObservations = [
+  {
+    id: "obs-belief-1",
+    misconception_id: "mc-belief",
+    source_tool: "quiz",
+    source_id: null,
+    kind: "evidence",
+    detail: 'Chose "The 5 kg ball".',
+    occurred_at: isoDaysAgo(15),
+  },
+];
+
+/* Past you's lines for the harness, by how many arguments the student has
+   made. The belief drops fast enough to show the cap holding it back. */
+export const pastYouScript = [
+  { reply: "I picked the 5 kg ball and I'd pick it again. Heavier stuff gets pulled harder, so it has to hit the ground first.", belief: 100, landed: "" },
+  { reply: "Okay, a feather floats because of the air, I'll give you that. But a 5 kg ball and a 1 kg ball? The heavy one still feels like it should win.", belief: 10, landed: "air slows the light thing" },
+  { reply: "Huh. More weight, but more mass to get moving too, so it cancels. Fine: without air they land together.", belief: 5, landed: "the extra pull is cancelled by the extra mass" },
 ];
 
 /* The CBSE Class 10 Maths seed as bank rows, for the placement check. */
