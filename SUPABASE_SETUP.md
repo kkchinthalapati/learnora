@@ -24,15 +24,28 @@ Add the reset password page to your allowed redirect URLs:
 
 ## 2. Auth → Email Templates
 
-### Reset Password Email
+Every auth email is generated from one layout by `scripts/email-templates.mjs`,
+so they match the app and the landing page. Regenerate after editing the script:
 
-1. Go to **Authentication** → **Email Templates**
-2. Select **Reset Password** template
-3. Set **Subject** to: `Reset your Learnora password`
-4. Replace the **Body** with the contents of [`email-templates/password-reset-request.html`](./email-templates/password-reset-request.html)
-5. Click **Save**
+```bash
+node scripts/email-templates.mjs
+```
 
-> **Note**: The template uses `{{ .ConfirmationURL }}` which Supabase automatically replaces with the actual reset link.
+For each template: go to **Authentication** → **Email Templates**, pick the
+template, set the **Subject** and paste the **Body** from the file.
+
+| Supabase template | Subject | File |
+|---|---|---|
+| Confirm signup | `Confirm your Learnora email` | [`confirmation.html`](./email-templates/confirmation.html) |
+| Invite user | `You're invited to Learnora` | [`invite.html`](./email-templates/invite.html) |
+| Magic link | `Your Learnora sign-in link` | [`magic-link.html`](./email-templates/magic-link.html) |
+| Reset password | `Reset your Learnora password` | [`password-reset-request.html`](./email-templates/password-reset-request.html) |
+| Change email address | `Confirm your new Learnora email` | [`email-change.html`](./email-templates/email-change.html) |
+| Reauthentication | `Your Learnora code` | [`reauthentication.html`](./email-templates/reauthentication.html) |
+| Password changed (notification) | `Your Learnora password was changed` | [`password-changed.html`](./email-templates/password-changed.html) |
+| Email changed (notification) | `Your Learnora email was changed` | [`email-changed.html`](./email-templates/email-changed.html) |
+
+> **Note**: The templates use Supabase variables such as `{{ .ConfirmationURL }}`, `{{ .Token }}` and `{{ .NewEmail }}`. Supabase fills them in when it sends the email. The notification templates may need enabling first under **Authentication** → **Notifications**.
 
 ---
 

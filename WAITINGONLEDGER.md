@@ -86,7 +86,7 @@ what exists. Names only: never paste values anywhere.
 |------|--------|
 | **Google OAuth client** in Google Cloud Console (OAuth consent screen, Web application client). Authorised redirect URI: the Supabase callback `https://<project-ref>.supabase.co/auth/v1/callback`. | UNVERIFIED |
 | **Google provider enabled** in Supabase Auth → Providers → Google, with the client ID and secret from the step above. Add the app URL to Auth → URL Configuration → Redirect URLs. | UNVERIFIED |
-| **Turn the button on** for a build: set `VITE_GOOGLE_SIGNIN=true` in the hosting environment. Leave it unset until the two rows above are done, or the button will fail for everyone. | UNVERIFIED |
+| **Turn the button on** for a build: set `VITE_GOOGLE_SIGNIN=true` in the hosting environment. Leave it unset until the two rows above are done, or the button will fail for everyone. **2026-10-25:** set to `true` on Vercel production, then set back to `false` the same day, because Supabase's auth settings show `google: false` (checked via the public `/auth/v1/settings`). Turn it on again only after the Supabase row is verified. | UNVERIFIED |
 
 Apple sign-in (added 2026-10-23) uses the same code path and needs:
 
@@ -100,6 +100,13 @@ Code: `OAuthSignInButtons.tsx`, `FinishAccountView.tsx` (DOB and AI-consent
 step for Google and Apple sign-ups, `lib/accountDetails.ts`), and the gate in
 `OnboardingGate.tsx`. Google and Apple sign-ups must answer the date of birth
 and consent before the app opens; email sign-ups already do at the form.
+
+### 4.0a Auth emails (Supabase templates)
+
+| Item | Status |
+|------|--------|
+| **Paste the auth email templates** into Supabase → Authentication → Email Templates: one file per template in `email-templates/`, subjects in `SUPABASE_SETUP.md` §2. Regenerate them with `node scripts/email-templates.mjs` after editing the script. Until pasted, Supabase sends its default plain emails. | UNVERIFIED |
+| **Enable the notification emails** (password changed, email changed) under Authentication → Notifications if they are not already on. | UNVERIFIED |
 
 ### 4.1 Billing (Stripe)
 
