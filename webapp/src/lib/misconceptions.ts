@@ -20,6 +20,7 @@
 import { fenceUntrusted } from "./actionTags";
 import { observationKey, questionKey } from "./questionKey";
 import { getKnownMisconception } from "./misconceptionCatalogue";
+import { confusionPromptBlock } from "./confusionPairs";
 
 export type MisconceptionStatus = "open" | "improving" | "resolved";
 export type MisconceptionSeverity = "critical" | "moderate" | "minor";
@@ -431,7 +432,11 @@ export function formatMisconceptionsForPrompt(
     "- HONESTY RULE: never recite this list back to the student as a report card, and never claim a misconception is fixed unless they have just demonstrated otherwise in this session.",
   );
 
-  return lines.join("\n");
+  /* The ideas this student confuses with each other, when the ledger shows
+     it (lib/confusionPairs.ts). Every AI surface that carries the ledger
+     gets it for free. */
+  const pairs = confusionPromptBlock(scoped);
+  return pairs ? `${lines.join("\n")}\n\n${pairs}` : lines.join("\n");
 }
 
 /* ── Extractors ──────────────────────────────────────────────────────────── */

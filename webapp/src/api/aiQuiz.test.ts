@@ -42,6 +42,20 @@ describe("buildMisconceptionFocus", () => {
     expect(text).toContain("most tempting WRONG option");
   });
 
+  it("asks for a question that makes the student choose between two ideas they mix up, and only then", () => {
+    const mixedUp = row({
+      subject: "Physics",
+      concept: "Mass and weight",
+      summary: "Mass and weight are the same thing.",
+      catalogueId: "phys-mass-weight",
+    });
+    const withPair = buildMisconceptionFocus([mixedUp], "Forces");
+    expect(withPair).toContain("CONFUSED PAIRS the student has mixed up");
+    expect(withPair).toContain("Mass vs Weight");
+    expect(withPair).toContain("Do not name the pair or call it a weakness");
+    expect(buildMisconceptionFocus([row()], "Hydrolysis")).not.toContain("CONFUSED PAIRS");
+  });
+
   it("marks recurrence, which is what makes a distractor worth building", () => {
     const text = buildMisconceptionFocus([row({ timesObserved: 4 })], "x");
     expect(text).toContain("observed 4 times");

@@ -605,6 +605,31 @@ export const misconceptions = [
     retest_due_at: null,
     excluded_question_keys: [],
   },
+  /* Two ideas swapped: Home offers a side-by-side sort for it
+     (?route=/tell-apart/mass-weight). */
+  {
+    id: "mc-pair",
+    subject: "Physics",
+    concept: "Mass and weight",
+    concept_key: "mass weight",
+    summary: "Mass and weight are the same thing, so mass changes on the Moon.",
+    status: "open",
+    severity: "moderate",
+    origin_tool: "quiz",
+    times_observed: 2,
+    times_corrected: 0,
+    first_seen_at: isoDaysAgo(9),
+    last_seen_at: isoDaysAgo(2),
+    resolved_at: null,
+    provisional: false,
+    error_type: null,
+    catalogue_id: "phys-mass-weight",
+    repair_text: null,
+    contrast_text: null,
+    repaired_at: null,
+    retest_due_at: null,
+    excluded_question_keys: [],
+  },
 ];
 
 export const misconceptionObservations = [
