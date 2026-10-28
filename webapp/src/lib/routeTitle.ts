@@ -40,6 +40,7 @@ const TITLES: ReadonlyArray<readonly [prefix: string, title: string]> = [
   ["/exams", "Exams · Plan"],
   ["/timer", "Focus timer"],
   ["/analytics", "Progress"],
+  ["/mark", "Mark my answer"],
   ["/trajectory", "Trajectory · Progress"],
   ["/feynman/debrief", "Teach debrief"],
   ["/friends", "Friends"],

@@ -202,6 +202,22 @@ function install(supabaseUrl: string) {
         await new Promise((r) => setTimeout(r, 900));
         return json({ text: JSON.stringify(line) });
       }
+      /* Mark my answer: a scripted marking of the first two scheme points,
+         one earned with the student's words, one missed, and a belief. */
+      if (/Mark my answer/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            legible: true,
+            unreadable: "",
+            points: [
+              { index: 0, awarded: true, evidence: "the water moves into the cell by osmosis", note: "" },
+              { index: 1, awarded: false, evidence: "", note: "Doesn't say which way the water moves" },
+            ],
+            beliefs: [{ concept: "Osmosis", belief: "Thinks the salt moves into the cell", quote: "the salt goes into the cell" }],
+          }),
+        });
+      }
       if (/openui demo|Build the study guide/i.test(prompt)) {
         return json({ text: fx.sampleOpenUiReply });
       }

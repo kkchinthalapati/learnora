@@ -1,0 +1,217 @@
+/* Mark my answer: one form, then the marked points. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--s-6) var(--s-4) var(--s-12);
+}
+
+.form,
+.stack {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--s-4);
+}
+
+.field {
+  display: grid;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.input,
+.text {
+  width: 100%;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+.text {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.input:focus-visible,
+.text:focus-visible,
+.file:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.file {
+  font: inherit;
+  font-size: var(--fs-base);
+  color: var(--text-muted);
+}
+
+/* The browser's own picker button, dressed as a secondary button; the input
+   stays native so keyboards, screen readers and phone cameras all work. */
+.file::file-selector-button {
+  margin-right: var(--s-3);
+  min-height: var(--tap-min);
+  padding: 0 var(--s-4);
+  border: 1.5px solid var(--edge);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.file::file-selector-button:hover {
+  background: var(--surface-2);
+}
+
+.preview {
+  max-width: 100%;
+  max-height: 320px;
+  justify-self: start;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  object-fit: contain;
+}
+
+.hint,
+.caption {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--text-faint);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--fs-base);
+  color: var(--danger-text);
+}
+
+.score {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.textMuted {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* The scheme, ticked in the margin like a marked page (DESIGN.md 0.8). */
+.points,
+.beliefs {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  list-style: none;
+}
+
+.point,
+.belief {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+}
+
+.belief {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.point + .point,
+.belief + .belief {
+  border-top: 1px solid var(--hairline);
+}
+
+.tick {
+  flex: none;
+  width: 24px;
+  font-family: var(--font-hand);
+  font-size: var(--fs-xl);
+  line-height: 1;
+  color: var(--text-faint);
+}
+
+.point[data-verdict="awarded"] .tick {
+  color: var(--success-text);
+}
+
+.point[data-verdict="missed"] .tick {
+  color: var(--danger-text);
+}
+
+.pointText {
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.pointName {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.45;
+}
+
+.marks {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.evidence {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
