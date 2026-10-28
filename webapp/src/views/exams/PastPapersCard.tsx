@@ -1,4 +1,5 @@
 import { useId, useState, type FormEvent } from "react";
+import { Link } from "react-router";
 import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
 import { useToast } from "../../context/toast";
@@ -97,6 +98,8 @@ export function PastPapersCard({
         <a href={spec.pastPapersUrl} target="_blank" rel="noreferrer">
           {isIb ? "IB past papers (official store)" : `${spec.board} past papers and mark schemes`}
         </a>
+        {" · "}
+        <Link to={`/mark?subject=${encodeURIComponent(spec.subject)}`}>Mark a written answer from a photo</Link>
       </p>
 
       {summary.count > 0 && (

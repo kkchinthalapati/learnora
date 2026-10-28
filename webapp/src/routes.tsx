@@ -152,6 +152,9 @@ const LazyFriendInviteLanding = lazy(async () => ({
 const LazyProgressView = lazy(async () => ({
   default: (await import("./views/analytics/ProgressView")).ProgressView,
 }));
+const LazyMarkAnswerView = lazy(async () => ({
+  default: (await import("./views/mark/MarkAnswerView")).MarkAnswerView,
+}));
 const LazyHabitView = lazy(async () => ({
   default: (await import("./views/habits/HabitView")).HabitView,
 }));
@@ -525,6 +528,16 @@ export function AppRoutes() {
               element={
                 <DeferredView>
                   <LazyProgressView />
+                </DeferredView>
+              }
+            />
+            {/* Mark a photographed answer against a pasted mark scheme
+                (lib/photoMarking.ts). */}
+            <Route
+              path="/mark"
+              element={
+                <DeferredView>
+                  <LazyMarkAnswerView />
                 </DeferredView>
               }
             />

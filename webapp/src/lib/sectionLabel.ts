@@ -178,6 +178,8 @@ const HERO_ROUTES = [
   "/notes",
   "/subjects",
   "/analytics",
+  /* "Mark my answer" names itself in its PageHeader. */
+  "/mark",
   "/settings",
   /* The planner's four pages share one header (PlanSectionNav); an exam's
      own page and its placement check name the exam themselves. */
