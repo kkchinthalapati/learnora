@@ -152,6 +152,9 @@ const LazyFriendInviteLanding = lazy(async () => ({
 const LazyProgressView = lazy(async () => ({
   default: (await import("./views/analytics/ProgressView")).ProgressView,
 }));
+const LazyHabitView = lazy(async () => ({
+  default: (await import("./views/habits/HabitView")).HabitView,
+}));
 const LazySessionView = lazy(async () => ({
   default: (await import("./views/session/SessionView")).SessionView,
 }));
@@ -522,6 +525,16 @@ export function AppRoutes() {
               element={
                 <DeferredView>
                   <LazyProgressView />
+                </DeferredView>
+              }
+            />
+            {/* The same kind of mistake across subjects (lib/errorHabits.ts);
+                under /analytics, which owns its page title. */}
+            <Route
+              path="/analytics/habits/:slug"
+              element={
+                <DeferredView>
+                  <LazyHabitView />
                 </DeferredView>
               }
             />

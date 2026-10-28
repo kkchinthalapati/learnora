@@ -15,6 +15,7 @@ import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { useNotebooks } from "../../hooks/useNotebooks";
 import { useQuizzes } from "../../hooks/useQuizzes";
 import { formatMonthDay, parseLocalDate } from "../../lib/date";
+import { habitHref, habitSentence, habitsForStudent, habitsForSubject } from "../../lib/errorHabits";
 import { mistakeTitle } from "../../lib/mistakeLoop";
 import { useDocumentTitle } from "../../lib/routeTitle";
 import { blocksForSubject, examCountdown, examsForSubject, examWhen } from "../../lib/subjects";
@@ -40,7 +41,7 @@ export function SubjectView() {
   const quizzes = useQuizzes();
   const dueCards = useAllDueFlashcards(200);
   const { notebooks } = useNotebooks();
-  const { forSubject } = useMisconceptions();
+  const { forSubject, all: ledger } = useMisconceptions();
 
   const { folders, lessons: allLessons, progress, exams, today, weekBlocks } = data;
   const folder = folders.find((f) => f.id === folderId) ?? null;
@@ -55,6 +56,11 @@ export function SubjectView() {
   const mistakes = useMemo(
     () => (folder ? forSubject(folder.name).filter((m) => m.status !== "resolved") : []),
     [folder, forSubject],
+  );
+  /* The same kind of mistake as in another subject (lib/errorHabits.ts). */
+  const habits = useMemo(
+    () => (folder ? habitsForSubject(habitsForStudent(ledger), folder.name) : []),
+    [folder, ledger],
   );
   const folderDecks = useMemo(() => (decks.data ?? []).filter((d) => d.folder_id === folderId), [decks.data, folderId]);
   const due = useMemo(() => {
@@ -218,7 +224,7 @@ export function SubjectView() {
         )}
       </section>
 
-      {mistakes.length > 0 ? (
+      {mistakes.length + habits.length > 0 ? (
         <section className={styles.section} aria-labelledby="subject-mistakes">
           <SectionHeader id="subject-mistakes" title="Mistakes" />
           <ListRows label={`Mistakes in ${folder.name}`}>
@@ -229,6 +235,15 @@ export function SubjectView() {
                 title={mistakeTitle(m)}
                 meta={`Seen ${m.timesObserved} ${m.timesObserved === 1 ? "time" : "times"}`}
                 chevron={false}
+              />
+            ))}
+            {habits.map((h) => (
+              <ListRow
+                key={h.habit.slug}
+                icon="target"
+                title={h.habit.name}
+                meta={habitSentence(h)}
+                to={habitHref(h.habit)}
               />
             ))}
           </ListRows>

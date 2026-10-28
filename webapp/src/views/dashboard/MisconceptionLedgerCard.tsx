@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { activePairs, tellApartHref } from "../../lib/confusionPairs";
+import { habitHref, habitSentence, habitsForStudent } from "../../lib/errorHabits";
 import { useNavigate } from "react-router";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
 import { detectFromDiagnosis } from "../../lib/misconceptionCatalogue";
@@ -62,6 +63,9 @@ const TOOL_LABEL: Record<Misconception["originTool"], string> = {
  *  rather than a next step. */
 const VISIBLE_ROWS = 4;
 
+/** Habits shown on the card before deferring to the habit page. */
+const MAX_HABIT_ROWS = 2;
+
 export function MisconceptionLedgerCard() {
   const navigate = useNavigate();
   const { ranked, all, isPending, isError } = useMisconceptions();
@@ -87,6 +91,10 @@ export function MisconceptionLedgerCard() {
     }
     return byRow;
   }, [all]);
+
+  /* The same kind of mistake in more than one subject (lib/errorHabits.ts):
+     at most two, so it stays an insight and not another list. */
+  const habits = useMemo(() => habitsForStudent(all).slice(0, MAX_HABIT_ROWS), [all]);
 
   /* Hands the concept to whichever tool the student picks next, using the
      bridge that already exists for tool-to-tool handoff — so "work on this"
@@ -164,6 +172,28 @@ export function MisconceptionLedgerCard() {
                       </p>
                     </div>
                     <span className={`${styles.badge} ${styles.badgeFixed}`}>Fixed</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          {habits.length > 0 ? (
+            <section aria-labelledby="mixups-habits">
+              <h3 id="mixups-habits" className={styles.groupTitle}>
+                Same mistake, different subjects
+              </h3>
+              <ul className={styles.list}>
+                {habits.map((h) => (
+                  <li key={h.habit.slug} className={styles.row}>
+                    <div className={styles.rowMain}>
+                      <h4 className={styles.concept}>{h.habit.name}</h4>
+                      <p className={styles.provenance}>{habitSentence(h)}</p>
+                    </div>
+                    <div className={styles.rowActions}>
+                      <ButtonLink variant="secondary" to={habitHref(h.habit)}>
+                        See where
+                      </ButtonLink>
+                    </div>
                   </li>
                 ))}
               </ul>

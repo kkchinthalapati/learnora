@@ -56,6 +56,16 @@ describe("buildMisconceptionFocus", () => {
     expect(buildMisconceptionFocus([row()], "Hydrolysis")).not.toContain("CONFUSED PAIRS");
   });
 
+  it("asks for a question built on a habit the student's mistakes share across subjects, and only then", () => {
+    const physics = row({ id: "p", subject: "Physics", concept: "Free fall", summary: "Heavier objects fall faster.", catalogueId: "phys-heavier-falls-faster" });
+    const biology = row({ id: "b", subject: "Biology", concept: "Antibiotics and viruses", summary: "Antibiotics kill viruses.", catalogueId: "bio-antibiotics-viruses" });
+    const text = buildMisconceptionFocus([physics, biology], "Forces");
+    expect(text).toContain("HABITS this student's mistakes share across subjects");
+    expect(text).toContain("Stretching a rule too far");
+    expect(text).toContain("Do not name the habit");
+    expect(buildMisconceptionFocus([physics], "Forces")).not.toContain("HABITS this student's");
+  });
+
   it("marks recurrence, which is what makes a distractor worth building", () => {
     const text = buildMisconceptionFocus([row({ timesObserved: 4 })], "x");
     expect(text).toContain("observed 4 times");

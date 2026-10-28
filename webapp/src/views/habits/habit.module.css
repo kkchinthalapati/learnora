@@ -1,0 +1,145 @@
+/* A habit: the same kind of mistake across subjects. A page of Progress. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--s-6) var(--s-4) var(--s-12);
+}
+
+.back,
+.link {
+  align-self: flex-start;
+  color: var(--accent-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back:hover,
+.link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.lead {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  line-height: 1.45;
+}
+
+.stack,
+.section {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.subjects {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.subject {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.subjectName {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* One ruled surface, like a list of lessons (DESIGN.md 0.8). */
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+}
+
+.row + .row {
+  border-top: 1px solid var(--hairline);
+}
+
+.rowMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.rowText {
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.rowTitle {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.rowBelief {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.fixed {
+  flex: none;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--success-text);
+}
+
+.fix {
+  padding-bottom: var(--s-1);
+}
+
+/* What to do about it. */
+.move {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.moveText,
+.question {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.55;
+}
+
+.question strong {
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .rowMain {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

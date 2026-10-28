@@ -22,6 +22,7 @@ import { AI_PERSONA_QUIZ_HOST, type Settings } from "../lib/settings";
 import { misconceptionsApi } from "./misconceptions";
 import { rankMisconceptions, type Misconception } from "../lib/misconceptions";
 import { confusionQuizFocus } from "../lib/confusionPairs";
+import { habitQuizFocus } from "../lib/errorHabits";
 import { seededMatch, vetGeneratedQuestions, type SeededMatch } from "../lib/questionVetting";
 import { bankToQuiz, fetchBankQuestions } from "./questionBank";
 import { pickPractice } from "../lib/questionBank";
@@ -105,13 +106,16 @@ export function buildMisconceptionFocus(
      a question that makes them choose between the two is the most direct
      test of it. App-authored text, so not fenced. */
   const pairs = confusionQuizFocus(ledger);
+  /* The kinds of mistake this student makes in more than one subject
+     (lib/errorHabits.ts): app-authored text, so not fenced. */
+  const habits = habitQuizFocus(ledger);
 
   return `
 TARGET THIS STUDENT'S KNOWN MISCONCEPTIONS (recorded by this app's own diagnostic tools from their real work, for the topic "${topic}" and their wider study):
 ${lines.join("\n")}
 - Where a listed misconception is genuinely relevant to the material above, build at least one question whose most tempting WRONG option is exactly what someone holding that belief would pick. Do not label it as a known weakness anywhere in the question or feedback.
 - The feedback for such a question must explain why that specific belief is wrong, not merely why the right answer is right.
-- If none of the listed misconceptions fit this material, ignore them entirely and follow the generic rules. Never bend a question towards an irrelevant one, and never invent a misconception that is not listed.${pairs ? `\n\n${pairs}` : ""}`;
+- If none of the listed misconceptions fit this material, ignore them entirely and follow the generic rules. Never bend a question towards an irrelevant one, and never invent a misconception that is not listed.${pairs ? `\n\n${pairs}` : ""}${habits ? `\n\n${habits}` : ""}`;
 }
 
 export function buildQuizPrompt({

@@ -21,6 +21,7 @@ import { fenceUntrusted } from "./actionTags";
 import { observationKey, questionKey } from "./questionKey";
 import { getKnownMisconception } from "./misconceptionCatalogue";
 import { confusionPromptBlock } from "./confusionPairs";
+import { habitPromptBlock } from "./errorHabits";
 
 export type MisconceptionStatus = "open" | "improving" | "resolved";
 export type MisconceptionSeverity = "critical" | "moderate" | "minor";
@@ -432,11 +433,15 @@ export function formatMisconceptionsForPrompt(
     "- HONESTY RULE: never recite this list back to the student as a report card, and never claim a misconception is fixed unless they have just demonstrated otherwise in this session.",
   );
 
-  /* The ideas this student confuses with each other, when the ledger shows
-     it (lib/confusionPairs.ts). Every AI surface that carries the ledger
-     gets it for free. */
+  /* The ideas this student confuses with each other (lib/confusionPairs.ts),
+     and the same kind of mistake in more than one subject
+     (lib/errorHabits.ts). Every AI surface that carries the ledger gets
+     both. Habits read the whole ledger, not `scoped`: a habit is only
+     visible across subjects, and a subject-scoped prompt is exactly where
+     it helps to know it is fixed or still open elsewhere. */
   const pairs = confusionPromptBlock(scoped);
-  return pairs ? `${lines.join("\n")}\n\n${pairs}` : lines.join("\n");
+  const habits = habitPromptBlock(all);
+  return [lines.join("\n"), pairs, habits].filter(Boolean).join("\n\n");
 }
 
 /* ── Extractors ──────────────────────────────────────────────────────────── */
