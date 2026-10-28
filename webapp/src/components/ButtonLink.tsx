@@ -5,9 +5,10 @@ import styles from "./Button.module.css";
    <button> inside an <a>: invalid HTML, and two tab stops for one action. */
 export function ButtonLink({
   variant = "secondary",
+  size = "md",
   className,
   ...rest
-}: LinkProps & { variant?: "primary" | "secondary" | "ghost" }) {
+}: LinkProps & { variant?: "primary" | "secondary" | "ghost"; size?: "md" | "sm" }) {
   const rank =
     variant === "primary"
       ? "primary"
@@ -16,7 +17,7 @@ export function ButtonLink({
         : "secondary";
   return (
     <Link
-      className={[styles.btn, styles[variant], className]
+      className={[styles.btn, styles[variant], size === "sm" ? styles.sm : null, className]
         .filter(Boolean)
         .join(" ")}
       data-rank={rank}

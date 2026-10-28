@@ -13,6 +13,7 @@ import { flashcardsKeys } from "../../hooks/useFlashcards";
 import { decksKeys } from "../../hooks/useDecks";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { mistakeTitle } from "../../lib/mistakeLoop";
+import { activePairs, pairsMentionedIn, tellApartHref } from "../../lib/confusionPairs";
 import { headingsOf, markedPhrases, recalledIdeas, type MarkedPhrase } from "../../lib/noteReading";
 import styles from "./notesPage.module.css";
 
@@ -48,7 +49,7 @@ export function NotesMargin({
   onRecall,
 }: Props) {
   const { data: folders = [] } = useFolders();
-  const { ranked } = useMisconceptions();
+  const { ranked, all } = useMisconceptions();
   const { showToast } = useToast();
   const { settings } = useSettings();
   const queryClient = useQueryClient();
@@ -66,6 +67,13 @@ export function NotesMargin({
           )
         : [],
     [ranked, subject],
+  );
+
+  /* Two ideas this student mixes up, when this page is about either of
+     them: the title and headings are what the page is about. */
+  const pagePair = useMemo(
+    () => pairsMentionedIn(activePairs(all), [materialTitle, ...headingTexts].join(" . "))[0] ?? null,
+    [all, materialTitle, headingTexts],
   );
 
   useEffect(() => {
@@ -182,6 +190,19 @@ export function NotesMargin({
           </ul>
           <Link className={styles.noteGo} to={`/lessons/${encodeURIComponent(materialId)}?tab=mistakes`}>
             Try them again →
+          </Link>
+        </section>
+      ) : null}
+
+      {pagePair ? (
+        <section className={styles.note} aria-label="Easy to mix up">
+          <p className={styles.noteLead}>
+            {pagePair.kind === "named"
+              ? `You’ve mixed up ${pagePair.pair.a.term.toLowerCase()} and ${pagePair.pair.b.term.toLowerCase()}.`
+              : `You’ve slipped on both ${pagePair.pair.a.term.toLowerCase()} and ${pagePair.pair.b.term.toLowerCase()}.`}
+          </p>
+          <Link className={styles.noteGo} to={tellApartHref(pagePair.pair.id)}>
+            Sort them side by side →
           </Link>
         </section>
       ) : null}

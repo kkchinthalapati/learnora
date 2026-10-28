@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
-import { ButtonLink } from "../../components/ButtonLink";
+import { activePairs, tellApartHref } from "../../lib/confusionPairs";
 import { habitHref, habitSentence, habitsForStudent } from "../../lib/errorHabits";
 import { useNavigate } from "react-router";
 import { MisconceptionRepair } from "../../components/learning/MisconceptionRepair";
 import { detectFromDiagnosis } from "../../lib/misconceptionCatalogue";
 import { isNamedPattern, mistakeTitle } from "../../lib/mistakeLoop";
 import { Button } from "../../components/Button";
+import { ButtonLink } from "../../components/ButtonLink";
+import { canArguePastYou, pastYouHref } from "../../lib/pastYou";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
@@ -78,6 +80,17 @@ export function MisconceptionLedgerCard() {
   const [fixing, setFixing] = useState<string | null>(null);
 
   const shown = expanded ? ranked : ranked.slice(0, VISIBLE_ROWS);
+
+  /* Rows whose own belief is mixing two ideas up get a side-by-side sort
+     (lib/confusionPairs.ts), keyed by row id. */
+  const pairsByRow = useMemo(() => {
+    const byRow = new Map<string, string>();
+    for (const p of activePairs(all)) {
+      if (p.kind !== "named") continue;
+      for (const r of p.rows) if (!byRow.has(r.id)) byRow.set(r.id, p.pair.id);
+    }
+    return byRow;
+  }, [all]);
 
   /* The same kind of mistake in more than one subject (lib/errorHabits.ts):
      at most two, so it stays an insight and not another list. */
@@ -236,6 +249,11 @@ export function MisconceptionLedgerCard() {
                       Try it · 1 min
                     </Button>
                   ) : null}
+                  {pairsByRow.get(m.id) ? (
+                    <Button variant="ghost" onClick={() => navigate(tellApartHref(pairsByRow.get(m.id)!))}>
+                      Tell apart
+                    </Button>
+                  ) : null}
                   {detectFromDiagnosis(m.concept, m.summary) && (
                     <Button
                       variant="ghost"
@@ -245,6 +263,11 @@ export function MisconceptionLedgerCard() {
                       Quick fix
                     </Button>
                   )}
+                  {canArguePastYou(m) ? (
+                    <ButtonLink variant="ghost" to={pastYouHref(m.id)}>
+                      Argue with past you
+                    </ButtonLink>
+                  ) : null}
                   <Button variant="secondary" onClick={() => handleWorkOnIt(m)}>
                     Work on it
                   </Button>
