@@ -152,6 +152,12 @@ const LazyFriendInviteLanding = lazy(async () => ({
 const LazyProgressView = lazy(async () => ({
   default: (await import("./views/analytics/ProgressView")).ProgressView,
 }));
+const LazyClassesView = lazy(async () => ({
+  default: (await import("./views/classes/ClassesView")).ClassesView,
+}));
+const LazyClassMapView = lazy(async () => ({
+  default: (await import("./views/classes/ClassMapView")).ClassMapView,
+}));
 const LazyMarkAnswerView = lazy(async () => ({
   default: (await import("./views/mark/MarkAnswerView")).MarkAnswerView,
 }));
@@ -528,6 +534,24 @@ export function AppRoutes() {
               element={
                 <DeferredView>
                   <LazyProgressView />
+                </DeferredView>
+              }
+            />
+            {/* Classes and a class's mix-up map (lib/classMap.ts), behind the
+                classMap flag; the screens say so themselves when it is off. */}
+            <Route
+              path="/classes"
+              element={
+                <DeferredView>
+                  <LazyClassesView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/classes/:classId"
+              element={
+                <DeferredView>
+                  <LazyClassMapView />
                 </DeferredView>
               }
             />

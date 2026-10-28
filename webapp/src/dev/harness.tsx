@@ -99,6 +99,13 @@ const TABLES: Record<string, unknown[]> = {
   notebooks: fx.notebooks,
   misconceptions: fx.misconceptions,
   misconception_observations: fx.misconceptionObservations,
+  /* Classes (lib/classMap.ts): one taught, one joined. */
+  classes: [
+    { id: "cls-taught", owner_id: fx.USER_ID, name: "10B Biology", join_code: "AB12CD34", created_at: "2026-10-20T09:00:00Z" },
+  ],
+  class_members: [
+    { class_id: "cls-joined", user_id: fx.USER_ID, share_mistakes: false, joined_at: "2026-10-21T09:00:00Z", classes: { name: "Year 10 Physics" } },
+  ],
   question_bank: fx.questionBank,
   profiles: [
     {
@@ -113,6 +120,13 @@ const TABLES: Record<string, unknown[]> = {
 };
 
 const RPCS: Record<string, unknown> = {
+  class_member_counts: [{ joined: 24, sharing: 7 }],
+  class_misconception_map: [
+    { catalogue_id: "phys-heavier-falls-faster", students: 4 },
+    { catalogue_id: "bio-respiration-is-breathing", students: 3 },
+    { catalogue_id: "chem-strong-means-concentrated", students: 2 },
+  ],
+  join_class: [{ class_id: "cls-new", class_name: "Year 11 Chemistry" }],
   get_friends_leaderboard: fx.leaderboard,
   get_friend_requests: fx.friendRequests,
   regenerate_friend_code: "HARNESS2",
