@@ -1,5 +1,7 @@
 import { useSearchParams } from "react-router";
+import { ButtonLink } from "../../components/ButtonLink";
 import { PageHeader } from "../../components/PageHeader";
+import { isFlagOn } from "../../lib/flags";
 import { ProGate } from "../../components/ProGate";
 import { Tabs, TabPanel, useTabIds, type TabItem } from "../../components/Tabs";
 import { MisconceptionLedgerCard } from "../dashboard/MisconceptionLedgerCard";
@@ -36,6 +38,13 @@ export function ProgressView() {
         as="h1"
         title="Progress"
         sub="What you've done, what you keep getting wrong, and where you're heading."
+        actions={
+          isFlagOn("classMap") ? (
+            <ButtonLink variant="ghost" to="/classes">
+              Classes
+            </ButtonLink>
+          ) : undefined
+        }
       />
       <Tabs
         items={TABS}

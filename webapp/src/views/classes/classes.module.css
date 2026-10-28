@@ -1,0 +1,185 @@
+/* Classes and a class's mix-up map. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--s-6) var(--s-4) var(--s-12);
+}
+
+.section {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.back {
+  align-self: flex-start;
+  color: var(--accent-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.lead {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  line-height: 1.45;
+}
+
+.help,
+.note {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.input {
+  flex: 1 1 220px;
+  min-height: var(--tap-min);
+  padding: 0 var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* One ruled surface (DESIGN.md 0.8). */
+.list,
+.mapList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  padding: var(--s-3) var(--s-4);
+}
+
+.row + .row,
+.mapRow + .mapRow {
+  border-top: 1px solid var(--hairline);
+}
+
+.rowTitle {
+  flex: 1 1 160px;
+  min-width: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-weight: 500;
+}
+
+.rowTitle a {
+  color: var(--text);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.toggleLabel,
+.code {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.code strong {
+  font-family: var(--font-numeric);
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+.mapRow {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-4);
+}
+
+.mapHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.mapConcept {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 500;
+}
+
+.count {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--recall-text);
+}
+
+.belief {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.reteach {
+  font-size: var(--fs-base);
+  line-height: 1.55;
+}
+
+.reteach summary {
+  cursor: pointer;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.reteach p {
+  margin: var(--s-2) 0 0;
+}
+
+.check {
+  color: var(--text-muted);
+}

@@ -22,6 +22,10 @@ export const FLAGS = {
    *  flashcards, a check question) inside the Markdown. On by default; a card
    *  that cannot be fully drawn says so and the Markdown around it stays. */
   openUi: "openUi",
+  /** Classes: a teacher's class misconception map, and a student's choice
+   *  to share with it (lib/classMap.ts). Off in production until the privacy
+   *  review in WAITINGONLEDGER.md 6.11; its migration isn't applied yet. */
+  classMap: "classMap",
 } as const;
 
 export type FlagName = keyof typeof FLAGS;
