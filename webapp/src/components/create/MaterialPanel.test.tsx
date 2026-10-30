@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { renderWithProviders } from "../../test/render";
@@ -225,6 +225,23 @@ describe("MaterialPanel streamlined creation", () => {
       "Use a JPEG, PNG or WebP photo.",
     );
     expect(screen.queryByText("IMG_0001.heic")).not.toBeInTheDocument();
+  });
+
+  /* A dropped file never goes through the picker's `accept` list, so the
+     check has to be in takeFile itself (the screenshot case was a .gpx). */
+  it("refuses a file it can't read, even one that skips the picker", async () => {
+    const user = await openDialog();
+    await user.click(screen.getByRole("tab", { name: /Upload Document/ }));
+    const input = screen.getByLabelText("Browse files");
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["<gpx/>"], "route0.gpx", { type: "application/gpx+xml" })],
+      },
+    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      'Learnora can\'t read "route0.gpx"',
+    );
+    expect(screen.queryByText("route0.gpx")).not.toBeInTheDocument();
   });
 
   it("only offers Saved material when the student has one", async () => {

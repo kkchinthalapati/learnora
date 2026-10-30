@@ -31,7 +31,9 @@ import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import {
   CREATE_DEFAULTS,
+  isStudyFile,
   MAX_UPLOAD_BYTES,
+  unsupportedFileMessage,
   summarizeStudyPackage,
   studyPackageDestination,
   type StageFailure,
@@ -279,6 +281,14 @@ export function MaterialPanel({
     const seq = ++pickSeq.current;
     setError(null);
     setPhotoNote(null);
+    /* A photo in a format we can't take (HEIC) gets prepareStudyImage's own,
+       more useful message instead. */
+    if (picked && !isStudyFile(picked) && !isImageFile(picked)) {
+      setPreparingPhoto(false);
+      setFile(null);
+      setError(unsupportedFileMessage(picked.name));
+      return;
+    }
     if (!picked || !isImageFile(picked)) {
       setPreparingPhoto(false);
       setFile(picked);

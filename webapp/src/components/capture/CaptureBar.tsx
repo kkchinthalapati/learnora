@@ -16,8 +16,10 @@ import {
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import {
+  isStudyFile,
   MAX_UPLOAD_BYTES,
   studyPackageDestination,
+  unsupportedFileMessage,
   summarizeStudyPackage,
   type StudySource,
 } from "../../api/studyPackage";
@@ -176,6 +178,13 @@ export function CaptureBar({
     setError(null);
     setFileTitle(null);
     if (!picked) return;
+    /* A photo in a format we can't take (HEIC) gets prepareStudyImage's own,
+       more useful message instead. */
+    if (!isStudyFile(picked) && !isImageFile(picked)) {
+      setFile(null);
+      setError(unsupportedFileMessage(picked.name));
+      return;
+    }
     if (!isImageFile(picked)) {
       if (picked.size > MAX_UPLOAD_BYTES) {
         const mb = (picked.size / (1024 * 1024)).toFixed(1);

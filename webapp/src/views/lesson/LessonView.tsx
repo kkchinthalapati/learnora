@@ -24,6 +24,7 @@ import {
   isPractised,
   lessonIdOfCard,
   lessonTitle,
+  lessonTopic,
   progressLabel,
   progressValue,
 } from "../../lib/lessons";
@@ -176,7 +177,11 @@ export function LessonView() {
             <ProgressRing value={progressValue(progress)} label={progressLabel(progress)} center={progress.total ? String(progress.practised) : undefined} />
             <Button
               variant="primary"
-              onClick={() => void navigate(`/study?topic=${encodeURIComponent(title)}`)}
+              onClick={() =>
+                void navigate(
+                  `/study?topic=${encodeURIComponent(lessonTopic(m, notes.data?.[0]?.markdown_content))}`,
+                )
+              }
             >
               Start session
             </Button>

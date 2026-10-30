@@ -10,6 +10,8 @@ import {
   createStudyPackage,
   DeckShapeError,
   generateDeck,
+  isNoMaterialReply,
+  isStudyFile,
   loadSourceText,
   MAX_UPLOAD_BYTES,
   PHOTO_NOTES_INSTRUCTIONS,
@@ -121,6 +123,44 @@ function request(
 
 const callFor = (mode: string) => edgeCalls.find((c) => c.mode === mode);
 const promptFor = (mode: string) => callFor(mode)?.history[0].content ?? "";
+
+describe("isStudyFile", () => {
+  it("accepts what the pickers offer, by extension or by declared type", () => {
+    expect(isStudyFile({ name: "Week 3.pdf" })).toBe(true);
+    expect(isStudyFile({ name: "essay.DOCX" })).toBe(true);
+    expect(isStudyFile({ name: "lecture.m4a" })).toBe(true);
+    expect(isStudyFile({ name: "board.jpg" })).toBe(true);
+    // A Drive file can arrive with a type and no extension.
+    expect(isStudyFile({ name: "Biology notes", type: "application/pdf" })).toBe(true);
+    expect(isStudyFile({ name: "Sheet", type: "text/csv" })).toBe(true);
+  });
+
+  it("refuses anything else", () => {
+    expect(isStudyFile({ name: "route0.gpx", type: "application/gpx+xml" })).toBe(false);
+    expect(isStudyFile({ name: "archive.zip", type: "application/zip" })).toBe(false);
+    expect(isStudyFile({ name: "setup.exe", type: "" })).toBe(false);
+  });
+});
+
+describe("isNoMaterialReply", () => {
+  it("catches a reply asking for the material or saying it can't be read", () => {
+    expect(
+      isNoMaterialReply(
+        "Could you please share the study material you'd like me to turn into notes?",
+      ),
+    ).toBe(true);
+    expect(isNoMaterialReply("I'm unable to read the attached file. Can you paste the text instead?")).toBe(true);
+  });
+
+  it("never catches real notes, even ones that mention sharing or reading", () => {
+    expect(
+      isNoMaterialReply(
+        "## 🧪 Your guide to titration\nPlease provide the concentration in mol/dm³ when you write your answer, and you cannot read the burette from above.",
+      ),
+    ).toBe(false);
+    expect(isNoMaterialReply("Cells divide by mitosis. Students can't see chromosomes without a stain.")).toBe(false);
+  });
+});
 
 describe("buildNotesPrompt", () => {
   it("attaches nothing when the source is a real file", () => {
@@ -323,6 +363,39 @@ describe("createStudyPackage", () => {
         refused: true,
       },
     ]);
+  });
+
+  /* The screenshot case: a dropped .gpx route reached the model as an
+     attachment it couldn't read, and its reply asking for the material was
+     long enough to be saved as the lesson's notes. */
+  it("never saves a reply asking for the material as the lesson's notes", async () => {
+    serveEdge({
+      notes: text(
+        "Could you please share the study material you'd like me to turn into notes? Once I have the content, I can create a clear, friendly guide for you.",
+      ),
+    });
+
+    const result = await request({ outputs: { flashcards: true, notes: true } });
+
+    expect(result.notes).toBeNull();
+    expect(inserted.notes).toBeUndefined();
+    expect(result.failures).toEqual([
+      { stage: "notes", message: expect.stringContaining("couldn't find anything to study"), refused: false },
+    ]);
+    expect(edgeCalls.map((c) => c.mode)).toEqual(["notes"]);
+  });
+
+  it("refuses a file it can't read before uploading or asking the model", async () => {
+    serveEdge({ notes: text(NOTES_MARKDOWN) });
+    const gpx = new File(["<gpx></gpx>"], "route0-2024-05-05_01_09_52.gpx", {
+      type: "application/gpx+xml",
+    });
+
+    await expect(request({ source: { kind: "file", file: gpx } })).rejects.toThrow(
+      /can't read "route0-2024-05-05_01_09_52\.gpx"/,
+    );
+    expect(edgeCalls).toEqual([]);
+    expect(inserted.materials).toBeUndefined();
   });
 
   /* The vanilla lost the deck here: a refusal from the quiz stage re-threw out
