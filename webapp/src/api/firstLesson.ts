@@ -50,7 +50,7 @@ Reply with ONLY raw JSON:
 }`;
 }
 
-function toQuestion(raw: unknown, topic: string): QuizQuestion | null {
+export function toQuestion(raw: unknown, topic: string): QuizQuestion | null {
   if (typeof raw !== "object" || raw === null) return null;
   const r = raw as Record<string, unknown>;
   const choices = Array.isArray(r.choices) ? r.choices.filter((c): c is string => typeof c === "string" && c.trim() !== "") : [];
@@ -70,7 +70,7 @@ function toQuestion(raw: unknown, topic: string): QuizQuestion | null {
 
 /** Shuffle the options so the key's position carries no signal (the quiz
  *  generator's server-side shuffle does not run for this request). */
-function shuffled(q: QuizQuestion, random: () => number): QuizQuestion {
+export function shuffled(q: QuizQuestion, random: () => number): QuizQuestion {
   const order = q.choices.map((_, i) => i);
   for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));

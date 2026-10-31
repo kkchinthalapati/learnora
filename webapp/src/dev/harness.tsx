@@ -81,6 +81,10 @@ function session() {
 
 /* ------------------------------------------------------------ interceptor */
 
+const HARNESS_PLAN = ((p) => (p === "plus" || p === "pro" ? p : "free"))(
+  new URLSearchParams(location.search).get("plan"),
+);
+
 /* Table name -> rows. Anything not listed answers with an empty list, which
    is what an untouched feature legitimately looks like. */
 const TABLES: Record<string, unknown[]> = {
@@ -114,6 +118,9 @@ const TABLES: Record<string, unknown[]> = {
       life_context_updated_at: null,
       full_name: "Harness Student",
       friend_code: "HARNESS1",
+      /* ?plan=plus or ?plan=pro to look at a paid account. */
+      plan: HARNESS_PLAN,
+      plan_status: HARNESS_PLAN === "free" ? "none" : "active",
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     },
   ],
@@ -229,6 +236,66 @@ function install(supabaseUrl: string) {
               { index: 1, awarded: false, evidence: "", note: "Doesn't say which way the water moves" },
             ],
             beliefs: [{ concept: "Osmosis", belief: "Thinks the salt moves into the cell", quote: "the salt goes into the cell" }],
+          }),
+        });
+      }
+      /* Learn, exam questions (Plus): the question, then its marking. */
+      if (/Write ONE exam question on an idea/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            question: "Explain why the angle at the centre is twice the angle at the circumference.",
+            scheme: [
+              { point: "draws or uses radii to make isosceles triangles", marks: 1 },
+              { point: "base angles of an isosceles triangle are equal", marks: 1 },
+              { point: "exterior angle equals the sum of the two opposite angles", marks: 1 },
+            ],
+          }),
+        });
+      }
+      if (/You are an exam marker. Mark the student.s typed answer/.test(prompt)) {
+        /* The body is JSON, so the prompt's newlines and quotes arrive escaped. */
+        const answer = /THE STUDENT.S ANSWER:\\n\\"\\"\\"\\n(.*?)\\n\\"\\"\\"/.exec(prompt)?.[1] ?? "";
+        const firstWords = answer.split(/\s+/).slice(0, 4).join(" ");
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            legible: true,
+            unreadable: "",
+            points: [
+              { index: 0, awarded: true, evidence: firstWords, note: "" },
+              { index: 1, awarded: false, evidence: "", note: "Doesn't say the base angles are equal" },
+              { index: 2, awarded: true, evidence: "words the student never wrote", note: "" },
+            ],
+            beliefs: [],
+          }),
+        });
+      }
+      /* Learn, Explain it your way (Plus). */
+      if (/Re-explain one idea from a student/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: "Think of a **torch** held at the centre of a circle, and another held on the edge. Both light up the same arc, but the one at the centre has to open its beam twice as wide to do it. That is why the angle at the centre is $2x$.",
+        });
+      }
+      /* Learn: one section, scripted on the section's own title. */
+      if (/Teach one section of a student/.test(prompt)) {
+        const title = /THIS SECTION: \\"\\"\\"(.+?)\\"\\"\\"/.exec(prompt)?.[1] ?? "this part";
+        const q = (question: string, right: string, wrong: string[]) => ({
+          question,
+          choices: [right, ...wrong],
+          correctIndex: 0,
+          feedback: `${right} is right because that is what the notes on ${title} say.`,
+        });
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            concept: title,
+            hook: q(`Before we start: what do you think ${title} is mostly about?`, "How the parts relate", ["A list of dates", "A single formula", "Nothing testable"]),
+            explanation: `**${title}** comes down to one idea. Start from what you already know, then add one step at a time.\n\nFor example, the angle at the centre is $2x$ when the angle at the circumference is $x$.`,
+            check: q(`Which is true about ${title}?`, "The centre angle is double", ["They are equal", "The centre angle is half", "It depends on the radius"]),
+            reteach: `Think of ${title} like a torch at the centre of a circle: its beam opens twice as wide as one from the edge.`,
+            recheck: q(`If the circumference angle is 40°, the centre angle is…`, "80°", ["40°", "20°", "160°"]),
           }),
         });
       }

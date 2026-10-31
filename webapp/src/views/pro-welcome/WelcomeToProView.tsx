@@ -49,6 +49,8 @@ const FEATURE_ICON: Record<FeatureId, IconName> = {
   unlimitedNotebooks: "layers",
   prioritySupport: "award",
   customAppearance: "palette",
+  learnStyles: "book-open",
+  learnExam: "check-square",
 };
 
 const FEATURE_ROUTE: Partial<Record<FeatureId, { to: string; cta: string }>> =
