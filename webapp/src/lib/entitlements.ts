@@ -94,7 +94,8 @@ export type FeatureId =
   | "unlimitedNotebooks"
   | "prioritySupport"
   | "customAppearance"
-  | "learnStyles";
+  | "learnStyles"
+  | "learnExam";
 
 export interface FeatureMeta {
   id: FeatureId;
@@ -167,6 +168,14 @@ export const FEATURES: Record<FeatureId, FeatureMeta> = {
     blurb: "Any part of a lesson re-explained as an analogy, step by step, more simply, or through a real example.",
     pitch:
       "When an explanation doesn't click, ask for it the way you think: an analogy, a worked step-by-step, a simpler version, or a real-world example, taught from your own notes.",
+    minimumPlan: "plus",
+  },
+  learnExam: {
+    id: "learnExam",
+    name: "Exam questions, marked",
+    blurb: "After each part of a lesson, an exam-style question, with your answer marked point by point.",
+    pitch:
+      "Learn a part, then answer it the way the exam will ask. Your answer is marked against a mark scheme, and every mark shows the words of yours that earned it.",
     minimumPlan: "plus",
   },
 };
@@ -422,7 +431,7 @@ export const PLAN_PRICING: Record<"plus" | "pro", PlanPricing> = {
   plus: {
     plan: "plus",
     name: "Learnora Plus",
-    tagline: "More headroom on every AI tool, and lessons explained the way you think.",
+    tagline: "More headroom on every AI tool, lessons explained your way, and exam questions marked as you learn.",
     prices: [
       { id: "monthly", label: "Monthly", amountPence: 299, interval: "month" },
       {

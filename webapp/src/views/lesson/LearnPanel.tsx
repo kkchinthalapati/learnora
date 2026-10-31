@@ -10,10 +10,14 @@ import {
   generateLearnStep,
   LEARN_STYLE_LABELS,
   LEARN_STYLES,
+  markTypedAnswer,
+  writeExamQuestion,
+  type ExamQuestion,
   type LearnStep,
   type LearnStyle,
 } from "../../api/learn";
-import { useProAction } from "../../components/ProGate";
+import { ProGate, useProAction } from "../../components/ProGate";
+import { candidatesFromMarking, type Marking } from "../../lib/photoMarking";
 import { useEntitlements } from "../../hooks/useSubscription";
 import { learningEventsApi } from "../../api/learningEvents";
 import { learnSections, type LearnSection } from "../../lib/learnSections";
@@ -35,7 +39,7 @@ import styles from "./learn.module.css";
  * counts. A missed check goes to the misconception ledger; a right answer on
  * the second check after a miss is the correction that closes it. */
 
-type Phase = "hook" | "teach" | "check" | "reteach" | "recheck" | "done";
+type Phase = "hook" | "teach" | "check" | "reteach" | "recheck" | "exam" | "done";
 type Outcome = "got" | "relearned" | "revisit";
 
 interface SectionProgress {
@@ -47,6 +51,8 @@ interface SectionProgress {
   outcome?: Outcome;
   /** Plus: the idea re-explained in the styles the student asked for. */
   styled?: Partial<Record<LearnStyle, string>>;
+  /** Plus: this part's exam question, the answer and its marking. */
+  exam?: ExamProgress;
 }
 
 interface LearnState {
@@ -521,15 +527,18 @@ function LearnFlow({
                       Saved to your mistakes, so it comes back until it sticks. You can learn this part again at the end.
                     </p>
                   ) : null}
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      patch(section.key, { phase: "done" });
-                      next();
-                    }}
-                  >
-                    {state.current + 1 < sections.length ? "Next part" : "Finish the lesson"}
-                  </Button>
+                  <div className={styles.actions}>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        patch(section.key, { phase: "done" });
+                        next();
+                      }}
+                    >
+                      {state.current + 1 < sections.length ? "Next part" : "Finish the lesson"}
+                    </Button>
+                    <ExamOffer onStart={() => patch(section.key, { phase: "exam" })} />
+                  </div>
                 </>
               )}
             </div>
@@ -557,6 +566,28 @@ function LearnFlow({
         {yourWay(step.reteach)}
       </TutorTurn>
     );
+  } else if (progress.phase === "exam") {
+    body = (
+      <ProGate feature="learnExam" loadingHeight={220}>
+        <ExamPart
+          key={progress.exam?.question.question ?? "new"}
+          meta={`${meta} · Exam question`}
+          materialId={materialId}
+          lesson={lesson}
+          subject={subject}
+          section={section}
+          concept={step.concept}
+          saved={progress.exam}
+          onSave={(exam) => patch(section.key, { exam })}
+          onAnother={() => patch(section.key, { exam: undefined })}
+          onNext={() => {
+            patch(section.key, { phase: "done" });
+            next();
+          }}
+          nextLabel={state.current + 1 < sections.length ? "Next part" : "Finish the lesson"}
+        />
+      </ProGate>
+    );
   } else {
     body = (
       <TutorTurn
@@ -573,6 +604,10 @@ function LearnFlow({
                 Learn this part again
               </Button>
             ) : null}
+            <ExamOffer
+              label={progress.exam?.marking ? "See your exam answer" : undefined}
+              onStart={() => patch(section.key, { phase: "exam" })}
+            />
           </div>
         }
       >
@@ -687,6 +722,221 @@ function ExplainYourWay({
       ) : null}
       {paywall}
     </div>
+  );
+}
+
+/* Plus: the way into a part's exam question. Shown to everyone, tagged for
+   free students, whose click opens the plans. */
+function ExamOffer({ onStart, label }: { onStart: () => void; label?: string }) {
+  const { guard, paywall } = useProAction("learnExam");
+  const { can, isPending } = useEntitlements();
+  return (
+    <>
+      <Button variant="secondary" onClick={() => guard() && onStart()}>
+        {label ?? "Try an exam question"}
+        {!isPending && !can("learnExam") ? <span className={styles.plusTag}>Plus</span> : null}
+      </Button>
+      {paywall}
+    </>
+  );
+}
+
+interface ExamProgress {
+  question: ExamQuestion;
+  answer?: string;
+  marking?: Marking;
+}
+
+/* One exam question on a part just learned, written and then marked. The
+   score is counted by the app from the points, and each awarded point shows
+   the student's own words that earned it (api/learn.ts holdToAnswer). Wrong
+   beliefs the answer states go to the ledger; a missing point does not. */
+function ExamPart({
+  meta,
+  materialId,
+  lesson,
+  subject,
+  section,
+  concept,
+  saved,
+  onSave,
+  onAnother,
+  onNext,
+  nextLabel,
+}: {
+  meta: string;
+  materialId: string;
+  lesson: string;
+  subject: string | null;
+  section: LearnSection;
+  concept: string;
+  saved: ExamProgress | undefined;
+  onSave: (exam: ExamProgress) => void;
+  onAnother: () => void;
+  onNext: () => void;
+  nextLabel: string;
+}) {
+  const [draft, setDraft] = useState(saved?.answer ?? "");
+  const [busy, setBusy] = useState<"writing" | "marking" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const started = useRef(false);
+
+  const write = useCallback(async () => {
+    setBusy("writing");
+    setError(null);
+    try {
+      onSave({ question: await writeExamQuestion({ materialId, lesson, section, concept }) });
+    } catch (caught) {
+      setError(caught instanceof Error && caught.message ? caught.message : "The tutor didn't answer.");
+    } finally {
+      setBusy(null);
+    }
+  }, [materialId, lesson, section, concept, onSave]);
+
+  useEffect(() => {
+    if (saved?.question || started.current) return;
+    started.current = true;
+    void write();
+  }, [saved?.question, write]);
+
+  const mark = async () => {
+    const exam = saved?.question;
+    const answer = draft.trim();
+    if (!exam || !answer) return;
+    setBusy("marking");
+    setError(null);
+    try {
+      const marking = await markTypedAnswer({
+        materialId,
+        lesson,
+        exam,
+        answer,
+        subject: subject || "General",
+      });
+      onSave({ question: exam, answer, marking });
+      if (marking.kind === "marked") {
+        const runId = `learn-exam:${materialId}:${section.key}:${questionHash(exam.question)}`;
+        void learningEventsApi
+          .record(
+            {
+              source: "quick_check",
+              topicKey: normaliseTopicKey(lesson),
+              /* A score with unchecked points is only a floor: not evidence
+                 of how well it's known. */
+              score: marking.unchecked ? null : marking.awarded / marking.total,
+              clientId: runId,
+              payload: { mode: "learn-exam", concept, section: section.title, materialId },
+            },
+            candidatesFromMarking(marking, subject || "General", runId),
+          )
+          .catch(() => {
+            /* Best-effort, like every other evidence write. */
+          });
+      }
+    } catch (caught) {
+      setError(caught instanceof Error && caught.message ? caught.message : "The marker didn't answer.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (!saved?.question) {
+    return error ? (
+      <AiErrorCard
+        detail={error}
+        onRetry={() => void write()}
+        onFallback={onNext}
+        fallbackLabel="Skip it"
+        kept="Your place in the lesson is kept."
+      />
+    ) : (
+      <TutorTurn meta={meta} streaming>
+        <p>Writing an exam question on {concept}…</p>
+      </TutorTurn>
+    );
+  }
+
+  const { question: exam, marking } = saved;
+  const marks = `${exam.total} mark${exam.total === 1 ? "" : "s"}`;
+  return (
+    <TutorTurn
+      meta={meta}
+      check={
+        marking && marking.kind === "marked" ? (
+          <div className={styles.results} aria-live="polite">
+            <p className={styles.result} data-result={marking.awarded === marking.total ? "right" : "wrong"}>
+              {marking.unchecked ? "At least " : ""}
+              {marking.awarded} of {marking.total} marks.
+            </p>
+            <ul className={styles.points} aria-label="Mark scheme">
+              {marking.points.map((p, i) => (
+                <li key={i} data-verdict={p.verdict}>
+                  <span className={styles.pointMark} aria-hidden="true">
+                    {p.verdict === "awarded" ? "✓" : p.verdict === "missed" ? "✕" : "?"}
+                  </span>
+                  <span>
+                    <span className={styles.srOnly}>
+                      {p.verdict === "awarded" ? "Earned: " : p.verdict === "missed" ? "Missed: " : "Not checked: "}
+                    </span>
+                    {p.point.text}
+                    {p.point.marks > 1 ? ` (${p.point.marks})` : ""}
+                    {p.verdict === "awarded" ? (
+                      <span className={styles.pointNote}>Your words: “{p.evidence}”</span>
+                    ) : p.note ? (
+                      <span className={styles.pointNote}>{p.note}</span>
+                    ) : p.verdict === "unchecked" ? (
+                      <span className={styles.pointNote}>The marker didn't check this one.</span>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {marking.beliefs.length ? (
+              <p className={styles.note}>
+                Saved to your mistakes: {marking.beliefs.map((b) => b.belief).join("; ")}
+              </p>
+            ) : null}
+            <div className={styles.actions}>
+              <Button variant="primary" onClick={onNext}>
+                {nextLabel}
+              </Button>
+              <Button variant="secondary" onClick={onAnother}>
+                Try another question
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className={styles.examForm}>
+            <textarea
+              className={styles.answer}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Write your answer as you would in the exam."
+              aria-label="Your answer"
+              rows={5}
+              disabled={busy !== null}
+            />
+            {error ? (
+              <p className={styles.error} role="alert">
+                {error}
+              </p>
+            ) : null}
+            <div className={styles.actions}>
+              <Button variant="primary" busy={busy === "marking"} disabled={!draft.trim()} onClick={() => void mark()}>
+                {busy === "marking" ? "Marking" : "Mark my answer"}
+              </Button>
+              <button type="button" className={styles.quietLink} onClick={onNext}>
+                Skip it
+              </button>
+            </div>
+          </div>
+        )
+      }
+    >
+      <p>
+        {exam.question} <span className={styles.marks}>[{marks}]</span>
+      </p>
+    </TutorTurn>
   );
 }
 

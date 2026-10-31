@@ -50,6 +50,7 @@ const FEATURE_ICON: Record<FeatureId, IconName> = {
   prioritySupport: "award",
   customAppearance: "palette",
   learnStyles: "book-open",
+  learnExam: "check-square",
 };
 
 const FEATURE_ROUTE: Partial<Record<FeatureId, { to: string; cta: string }>> =

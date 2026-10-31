@@ -81,6 +81,10 @@ function session() {
 
 /* ------------------------------------------------------------ interceptor */
 
+const HARNESS_PLAN = ((p) => (p === "plus" || p === "pro" ? p : "free"))(
+  new URLSearchParams(location.search).get("plan"),
+);
+
 /* Table name -> rows. Anything not listed answers with an empty list, which
    is what an untouched feature legitimately looks like. */
 const TABLES: Record<string, unknown[]> = {
@@ -114,6 +118,9 @@ const TABLES: Record<string, unknown[]> = {
       life_context_updated_at: null,
       full_name: "Harness Student",
       friend_code: "HARNESS1",
+      /* ?plan=plus or ?plan=pro to look at a paid account. */
+      plan: HARNESS_PLAN,
+      plan_status: HARNESS_PLAN === "free" ? "none" : "active",
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     },
   ],
@@ -229,6 +236,38 @@ function install(supabaseUrl: string) {
               { index: 1, awarded: false, evidence: "", note: "Doesn't say which way the water moves" },
             ],
             beliefs: [{ concept: "Osmosis", belief: "Thinks the salt moves into the cell", quote: "the salt goes into the cell" }],
+          }),
+        });
+      }
+      /* Learn, exam questions (Plus): the question, then its marking. */
+      if (/Write ONE exam question on an idea/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            question: "Explain why the angle at the centre is twice the angle at the circumference.",
+            scheme: [
+              { point: "draws or uses radii to make isosceles triangles", marks: 1 },
+              { point: "base angles of an isosceles triangle are equal", marks: 1 },
+              { point: "exterior angle equals the sum of the two opposite angles", marks: 1 },
+            ],
+          }),
+        });
+      }
+      if (/You are an exam marker. Mark the student.s typed answer/.test(prompt)) {
+        /* The body is JSON, so the prompt's newlines and quotes arrive escaped. */
+        const answer = /THE STUDENT.S ANSWER:\\n\\"\\"\\"\\n(.*?)\\n\\"\\"\\"/.exec(prompt)?.[1] ?? "";
+        const firstWords = answer.split(/\s+/).slice(0, 4).join(" ");
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            legible: true,
+            unreadable: "",
+            points: [
+              { index: 0, awarded: true, evidence: firstWords, note: "" },
+              { index: 1, awarded: false, evidence: "", note: "Doesn't say the base angles are equal" },
+              { index: 2, awarded: true, evidence: "words the student never wrote", note: "" },
+            ],
+            beliefs: [],
           }),
         });
       }

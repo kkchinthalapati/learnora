@@ -7,11 +7,15 @@ import { LearnPanel } from "./LearnPanel";
 
 const generate = vi.fn();
 const restyle = vi.fn();
+const writeExam = vi.fn();
+const markAnswer = vi.fn();
 const recordEvent = vi.fn(async () => undefined);
 vi.mock("../../api/learn", async (orig) => ({
   ...(await orig<typeof import("../../api/learn")>()),
   generateLearnStep: (...a: unknown[]) => generate(...a),
   explainAnotherWay: (...a: unknown[]) => restyle(...a),
+  writeExamQuestion: (...a: unknown[]) => writeExam(...a),
+  markTypedAnswer: (...a: unknown[]) => markAnswer(...a),
 }));
 let plan: "free" | "plus" = "free";
 vi.mock("../../hooks/useSubscription", async (orig) => {
@@ -75,6 +79,24 @@ describe("LearnPanel", () => {
     window.localStorage.clear();
     plan = "free";
     restyle.mockReset();
+    writeExam.mockReset();
+    writeExam.mockResolvedValue({
+      question: "Explain why a plant cell in pure water does not burst.",
+      scheme: [{ text: "water enters by osmosis", marks: 1 }, { text: "the cell wall resists", marks: 1 }],
+      total: 2,
+    });
+    markAnswer.mockReset();
+    markAnswer.mockResolvedValue({
+      kind: "marked",
+      points: [
+        { point: { text: "water enters by osmosis", marks: 1 }, verdict: "awarded", evidence: "water goes in by osmosis", note: "" },
+        { point: { text: "the cell wall resists", marks: 1 }, verdict: "missed", evidence: "", note: "Doesn't mention the cell wall" },
+      ],
+      awarded: 1,
+      total: 2,
+      unchecked: 0,
+      beliefs: [{ concept: "Osmosis", belief: "Thinks salt moves into the cell", quote: "salt goes in" }],
+    });
     restyle.mockImplementation(async ({ style }: { style: string }) => `Explained as ${style}.`);
     generate.mockReset();
     recordEvent.mockClear();
@@ -209,6 +231,50 @@ describe("LearnPanel", () => {
     await user.click(screen.getByRole("button", { name: "An analogy" }));
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(restyle).not.toHaveBeenCalled();
+  });
+
+  async function toCheckPassed(user: ReturnType<typeof userEvent.setup>) {
+    await toTeachStep(user);
+    await user.click(screen.getByRole("button", { name: "Got it, check me" }));
+    await user.click(screen.getByRole("button", { name: /Check answer/ }));
+  }
+
+  it("gives a Plus student an exam question on the part, and marks the typed answer", async () => {
+    plan = "plus";
+    const user = userEvent.setup();
+    renderPanel();
+    await toCheckPassed(user);
+    await user.click(screen.getByRole("button", { name: "Try an exam question" }));
+
+    expect(await screen.findByText(/does not burst/)).toBeInTheDocument();
+    expect(screen.getByText("[2 marks]")).toBeInTheDocument();
+    expect(writeExam.mock.calls[0][0]).toMatchObject({ materialId: "lesson-1", concept: "Osmosis" });
+    await user.type(screen.getByRole("textbox", { name: "Your answer" }), "The water goes in by osmosis but salt goes in too.");
+    await user.click(screen.getByRole("button", { name: "Mark my answer" }));
+
+    expect(await screen.findByText("1 of 2 marks.")).toBeInTheDocument();
+    expect(screen.getByText("Your words: “water goes in by osmosis”")).toBeInTheDocument();
+    expect(screen.getByText("Doesn't mention the cell wall")).toBeInTheDocument();
+    expect(markAnswer.mock.calls[0][0]).toMatchObject({ answer: "The water goes in by osmosis but salt goes in too.", subject: "Biology" });
+
+    /* The belief the answer stated goes to the ledger; the score is evidence. */
+    const examEvent = recordEvent.mock.calls.find((c) => (c as unknown[])[0] && ((c as unknown[])[0] as { payload: { mode: string } }).payload.mode === "learn-exam");
+    expect(examEvent).toMatchObject([
+      { score: 0.5 },
+      [{ kind: "evidence", summary: "Thinks salt moves into the cell", provisional: true }],
+    ]);
+
+    await user.click(screen.getByRole("button", { name: "Next part" }));
+    expect(await screen.findByText("Guess about Diffusion?")).toBeInTheDocument();
+  });
+
+  it("offers a free student the exam question as a Plus feature, without writing one", async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await toCheckPassed(user);
+    await user.click(screen.getByRole("button", { name: /Try an exam question/ }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(writeExam).not.toHaveBeenCalled();
   });
 
   it("explains that Learn needs notes when there are none", () => {
