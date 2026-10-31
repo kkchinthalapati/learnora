@@ -26,6 +26,19 @@ describe("toSubscription", () => {
     });
   });
 
+  it("reads a Plus subscriber as Plus, not free", () => {
+    /* The list of known plans predated Plus, so every paying Plus student
+       was shown the free plan, its limits and its upsells. */
+    expect(
+      toSubscription({
+        plan: "plus",
+        plan_status: "active",
+        plan_renews_at: null,
+        plan_cancel_at_period_end: false,
+      }).plan,
+    ).toBe("plus");
+  });
+
   it("treats a missing row as free", () => {
     expect(toSubscription(null)).toEqual(FREE_SUBSCRIPTION);
   });

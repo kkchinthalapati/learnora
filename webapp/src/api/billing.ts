@@ -48,7 +48,7 @@ interface ProfileBillingRow {
   plan_cancel_at_period_end: boolean | null;
 }
 
-const PLANS: Plan[] = ["free", "pro"];
+const PLANS: Plan[] = ["free", "plus", "pro"];
 const STATUSES: PlanStatus[] = [
   "active",
   "trialing",
