@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLearnStepPrompt, learnSessionKey, parseLearnStep } from "./learn";
+import { buildLearnStepPrompt, buildStylePrompt, learnSessionKey, parseLearnStep } from "./learn";
 
 const q = (question: string) => ({ question, choices: ["a", "b", "c", "d"], correctIndex: 2, feedback: "why" });
 const full = {
@@ -52,5 +52,21 @@ describe("learnSessionKey", () => {
     const key = learnSessionKey("2b1c6f0e-1d1a-4c55-9a0e-2f4b3c1d9e7a");
     expect(key).toMatch(/^[A-Za-z0-9_-]{6,80}$/);
     expect(key).toBe(learnSessionKey("2b1c6f0e-1d1a-4c55-9a0e-2f4b3c1d9e7a"));
+  });
+});
+
+describe("buildStylePrompt", () => {
+  it("asks for the chosen style, from the notes, without repeating what was read", () => {
+    const prompt = buildStylePrompt({
+      lesson: "Cells",
+      section: { key: "0-osmosis", title: "Osmosis", body: "Water moves to the more concentrated side." },
+      concept: "Osmosis",
+      explanation: "The first explanation.",
+      style: "analogy",
+      level: "GCSE",
+    });
+    expect(prompt).toContain("ONE analogy from everyday life");
+    expect(prompt).toContain("Water moves to the more concentrated side.");
+    expect(prompt).toMatch(/do not repeat its wording[^]*The first explanation\./);
   });
 });

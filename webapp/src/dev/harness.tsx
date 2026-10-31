@@ -232,6 +232,13 @@ function install(supabaseUrl: string) {
           }),
         });
       }
+      /* Learn, Explain it your way (Plus). */
+      if (/Re-explain one idea from a student/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: "Think of a **torch** held at the centre of a circle, and another held on the edge. Both light up the same arc, but the one at the centre has to open its beam twice as wide to do it. That is why the angle at the centre is $2x$.",
+        });
+      }
       /* Learn: one section, scripted on the section's own title. */
       if (/Teach one section of a student/.test(prompt)) {
         const title = /THIS SECTION: \\"\\"\\"(.+?)\\"\\"\\"/.exec(prompt)?.[1] ?? "this part";

@@ -6,11 +6,26 @@ import type { LearnStep } from "../../api/learn";
 import { LearnPanel } from "./LearnPanel";
 
 const generate = vi.fn();
+const restyle = vi.fn();
 const recordEvent = vi.fn(async () => undefined);
 vi.mock("../../api/learn", async (orig) => ({
   ...(await orig<typeof import("../../api/learn")>()),
   generateLearnStep: (...a: unknown[]) => generate(...a),
+  explainAnotherWay: (...a: unknown[]) => restyle(...a),
 }));
+let plan: "free" | "plus" = "free";
+vi.mock("../../hooks/useSubscription", async (orig) => {
+  const real = await orig<typeof import("../../hooks/useSubscription")>();
+  const { canUse } = await import("../../lib/entitlements");
+  return {
+    ...real,
+    useEntitlements: () => ({
+      plan,
+      isPending: false,
+      can: (feature: Parameters<typeof canUse>[1]) => canUse(plan, feature),
+    }),
+  };
+});
 vi.mock("../../api/learningEvents", () => ({
   learningEventsApi: { record: (...a: unknown[]) => recordEvent(...(a as [])) },
 }));
@@ -58,6 +73,9 @@ function renderPanel(onOpenTab = vi.fn()) {
 describe("LearnPanel", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    plan = "free";
+    restyle.mockReset();
+    restyle.mockImplementation(async ({ style }: { style: string }) => `Explained as ${style}.`);
     generate.mockReset();
     recordEvent.mockClear();
     generate.mockImplementation(async ({ section }: { section: { title: string } }) => step(section.title));
@@ -152,6 +170,45 @@ describe("LearnPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("The AI service is busy.");
     await user.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(screen.getByText("Guess about Osmosis?")).toBeInTheDocument());
+  });
+
+  async function toTeachStep(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("button", { name: "Start learning" }));
+    await user.click(await screen.findByRole("button", { name: /Hook answer/ }));
+    await user.click(screen.getByRole("button", { name: "Show me why" }));
+  }
+
+  it("re-explains a part in the style a Plus student picks, once per style", async () => {
+    plan = "plus";
+    const user = userEvent.setup();
+    renderPanel();
+    await toTeachStep(user);
+    expect(screen.queryByText("Plus")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "An analogy" }));
+    expect(await screen.findByText("Explained as analogy.")).toBeInTheDocument();
+    expect(restyle.mock.calls[0][0]).toMatchObject({
+      materialId: "lesson-1",
+      style: "analogy",
+      concept: "Osmosis",
+      explanation: "How Osmosis works.",
+    });
+
+    await user.click(screen.getByRole("button", { name: "Step by step" }));
+    expect(await screen.findByText("Explained as steps.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "An analogy" }));
+    expect(screen.getByText("Explained as analogy.")).toBeInTheDocument();
+    expect(restyle).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a free student the option, and the plans instead of a request", async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await toTeachStep(user);
+    expect(screen.getByText("Plus")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "An analogy" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(restyle).not.toHaveBeenCalled();
   });
 
   it("explains that Learn needs notes when there are none", () => {

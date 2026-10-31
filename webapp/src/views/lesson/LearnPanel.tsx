@@ -5,7 +5,16 @@ import { EmptyState } from "../../components/EmptyState";
 import { AiErrorCard } from "../../components/learning/AiErrorCard";
 import { TutorTurn } from "../../components/learning/TutorTurn";
 import { AiReply } from "../../components/chat/AiReply";
-import { generateLearnStep, type LearnStep } from "../../api/learn";
+import {
+  explainAnotherWay,
+  generateLearnStep,
+  LEARN_STYLE_LABELS,
+  LEARN_STYLES,
+  type LearnStep,
+  type LearnStyle,
+} from "../../api/learn";
+import { useProAction } from "../../components/ProGate";
+import { useEntitlements } from "../../hooks/useSubscription";
 import { learningEventsApi } from "../../api/learningEvents";
 import { learnSections, type LearnSection } from "../../lib/learnSections";
 import { normaliseTopicKey } from "../../lib/topicKey";
@@ -36,6 +45,8 @@ interface SectionProgress {
   check?: number;
   recheck?: number;
   outcome?: Outcome;
+  /** Plus: the idea re-explained in the styles the student asked for. */
+  styled?: Partial<Record<LearnStyle, string>>;
 }
 
 interface LearnState {
@@ -378,6 +389,30 @@ function LearnFlow({
   const step = progress?.step;
   const meta = `Part ${state.current + 1} of ${sections.length} · ${section.title}`;
   const next = () => goTo(state.current + 1);
+  const yourWay = (explanation: string) =>
+    step ? (
+      <ExplainYourWay
+        materialId={materialId}
+        lesson={lesson}
+        section={section}
+        concept={step.concept}
+        explanation={explanation}
+        saved={progress?.styled ?? {}}
+        onSaved={(style, text) =>
+          setState((s) => {
+            const current = s.sections[section.key];
+            if (!current) return s;
+            return {
+              ...s,
+              sections: {
+                ...s.sections,
+                [section.key]: { ...current, styled: { ...current.styled, [style]: text } },
+              },
+            };
+          })
+        }
+      />
+    ) : null;
 
   let body: ReactNode;
   if (!step) {
@@ -448,6 +483,7 @@ function LearnFlow({
         {step.hook.feedback ? (
           <p className={styles.note}>Back to your guess: {step.hook.feedback}</p>
         ) : null}
+        {yourWay(step.explanation)}
       </TutorTurn>
     );
   } else if (progress.phase === "check" || progress.phase === "recheck") {
@@ -518,6 +554,7 @@ function LearnFlow({
         }
       >
         <AiReply text={step.reteach} />
+        {yourWay(step.reteach)}
       </TutorTurn>
     );
   } else {
@@ -566,6 +603,89 @@ function LearnFlow({
         </div>
       </div>
       {body}
+    </div>
+  );
+}
+
+/* Plus: "Explain it another way", in the style the student thinks in. Shown
+   to everyone, so free students can see it exists; a free click opens the
+   plans rather than doing nothing. Each style is written once per part and
+   kept, so switching back and forth costs nothing. */
+function ExplainYourWay({
+  materialId,
+  lesson,
+  section,
+  concept,
+  explanation,
+  saved,
+  onSaved,
+}: {
+  materialId: string;
+  lesson: string;
+  section: LearnSection;
+  concept: string;
+  explanation: string;
+  saved: Partial<Record<LearnStyle, string>>;
+  onSaved: (style: LearnStyle, text: string) => void;
+}) {
+  const { guard, paywall } = useProAction("learnStyles");
+  const { can, isPending } = useEntitlements();
+  const [shown, setShown] = useState<LearnStyle | null>(null);
+  const [writing, setWriting] = useState<LearnStyle | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const pick = async (style: LearnStyle) => {
+    if (!guard()) return;
+    setShown(style);
+    setError(null);
+    if (saved[style] || writing) return;
+    setWriting(style);
+    try {
+      onSaved(style, await explainAnotherWay({ materialId, lesson, section, concept, explanation, style }));
+    } catch (caught) {
+      setError(caught instanceof Error && caught.message ? caught.message : "That didn't work. Try again.");
+    } finally {
+      setWriting(null);
+    }
+  };
+
+  const text = shown ? saved[shown] : undefined;
+  return (
+    <div className={styles.yourWay}>
+      <p className={styles.yourWayLabel}>
+        Explain it another way
+        {!isPending && !can("learnStyles") ? <span className={styles.plusTag}>Plus</span> : null}
+      </p>
+      <div className={styles.chips} role="group" aria-label="Explain it another way">
+        {LEARN_STYLES.map((style) => (
+          <button
+            key={style}
+            type="button"
+            className={styles.chip}
+            aria-pressed={shown === style}
+            disabled={writing !== null && writing !== style}
+            onClick={() => void pick(style)}
+          >
+            {LEARN_STYLE_LABELS[style]}
+          </button>
+        ))}
+      </div>
+      {writing ? (
+        <p className={styles.note} role="status">
+          Writing it as {LEARN_STYLE_LABELS[writing].toLowerCase()}…
+        </p>
+      ) : null}
+      {error ? (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      ) : null}
+      {text ? (
+        <div className={styles.styled} aria-live="polite">
+          <AiReply text={text} />
+        </div>
+      ) : null}
+      {paywall}
     </div>
   );
 }

@@ -138,3 +138,100 @@ export async function generateLearnStep({
   if (!step) throw new Error("I couldn't write this part of the lesson just now.");
   return step;
 }
+
+/* --- Explain it your way (Plus) -------------------------------------------
+   The same idea re-taught in a style the student picks. Free text, not JSON:
+   it is read, not marked. Billed to the lesson's Learn session like every
+   other call here. */
+
+export const LEARN_STYLES = ["analogy", "steps", "simpler", "example"] as const;
+export type LearnStyle = (typeof LEARN_STYLES)[number];
+
+export const LEARN_STYLE_LABELS: Record<LearnStyle, string> = {
+  analogy: "An analogy",
+  steps: "Step by step",
+  simpler: "Simpler",
+  example: "A real example",
+};
+
+const STYLE_RULES: Record<LearnStyle, string> = {
+  analogy:
+    "Teach it through ONE analogy from everyday life. Say where the analogy holds and, in one sentence, where it breaks down.",
+  steps:
+    "Teach it as a short numbered list of steps (at most 6), each one building on the last, ending with the idea itself. Use a worked example if the idea has a method.",
+  simpler:
+    "Teach it to someone two years younger: shorter sentences, no jargon without an immediate plain-English meaning, one tiny example.",
+  example:
+    "Teach it through one concrete, real-world situation where this idea is what decides what happens. Walk through the situation, then name the idea.",
+};
+
+export function buildStylePrompt({
+  lesson,
+  section,
+  concept,
+  explanation,
+  style,
+  level,
+}: {
+  lesson: string;
+  section: LearnSection;
+  concept: string;
+  explanation: string;
+  style: LearnStyle;
+  level: string;
+}): string {
+  return `Re-explain one idea from a student's lesson in a different way. The first explanation didn't fully click.
+
+LESSON: """${fenceUntrusted(lesson)}"""
+IDEA: """${fenceUntrusted(concept)}"""
+THE STUDENT'S NOTES FOR THIS PART (stay consistent with these; teach nothing they do not support):
+"""
+${fenceUntrusted(section.body)}
+"""
+THE EXPLANATION THEY ALREADY READ (do not repeat its wording or its example):
+"""
+${fenceUntrusted(explanation)}
+"""
+STUDENT LEVEL: ${level}.
+
+HOW TO TEACH IT: ${STYLE_RULES[style]}
+At most 160 words. Plain Markdown (bold for the key term) and $...$ for any maths. No heading, no greeting, no question at the end, no emoji.`;
+}
+
+export async function explainAnotherWay({
+  materialId,
+  lesson,
+  section,
+  concept,
+  explanation,
+  style,
+}: {
+  materialId: string;
+  lesson: string;
+  section: LearnSection;
+  concept: string;
+  explanation: string;
+  style: LearnStyle;
+}): Promise<string> {
+  const { level } = await studentStandard(`${lesson} ${section.title}`).catch(() => ({ level: "" }));
+  const { text, refused } = await callEdge({
+    history: [
+      {
+        role: "user",
+        content: buildStylePrompt({
+          lesson,
+          section,
+          concept,
+          explanation,
+          style,
+          level: level || "the student's own course",
+        }),
+      },
+    ],
+    tool: "learn",
+    sessionKey: learnSessionKey(materialId),
+  });
+  const answer = text.trim();
+  if (refused || answer.length < 40) throw new Error("I couldn't explain it that way just now.");
+  return answer;
+}
