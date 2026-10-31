@@ -193,7 +193,8 @@ export type AiToolId =
   | "examDeconstructor"
   | "sparring"
   | "notebookStudio"
-  | "image";
+  | "image"
+  | "learn";
 
 export interface AiToolMeta {
   id: AiToolId;
@@ -264,6 +265,11 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
     name: "Image generation",
     description: "Labelled diagrams drawn on request in the chat.",
   },
+  learn: {
+    id: "learn",
+    name: "Learn a lesson",
+    description: "Being taught a lesson section by section, with checks. Counted per lesson, not per section.",
+  },
 };
 
 export const AI_TOOL_IDS = Object.keys(AI_TOOLS) as AiToolId[];
@@ -298,6 +304,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     sparring: 2,
     notebookStudio: 3,
     image: 1,
+    learn: 3,
     notebooks: 3,
     importedCalendars: 0,
   },
@@ -314,6 +321,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     sparring: 8,
     notebookStudio: 20,
     image: 10,
+    learn: 12,
     notebooks: 10,
     importedCalendars: 1,
   },
@@ -330,6 +338,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     sparring: 25,
     notebookStudio: 60,
     image: 30,
+    learn: 30,
     notebooks: Infinity,
     importedCalendars: 5,
   },

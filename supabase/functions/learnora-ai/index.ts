@@ -1301,17 +1301,17 @@ const AI_TOOL_QUOTAS: Record<Plan, Record<string, number>> = {
   free: {
     chat: 10, notes: 3, flashcards: 3, quiz: 3, plan: 1,
     debugger: 2, preMortem: 2, feynman: 2, examDeconstructor: 2,
-    sparring: 2, notebookStudio: 3, image: 1,
+    sparring: 2, notebookStudio: 3, image: 1, learn: 3,
   },
   plus: {
     chat: 60, notes: 10, flashcards: 10, quiz: 10, plan: 3,
     debugger: 8, preMortem: 6, feynman: 8, examDeconstructor: 6,
-    sparring: 8, notebookStudio: 20, image: 10,
+    sparring: 8, notebookStudio: 20, image: 10, learn: 12,
   },
   pro: {
     chat: 200, notes: 30, flashcards: 30, quiz: 30, plan: 7,
     debugger: 25, preMortem: 20, feynman: 25, examDeconstructor: 20,
-    sparring: 25, notebookStudio: 60, image: 30,
+    sparring: 25, notebookStudio: 60, image: 30, learn: 30,
   },
 };
 

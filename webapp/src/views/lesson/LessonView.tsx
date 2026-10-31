@@ -29,6 +29,7 @@ import {
   progressValue,
 } from "../../lib/lessons";
 import { AiReply } from "../../components/chat/AiReply";
+import { LearnPanel } from "./LearnPanel";
 import { useDocumentTitle } from "../../lib/routeTitle";
 import { mistakeTitle } from "../../lib/mistakeLoop";
 import text from "../../styles/text.module.css";
@@ -40,18 +41,21 @@ import styles from "./lesson.module.css";
  * made from it in one place — its notes, cards, quiz, a tutor that knows
  * what it's about, and the mistakes recorded in its subject. Before this,
  * those were five lists in five Library tabs and you had to remember which
- * deck came from which upload. */
+ * deck came from which upload.
+ *
+ * Learn is the first tab: everything else here tests or drills what the
+ * student already knows, and Learn is where they're taught it first. */
 
-type LessonTab = "notes" | "cards" | "quiz" | "tutor" | "mistakes";
-const TAB_VALUES: LessonTab[] = ["notes", "cards", "quiz", "tutor", "mistakes"];
+type LessonTab = "learn" | "notes" | "cards" | "quiz" | "tutor" | "mistakes";
+const TAB_VALUES: LessonTab[] = ["learn", "notes", "cards", "quiz", "tutor", "mistakes"];
 
 export function LessonView() {
   const { materialId = "" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab") as LessonTab | null;
-  const tab: LessonTab = tabParam && TAB_VALUES.includes(tabParam) ? tabParam : "notes";
+  const tab: LessonTab = tabParam && TAB_VALUES.includes(tabParam) ? tabParam : "learn";
   const setTab = (next: LessonTab) =>
-    setSearchParams(next === "notes" ? {} : { tab: next }, { replace: true });
+    setSearchParams(next === "learn" ? {} : { tab: next }, { replace: true });
   const idBase = useTabIds();
   const navigate = useNavigate();
 
@@ -147,6 +151,7 @@ export function LessonView() {
   }
 
   const tabs: ReadonlyArray<TabItem<LessonTab>> = [
+    { value: "learn", label: "Learn" },
     { value: "notes", label: "Notes" },
     { value: "cards", label: "Cards", count: dueTotal || undefined },
     { value: "quiz", label: "Quiz" },
@@ -192,7 +197,16 @@ export function LessonView() {
       <Tabs items={tabs} value={tab} onChange={setTab} label="Parts of this lesson" idBase={idBase} />
 
       <TabPanel idBase={idBase} value={tab}>
-        {tab === "notes" ? (
+        {tab === "learn" ? (
+          <LearnPanel
+            materialId={m.id}
+            lesson={lessonTopic(m, notes.data?.[0]?.markdown_content)}
+            subject={subject?.name ?? null}
+            markdown={notes.data?.[0]?.markdown_content ?? ""}
+            loading={notes.isPending}
+            onOpenTab={setTab}
+          />
+        ) : tab === "notes" ? (
           <NotesPanel
             materialId={m.id}
             markdown={notes.data?.[0]?.markdown_content ?? ""}

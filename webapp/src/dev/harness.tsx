@@ -232,6 +232,27 @@ function install(supabaseUrl: string) {
           }),
         });
       }
+      /* Learn: one section, scripted on the section's own title. */
+      if (/Teach one section of a student/.test(prompt)) {
+        const title = /THIS SECTION: \\"\\"\\"(.+?)\\"\\"\\"/.exec(prompt)?.[1] ?? "this part";
+        const q = (question: string, right: string, wrong: string[]) => ({
+          question,
+          choices: [right, ...wrong],
+          correctIndex: 0,
+          feedback: `${right} is right because that is what the notes on ${title} say.`,
+        });
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            concept: title,
+            hook: q(`Before we start: what do you think ${title} is mostly about?`, "How the parts relate", ["A list of dates", "A single formula", "Nothing testable"]),
+            explanation: `**${title}** comes down to one idea. Start from what you already know, then add one step at a time.\n\nFor example, the angle at the centre is $2x$ when the angle at the circumference is $x$.`,
+            check: q(`Which is true about ${title}?`, "The centre angle is double", ["They are equal", "The centre angle is half", "It depends on the radius"]),
+            reteach: `Think of ${title} like a torch at the centre of a circle: its beam opens twice as wide as one from the edge.`,
+            recheck: q(`If the circumference angle is 40°, the centre angle is…`, "80°", ["40°", "20°", "160°"]),
+          }),
+        });
+      }
       if (/openui demo|Build the study guide/i.test(prompt)) {
         return json({ text: fx.sampleOpenUiReply });
       }
