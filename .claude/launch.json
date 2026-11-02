@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev", "--prefix", "webapp"],
       "port": 5173,
       "url": "http://localhost:5173"
+    },
+    {
+      "name": "webapp-adaptive",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "webapp", "--", "--port", "5180", "--strictPort"],
+      "port": 5180,
+      "url": "http://localhost:5180"
     }
   ]
 }
