@@ -80,10 +80,11 @@ export function effectivePlan(sub: Subscription): Plan {
 
 /* --- Features ------------------------------------------------------------
    Binary, non-metered capabilities — as opposed to the AI tool quotas below,
-   which are metered. Every one of these is Pro-only today: Plus's whole pitch
-   is more AI headroom at a lower price, not a second tier of features to
-   track separately. If that changes, `minimumPlan: "plus"` is what to set —
-   `canUse` already compares by rank, not by exact match. */
+   which are metered. Most are Pro-only. Plus has a few of its own, so it is
+   more than a bigger allowance: `minimumPlan: "plus"` makes one, and
+   `canUse` compares by rank, so Pro gets every Plus feature too. A Plus
+   feature is always something new on top of what is free, never a free
+   thing moved behind the plan (rule 1 above). */
 
 export type FeatureId =
   | "trajectory"
@@ -92,7 +93,9 @@ export type FeatureId =
   | "scheduleExport"
   | "unlimitedNotebooks"
   | "prioritySupport"
-  | "customAppearance";
+  | "customAppearance"
+  | "learnStyles"
+  | "learnExam";
 
 export interface FeatureMeta {
   id: FeatureId;
@@ -159,10 +162,31 @@ export const FEATURES: Record<FeatureId, FeatureMeta> = {
       "Pick from thirteen curated accents or mix up to three colours of your own, then change the page, cards, text and margin colours to suit how you study.",
     minimumPlan: "plus",
   },
+  learnStyles: {
+    id: "learnStyles",
+    name: "Explain it your way",
+    blurb: "Any part of a lesson re-explained as an analogy, step by step, more simply, or through a real example.",
+    pitch:
+      "When an explanation doesn't click, ask for it the way you think: an analogy, a worked step-by-step, a simpler version, or a real-world example, taught from your own notes.",
+    minimumPlan: "plus",
+  },
+  learnExam: {
+    id: "learnExam",
+    name: "Exam questions, marked",
+    blurb: "After each part of a lesson, an exam-style question, with your answer marked point by point.",
+    pitch:
+      "Learn a part, then answer it the way the exam will ask. Your answer is marked against a mark scheme, and every mark shows the words of yours that earned it.",
+    minimumPlan: "plus",
+  },
 };
 
 export const PRO_FEATURES: FeatureMeta[] = Object.values(FEATURES).filter(
   (f) => f.minimumPlan === "pro",
+);
+
+/** What Plus adds beyond the higher limits (Pro has these too). */
+export const PLUS_FEATURES: FeatureMeta[] = Object.values(FEATURES).filter(
+  (f) => f.minimumPlan === "plus",
 );
 
 export function canUse(plan: Plan, feature: FeatureId): boolean {
@@ -193,7 +217,8 @@ export type AiToolId =
   | "examDeconstructor"
   | "sparring"
   | "notebookStudio"
-  | "image";
+  | "image"
+  | "learn";
 
 export interface AiToolMeta {
   id: AiToolId;
@@ -264,6 +289,11 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
     name: "Image generation",
     description: "Labelled diagrams drawn on request in the chat.",
   },
+  learn: {
+    id: "learn",
+    name: "Learn a lesson",
+    description: "Being taught a lesson section by section, with checks. Counted per lesson, not per section.",
+  },
 };
 
 export const AI_TOOL_IDS = Object.keys(AI_TOOLS) as AiToolId[];
@@ -298,6 +328,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     sparring: 2,
     notebookStudio: 3,
     image: 1,
+    learn: 3,
     notebooks: 3,
     importedCalendars: 0,
   },
@@ -314,6 +345,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     sparring: 8,
     notebookStudio: 20,
     image: 10,
+    learn: 12,
     notebooks: 10,
     importedCalendars: 1,
   },
@@ -330,6 +362,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     sparring: 25,
     notebookStudio: 60,
     image: 30,
+    learn: 30,
     notebooks: Infinity,
     importedCalendars: 5,
   },
@@ -398,7 +431,7 @@ export const PLAN_PRICING: Record<"plus" | "pro", PlanPricing> = {
   plus: {
     plan: "plus",
     name: "Learnora Plus",
-    tagline: "More headroom on every AI tool, for less than a coffee a month.",
+    tagline: "More headroom on every AI tool, lessons explained your way, and exam questions marked as you learn.",
     prices: [
       { id: "monthly", label: "Monthly", amountPence: 299, interval: "month" },
       {

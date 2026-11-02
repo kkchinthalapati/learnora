@@ -3,6 +3,7 @@ import {
   isPractised,
   lessonIcon,
   lessonTitle,
+  lessonTopic,
   progressByLesson,
   progressLabel,
   progressValue,
@@ -58,5 +59,19 @@ describe("lesson naming", () => {
   it("picks an icon per kind of lesson", () => {
     expect(lessonIcon("audio")).toBe("mic");
     expect(lessonIcon("unknown")).toBe("book-open");
+  });
+});
+
+describe("lessonTopic", () => {
+  it("takes the topic from the notes' title, without the greeting or emoji", () => {
+    expect(lessonTopic({ title: "IMG_4412.jpg" }, "## 🌱 Your guide to Photosynthesis\nBody")).toBe("Photosynthesis");
+    expect(lessonTopic({ title: "x.pdf" }, "## Let's break down **Newton's laws**!\n### Inertia")).toBe("Newton's laws");
+    expect(lessonTopic({ title: "x.pdf" }, "## The Cold War, 1945–1991\n")).toBe("The Cold War, 1945–1991");
+  });
+
+  it("falls back to the lesson title when there are no notes or no title in them", () => {
+    expect(lessonTopic({ title: "Week 3 slides.pdf" })).toBe("Week 3 slides");
+    expect(lessonTopic({ title: "Week 3 slides.pdf" }, "Just a paragraph of notes.")).toBe("Week 3 slides");
+    expect(lessonTopic({ title: "Cells" }, "## 🧬\nBody")).toBe("Cells");
   });
 });

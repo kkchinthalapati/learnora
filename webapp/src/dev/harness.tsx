@@ -81,6 +81,10 @@ function session() {
 
 /* ------------------------------------------------------------ interceptor */
 
+const HARNESS_PLAN = ((p) => (p === "plus" || p === "pro" ? p : "free"))(
+  new URLSearchParams(location.search).get("plan"),
+);
+
 /* Table name -> rows. Anything not listed answers with an empty list, which
    is what an untouched feature legitimately looks like. */
 const TABLES: Record<string, unknown[]> = {
@@ -114,6 +118,9 @@ const TABLES: Record<string, unknown[]> = {
       life_context_updated_at: null,
       full_name: "Harness Student",
       friend_code: "HARNESS1",
+      /* ?plan=plus or ?plan=pro to look at a paid account. */
+      plan: HARNESS_PLAN,
+      plan_status: HARNESS_PLAN === "free" ? "none" : "active",
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     },
   ],
@@ -229,6 +236,91 @@ function install(supabaseUrl: string) {
               { index: 1, awarded: false, evidence: "", note: "Doesn't say which way the water moves" },
             ],
             beliefs: [{ concept: "Osmosis", belief: "Thinks the salt moves into the cell", quote: "the salt goes into the cell" }],
+          }),
+        });
+      }
+      /* Learn, exam questions (Plus): the question, then its marking. */
+      if (/Write ONE exam question on an idea/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            question: "Explain why the angle at the centre is twice the angle at the circumference.",
+            scheme: [
+              { point: "draws or uses radii to make isosceles triangles", marks: 1 },
+              { point: "base angles of an isosceles triangle are equal", marks: 1 },
+              { point: "exterior angle equals the sum of the two opposite angles", marks: 1 },
+            ],
+          }),
+        });
+      }
+      if (/You are an exam marker. Mark the student.s typed answer/.test(prompt)) {
+        /* The body is JSON, so the prompt's newlines and quotes arrive escaped. */
+        const answer = /THE STUDENT.S ANSWER:\\n\\"\\"\\"\\n(.*?)\\n\\"\\"\\"/.exec(prompt)?.[1] ?? "";
+        const firstWords = answer.split(/\s+/).slice(0, 4).join(" ");
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            legible: true,
+            unreadable: "",
+            points: [
+              { index: 0, awarded: true, evidence: firstWords, note: "" },
+              { index: 1, awarded: false, evidence: "", note: "Doesn't say the base angles are equal" },
+              { index: 2, awarded: true, evidence: "words the student never wrote", note: "" },
+            ],
+            beliefs: [],
+          }),
+        });
+      }
+      /* Learn, Explain it your way (Plus). */
+      if (/Re-explain one idea from a student/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: "Think of a **torch** held at the centre of a circle, and another held on the edge. Both light up the same arc, but the one at the centre has to open its beam twice as wide to do it. That is why the angle at the centre is $2x$.",
+        });
+      }
+      /* Learn: one section, scripted on the section's own title. */
+      if (/Teach one section of a student/.test(prompt)) {
+        const title = /THIS SECTION: \\"\\"\\"(.+?)\\"\\"\\"/.exec(prompt)?.[1] ?? "this part";
+        const q = (question: string, right: string, wrong: string[]) => ({
+          question,
+          choices: [right, ...wrong],
+          correctIndex: 0,
+          feedback: `${right} is right because that is what the notes on ${title} say.`,
+        });
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            concept: title,
+            hook: q(`Before we start: what do you think ${title} is mostly about?`, "How the parts relate", ["A list of dates", "A single formula", "Nothing testable"]),
+            explanation: [
+              `**${title}** is about how fast a reaction goes, and what you can change to speed it up. A reaction only happens when particles **collide** with enough energy.`,
+              "```openui\nroot = Stack([d])\nd = Callout(\"definition\", \"The rate of reaction is how much product forms, or reactant is used up, per unit of time.\")\n```",
+              "Anything that makes useful collisions happen more often makes the reaction faster. Four things do that:",
+              "```openui\nroot = Stack([s, t])\ns = Steps(\"Four ways to speed a reaction up\", [\"Raise the temperature: particles move faster and hit harder.\", \"Raise the concentration: more particles in the same space.\", \"Increase the surface area: more particles exposed to collide.\", \"Add a catalyst: a lower-energy route for the reaction.\"])\nt = CompareTable([\"\", \"Collides more often\", \"Collides harder\"], [[\"Temperature\", \"Yes\", \"Yes\"], [\"Concentration\", \"Yes\", \"No\"], [\"Surface area\", \"Yes\", \"No\"]])\n```",
+              "Rates can be worked out from results. For example, if 30 cm³ of gas is made in 60 s:",
+              "```openui\nroot = Stack([w])\nw = WorkedExample(\"30 cm³ of gas is made in 60 s. What is the mean rate?\", [\"Mean rate = amount of product ÷ time.\", \"Put the numbers in: 30 ÷ 60.\"], \"0.5 cm³/s\")\n```",
+            ].join("\n\n"),
+            check: q(`Why does raising the temperature speed up a reaction?`, "Particles collide more often and with more energy", ["Particles get bigger", "The activation energy rises", "There are more particles"]),
+            reteach: `Picture a room of people walking around. If everyone speeds up, they bump into each other more often, and harder. Heating a reaction does the same to its particles.\n\n\`\`\`openui\nroot = Stack([k])\nk = Callout("key", "Hotter means faster particles: more collisions, and more of them with enough energy.")\n\`\`\``,
+            recheck: q(`A reaction is moved from 20 °C to 40 °C. What happens?`, "It goes faster", ["It goes slower", "Nothing changes", "It stops"]),
+          }),
+        });
+      }
+      /* Learn: the overview before part 1 and the recap at the end. */
+      if (/Frame a lesson for a student who is about to learn it/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 700));
+        return json({
+          text: JSON.stringify({
+            overview: [
+              "**Rates of reaction** is about how quickly a chemical reaction happens, and why some go in a flash while others take years.",
+              "It matters because it is how chemists control reactions: making medicines quickly, stopping food going off, keeping factories safe.",
+              "1. **Rate factors**: the four things that change how fast a reaction goes.\n2. **Calculating a rate**: turning experiment results into a number.",
+              "```openui\nroot = Stack([k])\nk = KeyTerms(\"Words you'll meet\", [[\"Rate\", \"How fast a reactant is used up or a product is made.\"], [\"Collision\", \"Two particles hitting each other.\"], [\"Catalyst\", \"Speeds a reaction up without being used up.\"]])\n```",
+            ].join("\n\n"),
+            recap: [
+              "Both parts are one idea seen two ways: a reaction goes as fast as its particles collide with enough energy, and the rate is how you measure that.",
+              "```openui\nroot = Stack([a, b, m])\na = Callout(\"key\", \"More frequent or more energetic collisions mean a faster reaction.\")\nb = Callout(\"key\", \"Mean rate = amount of product ÷ time.\")\nm = Callout(\"mistake\", \"A catalyst is not used up, and it does not change how much product you get.\")\n```",
+            ].join("\n\n"),
           }),
         });
       }

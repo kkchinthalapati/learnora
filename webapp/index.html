@@ -64,7 +64,15 @@
         rel="stylesheet"
       />
     </noscript>
-    <title>Learnora</title>
+    <!-- Crawlers that do not run JS only see this shell, so the description
+         and share tags live here, not just on the static landing page. -->
+    <title>Learnora | The study app that remembers what you got wrong</title>
+    <meta name="description" content="Turn a topic, your notes or a link into notes, flashcards and a quiz. Learnora keeps a list of your mix-ups, re-teaches each one, and checks days later that it has stuck." />
+    <meta property="og:title" content="Learnora | The study app that remembers what you got wrong" />
+    <meta property="og:description" content="Notes, flashcards and quizzes from your own material, plus a list of your mix-ups that gets checked until each one is fixed." />
+    <meta property="og:image" content="https://learnora-app.vercel.app/learnora.jpg" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <div id="root"></div>

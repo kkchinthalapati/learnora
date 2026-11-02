@@ -13,6 +13,7 @@ import {
 } from "../../hooks/useSubscription";
 import { BillingError } from "../../api/billing";
 import {
+  PLUS_FEATURES,
   PRO_FEATURES,
   getLocalizedPlanPricing,
   type Plan,
@@ -189,8 +190,10 @@ export function BillingTab() {
                 <div className={styles.fieldLabel}>
                   <span className={styles.labelText}>Plus and Pro</span>
                   <span className={styles.fieldDesc}>
-                    Plus raises every AI tool's daily limit. Pro raises them
-                    further and adds {PRO_FEATURES.map((f) => f.name).join(" · ")}.
+                    Plus raises every AI tool's daily limit and adds{" "}
+                    {PLUS_FEATURES.map((f) => f.name).join(" · ")}. Pro has all
+                    of that, raises the limits further and adds{" "}
+                    {PRO_FEATURES.map((f) => f.name).join(" · ")}.
                   </span>
                 </div>
                 <div className={styles.fieldAction}>

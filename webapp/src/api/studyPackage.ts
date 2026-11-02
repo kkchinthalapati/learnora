@@ -83,16 +83,58 @@ const MIN_NOTES_CHARS = 50;
 const AUDIO_FILE = /\.(mp3|mp4|wav|m4a|aac|ogg|webm)$/i;
 const YOUTUBE_LINK = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//;
 
+/* What a material can be made from. The pickers' `accept` lists only steer
+   the file dialog — a dropped file never passes through them — so anything
+   else (a .gpx route, a .zip, an .exe) was uploaded and attached, the model
+   could not read it, and its "please share the material" reply was saved as
+   the lesson's notes. Checked by extension or by declared type, because a
+   file from Google Drive can arrive with a type but no extension. */
+const STUDY_FILE_EXTENSION =
+  /\.(pdf|docx?|txt|md|csv|mp3|mp4|wav|m4a|aac|ogg|webm|jpe?g|png|webp)$/i;
+const STUDY_FILE_TYPE =
+  /^(application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document|text\/(plain|markdown|csv)|audio\/.+|video\/(mp4|webm)|image\/(jpeg|png|webp))$/i;
+
+export function isStudyFile(file: { name: string; type?: string }): boolean {
+  return STUDY_FILE_EXTENSION.test(file.name || "") || STUDY_FILE_TYPE.test(file.type || "");
+}
+
+/** Said wherever a file is refused, so every way in uses the same words. */
+export function unsupportedFileMessage(name: string): string {
+  return `Learnora can't read "${name}". Use a PDF, Word document, text file, photo or audio recording.`;
+}
+
 /** Thrown when the model replied but the reply was too short to be a study
  *  guide — distinct from the service being down, and worth different wording. */
 export class NotesShapeError extends Error {
-  constructor() {
-    super(
-      "Couldn't write notes from that material this time. Please try again.",
-    );
+  constructor(
+    message = "Couldn't write notes from that material this time. Please try again.",
+  ) {
+    super(message);
     this.name = "NotesShapeError";
   }
 }
+
+/* The other way a notes reply can fail to be notes: the model couldn't read
+   the source and wrote back asking for it ("Could you please share the study
+   material…"). That sentence is long enough to pass MIN_NOTES_CHARS, so it
+   was saved as the lesson's notes. Real notes open with a ## heading (see
+   NOTES_INSTRUCTIONS); a short reply with no heading at all that asks for
+   the material, or says *it* (first person) can't open it, and names the
+   material, is that failure. All of it must hold, so notes that say "please
+   provide units" or "you can't see chromosomes" are never caught. */
+const ASKS_FOR_MATERIAL =
+  /\b(please|could you|can you|if you)\b[^.?!]{0,60}\b(share|provide|upload|paste|send|attach)\b|\bI(?:(?:'|’)m| am)?\s+(?:can(?:'|’)?t|cannot|can not|unable to|not able to)\b[^.?!]{0,30}\b(read|open|access|see|view|process)\b/i;
+const NAMES_MATERIAL = /\b(material|content|file|document|attachment|text|notes|pdf)\b/i;
+
+export function isNoMaterialReply(markdown: string): boolean {
+  if (/^#{1,4}\s/m.test(markdown)) return false;
+  return (
+    markdown.length < 1200 && ASKS_FOR_MATERIAL.test(markdown) && NAMES_MATERIAL.test(markdown)
+  );
+}
+
+const NO_MATERIAL_MESSAGE =
+  "Learnora couldn't find anything to study in that. Try a PDF, a document, a photo of your notes, or paste the text.";
 
 /** Thrown when the model replied but nothing card-shaped survived validation. */
 export class DeckShapeError extends Error {
@@ -239,6 +281,7 @@ export async function generateNotes({
 
   const markdown = text.trim();
   if (markdown.length < MIN_NOTES_CHARS) throw new NotesShapeError();
+  if (isNoMaterialReply(markdown)) throw new NotesShapeError(NO_MATERIAL_MESSAGE);
 
   if (persist) await notesApi.add(material.id, markdown);
   return markdown;
@@ -484,6 +527,7 @@ export async function createStudyPackage(
     if (source.kind === "file") {
       const file = source.file;
       if (!file) throw new Error("Please choose a file first.");
+      if (!isStudyFile(file)) throw new Error(unsupportedFileMessage(file.name));
       if (file.size > MAX_UPLOAD_BYTES) {
         throw new Error("File too large. Maximum size is 10MB.");
       }

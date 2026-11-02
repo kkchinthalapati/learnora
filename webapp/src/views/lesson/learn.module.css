@@ -1,0 +1,415 @@
+/* Learn (LearnPanel.tsx): the lesson taught one part at a time. Choices and
+   results follow the first lesson's (onboarding/firstRun.module.css), so a
+   student meets one way of answering. */
+
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  max-width: var(--measure-read);
+}
+
+.loading {
+  min-height: 200px;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.introTitle {
+  margin: 0;
+  font-size: var(--fs-xl);
+}
+
+.lead {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.quietLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.quietLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.segments {
+  display: flex;
+  gap: var(--s-1);
+}
+
+.segments > span {
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--hairline);
+}
+
+.segments > span[data-done] {
+  background: var(--accent);
+}
+
+.segments > span[data-current] {
+  background: var(--hairline-strong);
+}
+
+/* The outline */
+
+.outline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.part {
+  width: 100%;
+  min-height: var(--touch-target-min);
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.part:hover {
+  border-color: var(--hairline-strong);
+  background: var(--surface-hover);
+}
+
+.partNumber {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.partNumber[data-outcome="got"],
+.partNumber[data-outcome="relearned"] {
+  border-color: var(--success-text);
+  color: var(--success-text);
+}
+
+.partNumber[data-outcome="revisit"] {
+  border-color: var(--danger-text);
+  color: var(--danger-text);
+}
+
+.partTitle {
+  min-width: 0;
+  font-weight: 600;
+}
+
+.partMeta {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* Choices and results */
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  width: 100%;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.option:hover {
+  border-color: var(--accent-line-strong);
+}
+
+.option:focus-visible,
+.part:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.key {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+.result {
+  margin: 0;
+  font-weight: 600;
+}
+
+.result[data-result="right"] {
+  color: var(--success-text);
+}
+
+.result[data-result="wrong"] {
+  color: var(--danger-text);
+}
+
+.feedback {
+  max-width: var(--measure-read);
+}
+
+.feedback p {
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .part {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .partMeta {
+    grid-column: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option,
+  .part {
+    transition: none;
+  }
+}
+
+/* Explain it your way (Plus) */
+
+.yourWay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hairline);
+}
+
+.yourWayLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.plusTag {
+  padding: 1px var(--s-2);
+  border: 1px solid var(--accent-line-strong);
+  border-radius: 999px;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.chip {
+  min-height: 36px;
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--accent-line-strong);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.styled {
+  padding: var(--s-3) var(--s-4);
+  border-left: 3px solid var(--accent-line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+.error {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: var(--fs-sm);
+}
+
+/* Exam questions (Plus) */
+
+.marks {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+.examForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.answer {
+  width: 100%;
+  min-height: 120px;
+  padding: var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.answer:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.points > li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: var(--s-2);
+}
+
+.pointMark {
+  font-weight: 700;
+}
+
+.points > li[data-verdict="awarded"] .pointMark {
+  color: var(--success-text);
+}
+
+.points > li[data-verdict="missed"] .pointMark {
+  color: var(--danger-text);
+}
+
+.points > li[data-verdict="unchecked"] .pointMark {
+  color: var(--text-muted);
+}
+
+.pointNote {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+button .plusTag {
+  margin-left: var(--s-2);
+}

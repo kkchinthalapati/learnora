@@ -70,4 +70,31 @@ export function lessonTitle(material: Pick<Material, "title">): string {
   return material.title.replace(/\.(pdf|docx?|txt|pptx?|mp3|m4a|wav|ogg|webm|mp4|aac|png|jpe?g|webp)$/i, "").trim() || material.title;
 }
 
+/* The notes' opening "## " title, as NOTES_INSTRUCTIONS asks for it, minus
+   the welcome the prompt also asks for ("Your guide to …", "Let's break
+   down …") and any emoji. */
+const NOTES_GREETING =
+  /^(?:(?:your|a|the)\s+(?:complete\s+|friendly\s+|ultimate\s+)?(?:study\s+)?guide\s+to|let(?:'|’)s\s+(?:break\s+down|explore|dive\s+into|learn(?:\s+about)?)|here(?:'|’)s\s+your\s+guide\s+to|understanding|mastering|welcome\s+to)\s+/i;
+
+function notesHeadingTopic(markdown: string): string | null {
+  const heading = /^##\s+(.+)$/m.exec(markdown)?.[1];
+  if (!heading) return null;
+  const topic = heading
+    .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, "")
+    .replace(/[*_=`]/g, "")
+    .trim()
+    .replace(NOTES_GREETING, "")
+    .replace(/[:!.\s]+$/, "")
+    .trim();
+  return topic.length >= 3 ? topic : null;
+}
+
+/** What a session started from this lesson is about. A session gets a topic,
+ *  not the lesson, and finds the student's passages by that topic's words, so
+ *  the notes' own title beats an upload's filename ("route0-2024-05-05.gpx",
+ *  "IMG_4412") whenever there are notes to read it from. */
+export function lessonTopic(material: Pick<Material, "title">, notesMarkdown?: string | null): string {
+  return (notesMarkdown && notesHeadingTopic(notesMarkdown)) || lessonTitle(material);
+}
+
 export const lessonPath = (materialId: string) => `/lessons/${encodeURIComponent(materialId)}`;
