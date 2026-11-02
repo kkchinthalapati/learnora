@@ -61,20 +61,22 @@ Record-keeping: production records migrations by the time they were applied,
 not the filename. If you want `supabase migration list` to match, run
 `supabase migration repair` per file. Optional, cosmetic.
 
-## 3. Edge functions (deployed versions read 2026-10-06; learnora-ai 2026-10-09)
+## 3. Edge functions (deployed versions read 2026-11-02)
 
 | Function | Prod version | Waiting on |
 |----------|--------------|------------|
-| `learnora-ai` (Learn allowance) | **Not deployed.** Branch `lesson-intake-fixes` adds a `learn` tool to `AI_TOOL_QUOTAS` (free 3, Plus 12, Pro 30 lessons a day; a whole lesson is one session key, so it counts once). Until it is deployed nothing breaks: the server bills an unknown tool as `chat`, so Learn works but draws on the chat allowance. Deploy after the branch merges to `main` with `supabase functions deploy learnora-ai --project-ref mlvgqwqiynpwpwzqufdf --use-api`; this branch already carries the streaming and free-tier changes above. Smoke test: unauthenticated POST returns 401; then a Learn section on a free account should log `tool = 'learn'` in `ai_request_log`. UNVERIFIED. |
-| `learnora-ai` (free-tier limits) | **deployed 2026-10-19** with `supabase functions deploy learnora-ai --project-ref mlvgqwqiynpwpwzqufdf --use-api`, from `overhaul/unified` (uncommitted until the next commit). Free accounts now reach only providers with cost `free` (no OpenAI, Anthropic, Radox or NVIDIA credits), and only the free image models (no OpenAI image). Free daily allowances cut: chat 15 to 10, notebook studio 5 to 3, image 2 to 1. Smoke test: unauthenticated POST returns 401. Behaviour for a real free account: **UNVERIFIED**. Rollback: Edge Functions > learnora-ai > versions (the streaming version). |
-| `learnora-ai` (streaming) | **v77 (2026-10-19)**, deployed from `overhaul/unified` with `supabase functions deploy learnora-ai --project-ref mlvgqwqiynpwpwzqufdf --use-api`. Before it, production was v76, byte-identical to `overhaul/unified` HEAD. Adds server-sent-event streaming for free-form tutor replies (`stream: true`); JSON modes, attachments and cached replies keep the blocking path. Smoke test: unauthenticated POST returns 401. Streamed reply end-to-end: **UNVERIFIED**; needs a signed-in session. Not merged to `main`. Rollback: Edge Functions > learnora-ai > versions (v76). |
-| `learnora-ai` | **v73 (2026-10-15)**, deployed from `radox-provider` (commit `e70c076`) with `supabase functions deploy`. Carries the Radox backup and its under-16 gate. Not yet merged to `main`; merge the branch so `main` matches production. Smoke test: unauthenticated POST returns 401. Radox itself is inert until `RADOX_API_KEY` is set. Older note: **READY** once `claude/new-session-nch92w` merges: redeploy so quiz mode asks for TeX in question/choice/feedback strings (`_shared/systemPrompt.js`, `JSON_MATH_RULE`; fixes stems showing `tau_xz`). UNVERIFIED. Previously: deployed from `main` after PR #134 merged (verification, token/outage logging, bank-question item cache, Claude default `claude-haiku-5-5`). Smoke test is row 3. Rollback: Edge Functions > learnora-ai > versions. |
-| `stripe-billing` | v19 | Nothing known. Needs Stripe secrets (4.1). |
-| `stripe-webhook` | v17 | Nothing known. Needs `STRIPE_WEBHOOK_SECRET` (4.1). |
-| `delete-account` | v13 | Nothing. |
-| `send-email-reminders` | v14 | A mail provider secret (4.2) or it answers 500. |
-| `send-push-reminders` | v4 | Nothing; VAPID keys set per 2026-09-24 notes. |
-| `web-research` | v6 | Nothing. |
+| `learnora-ai` | **v81 (2026-11-02)**, deployed from `main` (`f8c6d37`) with `npx supabase@2.115.0 functions deploy learnora-ai --project-ref mlvgqwqiynpwpwzqufdf --use-api`. Production v80 was downloaded and diffed against `main` first: the only difference was the Learn allowance (`learn` in `AI_TOOL_QUOTAS`: free 3, Plus 12, Pro 30 lessons a day), so production now matches `main` exactly, including the streaming, free-tier-limit and Radox changes that earlier rows listed as unmerged. Smoke test 2026-11-02: unauthenticated POST returns 401, CORS preflight 200. Still **UNVERIFIED**, each needing a signed-in session: a Learn lesson logging `tool = 'learn'` in `ai_request_log`; a streamed tutor reply end to end; the free-plan limits on a real free account. Rollback: Edge Functions > learnora-ai > versions (v80). |
+| `learnora-ai` (provider cooldowns) | **Not deployed.** Branch `production-readiness`: a provider that answers with a quota, rate-limit, out-of-credit, overload or empty-reply error is skipped for as long as its error asks (Groq's "try again in 29s", Gemini's `retryDelay`) or a default (15 min for quota/credit, 60 s rate limit, 30 s overload, 5 min empty reply), per Gemini model, instead of being retried on every request. A 413 (request too big) skips nothing. `ai_request_log.failed_providers` now records why each failed (`groq: 429`, `github-models: empty`). Cooldowns live in one function instance, so a cold start forgets them. Deploy after the branch merges to `main`. Smoke test: unauthenticated POST returns 401; after a failure, the row's `failed_providers` carries `id: reason`. UNVERIFIED. |
+| `stripe-billing` | v21 | Nothing known. Needs Stripe secrets (4.1). |
+| `stripe-webhook` | v19 | Nothing known. Needs `STRIPE_WEBHOOK_SECRET` (4.1). |
+| `delete-account` | v15 | Nothing. |
+| `send-email-reminders` | v16 | A mail provider secret (4.2) or it answers 500. |
+| `send-push-reminders` | v6 | Nothing; VAPID keys set per 2026-09-24 notes. |
+| `web-research` | v8 | Nothing. |
+
+The 2026-10-06 review recorded each non-AI function two versions lower, but
+none of them has been updated since September (the API's updated-at dates run
+2026-09-02 to 09-28), so those numbers were stale rather than redeployed.
 
 I have not diffed deployed source against `main` for the functions other than
 `learnora-ai`. UNVERIFIED.
@@ -219,6 +221,8 @@ Re-running is safe (duplicates are skipped). To undo: `delete from question_bank
 
 | Date | What |
 |------|------|
+| 2026-11-02 | `learnora-ai` v81 deployed from `main`: Learn now has its own daily allowance instead of drawing on `chat`. Production v80 was diffed against `main` beforehand; only the quota lines differed. |
+| 2026-11-02 | Confirmed on `main` and in production by the v80 diff: the free-tier provider limits and streaming (deployed 2026-10-19 as v77 to v80, merged in PR #153), the Radox backup and its under-16 gate (v73, `radox-provider`), and TeX in quiz strings (PR #149). Their "not merged to `main`" notes are closed. |
 | 2026-10-13 | AI smoke test (was row 1.3), as learnoratesting@gmail.com: a GCSE Biology practice quiz came from Groq `openai/gpt-oss-120b` in 34 s, 6,092 in / 4,456 out tokens (the checker's tokens are counted in the quiz row; the `verify` row is only the daily-cap counter, with no provider or tokens). 6 of 6 questions `verified` (see 6.7), nothing rejected in `question_review_log`. |
 | 2026-10-13 | `CEREBRAS_API_KEY` (was row 1.4): already absent from `supabase secrets list`; no code references it. |
 | 2026-10-13 | PR #138 merged (numeric marking, Practice hints, Mock Exam numeric questions, retest/flashcard key leaks); applied `drop_legacy_leaderboard_overload` |

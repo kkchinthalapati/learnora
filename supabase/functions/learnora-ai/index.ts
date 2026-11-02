@@ -12,6 +12,7 @@ import { buildSystemInstruction, isJsonMode, JSON_MODES } from "../_shared/syste
 import { billingDecision } from "../_shared/sessionBilling.js";
 import {
   createDeadKeyRegistry,
+  failedProviderLabels,
   isDeadKeyError,
   permittedProviderIds,
   radoxPermittedForAge,
@@ -837,7 +838,7 @@ function streamReply(ctx: {
       provider,
       model,
       startedAt: ctx.startedAt,
-      failed: Object.keys(ctx.debugErrors),
+      failed: failedProviderLabels(ctx.debugErrors),
       usage: ctx.usage,
     });
     send({ done: true, modelUsed });
@@ -850,6 +851,10 @@ function streamReply(ctx: {
         .split(",").map((m) => m.trim()).filter(Boolean);
       for (const modelName of models) {
         if (deadline.aborted) break;
+        if (geminiModelCooling(modelName)) {
+          ctx.debugErrors[`gemini (${modelName})`] = GEMINI_COOLING;
+          continue;
+        }
         try {
           const text = await streamGemini(modelName, geminiKey, { ...ctx, usage: ctx.usage }, onDelta);
           return succeed(text, modelName, "gemini", modelName);
@@ -859,7 +864,7 @@ function streamReply(ctx: {
             return refuse(ctx.currentMsg);
           }
           ctx.debugErrors[`gemini (${modelName})`] = err.message || String(err);
-          if (/\[(401|402|403)\b/.test(String(err?.message ?? ""))) deadKeys.markDead("gemini");
+          noteGeminiFailure(modelName, ctx.debugErrors[`gemini (${modelName})`]);
           console.error(`Gemini (${modelName}) Error:`, err);
           // A halt has already sent the refusal; the cancel that follows is not a failure.
           if (halted) return;
@@ -894,7 +899,7 @@ function streamReply(ctx: {
         return succeed(text, `${provider.id}/${model}`, provider.id, model);
       } catch (err: any) {
         ctx.debugErrors[provider.id] = err.message || String(err);
-        if (isDeadKeyError(ctx.debugErrors[provider.id])) deadKeys.markDead(provider.id);
+        deadKeys.coolDown(provider.id, ctx.debugErrors[provider.id]);
         console.error(`${provider.id} Error:`, err);
         if (halted) return;
         failedMidway();
@@ -906,7 +911,7 @@ function streamReply(ctx: {
       ctx.logId,
       "failed_all",
       ctx.startedAt,
-      Object.keys(ctx.debugErrors).filter((id) => !/not set|Skipped/.test(ctx.debugErrors[id])),
+      failedProviderLabels(ctx.debugErrors),
     );
     send({ error: "AI is temporarily unavailable. Please try again in a moment." });
   };
@@ -1353,6 +1358,20 @@ type RateLimitVerdict =
 /** Providers whose key or billing was refused (401/402/403), skipped for a
  *  while in this instance rather than costing every request a round trip. */
 const deadKeys = createDeadKeyRegistry();
+
+/* Gemini's quotas are per model, so a model out of quota or rate-limited is
+   skipped on its own; a refused key (401-403, "[403 Forbidden]" in the SDK's
+   wording) still closes Gemini as a whole. */
+const GEMINI_COOLING = "Skipped — cooling down after a quota, rate-limit or overload error.";
+
+function geminiModelCooling(modelName: string): boolean {
+  return deadKeys.isDead(`gemini:${modelName}`);
+}
+
+function noteGeminiFailure(modelName: string, message: string): void {
+  if (isDeadKeyError(message)) deadKeys.markDead("gemini");
+  else deadKeys.coolDown(`gemini:${modelName}`, message);
+}
 
 /* Gemini runs on Google's free tier, which is what free accounts depend on. If
    the Google project behind GEMINI_API_KEY is on paid billing, set
@@ -1915,7 +1934,7 @@ Deno.serve(async (req) => {
                 provider: imageProvider,
                 model: imageModel.join("/"),
                 startedAt,
-                failed: Object.keys(debugErrors).filter((id) => !/not set|Skipped|Not permitted/.test(debugErrors[id])),
+                failed: failedProviderLabels(debugErrors),
             });
             return new Response(JSON.stringify({
                 text: alt,
@@ -1963,10 +1982,11 @@ Deno.serve(async (req) => {
         const secondaryCall = async (system: string, prompt: string, label: string): Promise<string | null> => {
             if (TOTAL_BUDGET_MS - (Date.now() - startedAt) < 12_000) return null;
             const checkKey = geminiPermitted() && geminiOpenTo(plan) ? Deno.env.get('GEMINI_API_KEY') : undefined;
-            if (checkKey) {
+            const checkModel = (Deno.env.get('QUIZ_VERIFIER_MODEL')
+                || (Deno.env.get('GEMINI_MODELS') || "gemini-3.6-flash").split(",")[0]).trim();
+            if (checkKey && !geminiModelCooling(checkModel)) {
+                const modelName = checkModel;
                 try {
-                    const modelName = (Deno.env.get('QUIZ_VERIFIER_MODEL')
-                        || (Deno.env.get('GEMINI_MODELS') || "gemini-3.6-flash").split(",")[0]).trim();
                     const checker = new GoogleGenerativeAI(checkKey)
                         .getGenerativeModel({ model: modelName, systemInstruction: system });
                     const result: any = await Promise.race([
@@ -1981,7 +2001,8 @@ Deno.serve(async (req) => {
                         checkedBy = `gemini/${modelName}`;
                         return checked;
                     }
-                } catch (err) {
+                } catch (err: any) {
+                    noteGeminiFailure(modelName, err?.message || String(err));
                     console.warn(`[${label}] Gemini call failed`, err);
                 }
             }
@@ -2001,7 +2022,8 @@ Deno.serve(async (req) => {
                         checkedBy = provider.id;
                         return checked;
                     }
-                } catch (err) {
+                } catch (err: any) {
+                    deadKeys.coolDown(provider.id, err?.message || String(err));
                     console.warn(`[${label}] ${provider.id} call failed`, err);
                 }
                 // One fallback attempt is enough for a best-effort second call.
@@ -2078,6 +2100,10 @@ Deno.serve(async (req) => {
 
             for (const modelName of geminiModels) {
                 if (budgetExhausted()) break;
+                if (geminiModelCooling(modelName)) {
+                    debugErrors[`gemini (${modelName})`] = GEMINI_COOLING;
+                    continue;
+                }
                 try {
                     const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
 
@@ -2144,7 +2170,7 @@ Deno.serve(async (req) => {
                         provider: "gemini",
                         model: modelName,
                         startedAt,
-                        failed: Object.keys(debugErrors),
+                        failed: failedProviderLabels(debugErrors),
                         usage,
                     });
                     remember(text, modelName);
@@ -2162,8 +2188,7 @@ Deno.serve(async (req) => {
                         return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
                     }
                     debugErrors[`gemini (${modelName})`] = err.message || String(err);
-                    // The SDK words a refused key as "[403 Forbidden] …".
-                    if (/\[(401|402|403)\b/.test(String(err?.message ?? ""))) deadKeys.markDead("gemini");
+                    noteGeminiFailure(modelName, debugErrors[`gemini (${modelName})`]);
                     console.error(`Gemini (${modelName}) Error:`, err);
                 }
             }
@@ -2175,7 +2200,7 @@ Deno.serve(async (req) => {
         // The allowance is handed back: no provider read the photo.
         if (isImageAttachment(file)) {
             console.warn("[vision] no image-capable provider answered", { mode, debugErrors });
-            await refundRequest(logId, "vision_unavailable", startedAt, Object.keys(debugErrors));
+            await refundRequest(logId, "vision_unavailable", startedAt, failedProviderLabels(debugErrors));
             return visionUnavailableResponse(jsonHeaders);
         }
 
@@ -2258,7 +2283,7 @@ Deno.serve(async (req) => {
                     provider: provider.id,
                     model: Deno.env.get(provider.modelEnv) || provider.defaultModel,
                     startedAt,
-                    failed: Object.keys(debugErrors).filter((id) => !/not set|Skipped/.test(debugErrors[id])),
+                    failed: failedProviderLabels(debugErrors),
                     usage,
                 });
                 remember(text, `${provider.id}/${Deno.env.get(provider.modelEnv) || provider.defaultModel}`);
@@ -2270,7 +2295,7 @@ Deno.serve(async (req) => {
                 });
             } catch (err: any) {
                 debugErrors[provider.id] = err.message || String(err);
-                if (isDeadKeyError(debugErrors[provider.id])) deadKeys.markDead(provider.id);
+                deadKeys.coolDown(provider.id, debugErrors[provider.id]);
                 console.error(`${provider.id} Error:`, err);
             }
         }
@@ -2287,7 +2312,7 @@ Deno.serve(async (req) => {
             logId,
             "failed_all",
             startedAt,
-            Object.keys(debugErrors).filter((id) => !/not set|Skipped/.test(debugErrors[id])),
+            failedProviderLabels(debugErrors),
         );
 
         return new Response(JSON.stringify({
