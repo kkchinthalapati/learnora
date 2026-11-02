@@ -160,6 +160,25 @@
   color: var(--accent-text);
 }
 
+/* A worked example in Learn, uncovered a step at a time. */
+.reveal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.revealAll {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Key terms */
 
 .terms {

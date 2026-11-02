@@ -9,6 +9,7 @@ const generate = vi.fn();
 const restyle = vi.fn();
 const writeExam = vi.fn();
 const markAnswer = vi.fn();
+const frame = vi.fn();
 const recordEvent = vi.fn(async () => undefined);
 vi.mock("../../api/learn", async (orig) => ({
   ...(await orig<typeof import("../../api/learn")>()),
@@ -16,6 +17,7 @@ vi.mock("../../api/learn", async (orig) => ({
   explainAnotherWay: (...a: unknown[]) => restyle(...a),
   writeExamQuestion: (...a: unknown[]) => writeExam(...a),
   markTypedAnswer: (...a: unknown[]) => markAnswer(...a),
+  writeLessonFrame: (...a: unknown[]) => frame(...a),
 }));
 let plan: "free" | "plus" = "free";
 vi.mock("../../hooks/useSubscription", async (orig) => {
@@ -74,6 +76,13 @@ function renderPanel(onOpenTab = vi.fn()) {
   return onOpenTab;
 }
 
+/* Start learning, read the big picture, then on to part 1. */
+async function start(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Start learning" }));
+  await screen.findByText("Cells move things in and out without spending energy.");
+  await user.click(screen.getByRole("button", { name: "Start part 1: Osmosis" }));
+}
+
 describe("LearnPanel", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -99,6 +108,11 @@ describe("LearnPanel", () => {
     });
     restyle.mockImplementation(async ({ style }: { style: string }) => `Explained as ${style}.`);
     generate.mockReset();
+    frame.mockReset();
+    frame.mockResolvedValue({
+      overview: "Cells move things in and out without spending energy.",
+      recap: "Osmosis is diffusion of water.",
+    });
     recordEvent.mockClear();
     generate.mockImplementation(async ({ section }: { section: { title: string } }) => step(section.title));
   });
@@ -112,7 +126,14 @@ describe("LearnPanel", () => {
     expect(screen.getByRole("button", { name: /Osmosis/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Diffusion/ })).toBeInTheDocument();
     expect(generate).not.toHaveBeenCalled();
+    expect(frame).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Start learning" }));
+
+    /* The big picture first, while part 1 is written alongside it. */
+    expect(await screen.findByText("Cells move things in and out without spending energy.")).toBeInTheDocument();
+    expect(frame.mock.calls[0][0]).toMatchObject({ materialId: "lesson-1", lesson: "Cells" });
+    await waitFor(() => expect(generate).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole("button", { name: "Start part 1: Osmosis" }));
 
     /* A wrong guess is not evidence. */
     await user.click(await screen.findByRole("button", { name: /Wrong one/ }));
@@ -157,6 +178,9 @@ describe("LearnPanel", () => {
     await user.click(screen.getByRole("button", { name: "Finish the lesson" }));
 
     expect(screen.getByRole("heading", { name: "You've learned this lesson." })).toBeInTheDocument();
+    /* And how it fits together, from the same overview call. */
+    expect(screen.getByText("Osmosis is diffusion of water.")).toBeInTheDocument();
+    expect(frame).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole("button", { name: "Lock it in with cards" }));
     expect(onOpenTab).toHaveBeenCalledWith("cards");
     /* Diffusion was written while Osmosis was being read, once. */
@@ -166,7 +190,7 @@ describe("LearnPanel", () => {
   it("keeps the student's place and the written parts across a reload", async () => {
     const user = userEvent.setup();
     renderPanel();
-    await user.click(screen.getByRole("button", { name: "Start learning" }));
+    await start(user);
     await user.click(await screen.findByRole("button", { name: /Hook answer/ }));
     await user.click(screen.getByRole("button", { name: "Show me why" }));
     await user.click(screen.getByRole("button", { name: "Got it, check me" }));
@@ -182,20 +206,60 @@ describe("LearnPanel", () => {
     expect(screen.getByRole("button", { name: "Carry on: Diffusion" })).toBeInTheDocument();
     /* Nothing already written is asked for again. */
     expect(generate).toHaveBeenCalledTimes(2);
+    expect(frame).toHaveBeenCalledTimes(1);
   });
 
   it("offers a retry when the tutor doesn't answer, without losing the place", async () => {
     const user = userEvent.setup();
     generate.mockRejectedValueOnce(new Error("The AI service is busy."));
     renderPanel();
-    await user.click(screen.getByRole("button", { name: "Start learning" }));
+    await start(user);
     expect(await screen.findByRole("alert")).toHaveTextContent("The AI service is busy.");
     await user.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(screen.getByText("Guess about Osmosis?")).toBeInTheDocument());
   });
 
-  async function toTeachStep(user: ReturnType<typeof userEvent.setup>) {
+  it("lets the student start without the overview when it can't be written", async () => {
+    const user = userEvent.setup();
+    frame.mockRejectedValueOnce(new Error("The AI service is busy."));
+    renderPanel();
     await user.click(screen.getByRole("button", { name: "Start learning" }));
+    expect(await screen.findByText(/You can start without the overview/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Start part 1: Osmosis" }));
+    expect(await screen.findByText("Guess about Osmosis?")).toBeInTheDocument();
+  });
+
+  it("teaches with cards, uncovering a worked example a step at a time", async () => {
+    const user = userEvent.setup();
+    generate.mockImplementation(async ({ section }: { section: { title: string } }) => ({
+      ...step(section.title),
+      explanation: [
+        "Water moves by **osmosis**.",
+        [
+          "```openui",
+          "root = Stack([w])",
+          'w = WorkedExample("A cell is put in pure water. Which way does water move?", ["Pure water is the more dilute side.", "Water moves towards the more concentrated side."], "Into the cell")',
+          "```",
+        ].join("\n"),
+      ].join("\n\n"),
+    }));
+    renderPanel();
+    await start(user);
+    await user.click(await screen.findByRole("button", { name: /Hook answer/ }));
+    await user.click(screen.getByRole("button", { name: "Show me why" }));
+
+    expect(await screen.findByText("A cell is put in pure water. Which way does water move?")).toBeInTheDocument();
+    expect(screen.queryByText("Pure water is the more dilute side.")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show the first step" }));
+    expect(screen.getByText("Pure water is the more dilute side.")).toBeInTheDocument();
+    expect(screen.queryByText("Into the cell")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Show the answer" }));
+    expect(screen.getByText("Into the cell")).toBeInTheDocument();
+  });
+
+  async function toTeachStep(user: ReturnType<typeof userEvent.setup>) {
+    await start(user);
     await user.click(await screen.findByRole("button", { name: /Hook answer/ }));
     await user.click(screen.getByRole("button", { name: "Show me why" }));
   }

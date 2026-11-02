@@ -48,6 +48,27 @@ export function studyGuideReference(): string {
   return (guideReference ??= referenceFor(guideLibrary, GUIDE_EXAMPLE));
 }
 
+/* How a generated page may draw a picture: one fenced svg block, drawn by
+   the Markdown renderer's diagram support. */
+const DIAGRAM_RULE = `Diagrams: where a process, a cycle, a sequence or a labelled structure is clearer as a picture, add ONE fenced code block whose language is svg after that section's prose: a single <svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg"> element with a <title>, stroke and fill set to currentColor, labels at font-size 15 or larger, and only these elements: g, defs, title, desc, path, line, polyline, polygon, rect, circle, ellipse, text, tspan, marker.`;
+
+/** The section that lets Learn teach with cards. Learn asks its own
+ *  questions and records the answers, so the card set is the study guide's:
+ *  no quizzes, flashcards or follow-up chips competing with its checks. */
+let learnCached: string | null = null;
+export function learnCardSection(): string {
+  return (learnCached ??= `CARDS IN LESSONS:
+- Teach in Markdown prose, and where structure teaches better than prose, add a fenced code block whose language is openui (three backticks, the word openui, the OpenUI Lang program, three backticks). The app draws it as cards in the lesson.
+- Pick the card that fits each idea: Callout "definition" for a term the student must be able to define, Callout "key" for the one thing to remember, Callout "mistake" for a trap students fall into; WorkedExample for any calculation or method with numbers (in a lesson its steps are uncovered one at a time so the student can try each step first, so give every step with its reason); Steps for a process; Timeline for a sequence of events; CompareTable for ideas that are easily confused; BarChart only for numbers the notes themselves give; KeyTerms for a set of new words; Accordion for optional extra depth.
+- Put each block straight after the prose it belongs to, not all at the end. One block may hold several cards in its Stack.
+- ${DIAGRAM_RULE} At most one diagram per reply, and only where a picture shows how something works.
+- The prose must stand on its own: never put a fact only in a card. Teach only what the notes support.
+- No quiz questions, flashcards or follow-up chips: the lesson asks its own questions.
+- Never mention the block, cards or the word "openui" to the student.
+
+${studyGuideReference()}`);
+}
+
 /** The section that lets generated notes carry cards. Notes stay Markdown
  *  (the editor's source of truth); a card sits inside a section as a fenced
  *  openui block and the notes editor draws it (lib/noteFormats.ts). */
@@ -58,7 +79,7 @@ export function notesCardSection(): string {
 - Use a card only where structure teaches better than prose: KeyTerms for the vocabulary a section introduces, WorkedExample for a calculation or a method with numbers, Steps for a process, Timeline for a sequence of events, CompareTable for ideas that are easily confused, BarChart only for numbers the material itself gives, Accordion for optional extra depth.
 - Do not use Callout cards in notes: keep using the "> **Key idea:**" / "> **Definition:**" / "> **Common mistake:**" lines for those.
 - Aim for two to five cards across the whole note, never more than one per section. A very short note needs none.
-- Diagrams: where a process, a cycle, a sequence or a labelled structure is clearer as a picture, add ONE fenced code block whose language is svg after that section's prose: a single <svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg"> element with a <title>, stroke and fill set to currentColor, labels at font-size 15 or larger, and only these elements: g, defs, title, desc, path, line, polyline, polygon, rect, circle, ellipse, text, tspan, marker. Use at most one diagram per note section and two per note, and skip diagrams for simple lists or facts.
+- ${DIAGRAM_RULE} Use at most one diagram per note section and two per note, and skip diagrams for simple lists or facts.
 - The prose must stand on its own: never put a fact only in a card. Use only what the material says.
 - No quiz questions, flashcards or follow-up chips. Quizzes and flashcards are made elsewhere in the app.
 

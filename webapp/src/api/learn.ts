@@ -1,9 +1,11 @@
-/* One section of Learn (views/lesson/LearnPanel): a question to guess at, the
- * idea taught from the lesson's own notes, a check on it, and, for a student
- * who misses the check, the same idea taught a different way with a second,
+/* One section of Learn (views/lesson/LearnPanel): a question to guess at,
+ * every idea in the section taught from the lesson's own notes (with cards
+ * where structure teaches better than prose), a check, and, for a student
+ * who misses the check, that idea taught a different way with a second,
  * different check. One request per section carries all of it, so a miss
- * costs no extra call and a lesson stays well inside one session's billing
- * (learnora-ai counts every call with the same session key once a day).
+ * costs no extra call, and one more request frames the whole lesson. All of
+ * it stays well inside one session's billing (learnora-ai counts every call
+ * with the same session key once a day).
  *
  * The shape is the first lesson's (api/firstLesson.ts), with the same rule:
  * a reply missing any part is a failure the screen offers to retry, never
@@ -13,20 +15,38 @@ import { extractJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { levelRules, studentStandard } from "../lib/studentLevel";
 import { readMarking, type Marking, type RawMarking, type SchemePoint } from "../lib/photoMarking";
+import { isFlagOn } from "../lib/flags";
+import { splitOpenUiBlocks } from "../lib/openui/fence";
 import { shuffled, toQuestion } from "./firstLesson";
 import type { QuizQuestion } from "../lib/aiJson";
 import type { LearnSection } from "../lib/learnSections";
 
 export interface LearnStep {
-  /** The one idea this section teaches. */
+  /** What this section is about, in a few words. */
   concept: string;
   hook: QuizQuestion;
+  /** Every idea in the section, taught: Markdown, with cards and a diagram
+   *  where they help (lib/openui/blocks.ts learnCardSection). */
   explanation: string;
   check: QuizQuestion;
-  /** The same idea from another angle, for a student who missed the check. */
+  /** The idea the check tests, from another angle, for a student who missed
+   *  it. */
   reteach: string;
   recheck: QuizQuestion;
 }
+
+/** The cards Learn may teach with, or "" when the `openUi` flag is off.
+ *  Loaded on demand, like every other caller of the card library. */
+async function learnCards(): Promise<string> {
+  return isFlagOn("openUi") ? (await import("../lib/openui/blocks")).learnCardSection() : "";
+}
+
+/* Free text inside a JSON reply: the provider's JSON mode escapes it, so a
+   card's code arrives intact inside the string. */
+const formatRules = (cards: string) =>
+  cards
+    ? `Text fields are Markdown and may carry the cards and diagrams described below; inside the JSON string a code block's newlines and quotes are escaped like any other text.\n\n${cards}`
+    : "Text fields are plain Markdown and $...$ for maths: no code blocks.";
 
 export function buildLearnStepPrompt({
   lesson,
@@ -34,14 +54,16 @@ export function buildLearnStepPrompt({
   otherSections,
   level,
   specLine = "",
+  cards = "",
 }: {
   lesson: string;
   section: LearnSection;
   otherSections: string[];
   level: string;
   specLine?: string;
+  cards?: string;
 }): string {
-  return `Teach one section of a student's lesson. Teach it so they understand it, not just so they can repeat it.
+  return `Teach one section of a student's lesson, all of it. Teach it so they understand what it is, how it works and why it matters, not just so they can repeat it.
 
 LESSON: """${fenceUntrusted(lesson)}"""
 THIS SECTION: """${fenceUntrusted(section.title)}"""
@@ -53,14 +75,16 @@ ${otherSections.length ? `Other sections of the lesson, taught separately (do no
 ${levelRules(level, specLine)}
 
 Write:
-1. "concept": the core idea of this section, in a few words.
-2. "hook": a multiple-choice question asking the student to predict or guess something about that idea BEFORE it is taught. Someone new to it should be able to reason about it, not just recall a fact.
-3. "explanation": the idea itself, in plain, everyday English: at most 180 words, short sentences, built up from what a beginner already knows, with one concrete example. Use Markdown (bold for the key term; a short list only if the idea has steps) and $...$ for any maths. It must contain everything needed to answer the check.
-4. "check": a multiple-choice question on the SAME idea that a student who read the explanation can answer. Make the wrong options the mistakes students really make about it.
-5. "reteach": the same idea taught a DIFFERENT way, for a student who got the check wrong: an analogy, or a worked example step by step. At most 120 words. Do not repeat the explanation's wording. Do not mention that they were wrong.
-6. "recheck": a NEW multiple-choice question on the same idea, different from the check, that the reteach prepares them for.
+1. "concept": what this section is about, in a few words.
+2. "hook": a multiple-choice question asking the student to predict or guess something about this section BEFORE it is taught. Someone new to it should be able to reason about it, not just recall a fact.
+3. "explanation": EVERY idea in these notes, taught in an order that builds: what it is, then how it works, then why it matters or where it is used. Leave nothing in the notes untaught. Plain, everyday English and short sentences, starting from what a beginner already knows; bold each key term where it is first explained; a concrete example for each idea. Length follows the notes: about 120 words for a single idea, up to about 450 words of prose for a full section. Use $...$ for any maths. It must contain everything needed to answer the check.
+4. "check": a multiple-choice question on the idea in this section students most often get wrong, answerable by a student who read the explanation. Make the wrong options the mistakes students really make about it.
+5. "reteach": the idea the check tests, taught a DIFFERENT way for a student who got the check wrong: an analogy, or a worked example. At most 150 words of prose. Do not repeat the explanation's wording. Do not mention that they were wrong.
+6. "recheck": a NEW multiple-choice question on the same idea as the check, different from it, that the reteach prepares them for.
 
-Each question has exactly 4 options, exactly one correct, and "correctIndex" pointing at it. Solve each question yourself before writing its key. "feedback" explains why the right answer is right without praising or assuming what the student picked.
+Each question has exactly 4 options, exactly one correct, and "correctIndex" pointing at it. Solve each question yourself before writing its key. "feedback" explains why the right answer is right without praising or assuming what the student picked. Questions, choices and feedback are plain text.
+
+${formatRules(cards)}
 
 Reply with ONLY raw JSON:
 {
@@ -130,7 +154,14 @@ export async function generateLearnStep({
     history: [
       {
         role: "user",
-        content: buildLearnStepPrompt({ lesson, section, otherSections, level: level || "the student's own course", specLine }),
+        content: buildLearnStepPrompt({
+          lesson,
+          section,
+          otherSections,
+          level: level || "the student's own course",
+          specLine,
+          cards: await learnCards(),
+        }),
       },
     ],
     /* JSON container only, as the first lesson uses it. */
@@ -141,6 +172,108 @@ export async function generateLearnStep({
   const step = parseLearnStep(text, section.title);
   if (!step) throw new Error("I couldn't write this part of the lesson just now.");
   return step;
+}
+
+/** A taught text with its cards and diagrams taken out: what a ledger entry
+ *  or a follow-up prompt should quote, rather than card source. */
+export function proseOnly(markdown: string): string {
+  return splitOpenUiBlocks(markdown)
+    .flatMap((s) => (s.kind === "text" ? [s.text.replace(/```svg[\s\S]*?(?:```|$)/gi, "")] : []))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/* --- The lesson's frame ----------------------------------------------------
+   What the student reads before part 1 (what the topic is, why it matters,
+   what's coming and the words they'll meet) and after the last part (how
+   the parts fit together). One call, billed to the lesson's own session. */
+
+export interface LessonFrame {
+  overview: string;
+  recap: string;
+}
+
+/** Enough of each part for the frame to see what it covers; each part is
+ *  taught from its full notes separately. */
+const FRAME_BODY_CHARS = 1200;
+
+export function buildLessonFramePrompt({
+  lesson,
+  sections,
+  level,
+  specLine = "",
+  cards = "",
+}: {
+  lesson: string;
+  sections: LearnSection[];
+  level: string;
+  specLine?: string;
+  cards?: string;
+}): string {
+  const parts = sections
+    .map((s, i) => `PART ${i + 1}: ${fenceUntrusted(s.title)}\n${fenceUntrusted(s.body.slice(0, FRAME_BODY_CHARS))}`)
+    .join("\n\n");
+  return `Frame a lesson for a student who is about to learn it, and write the summary they read when they finish. Each part is taught separately; this is the big picture around them.
+
+LESSON: """${fenceUntrusted(lesson)}"""
+THE PARTS, IN ORDER, WITH THE STUDENT'S NOTES FOR EACH (cut short where long):
+"""
+${parts}
+"""
+${levelRules(level, specLine)}
+
+Write:
+1. "overview": read before part 1. Open with what this topic is, in two or three plain sentences a beginner follows. Then why it matters: where it turns up, what it explains, why it is worth knowing. Then the parts in order as a numbered list, one line each on what the student will find out (not the answers). Then the new words they will meet, each with a plain-English meaning. At most 220 words of prose.
+2. "recap": read after the last part. How the parts fit together as one picture (not the list of parts again), the few things most worth remembering, and the mistake most worth avoiding. At most 200 words of prose.
+Teach only what the notes support. No greeting, no questions.
+
+${formatRules(cards)}
+
+Reply with ONLY raw JSON:
+{"overview": "...", "recap": "..."}`;
+}
+
+/** Both halves, or nothing: an overview with no recap would leave the end
+ *  of the lesson asking for a second call that may not come. */
+export function parseLessonFrame(text: string): LessonFrame | null {
+  const parsed = extractJSON<{ overview?: unknown; recap?: unknown }>(text);
+  const overview = typeof parsed?.overview === "string" ? parsed.overview.trim() : "";
+  const recap = typeof parsed?.recap === "string" ? parsed.recap.trim() : "";
+  if (proseOnly(overview).length < 60 || proseOnly(recap).length < 60) return null;
+  return { overview, recap };
+}
+
+export async function writeLessonFrame({
+  materialId,
+  lesson,
+  sections,
+}: {
+  materialId: string;
+  lesson: string;
+  sections: LearnSection[];
+}): Promise<LessonFrame> {
+  const { level, specLine } = await studentStandard(lesson).catch(() => ({ level: "", specLine: "" }));
+  const { text } = await callEdge({
+    history: [
+      {
+        role: "user",
+        content: buildLessonFramePrompt({
+          lesson,
+          sections,
+          level: level || "the student's own course",
+          specLine,
+          cards: await learnCards(),
+        }),
+      },
+    ],
+    mode: "solver",
+    tool: "learn",
+    sessionKey: learnSessionKey(materialId),
+  });
+  const frame = parseLessonFrame(text);
+  if (!frame) throw new Error("I couldn't write the overview just now.");
+  return frame;
 }
 
 /* --- Explain it your way (Plus) -------------------------------------------
@@ -176,6 +309,7 @@ export function buildStylePrompt({
   explanation,
   style,
   level,
+  cards = "",
 }: {
   lesson: string;
   section: LearnSection;
@@ -183,6 +317,7 @@ export function buildStylePrompt({
   explanation: string;
   style: LearnStyle;
   level: string;
+  cards?: string;
 }): string {
   return `Re-explain one idea from a student's lesson in a different way. The first explanation didn't fully click.
 
@@ -199,7 +334,11 @@ ${fenceUntrusted(explanation)}
 STUDENT LEVEL: ${level}.
 
 HOW TO TEACH IT: ${STYLE_RULES[style]}
-At most 160 words. Plain Markdown (bold for the key term) and $...$ for any maths. No heading, no greeting, no question at the end, no emoji.`;
+At most 160 words of prose. Markdown (bold for the key term) and $...$ for any maths. No heading, no greeting, no question at the end, no emoji.${
+    cards
+      ? `\nYou may add ONE card where it suits this way of teaching (Steps or WorkedExample for steps, WorkedExample or Timeline for a real example, CompareTable for an analogy set beside the real thing). Never a card for its own sake.\n\n${cards}`
+      : ""
+  }`;
 }
 
 export async function explainAnotherWay({
@@ -226,9 +365,10 @@ export async function explainAnotherWay({
           lesson,
           section,
           concept,
-          explanation,
+          explanation: proseOnly(explanation),
           style,
           level: level || "the student's own course",
+          cards: await learnCards(),
         }),
       },
     ],

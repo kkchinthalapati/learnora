@@ -13,11 +13,11 @@ export interface LearnSection {
 
 /** More than this and the lesson is a textbook chapter; the rest is merged
  *  into the last section rather than dropped, so nothing goes untaught. */
-export const MAX_SECTIONS = 8;
+export const MAX_SECTIONS = 10;
 
 /** What one section may send to the model. Notes sections are short; this
  *  only stops a pasted chapter with no headings becoming one huge prompt. */
-const MAX_BODY_CHARS = 3500;
+const MAX_BODY_CHARS = 6000;
 
 const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu;
 

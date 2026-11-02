@@ -11,11 +11,15 @@ import {
   LEARN_STYLE_LABELS,
   LEARN_STYLES,
   markTypedAnswer,
+  proseOnly,
   writeExamQuestion,
+  writeLessonFrame,
   type ExamQuestion,
   type LearnStep,
   type LearnStyle,
+  type LessonFrame,
 } from "../../api/learn";
+import { RevealSteps } from "../../lib/openui/revealContext";
 import { ProGate, useProAction } from "../../components/ProGate";
 import { candidatesFromMarking, type Marking } from "../../lib/photoMarking";
 import { useEntitlements } from "../../hooks/useSubscription";
@@ -29,10 +33,14 @@ import styles from "./learn.module.css";
 /* Learn: the lesson taught, one section of its notes at a time.
  *
  * Every other tab assumes the student already knows the material and tests
- * or drills it. This one teaches it first. Each section goes: guess at a
- * question before being told (so the answer has something to attach to),
- * the idea taught from this lesson's notes, a check on that idea, and, on a
- * miss, the same idea taught another way with a different check.
+ * or drills it. This one teaches it first. It opens with the big picture
+ * (what the topic is, why it matters, what's coming, the words to know).
+ * Each section then goes: guess at a question before being told (so the
+ * answer has something to attach to), every idea in the section taught from
+ * this lesson's notes, with cards and diagrams where they teach better than
+ * prose and worked examples uncovered a step at a time, a check, and, on a
+ * miss, that idea taught another way with a different check. It closes with
+ * how the parts fit together.
  *
  * The guess is never evidence: being wrong before you've been taught is the
  * point of it. The check is, and only the first answer to each question
@@ -62,6 +70,10 @@ interface LearnState {
   /** -1 is the outline screen; sections.length is the end screen. */
   current: number;
   sections: Record<string, SectionProgress>;
+  /** The overview read before part 1 and the recap read at the end. */
+  frame?: LessonFrame;
+  /** The student has moved on from the overview. */
+  introDone?: boolean;
 }
 
 const KEYS = ["A", "B", "C", "D", "E"];
@@ -251,6 +263,28 @@ function LearnFlow({
     if (next && !state.sections[next.key]?.step) void write(current + 1, { quiet: true });
   }, [progress?.phase, current, state.sections, sections, write]);
 
+  /* The overview and recap: written when the student first needs one (the
+     overview before part 1, the recap at the end), once per lesson. */
+  const [frameBusy, setFrameBusy] = useState(false);
+  const [frameError, setFrameError] = useState<string | null>(null);
+  const showingIntro = current === 0 && !state.introDone;
+  const showingEnd = current >= sections.length;
+  const writeFrame = useCallback(async () => {
+    setFrameBusy(true);
+    setFrameError(null);
+    try {
+      const frame = await writeLessonFrame({ materialId, lesson, sections });
+      setState((s) => ({ ...s, frame }));
+    } catch (caught) {
+      setFrameError(caught instanceof Error && caught.message ? caught.message : "The tutor didn't answer.");
+    } finally {
+      setFrameBusy(false);
+    }
+  }, [materialId, lesson, sections]);
+  useEffect(() => {
+    if ((showingIntro || showingEnd) && !state.frame && !frameBusy && !frameError) void writeFrame();
+  }, [showingIntro, showingEnd, state.frame, frameBusy, frameError, writeFrame]);
+
   const goTo = (index: number) => {
     setError(null);
     setState((s) => ({ ...s, current: index }));
@@ -269,7 +303,7 @@ function LearnFlow({
             {
               subject: subject || "General",
               concept: step.concept,
-              summary: question.feedback || step.explanation.slice(0, 280),
+              summary: question.feedback || proseOnly(step.explanation).slice(0, 280),
               severity: "moderate",
               tool: "notes",
               kind: right ? "correction" : "evidence",
@@ -318,7 +352,8 @@ function LearnFlow({
 
   const startOver = () => {
     setError(null);
-    setState(freshState(outline));
+    /* The notes haven't changed, so the overview still fits. */
+    setState((s) => ({ ...freshState(outline), frame: s.frame }));
   };
 
   /* --- The outline ------------------------------------------------------ */
@@ -331,8 +366,8 @@ function LearnFlow({
           <h2 className={styles.introTitle}>Learn this lesson</h2>
           <p className={styles.lead}>
             {sections.length === 1
-              ? "One part, taught from your notes: a quick guess, the idea, then a check."
-              : `${sections.length} parts, taught from your notes one at a time: a quick guess, the idea, then a check. Miss a check and it's explained another way.`}
+              ? "The big picture first, then one part taught from your notes: a quick guess, everything in it explained, then a check."
+              : `The big picture first, then ${sections.length} parts taught from your notes one at a time: a quick guess, everything in the part explained, then a check. Miss a check and it's explained another way.`}
           </p>
         </div>
         <Outline sections={sections} state={state} onPick={goTo} />
@@ -366,6 +401,15 @@ function LearnFlow({
             {revisit.length ? " The ones worth another look are saved to your mistakes, so they come back." : ""}
           </p>
         </div>
+        {state.frame ? (
+          <TutorTurn meta="Putting it together">
+            <AiReply text={state.frame.recap} notes />
+          </TutorTurn>
+        ) : frameBusy ? (
+          <TutorTurn meta="Putting it together" streaming>
+            <p>Writing how it all fits together…</p>
+          </TutorTurn>
+        ) : null}
         <Outline sections={sections} state={state} onPick={goTo} />
         {revisit.length ? (
           <div className={styles.actions}>
@@ -421,7 +465,34 @@ function LearnFlow({
     ) : null;
 
   let body: ReactNode;
-  if (!step) {
+  if (showingIntro) {
+    /* Part 1 is being written alongside this, so moving on rarely waits. */
+    const begin = (
+      <div className={styles.actions}>
+        <Button variant="primary" onClick={() => setState((s) => ({ ...s, introDone: true }))}>
+          Start part 1: {section.title}
+        </Button>
+      </div>
+    );
+    body = state.frame ? (
+      <TutorTurn meta="Before you start · The big picture" check={begin}>
+        <AiReply text={state.frame.overview} notes />
+      </TutorTurn>
+    ) : frameError ? (
+      <TutorTurn meta="Before you start" check={begin}>
+        <p className={styles.note}>
+          {frameError} You can start without the overview; it's only the big picture, and every part is still taught in full.
+        </p>
+        <button type="button" className={styles.quietLink} onClick={() => void writeFrame()}>
+          Try the overview again
+        </button>
+      </TutorTurn>
+    ) : (
+      <TutorTurn meta="Before you start · The big picture" streaming check={begin}>
+        <p>Getting the big picture ready…</p>
+      </TutorTurn>
+    );
+  } else if (!step) {
     body =
       error && pending !== section.key ? (
         <AiErrorCard
@@ -476,7 +547,7 @@ function LearnFlow({
         meta={meta}
         claim={step.concept}
         claimLevel={2}
-        deeper={<AiReply text={section.body} diagrams={false} />}
+        deeper={<AiReply text={section.body} diagrams={false} notes />}
         check={
           <div className={styles.actions}>
             <Button variant="primary" onClick={() => patch(section.key, { phase: "check" })}>
@@ -485,7 +556,7 @@ function LearnFlow({
           </div>
         }
       >
-        <AiReply text={step.explanation} />
+        <AiReply text={step.explanation} notes />
         {step.hook.feedback ? (
           <p className={styles.note}>Back to your guess: {step.hook.feedback}</p>
         ) : null}
@@ -562,7 +633,7 @@ function LearnFlow({
           </div>
         }
       >
-        <AiReply text={step.reteach} />
+        <AiReply text={step.reteach} notes />
         {yourWay(step.reteach)}
       </TutorTurn>
     );
@@ -612,7 +683,7 @@ function LearnFlow({
         }
       >
         <p className={styles.note}>{progress.outcome ? OUTCOME_LABEL[progress.outcome] : "Done"}.</p>
-        <AiReply text={step.explanation} />
+        <AiReply text={step.explanation} notes />
       </TutorTurn>
     );
   }
@@ -637,7 +708,8 @@ function LearnFlow({
           ))}
         </div>
       </div>
-      {body}
+      {/* Worked examples are uncovered a step at a time here. */}
+      <RevealSteps.Provider value>{body}</RevealSteps.Provider>
     </div>
   );
 }
@@ -717,7 +789,7 @@ function ExplainYourWay({
       ) : null}
       {text ? (
         <div className={styles.styled} aria-live="polite">
-          <AiReply text={text} />
+          <AiReply text={text} notes />
         </div>
       ) : null}
       {paywall}

@@ -16,6 +16,7 @@ import { createLibrary, defineComponent } from "@openuidev/react-lang";
 import { z } from "zod/v4";
 import { renderMathText } from "../markdownToReact";
 import { useAsk } from "./askContext";
+import { useRevealSteps } from "./revealContext";
 import styles from "./openui.module.css";
 
 /* Card text is maths-aware, and ==phrase== is the key-idea highlight the
@@ -96,21 +97,44 @@ const WorkedExample = defineComponent({
     steps: z.array(z.string()),
     answer: z.string(),
   }),
-  component: ({ props }) => (
+  component: ({ props }) => <WorkedExampleBody {...props} />,
+});
+
+/* In Learn the working is uncovered a step at a time, so the student can
+   try each step before seeing it; elsewhere it is shown whole. */
+function WorkedExampleBody({ problem, steps, answer }: { problem: string; steps: string[]; answer: string }) {
+  const reveal = useRevealSteps();
+  /* Steps shown so far; one past the last step also shows the answer. */
+  const [shown, setShown] = useState(reveal ? 0 : steps.length + 1);
+  const done = shown > steps.length;
+  return (
     <section className={styles.panel}>
       <p className={styles.eyebrow}>Worked example</p>
-      <p className={styles.problem}>{text(props.problem)}</p>
-      <ol className={styles.steps}>
-        {props.steps.map((step, i) => (
-          <li key={i}>{text(step)}</li>
-        ))}
-      </ol>
-      <p className={styles.answer}>
-        <strong>Answer</strong> {text(props.answer)}
-      </p>
+      <p className={styles.problem}>{text(problem)}</p>
+      {shown > 0 ? (
+        <ol className={styles.steps} aria-live={reveal ? "polite" : undefined}>
+          {steps.slice(0, shown).map((step, i) => (
+            <li key={i}>{text(step)}</li>
+          ))}
+        </ol>
+      ) : null}
+      {done ? (
+        <p className={styles.answer}>
+          <strong>Answer</strong> {text(answer)}
+        </p>
+      ) : (
+        <div className={styles.reveal}>
+          <button type="button" className={styles.chip} onClick={() => setShown(shown + 1)}>
+            {shown === 0 ? "Show the first step" : shown < steps.length ? "Next step" : "Show the answer"}
+          </button>
+          <button type="button" className={styles.revealAll} onClick={() => setShown(steps.length + 1)}>
+            Show it all
+          </button>
+        </div>
+      )}
     </section>
-  ),
-});
+  );
+}
 
 /* ── KeyTerms / Timeline / Accordion (pair lists) ────────────────────── */
 

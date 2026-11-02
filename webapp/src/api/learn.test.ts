@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { buildLearnStepPrompt, buildStylePrompt, holdToAnswer, learnSessionKey, parseExamQuestion, parseLearnStep } from "./learn";
+import {
+  buildLearnStepPrompt,
+  buildLessonFramePrompt,
+  buildStylePrompt,
+  holdToAnswer,
+  learnSessionKey,
+  parseExamQuestion,
+  parseLearnStep,
+  parseLessonFrame,
+  proseOnly,
+} from "./learn";
 import type { Marking } from "../lib/photoMarking";
 
 const q = (question: string) => ({ question, choices: ["a", "b", "c", "d"], correctIndex: 2, feedback: "why" });
@@ -45,6 +55,55 @@ describe("buildLearnStepPrompt", () => {
     expect(prompt).toContain("Water moves to the more concentrated side.");
     expect(prompt).toContain("do not teach them here): Diffusion");
     expect(prompt).toContain("STUDENT LEVEL: GCSE");
+  });
+});
+
+describe("buildLearnStepPrompt with cards", () => {
+  const section = { key: "0-osmosis", title: "Osmosis", body: "Water moves to the more concentrated side." };
+  it("asks for every idea in the section, and offers the cards it is given", () => {
+    const prompt = buildLearnStepPrompt({ lesson: "Cells", section, otherSections: [], level: "GCSE", cards: "CARDS IN LESSONS: …" });
+    expect(prompt).toContain("EVERY idea in these notes");
+    expect(prompt).toContain("CARDS IN LESSONS: …");
+  });
+  it("asks for plain Markdown when cards are switched off", () => {
+    const prompt = buildLearnStepPrompt({ lesson: "Cells", section, otherSections: [], level: "GCSE" });
+    expect(prompt).toContain("no code blocks");
+    expect(prompt).not.toContain("CARDS IN LESSONS");
+  });
+});
+
+describe("the lesson frame", () => {
+  const long = "Osmosis is how water moves into and out of cells, and it explains why plants wilt.";
+  it("needs both an overview and a recap with real prose in them", () => {
+    expect(parseLessonFrame(JSON.stringify({ overview: long, recap: long }))).toEqual({ overview: long, recap: long });
+    expect(parseLessonFrame(JSON.stringify({ overview: long }))).toBeNull();
+    /* A card with no prose around it is not an overview. */
+    const cardOnly = [
+      "```openui",
+      "root = Stack([k])",
+      'k = Callout("key", "Water moves by osmosis into the cell when outside is dilute.")',
+      "```",
+    ].join("\n");
+    expect(parseLessonFrame(JSON.stringify({ overview: cardOnly, recap: long }))).toBeNull();
+  });
+  it("shows each part's notes, cut short, in order", () => {
+    const prompt = buildLessonFramePrompt({
+      lesson: "Cells",
+      sections: [
+        { key: "0-a", title: "Osmosis", body: "Water moves. " + "x".repeat(2000) },
+        { key: "1-b", title: "Diffusion", body: "Particles spread." },
+      ],
+      level: "GCSE",
+    });
+    expect(prompt.indexOf("PART 1: Osmosis")).toBeLessThan(prompt.indexOf("PART 2: Diffusion"));
+    expect(prompt).not.toContain("x".repeat(1500));
+  });
+});
+
+describe("proseOnly", () => {
+  it("drops cards and diagrams, keeping the prose", () => {
+    const text = ["Water moves.", "```openui\nroot = Stack([k])\n```", "By osmosis.", "```svg\n<svg></svg>\n```"].join("\n\n");
+    expect(proseOnly(text)).toBe("Water moves.\n\nBy osmosis.");
   });
 });
 

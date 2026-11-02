@@ -292,10 +292,35 @@ function install(supabaseUrl: string) {
           text: JSON.stringify({
             concept: title,
             hook: q(`Before we start: what do you think ${title} is mostly about?`, "How the parts relate", ["A list of dates", "A single formula", "Nothing testable"]),
-            explanation: `**${title}** comes down to one idea. Start from what you already know, then add one step at a time.\n\nFor example, the angle at the centre is $2x$ when the angle at the circumference is $x$.`,
-            check: q(`Which is true about ${title}?`, "The centre angle is double", ["They are equal", "The centre angle is half", "It depends on the radius"]),
-            reteach: `Think of ${title} like a torch at the centre of a circle: its beam opens twice as wide as one from the edge.`,
-            recheck: q(`If the circumference angle is 40°, the centre angle is…`, "80°", ["40°", "20°", "160°"]),
+            explanation: [
+              `**${title}** is about how fast a reaction goes, and what you can change to speed it up. A reaction only happens when particles **collide** with enough energy.`,
+              "```openui\nroot = Stack([d])\nd = Callout(\"definition\", \"The rate of reaction is how much product forms, or reactant is used up, per unit of time.\")\n```",
+              "Anything that makes useful collisions happen more often makes the reaction faster. Four things do that:",
+              "```openui\nroot = Stack([s, t])\ns = Steps(\"Four ways to speed a reaction up\", [\"Raise the temperature: particles move faster and hit harder.\", \"Raise the concentration: more particles in the same space.\", \"Increase the surface area: more particles exposed to collide.\", \"Add a catalyst: a lower-energy route for the reaction.\"])\nt = CompareTable([\"\", \"Collides more often\", \"Collides harder\"], [[\"Temperature\", \"Yes\", \"Yes\"], [\"Concentration\", \"Yes\", \"No\"], [\"Surface area\", \"Yes\", \"No\"]])\n```",
+              "Rates can be worked out from results. For example, if 30 cm³ of gas is made in 60 s:",
+              "```openui\nroot = Stack([w])\nw = WorkedExample(\"30 cm³ of gas is made in 60 s. What is the mean rate?\", [\"Mean rate = amount of product ÷ time.\", \"Put the numbers in: 30 ÷ 60.\"], \"0.5 cm³/s\")\n```",
+            ].join("\n\n"),
+            check: q(`Why does raising the temperature speed up a reaction?`, "Particles collide more often and with more energy", ["Particles get bigger", "The activation energy rises", "There are more particles"]),
+            reteach: `Picture a room of people walking around. If everyone speeds up, they bump into each other more often, and harder. Heating a reaction does the same to its particles.\n\n\`\`\`openui\nroot = Stack([k])\nk = Callout("key", "Hotter means faster particles: more collisions, and more of them with enough energy.")\n\`\`\``,
+            recheck: q(`A reaction is moved from 20 °C to 40 °C. What happens?`, "It goes faster", ["It goes slower", "Nothing changes", "It stops"]),
+          }),
+        });
+      }
+      /* Learn: the overview before part 1 and the recap at the end. */
+      if (/Frame a lesson for a student who is about to learn it/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 700));
+        return json({
+          text: JSON.stringify({
+            overview: [
+              "**Rates of reaction** is about how quickly a chemical reaction happens, and why some go in a flash while others take years.",
+              "It matters because it is how chemists control reactions: making medicines quickly, stopping food going off, keeping factories safe.",
+              "1. **Rate factors**: the four things that change how fast a reaction goes.\n2. **Calculating a rate**: turning experiment results into a number.",
+              "```openui\nroot = Stack([k])\nk = KeyTerms(\"Words you'll meet\", [[\"Rate\", \"How fast a reactant is used up or a product is made.\"], [\"Collision\", \"Two particles hitting each other.\"], [\"Catalyst\", \"Speeds a reaction up without being used up.\"]])\n```",
+            ].join("\n\n"),
+            recap: [
+              "Both parts are one idea seen two ways: a reaction goes as fast as its particles collide with enough energy, and the rate is how you measure that.",
+              "```openui\nroot = Stack([a, b, m])\na = Callout(\"key\", \"More frequent or more energetic collisions mean a faster reaction.\")\nb = Callout(\"key\", \"Mean rate = amount of product ÷ time.\")\nm = Callout(\"mistake\", \"A catalyst is not used up, and it does not change how much product you get.\")\n```",
+            ].join("\n\n"),
           }),
         });
       }
