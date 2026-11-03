@@ -38,6 +38,13 @@ import {
 } from "../lib/chatActions";
 import { stripActionTagBlocks, streamingVisibleText, fenceUntrusted } from "../lib/actionTags";
 import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
+import {
+  isLegacyOffice,
+  isOfficeDoc,
+  legacyOfficeMessage,
+  officeExtractionNote,
+  planOfficeUpload,
+} from "../lib/officeText";
 import { isImageFile, prepareStudyImage, StudyImageError } from "../lib/studyImage";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
 import { loadKnowledgeSummary, loadStudentEvidence } from "../api/studentEvidence";
@@ -321,6 +328,27 @@ export function ChatProvider({ children }: { children: ReactNode }) {
          to get a confident answer about nothing whenever that provider was
          rate-limited. A scan with no text layer still goes as an attachment,
          because OCR is the only thing that will read it. */
+      if (isLegacyOffice(picked)) {
+        showToast(legacyOfficeMessage(picked.name), { error: true });
+        return;
+      }
+      /* Word and PowerPoint are read to text for the same reason, and have
+         no attachment fallback at all: no provider reads the binary. */
+      if (isOfficeDoc(picked)) {
+        planOfficeUpload(picked).then((plan) => {
+          if (plan.kind === "unreadable") {
+            showToast(plan.message, { error: true });
+            return;
+          }
+          setFile({
+            name: picked.name,
+            mimeType: "text/plain",
+            data: "",
+            inlineText: plan.text + officeExtractionNote(plan.extraction),
+          });
+        });
+        return;
+      }
       if (isPdf(picked)) {
         planPdfUpload(picked)
           .then((plan) => {

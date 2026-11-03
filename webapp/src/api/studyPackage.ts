@@ -45,6 +45,13 @@ import { fenceUntrusted } from "../lib/actionTags";
 import { supabase } from "../lib/supabase";
 import { setMaterialProcessing } from "../lib/materialProcessing";
 import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
+import {
+  isLegacyOffice,
+  isOfficeDoc,
+  legacyOfficeMessage,
+  officeExtractionNote,
+  planOfficeUpload,
+} from "../lib/officeText";
 import type { Settings } from "../lib/settings";
 import type { FlashcardDeck, Material, Quiz } from "./types";
 
@@ -88,11 +95,13 @@ const YOUTUBE_LINK = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//;
    else (a .gpx route, a .zip, an .exe) was uploaded and attached, the model
    could not read it, and its "please share the material" reply was saved as
    the lesson's notes. Checked by extension or by declared type, because a
-   file from Google Drive can arrive with a type but no extension. */
+   file from Google Drive can arrive with a type but no extension. Word and
+   PowerPoint are read as text in the browser (lib/officeText.ts); the old
+   binary .doc/.ppt are not, so they are refused with their own message. */
 const STUDY_FILE_EXTENSION =
-  /\.(pdf|docx?|txt|md|csv|mp3|mp4|wav|m4a|aac|ogg|webm|jpe?g|png|webp)$/i;
+  /\.(pdf|docx|pptx|txt|md|csv|mp3|mp4|wav|m4a|aac|ogg|webm|jpe?g|png|webp)$/i;
 const STUDY_FILE_TYPE =
-  /^(application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document|text\/(plain|markdown|csv)|audio\/.+|video\/(mp4|webm)|image\/(jpeg|png|webp))$/i;
+  /^(application\/pdf|application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|presentationml\.presentation)|text\/(plain|markdown|csv)|audio\/.+|video\/(mp4|webm)|image\/(jpeg|png|webp))$/i;
 
 export function isStudyFile(file: { name: string; type?: string }): boolean {
   return STUDY_FILE_EXTENSION.test(file.name || "") || STUDY_FILE_TYPE.test(file.type || "");
@@ -100,7 +109,8 @@ export function isStudyFile(file: { name: string; type?: string }): boolean {
 
 /** Said wherever a file is refused, so every way in uses the same words. */
 export function unsupportedFileMessage(name: string): string {
-  return `Learnora can't read "${name}". Use a PDF, Word document, text file, photo or audio recording.`;
+  if (isLegacyOffice({ name })) return legacyOfficeMessage(name);
+  return `Learnora can't read "${name}". Use a PDF, Word or PowerPoint file, text file, photo or audio recording.`;
 }
 
 /** Thrown when the model replied but the reply was too short to be a study
@@ -222,6 +232,12 @@ export async function generateNotes({
 
   if ("inlineText" in source) {
     inlineText = source.inlineText;
+  } else if (isOfficeDoc(source.file)) {
+    /* Nothing in the provider chain reads a .docx or .pptx attachment, so
+       there is no binary fallback: readable text or a refusal that says why. */
+    const plan = await planOfficeUpload(source.file);
+    if (plan.kind === "unreadable") throw new NotesShapeError(plan.message);
+    inlineText = plan.text + officeExtractionNote(plan.extraction);
   } else if (isPdf(source.file)) {
     /* A PDF is parsed to text here rather than attached, so that every
        provider in the chain can read it and not just Gemini — see
@@ -531,6 +547,10 @@ export async function createStudyPackage(
       if (file.size > MAX_UPLOAD_BYTES) {
         throw new Error("File too large. Maximum size is 10MB.");
       }
+      /* Read before uploading, so a deck of pictures or a damaged document is
+         refused without leaving an empty material behind in the library. */
+      const office = isOfficeDoc(file) ? await planOfficeUpload(file) : null;
+      if (office?.kind === "unreadable") throw new Error(office.message);
       step(`Uploading ${file.name}…`);
       result.material = await materialsApi.uploadFile(
         file,
@@ -545,7 +565,10 @@ export async function createStudyPackage(
         requestPayload: request,
         notesRequested: wantsNotes,
       });
-      notesSource = { file };
+      notesSource =
+        office?.kind === "inline"
+          ? { inlineText: office.text + officeExtractionNote(office.extraction) }
+          : { file };
     } else {
       const raw = (source.kind === "link" ? source.url : source.text).trim();
       if (!raw) {

@@ -41,7 +41,7 @@ import styles from "./CaptureBar.module.css";
  * straight to the result. The full Create panel is still one click away
  * ("More options") for a quiz, a subject or card counts. */
 
-const FILE_ACCEPT = `.pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg,.webm,${STUDY_IMAGE_ACCEPT}`;
+const FILE_ACCEPT = `.pdf,.docx,.pptx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg,.webm,${STUDY_IMAGE_ACCEPT}`;
 
 export interface CaptureBarProps {
   /** Pre-filled from a share or an opener that knows the source. */

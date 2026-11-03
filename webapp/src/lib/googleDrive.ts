@@ -28,7 +28,7 @@ const PICK_MIME = [
   "application/vnd.google-apps.document",
   "application/vnd.google-apps.presentation",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/msword",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "text/plain",
   "image/jpeg",
   "image/png",

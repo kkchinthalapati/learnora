@@ -12,6 +12,7 @@ import { useMaterials } from "../../hooks/useMaterials";
 import { useQuizDraft } from "../../hooks/useQuizDraft";
 import { Storage } from "../../lib/storage";
 import { isPdf, planPdfUpload } from "../../lib/pdfText";
+import { isOfficeDoc, planOfficeUpload } from "../../lib/officeText";
 import {
   GOOGLE_DRIVE_ENABLED,
   importFromDrive,
@@ -62,7 +63,7 @@ type Difficulty = typeof CREATE_DEFAULTS.difficulty;
 /* Documents and recordings, plus photos of a whiteboard, worksheet or
    textbook page — those are shrunk in the browser first (lib/studyImage.ts)
    and read by the one provider that can see images. */
-const UPLOAD_ACCEPT = `.pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg,${STUDY_IMAGE_ACCEPT}`;
+const UPLOAD_ACCEPT = `.pdf,.docx,.pptx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg,${STUDY_IMAGE_ACCEPT}`;
 
 const FOLDER_COLORS = ["#4A90E2", "#E24A4A", "#4AE283", "#E2A84A", "#9B4AE2"];
 const PERSONALITY_DESC: Record<string, string> = {
@@ -144,6 +145,18 @@ export function MaterialPanel({
   useEffect(() => {
     let cancelled = false;
     setFileWarning(null);
+    /* A Word or PowerPoint file is read now, so a deck of pictures is
+       turned away at the pick rather than after the upload. */
+    if (file && isOfficeDoc(file)) {
+      planOfficeUpload(file).then((plan) => {
+        if (cancelled || plan.kind !== "unreadable") return;
+        setFile(null);
+        setError(plan.message);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     if (!file || !isPdf(file)) return;
     planPdfUpload(file)
       .then((plan) => {
@@ -714,7 +727,7 @@ export function MaterialPanel({
                 <div className={styles.dropzonePrompt}>
                   <strong>Drop a file here, or browse</strong>
                   <span>
-                    PDF, Word, text, audio, video, or a photo of a whiteboard,
+                    PDF, Word, PowerPoint, text, audio, video, or a photo of a whiteboard,
                     worksheet or textbook page · up to 10MB
                   </span>
                 </div>

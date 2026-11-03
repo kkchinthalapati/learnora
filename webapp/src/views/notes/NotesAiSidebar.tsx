@@ -13,6 +13,13 @@ import {
 } from "../../api/ai";
 import { stripActionTagBlocks, streamingVisibleText, fenceUntrusted } from "../../lib/actionTags";
 import { isPdf, planPdfUpload, truncationNote } from "../../lib/pdfText";
+import {
+  isLegacyOffice,
+  isOfficeDoc,
+  legacyOfficeMessage,
+  officeExtractionNote,
+  planOfficeUpload,
+} from "../../lib/officeText";
 import type { AttachedFile } from "../../context/chat";
 import { decodeBase64UTF8 } from "../../lib/aiJson";
 import {
@@ -349,6 +356,26 @@ export function NotesAiSidebar({
     /* Parsed to text here rather than attached, so any provider in the chain
        can read it — see lib/pdfText.ts. A scan with no text layer still needs
        the binary, because OCR is the only thing that will read it. */
+    if (isLegacyOffice(picked)) {
+      showToast(legacyOfficeMessage(picked.name), { error: true });
+      return;
+    }
+    // Word and PowerPoint have no attachment fallback: no provider reads them.
+    if (isOfficeDoc(picked)) {
+      planOfficeUpload(picked).then((plan) => {
+        if (plan.kind === "unreadable") {
+          showToast(plan.message, { error: true });
+          return;
+        }
+        setFile({
+          name: picked.name,
+          mimeType: "text/plain",
+          data: "",
+          inlineText: plan.text + officeExtractionNote(plan.extraction),
+        });
+      });
+      return;
+    }
     if (isPdf(picked)) {
       planPdfUpload(picked)
         .then((plan) => {
@@ -488,7 +515,7 @@ export function NotesAiSidebar({
             <input
               type="file"
               hidden
-              accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg"
+              accept=".pdf,.docx,.pptx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg"
               onChange={(e) => {
                 const picked = e.target.files?.[0];
                 if (picked) attachFile(picked);

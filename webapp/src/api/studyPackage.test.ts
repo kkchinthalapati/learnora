@@ -12,6 +12,7 @@ import {
   generateDeck,
   isNoMaterialReply,
   isStudyFile,
+  unsupportedFileMessage,
   loadSourceText,
   MAX_UPLOAD_BYTES,
   PHOTO_NOTES_INSTRUCTIONS,
@@ -139,6 +140,14 @@ describe("isStudyFile", () => {
     expect(isStudyFile({ name: "route0.gpx", type: "application/gpx+xml" })).toBe(false);
     expect(isStudyFile({ name: "archive.zip", type: "application/zip" })).toBe(false);
     expect(isStudyFile({ name: "setup.exe", type: "" })).toBe(false);
+  });
+
+  it("takes PowerPoint and turns away the old binary Office formats with a fix", () => {
+    expect(isStudyFile({ name: "Lecture 4.pptx" })).toBe(true);
+    expect(isStudyFile({ name: "old essay.doc" })).toBe(false);
+    expect(isStudyFile({ name: "old deck.ppt" })).toBe(false);
+    expect(unsupportedFileMessage("old deck.ppt")).toMatch(/Save it as \.pptx or PDF/);
+    expect(unsupportedFileMessage("route0.gpx")).toMatch(/PowerPoint/);
   });
 });
 
