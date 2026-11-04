@@ -3,6 +3,8 @@ import {
   buildCorpus,
   formatGroundingForPrompt,
   groundingDocs,
+  noteConcepts,
+  relatedMaterials,
   passageLabel,
   passageText,
   retrievePassages,
@@ -111,5 +113,49 @@ describe("passageText", () => {
     expect(passageText(p)).toBe(
       "Enzymes: Enzymes lower the activation energy. Key idea: not used up. Active site is specific 2 shapes fit",
     );
+  });
+});
+
+describe("connections across materials", () => {
+  const bio = {
+    materialId: "bio",
+    title: "Cell transport",
+    kind: "notes" as const,
+    text: "## Cell transport\n\n### 🧫 Osmosis\n\n**Osmosis** is the diffusion of water across a **partially permeable membrane**.\n\n### Key terms\n\n**Active transport** moves particles against a concentration gradient using energy from respiration.",
+  };
+  const chem = {
+    materialId: "chem",
+    title: "Solutions",
+    kind: "notes" as const,
+    text: "## Solutions\n\n### Concentration\n\nA dilute solution has fewer solute particles. Osmosis moves water from a dilute solution to a concentrated one through a membrane that is partially permeable.",
+  };
+  const history = {
+    materialId: "hist",
+    title: "Tudors",
+    kind: "notes" as const,
+    text: "## The Tudors\n\nHenry VIII broke with Rome in 1534. The dissolution of the monasteries followed, moving wealth to the crown.",
+  };
+
+  it("takes headings and bold terms as concepts, dropping generic headings and emoji", () => {
+    expect(noteConcepts(bio.text)).toEqual(["Osmosis", "partially permeable membrane", "Active transport"]);
+  });
+
+  it("links another material that covers the same concepts, and says which", () => {
+    const corpus = buildCorpus([bio, chem, history]);
+    const related = relatedMaterials(corpus, "bio", bio.text);
+    expect(related.map((r) => r.materialId)).toEqual(["chem"]);
+    expect(related[0].concepts).toEqual(["Osmosis", "partially permeable membrane"]);
+    expect(related[0].passage.text).toContain("Osmosis moves water");
+  });
+
+  it("never links a material to itself, and links nothing when nothing is shared", () => {
+    const corpus = buildCorpus([bio, history]);
+    expect(relatedMaterials(corpus, "bio", bio.text)).toEqual([]);
+  });
+
+  it("does not link on one word of a short concept", () => {
+    const other = { materialId: "x", title: "Misc", kind: "notes" as const, text: "## Misc\n\nThe membrane of the drum is tight, like the skin on rice pudding." };
+    const corpus = buildCorpus([bio, other]);
+    expect(relatedMaterials(corpus, "bio", bio.text)).toEqual([]);
   });
 });

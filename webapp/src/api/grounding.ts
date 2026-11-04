@@ -1,4 +1,5 @@
-/* The student's own passages for a question, loaded for an AI call.
+/* The student's own passages for a question, loaded for an AI call, and the
+ * other materials that cover a note's concepts.
  *
  * Reads materials and notes through the shared query cache, so a session
  * that already has them makes no request. Never throws: grounding is a
@@ -8,7 +9,9 @@ import { queryClient } from "../lib/queryClient";
 import {
   buildCorpus,
   groundingDocs,
+  relatedMaterials,
   retrievePassages,
+  type RelatedMaterial,
   type RetrievedPassage,
 } from "../lib/grounding";
 import { materialsApi } from "./materials";
@@ -25,27 +28,44 @@ export interface GroundingSource {
   excerpt: string;
 }
 
+/* No retries: a failed read is answered without grounding, now, rather than
+   after the client's backoff — the chat waits on this before every reply. */
+function loadLibrary() {
+  return Promise.all([
+    queryClient.fetchQuery({
+      queryKey: materialsKeys.list(null),
+      queryFn: () => materialsApi.fetch(null),
+      staleTime: STALE_MS,
+      retry: false,
+    }),
+    queryClient.fetchQuery({
+      queryKey: notesKeys.all,
+      queryFn: notesApi.fetchAll,
+      staleTime: STALE_MS,
+      retry: false,
+    }),
+  ]);
+}
+
 export async function loadGroundingPassages(query: string, limit = 3): Promise<RetrievedPassage[]> {
   if (!query.trim()) return [];
   try {
-    /* No retries: a failed read is answered without grounding, now, rather
-       than after the client's backoff — the chat waits on this before every
-       reply. */
-    const [materials, notes] = await Promise.all([
-      queryClient.fetchQuery({
-        queryKey: materialsKeys.list(null),
-        queryFn: () => materialsApi.fetch(null),
-        staleTime: STALE_MS,
-        retry: false,
-      }),
-      queryClient.fetchQuery({
-        queryKey: notesKeys.all,
-        queryFn: notesApi.fetchAll,
-        staleTime: STALE_MS,
-        retry: false,
-      }),
-    ]);
+    const [materials, notes] = await loadLibrary();
     return retrievePassages(buildCorpus(groundingDocs(materials, notes)), query, limit);
+  } catch (err) {
+    console.warn("[grounding] Could not read your materials:", err);
+    return [];
+  }
+}
+
+/** The other materials that cover this material's concepts, read from its
+ *  saved note. Empty when it has no note yet, or nothing else matches. */
+export async function loadRelatedMaterials(materialId: string): Promise<RelatedMaterial[]> {
+  try {
+    const [materials, notes] = await loadLibrary();
+    const own = notes.find((n) => n.material_id === materialId)?.markdown_content;
+    if (!own?.trim()) return [];
+    return relatedMaterials(buildCorpus(groundingDocs(materials, notes)), materialId, own);
   } catch (err) {
     console.warn("[grounding] Could not read your materials:", err);
     return [];

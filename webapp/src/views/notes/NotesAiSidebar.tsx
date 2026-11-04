@@ -32,6 +32,7 @@ import { loadOpenUiSection } from "../../lib/openui/load";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import chatStyles from "../../components/chat/chat.module.css";
 import styles from "./notesSidebar.module.css";
+import { RelatedMaterials } from "./RelatedMaterials";
 
 /* The AI study sidebar docked beside the notes editor — ports the vanilla's
  * `.notes-ai-panel` (index.html:1084-1155), its wiring in js/main.js's
@@ -452,6 +453,22 @@ export function NotesAiSidebar({
         {/* A "Podcast — soon" tile sat here; a button that only says "not
             yet" makes the screen feel unfinished. */}
       </div>
+
+      <RelatedMaterials
+        materialId={materialId}
+        onAsk={(question, source) => {
+          /* The other material's passage rides as an attachment, the way a
+             parsed PDF does, so the chip shows what the tutor was given. */
+          setFile({
+            name: `${source.title} (your notes)`,
+            mimeType: "text/plain",
+            data: "",
+            inlineText: source.text,
+          });
+          setInput(question);
+          inputRef.current?.focus();
+        }}
+      />
 
       <div className={styles.chat}>
         <div className={styles.intro}>
