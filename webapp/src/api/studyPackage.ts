@@ -188,7 +188,8 @@ Analyze the provided study material and write comprehensive, well-structured Mar
 
 Output the Markdown notes only. Do not add any preamble or closing commentary.`;
 
-/** Appended when the source is a photo. Only Gemini reads images, and the
+/** Appended when the source is a photo. Only vision models read images
+ *  (Gemini, then the Groq and Mistral vision fallbacks in learnora-ai), and the
  *  edge function refuses rather than hand a photo to a text-only model, so
  *  this is written for a model that can actually see it. */
 export const PHOTO_NOTES_INSTRUCTIONS = `The study material is the attached photo of a whiteboard, worksheet, handwritten page or textbook page. Work only from what is visible in it: capture its key content faithfully, then organise it into the notes above. If part of it is too blurry, dark or cut off to read, say which part rather than guessing at it.`;

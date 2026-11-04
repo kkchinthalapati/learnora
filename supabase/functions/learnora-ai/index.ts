@@ -148,6 +148,9 @@ function isSafetyError(err: any): boolean {
 
 type ProviderDialect = "openai" | "anthropic";
 
+/** A photo sent to a vision model, base64 without the data: prefix. */
+type ProviderImage = { data: string; mimeType: string };
+
 /* What the key costs the operator. This is documentation that the ordering
    below has to agree with, not a runtime switch: `free` is a standing free
    tier, `credits` is a free allowance that runs out and then bills, `paid`
@@ -481,7 +484,15 @@ function buildProviderRequest(
   provider: AIProvider,
   model: string,
   key: string,
-  opts: { systemInstruction: string; history: any[]; userContent: string; wantsJson: boolean },
+  opts: {
+    systemInstruction: string;
+    history: any[];
+    userContent: string;
+    wantsJson: boolean;
+    /** A photo for a vision model: sent with the last user turn as an
+     *  OpenAI-style image part. Only the OpenAI dialect takes it. */
+    image?: ProviderImage;
+  },
 ): { headers: Record<string, string>; body: Record<string, unknown> } {
   const priorTurns = (opts.history || []).slice(0, -1).map((m: any) => ({
     role: m.role === "model" ? "assistant" : "user",
@@ -511,7 +522,15 @@ function buildProviderRequest(
     messages: [
       { role: "system", content: opts.systemInstruction },
       ...priorTurns,
-      { role: "user", content: opts.userContent },
+      {
+        role: "user",
+        content: opts.image
+          ? [
+              { type: "text", text: opts.userContent },
+              { type: "image_url", image_url: { url: `data:${opts.image.mimeType};base64,${opts.image.data}` } },
+            ]
+          : opts.userContent,
+      },
     ],
   };
   if (opts.wantsJson && provider.jsonMode) {
@@ -538,6 +557,9 @@ async function callProvider(
     signal?: AbortSignal;
     /** Accumulates this request's token counts, when the provider reports them. */
     usage?: TokenUsage;
+    /** For a vision request: the photo, and the provider's vision model. */
+    image?: ProviderImage;
+    model?: string;
   },
 ): Promise<string> {
   const key = Deno.env.get(provider.keyEnv);
@@ -550,13 +572,14 @@ async function callProvider(
     );
   }
 
-  const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
+  const model = opts.model || Deno.env.get(provider.modelEnv) || provider.defaultModel;
   const dialect: ProviderDialect = provider.dialect || "openai";
   const { headers, body } = buildProviderRequest(provider, model, key, {
     systemInstruction: opts.systemInstruction,
     history: opts.history,
     userContent: opts.userContent,
     wantsJson: isJsonMode(opts.mode),
+    image: opts.image,
   });
 
   const controller = new AbortController();
@@ -992,6 +1015,18 @@ function visionUnavailableResponse(headers: Record<string, string>): Response {
     { status: 422, headers },
   );
 }
+
+/* Vision models on providers already in the chain, tried in chain order when
+   Gemini cannot read a photo (it was answering 503 on the last production
+   check). Each is the provider's own OpenAI-compatible endpoint with an image
+   part, so no new key, provider or disclosure is involved; a provider whose
+   key is unset, or that the chain filters out for this student, is skipped.
+   The model IDs are overridable without a redeploy, because vision models
+   are renamed as often as text ones. */
+const VISION_MODELS: Record<string, { modelEnv: string; defaultModel: string }> = {
+  groq: { modelEnv: "GROQ_VISION_MODEL", defaultModel: "meta-llama/llama-4-scout-17b-16e-instruct" },
+  mistral: { modelEnv: "MISTRAL_VISION_MODEL", defaultModel: "pixtral-12b-2409" },
+};
 
 /* =========================================================================
    IMAGE GENERATION — mode "image"
@@ -2196,6 +2231,66 @@ Deno.serve(async (req) => {
             debugErrors["gemini"] = "GEMINI_API_KEY secret is not set in Supabase.";
         }
 
+        /* What every OpenAI-compatible reply goes through before it is
+           returned: JSON salvage, the refusal check, the safety screen (none
+           of these providers has a layer like Gemini's), then logging. A JSON
+           reply that does not parse throws, so the caller tries the next. */
+        const acceptReply = async (raw: string, providerId: string, model: string): Promise<Response> => {
+            let text = raw;
+            if (isJsonMode(mode)) {
+                const salvaged = salvageJson(cleanJsonResponse(text));
+                if (salvaged === null) {
+                    if (looksLikeRefusal(text)) {
+                        return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
+                    }
+                    throw new Error(`${providerId} returned JSON that does not parse`);
+                }
+                text = salvaged;
+            }
+            if (screenForUnsafeContent(text)) {
+                console.warn(`[safety] ${providerId} output refused by screen`, { mode, userId: user.id });
+                return safetyRefusalResponse(mode, jsonHeaders, `${currentMsg}\n${text}`);
+            }
+            text = await finishText(text);
+            recordOutcome(logId, {
+                provider: providerId,
+                model,
+                startedAt,
+                failed: failedProviderLabels(debugErrors),
+                usage,
+            });
+            remember(text, `${providerId}/${model}`);
+            return new Response(JSON.stringify({ text, modelUsed: `${providerId}/${model}` }), {
+                headers: jsonHeaders,
+            });
+        };
+
+        // A photo Gemini didn't read goes to a vision model on the chain.
+        if (isImageAttachment(file)) {
+            for (const provider of providerChain(radoxAllowed, plan)) {
+                const vision = VISION_MODELS[provider.id];
+                if (!vision || !Deno.env.get(provider.keyEnv) || !resolveProviderUrl(provider)) continue;
+                if (budgetExhausted()) break;
+                const model = Deno.env.get(vision.modelEnv) || vision.defaultModel;
+                try {
+                    const text = await callProvider(provider, {
+                        systemInstruction,
+                        history,
+                        userContent: currentMsg,
+                        mode,
+                        signal: deadline,
+                        usage,
+                        image: { data: file.data, mimeType: file.mimeType },
+                        model,
+                    });
+                    return await acceptReply(text, provider.id, model);
+                } catch (err: any) {
+                    debugErrors[`${provider.id} vision (${model})`] = err.message || String(err);
+                    console.error(`${provider.id} vision Error:`, err);
+                }
+            }
+        }
+
         // Nothing below this line can see an image — see isImageAttachment.
         // The allowance is handed back: no provider read the photo.
         if (isImageAttachment(file)) {
@@ -2250,7 +2345,7 @@ Deno.serve(async (req) => {
             }
 
             try {
-                let text = await callProvider(provider, {
+                const text = await callProvider(provider, {
                     systemInstruction,
                     history,
                     userContent: fallbackMsg,
@@ -2258,41 +2353,7 @@ Deno.serve(async (req) => {
                     signal: deadline,
                     usage,
                 });
-
-                if (isJsonMode(mode)) {
-                    const salvaged = salvageJson(cleanJsonResponse(text));
-                    if (salvaged === null) {
-                        if (looksLikeRefusal(text)) {
-                            return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
-                        }
-                        throw new Error(`${provider.id} returned JSON that does not parse`);
-                    }
-                    text = salvaged;
-                }
-
-                // None of these providers has a safety layer comparable to
-                // Gemini's, so their output is screened before it is returned.
-                if (screenForUnsafeContent(text)) {
-                    console.warn(`[safety] ${provider.id} output refused by screen`, { mode, userId: user.id });
-                    return safetyRefusalResponse(mode, jsonHeaders, `${currentMsg}\n${text}`);
-                }
-
-                text = await finishText(text);
-
-                recordOutcome(logId, {
-                    provider: provider.id,
-                    model: Deno.env.get(provider.modelEnv) || provider.defaultModel,
-                    startedAt,
-                    failed: failedProviderLabels(debugErrors),
-                    usage,
-                });
-                remember(text, `${provider.id}/${Deno.env.get(provider.modelEnv) || provider.defaultModel}`);
-                return new Response(JSON.stringify({
-                    text,
-                    modelUsed: `${provider.id}/${Deno.env.get(provider.modelEnv) || provider.defaultModel}`
-                }), {
-                    headers: jsonHeaders
-                });
+                return await acceptReply(text, provider.id, Deno.env.get(provider.modelEnv) || provider.defaultModel);
             } catch (err: any) {
                 debugErrors[provider.id] = err.message || String(err);
                 deadKeys.coolDown(provider.id, debugErrors[provider.id]);
