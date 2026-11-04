@@ -17,7 +17,7 @@ import {
 import { INTERVENTION_BLOCK_MINS, type Verdict } from "../../lib/trajectory";
 import { TrajectoryChart } from "./TrajectoryChart";
 import { QuizOnlyForecast } from "./QuizOnlyForecast";
-import { MIN_FORECAST_EVIDENCE } from "../../lib/trajectory";
+import { MIN_FORECAST_EVIDENCE, MIN_TOPIC_EVIDENCE } from "../../lib/trajectory";
 import styles from "./trajectory.module.css";
 
 /* The screen that answers "is what I'm doing going to be enough?"
@@ -274,7 +274,9 @@ export function TrajectoryBody() {
                   ) : null}
                 </span>
                 <span className={styles.interventionMeta}>
-                  {Math.round(item.mastery * 100)}% solid now
+                  {item.measuredEvidence >= MIN_TOPIC_EVIDENCE
+                    ? `${Math.round(item.measuredMastery * 100)}% on checks so far`
+                    : "Not checked yet"}
                 </span>
               </div>
               <div

@@ -83,6 +83,12 @@ export const MAX_CONFIDENCE_BAND = 22;
  *  says so instead of showing a score built from assumptions. */
 export const MIN_FORECAST_EVIDENCE = 0.1;
 
+/** A topic's own figure is shown only from this much measured evidence, one
+ *  scored check's worth (SCORE_EVENT_EVIDENCE). Below it the row says the
+ *  topic has not been checked, rather than showing the starting assumption
+ *  (UNMEASURED_MASTERY) as if it had been measured. */
+export const MIN_TOPIC_EVIDENCE = 0.15;
+
 /** A topic with no cards and no quiz history is not "0% mastered", it is
  *  unmeasured — and treating unmeasured as zero would make a student who has
  *  just uploaded their syllabus look doomed. This is the mastery assumed for
@@ -168,7 +174,13 @@ export interface Intervention {
   points: number;
   /** The same, per hour — the number that makes topics comparable. */
   pointsPerHour: number;
+  /** The model's working figure: checks, cards, and timer minutes, starting
+   *  from UNMEASURED_MASTERY. Ranks topics; never shown as a measurement. */
   mastery: number;
+  /** From checks and reviewed cards alone, and how much of that there is.
+   *  What the Progress page may show as "on checks", once there is enough. */
+  measuredMastery: number;
+  measuredEvidence: number;
   /** True when the topic is fading rather than simply unlearned; the advice
    *  differs (revisit versus learn) and so should the words around it. */
   atRisk: boolean;
@@ -838,10 +850,15 @@ export function forecast(input: TrajectoryInput): TrajectoryForecast {
         points,
         pointsPerHour: points * (60 / INTERVENTION_BLOCK_MINS),
         mastery: topic.mastery,
+        measuredMastery: topic.measuredMastery ?? topic.mastery,
+        measuredEvidence: topic.measuredEvidence ?? topic.evidence,
         /* Fading rather than unlearned: there is real memory here and it is
            slipping, which is a different sentence to say to a student than
-           "you have never learned this". */
-        atRisk: topic.evidence > 0.2 && topic.mastery < 0.7,
+           "you have never learned this". Memory means checks or reviews: a
+           timer running on the topic is not evidence it was remembered. */
+        atRisk:
+          (topic.measuredEvidence ?? topic.evidence) > 0.2 &&
+          (topic.measuredMastery ?? topic.mastery) < 0.7,
       };
     })
     .filter((i) => i.points > 0)
