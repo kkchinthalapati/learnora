@@ -44,6 +44,7 @@ import { decodeBase64UTF8, extractFlashcardJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { supabase } from "../lib/supabase";
 import { setMaterialProcessing } from "../lib/materialProcessing";
+import { sectionExcerpt } from "../lib/sourceExcerpt";
 import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
 import {
   isLegacyOffice,
@@ -310,7 +311,7 @@ export async function loadSourceText(materialId: string): Promise<string> {
   const notes = await notesApi.fetchByMaterial(materialId);
   const markdown = notes[0]?.markdown_content;
   if (!markdown) return "";
-  return fenceUntrusted(markdown.substring(0, MAX_SOURCE_CHARS));
+  return fenceUntrusted(sectionExcerpt(markdown, MAX_SOURCE_CHARS));
 }
 
 /* =========================================================================
@@ -625,7 +626,7 @@ export async function createStudyPackage(
       fail("notes", err);
       return result;
     }
-    sourceText = fenceUntrusted(generatedNotes.substring(0, MAX_SOURCE_CHARS));
+    sourceText = fenceUntrusted(sectionExcerpt(generatedNotes, MAX_SOURCE_CHARS));
   } else if (source.kind === "material") {
     const material = await materialsApi.fetchById(source.materialId);
     if (!material) throw new Error("That material could not be found.");
@@ -665,7 +666,7 @@ export async function createStudyPackage(
           return result;
         }
         sourceText = fenceUntrusted(
-          result.notes.substring(0, MAX_SOURCE_CHARS),
+          sectionExcerpt(result.notes, MAX_SOURCE_CHARS),
         );
       } else if (material.raw_content) {
         step("Reading your lesson and writing notes…");
@@ -680,7 +681,7 @@ export async function createStudyPackage(
           return result;
         }
         sourceText = fenceUntrusted(
-          result.notes.substring(0, MAX_SOURCE_CHARS),
+          sectionExcerpt(result.notes, MAX_SOURCE_CHARS),
         );
       } else {
         throw new Error(
@@ -711,7 +712,7 @@ export async function createStudyPackage(
         fail("notes", err);
         return result;
       }
-      sourceText = fenceUntrusted(result.notes.substring(0, MAX_SOURCE_CHARS));
+      sourceText = fenceUntrusted(sectionExcerpt(result.notes, MAX_SOURCE_CHARS));
     } else {
       // A topic-only source has no notes document, so the topic line is itself
       // the material the deck and quiz are built from.

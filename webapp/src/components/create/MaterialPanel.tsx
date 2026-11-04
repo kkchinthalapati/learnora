@@ -139,8 +139,9 @@ export function MaterialPanel({
   });
 
   const [file, setFile] = useState<File | null>(null);
-  /* Set when a chosen PDF has no usable text layer: it will be sent as an
-     attachment for OCR, which is slower and less reliable than text. */
+  /* Set when a chosen file will be read less than fully: a PDF with no
+     text layer goes to OCR, and a long PDF or document is cut to fit. The
+     model is told either way; this tells the student. */
   const [fileWarning, setFileWarning] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -149,9 +150,15 @@ export function MaterialPanel({
        turned away at the pick rather than after the upload. */
     if (file && isOfficeDoc(file)) {
       planOfficeUpload(file).then((plan) => {
-        if (cancelled || plan.kind !== "unreadable") return;
-        setFile(null);
-        setError(plan.message);
+        if (cancelled) return;
+        if (plan.kind === "unreadable") {
+          setFile(null);
+          setError(plan.message);
+        } else if (plan.extraction.truncated) {
+          setFileWarning(
+            "This file is long, so only its first part will be read. For full coverage, upload it in parts — a chapter or a section at a time.",
+          );
+        }
       });
       return () => {
         cancelled = true;
@@ -160,7 +167,16 @@ export function MaterialPanel({
     if (!file || !isPdf(file)) return;
     planPdfUpload(file)
       .then((plan) => {
-        if (cancelled || plan.kind !== "attach" || plan.reason !== "scanned") return;
+        if (cancelled) return;
+        if (plan.kind === "inline" && plan.extraction.truncated) {
+          setFileWarning(
+            plan.extraction.pageCount > plan.extraction.pagesRead
+              ? `Only the first ${plan.extraction.pagesRead} of ${plan.extraction.pageCount} pages will be read. For full coverage, upload it in parts — a chapter at a time.`
+              : "This PDF is long, so only its first part will be read. For full coverage, upload it in parts — a chapter at a time.",
+          );
+          return;
+        }
+        if (plan.kind !== "attach" || plan.reason !== "scanned") return;
         setFileWarning(
           "This PDF looks scanned (no text layer). It will be read by OCR, so notes may take longer and miss handwriting or faint print.",
         );
