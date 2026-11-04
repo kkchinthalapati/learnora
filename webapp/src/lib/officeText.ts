@@ -230,9 +230,15 @@ function headingLevel(p: Element): number {
   return match ? Number(match[1]) : 0;
 }
 
+/** Numbering set on the paragraph, or by a list style — Word's own bullet
+ *  button applies "ListBullet", which carries the numbering in styles.xml
+ *  and leaves the paragraph with no numPr of its own. */
 function isListItem(p: Element): boolean {
   const pPr = childElements(p, "pPr")[0];
-  return Boolean(pPr && childElements(pPr, "numPr").length > 0);
+  if (!pPr) return false;
+  if (childElements(pPr, "numPr").length > 0) return true;
+  const style = childElements(pPr, "pStyle")[0];
+  return /^list(bullet|number)/i.test(attr(style ?? null, W_NS, "val"));
 }
 
 /** Pure: the Markdown for a parsed `word/document.xml`. */

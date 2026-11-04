@@ -167,6 +167,13 @@ describe("extractOfficeText — docx", () => {
     expect(result.truncated).toBe(false);
   });
 
+  it("treats Word's list styles as list items", async () => {
+    // What Word itself saves for the bullet button: the style, no numPr.
+    const styled = (text: string) => wp(text, `<w:pPr><w:pStyle w:val="ListBullet"/></w:pPr>`);
+    const file = docx(styled("Carbon dioxide") + styled("Water"));
+    expect((await extractOfficeText(file)).text).toBe("- Carbon dioxide\n- Water");
+  });
+
   it("drops deleted tracked changes and joins split runs", async () => {
     const file = docx(
       `<w:p><w:r><w:t>Mito</w:t></w:r><w:r><w:t>chondria</w:t></w:r><w:del><w:r><w:t>WRONG</w:t></w:r></w:del></w:p>`,
