@@ -24,6 +24,7 @@
  * and until now the model was told, in writing, to refuse. */
 
 import { fenceUntrusted } from "./actionTags";
+import { sectionExcerpt } from "./sourceExcerpt";
 
 /** How much of the open document is fed to the model. The vanilla's own limit
  *  (js/ai.js:1409) — larger than the workspace chat's 3000, because this panel
@@ -36,11 +37,8 @@ export const NOTES_DOCUMENT_CHARS = 5000;
  *  interpolated into the app's own prompt, and cannot close its delimiter and
  *  continue as if it were instructions. */
 export function prepareDocumentContext(text: string): string {
-  const trimmed =
-    text.length > NOTES_DOCUMENT_CHARS
-      ? text.substring(0, NOTES_DOCUMENT_CHARS) + "... (truncated)"
-      : text;
-  return fenceUntrusted(trimmed);
+  // Spread across the whole page, not cut at its opening.
+  return fenceUntrusted(sectionExcerpt(text, NOTES_DOCUMENT_CHARS));
 }
 
 export interface NotesChatContext {
