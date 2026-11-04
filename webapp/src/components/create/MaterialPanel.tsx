@@ -11,7 +11,22 @@ import { useFolders, useAddFolder } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useQuizDraft } from "../../hooks/useQuizDraft";
 import { Storage } from "../../lib/storage";
-import { isPdf, planPdfUpload } from "../../lib/pdfText";
+import {
+  isPdf,
+  MAX_NOTES_PARTS,
+  MAX_PDF_CHARS,
+  NOTES_READ,
+  planPdfUpload,
+} from "../../lib/pdfText";
+
+/* Said when a file is read in full but in parts (api/studyPackage.ts
+   generateNotes), so the longer wait has a reason. */
+function partsNote(chars: number): string | null {
+  const parts = Math.min(MAX_NOTES_PARTS, Math.ceil(chars / MAX_PDF_CHARS));
+  return parts > 1
+    ? `This is a long file, so its notes are written in ${parts} parts. It takes a little longer.`
+    : null;
+}
 import { isOfficeDoc, planOfficeUpload } from "../../lib/officeText";
 import {
   GOOGLE_DRIVE_ENABLED,
@@ -149,15 +164,17 @@ export function MaterialPanel({
     /* A Word or PowerPoint file is read now, so a deck of pictures is
        turned away at the pick rather than after the upload. */
     if (file && isOfficeDoc(file)) {
-      planOfficeUpload(file).then((plan) => {
+      planOfficeUpload(file, NOTES_READ.chars).then((plan) => {
         if (cancelled) return;
         if (plan.kind === "unreadable") {
           setFile(null);
           setError(plan.message);
         } else if (plan.extraction.truncated) {
           setFileWarning(
-            "This file is long, so only its first part will be read. For full coverage, upload it in parts — a chapter or a section at a time.",
+            "This file is very long, so only its first part will be read. For full coverage, upload it in parts — a chapter or a section at a time.",
           );
+        } else {
+          setFileWarning(partsNote(plan.text.length));
         }
       });
       return () => {
@@ -165,15 +182,19 @@ export function MaterialPanel({
       };
     }
     if (!file || !isPdf(file)) return;
-    planPdfUpload(file)
+    planPdfUpload(file, NOTES_READ)
       .then((plan) => {
         if (cancelled) return;
         if (plan.kind === "inline" && plan.extraction.truncated) {
           setFileWarning(
             plan.extraction.pageCount > plan.extraction.pagesRead
               ? `Only the first ${plan.extraction.pagesRead} of ${plan.extraction.pageCount} pages will be read. For full coverage, upload it in parts — a chapter at a time.`
-              : "This PDF is long, so only its first part will be read. For full coverage, upload it in parts — a chapter at a time.",
+              : "This PDF is very long, so only its first part will be read. For full coverage, upload it in parts — a chapter at a time.",
           );
+          return;
+        }
+        if (plan.kind === "inline") {
+          setFileWarning(partsNote(plan.text.length));
           return;
         }
         if (plan.kind !== "attach" || plan.reason !== "scanned") return;

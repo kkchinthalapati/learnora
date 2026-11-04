@@ -44,8 +44,15 @@ import { decodeBase64UTF8, extractFlashcardJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { supabase } from "../lib/supabase";
 import { setMaterialProcessing } from "../lib/materialProcessing";
-import { sectionExcerpt } from "../lib/sourceExcerpt";
-import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
+import { sectionExcerpt, splitIntoParts } from "../lib/sourceExcerpt";
+import {
+  isPdf,
+  MAX_NOTES_PARTS,
+  MAX_PDF_CHARS,
+  NOTES_READ,
+  planPdfUpload,
+  truncationNote,
+} from "../lib/pdfText";
 import {
   isLegacyOffice,
   isOfficeDoc,
@@ -219,6 +226,7 @@ export async function generateNotes({
   source,
   settings,
   persist = true,
+  onPart,
 }: {
   material: Material;
   source: NotesSource;
@@ -227,6 +235,9 @@ export async function generateNotes({
    * did not select Summary Notes. In that case, do not file that intermediary
    * as a user-visible note. */
   persist?: boolean;
+  /** Called before each part of a long source is written, so the caller can
+   *  say "part 2 of 3" instead of one long unexplained wait. */
+  onPart?: (part: number, of: number) => void;
 }): Promise<string> {
   let inlineText: string | null = null;
   let attachment: FilePayload | null = null;
@@ -236,7 +247,7 @@ export async function generateNotes({
   } else if (isOfficeDoc(source.file)) {
     /* Nothing in the provider chain reads a .docx or .pptx attachment, so
        there is no binary fallback: readable text or a refusal that says why. */
-    const plan = await planOfficeUpload(source.file);
+    const plan = await planOfficeUpload(source.file, NOTES_READ.chars);
     if (plan.kind === "unreadable") throw new NotesShapeError(plan.message);
     inlineText = plan.text + officeExtractionNote(plan.extraction);
   } else if (isPdf(source.file)) {
@@ -244,7 +255,7 @@ export async function generateNotes({
        provider in the chain can read it and not just Gemini — see
        lib/pdfText.ts for why that mattered. A scan with no text layer still
        goes as an attachment, since OCR is the only thing that will read it. */
-    const plan = await planPdfUpload(source.file);
+    const plan = await planPdfUpload(source.file, NOTES_READ);
     if (plan.kind === "inline") {
       inlineText = plan.text + truncationNote(plan.extraction);
     } else {
@@ -268,40 +279,83 @@ export async function generateNotes({
     }
   }
 
-  const prompt = attachment?.mimeType.startsWith("image/")
-    ? `${buildNotesPrompt(inlineText)}\n\n${PHOTO_NOTES_INSTRUCTIONS}`
-    : buildNotesPrompt(inlineText);
-
   /* With cards on, the notes may carry a few OpenUI cards (key terms, worked
      examples, comparison tables) that the notes editor draws in place. */
   const cards = isFlagOn("openUi")
     ? (await import("../lib/openui/blocks")).notesCardSection()
     : "";
 
-  const { text, refused } = await callEdge({
-    history: [{ role: "user", content: prompt }],
-    file: attachment,
-    mode: "notes",
-    tool: "notes",
-    settings,
-    ...(cards ? { context: cards } : {}),
-  });
+  /* A long source is written in parts, one request each, so no request grows
+     past what the tightest provider accepts and the end of a chapter is read
+     as carefully as its opening. A short one is a single part, unchanged. */
+  const parts = inlineText && !attachment
+    ? splitIntoParts(inlineText, MAX_PDF_CHARS, MAX_NOTES_PARTS)
+    : [inlineText];
+  const dropped = inlineText && !attachment && parts.join("\n\n").length < inlineText.length - 2;
+  if (dropped) parts[parts.length - 1] += `\n\n${LONG_SOURCE_NOTE}`;
 
-  /* `notes` isn't a JSON mode, so a safety refusal comes back as a 200 with
-     the refusal sentence *as* `text` rather than a thrown error (see
-     EdgeResult.refused) — the one path in this file where the reply is read
-     as data instead of being displayed. Without this check, an upload that
-     trips the content screen would silently save "I can't help with that
-     topic…" to the database as the material's notes, with nothing telling
-     the student generation had failed. */
-  if (refused) throw new AiError(text, { refused: true, retryable: false });
+  const written: string[] = [];
+  for (const [index, part] of parts.entries()) {
+    onPart?.(index + 1, parts.length);
+    const base = buildNotesPrompt(part) + notesPartInstruction(index + 1, parts.length);
+    const prompt = attachment?.mimeType.startsWith("image/")
+      ? `${base}\n\n${PHOTO_NOTES_INSTRUCTIONS}`
+      : base;
 
-  const markdown = text.trim();
-  if (markdown.length < MIN_NOTES_CHARS) throw new NotesShapeError();
-  if (isNoMaterialReply(markdown)) throw new NotesShapeError(NO_MATERIAL_MESSAGE);
+    let markdown: string;
+    try {
+      const { text, refused } = await callEdge({
+        history: [{ role: "user", content: prompt }],
+        file: attachment,
+        mode: "notes",
+        tool: "notes",
+        settings,
+        ...(cards ? { context: cards } : {}),
+      });
 
+      /* `notes` isn't a JSON mode, so a safety refusal comes back as a 200
+         with the refusal sentence *as* `text` rather than a thrown error (see
+         EdgeResult.refused) — the one path in this file where the reply is
+         read as data instead of being displayed. Without this check, an
+         upload that trips the content screen would silently save "I can't
+         help with that topic…" to the database as the material's notes, with
+         nothing telling the student generation had failed. */
+      if (refused) throw new AiError(text, { refused: true, retryable: false });
+
+      markdown = text.trim();
+      if (markdown.length < MIN_NOTES_CHARS) throw new NotesShapeError();
+      if (isNoMaterialReply(markdown)) throw new NotesShapeError(NO_MATERIAL_MESSAGE);
+    } catch (err) {
+      /* Without the first part there are no notes; a later part failing
+         keeps what was written and says, in the notes, what is missing,
+         rather than discarding good notes or passing a gap off as whole. */
+      if (index === 0) throw err;
+      written.push(missingPartNote(index + 1, parts.length));
+      break;
+    }
+    written.push(markdown);
+  }
+
+  const markdown = written.join("\n\n");
   if (persist) await notesApi.add(material.id, markdown);
   return markdown;
+}
+
+/** Said to the model when the source runs past what MAX_NOTES_PARTS reads. */
+const LONG_SOURCE_NOTE =
+  "[The material continues beyond this point but was too long to read in full. Say in one line at the end that the notes cover only the first part.]";
+
+/** Empty for a single part, so a short source's prompt is unchanged. */
+export function notesPartInstruction(part: number, of: number): string {
+  if (of === 1) return "";
+  return part === 1
+    ? `\n\nThis is part 1 of ${of} of one long document; the other parts are written separately and joined after yours. Write notes for this part only, starting with the ## title and intro as usual, and no closing summary.`
+    : `\n\nThis is part ${part} of ${of} of one long document, continuing from the notes for part ${part - 1}. Write notes for this part only. Do not write a ## title, an intro or a closing summary: start straight at the first ### section heading.`;
+}
+
+/** Written into the notes in place of a part whose request failed. */
+export function missingPartNote(part: number, of: number): string {
+  return `> **Not covered yet:** the notes for part ${part} of ${of} of this material couldn't be written this time, so everything from there on is missing. Upload that section on its own to add it.`;
 }
 
 /** Notes for an existing material, fenced so the model treats them as data.
@@ -517,6 +571,10 @@ export async function createStudyPackage(
       console.error("[studyPackage] onProgress", err);
     }
   };
+  // A one-part source keeps the stage's own caption.
+  const notesProgress = (part: number, of: number) => {
+    if (of > 1) step(`Writing notes, part ${part} of ${of}…`);
+  };
 
   const fail = (stage: StudyStage, err: unknown) => {
     console.error(`[studyPackage] ${stage}`, err);
@@ -550,7 +608,7 @@ export async function createStudyPackage(
       }
       /* Read before uploading, so a deck of pictures or a damaged document is
          refused without leaving an empty material behind in the library. */
-      const office = isOfficeDoc(file) ? await planOfficeUpload(file) : null;
+      const office = isOfficeDoc(file) ? await planOfficeUpload(file, NOTES_READ.chars) : null;
       if (office?.kind === "unreadable") throw new Error(office.message);
       step(`Uploading ${file.name}…`);
       result.material = await materialsApi.uploadFile(
@@ -618,6 +676,7 @@ export async function createStudyPackage(
         source: notesSource,
         settings,
         persist: wantsNotes,
+        onPart: notesProgress,
       });
       if (wantsNotes) result.notes = generatedNotes;
     } catch (err) {
@@ -660,6 +719,7 @@ export async function createStudyPackage(
             material,
             source: { file },
             settings,
+            onPart: notesProgress,
           });
         } catch (err) {
           fail("notes", err);
@@ -675,6 +735,7 @@ export async function createStudyPackage(
             material,
             source: { inlineText: material.raw_content },
             settings,
+            onPart: notesProgress,
           });
         } catch (err) {
           fail("notes", err);

@@ -153,3 +153,47 @@ export function sectionExcerpt(markdown: string, max: number): string {
   const blocks = sections.map((s, i) => render(s, cutAtBoundary(s.body, allowance[i])));
   return [SHORTENED_NOTE, ...blocks].join("\n\n").slice(0, max);
 }
+
+/** A paragraph longer than a part, cut into pieces at word boundaries. */
+function wordChunks(paragraph: string, maxChars: number): string[] {
+  const chunks: string[] = [];
+  let chunk = "";
+  for (const word of paragraph.split(/\s+/)) {
+    if (chunk && chunk.length + 1 + word.length > maxChars) {
+      chunks.push(chunk);
+      chunk = "";
+    }
+    chunk = chunk ? `${chunk} ${word}` : word.slice(0, maxChars);
+  }
+  if (chunk) chunks.push(chunk);
+  return chunks;
+}
+
+/** Splits a long source into at most `maxParts` parts of roughly equal size,
+ *  each within `maxChars`, at paragraph boundaries. Used to write notes for a
+ *  long document in a few requests rather than reading only its opening.
+ *  Text that fits in one part comes back as a single part; anything beyond
+ *  `maxParts * maxChars` is not returned (the caller says so). */
+export function splitIntoParts(text: string, maxChars: number, maxParts: number): string[] {
+  if (text.length <= maxChars) return [text];
+  const count = Math.min(maxParts, Math.ceil(text.length / maxChars));
+  const target = Math.min(maxChars, Math.ceil(text.length / count));
+  const paragraphs = text.split(/\n\s*\n/);
+  const parts: string[] = [];
+  let current = "";
+  for (const paragraph of paragraphs) {
+    const pieces = paragraph.length > maxChars ? wordChunks(paragraph, maxChars) : [paragraph];
+    for (const piece of pieces) {
+      const joined = current ? `${current}\n\n${piece}` : piece;
+      if (current && (joined.length > maxChars || (current.length >= target && parts.length < count - 1))) {
+        parts.push(current);
+        if (parts.length === maxParts) return parts;
+        current = piece;
+      } else {
+        current = joined;
+      }
+    }
+  }
+  if (current && parts.length < maxParts) parts.push(current.slice(0, maxChars));
+  return parts;
+}

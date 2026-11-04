@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cutAtBoundary, sectionExcerpt, splitSections } from "./sourceExcerpt";
+import { cutAtBoundary, sectionExcerpt, splitIntoParts, splitSections } from "./sourceExcerpt";
 
 const sentence = (topic: string, n: number) => `${topic} fact number ${n} is worth remembering.`;
 const body = (topic: string, sentences: number) =>
@@ -81,5 +81,35 @@ describe("splitSections", () => {
       { heading: "## A", body: "alpha" },
       { heading: "### B", body: "beta" },
     ]);
+  });
+});
+
+describe("splitIntoParts", () => {
+  const para = (n: number) => `Paragraph ${n} ${"word ".repeat(40).trim()}.`;
+  const doc = Array.from({ length: 60 }, (_, n) => para(n)).join("\n\n");
+
+  it("keeps text that fits as one part", () => {
+    expect(splitIntoParts("short", 100, 3)).toEqual(["short"]);
+  });
+
+  it("splits into balanced parts within the limit, losing nothing", () => {
+    const parts = splitIntoParts(doc, doc.length / 2 + 500, 3);
+    expect(parts).toHaveLength(2);
+    for (const part of parts) expect(part.length).toBeLessThanOrEqual(doc.length / 2 + 500);
+    expect(parts.join("\n\n")).toBe(doc);
+    expect(Math.abs(parts[0].length - parts[1].length)).toBeLessThan(600);
+  });
+
+  it("stops at the part limit", () => {
+    const parts = splitIntoParts(doc, 2000, 3);
+    expect(parts).toHaveLength(3);
+    expect(parts[0].startsWith("Paragraph 0 ")).toBe(true);
+    for (const part of parts) expect(part.length).toBeLessThanOrEqual(2000);
+  });
+
+  it("cuts a paragraph longer than a part at a word", () => {
+    const parts = splitIntoParts("word ".repeat(100).trim(), 120, 3);
+    expect(parts.length).toBe(3);
+    for (const part of parts) expect(part.length).toBeLessThanOrEqual(120);
   });
 });

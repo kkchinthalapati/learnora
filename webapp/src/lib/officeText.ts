@@ -399,7 +399,10 @@ async function pptxToMarkdown(
 
 /* --- entry points ------------------------------------------------------ */
 
-export async function extractOfficeText(file: File): Promise<OfficeExtraction> {
+export async function extractOfficeText(
+  file: File,
+  maxChars = MAX_OFFICE_CHARS,
+): Promise<OfficeExtraction> {
   const kind = officeKind(file);
   if (!kind) throw new OfficeReadError(`"${file.name}" isn't a Word or PowerPoint file.`);
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -419,11 +422,11 @@ export async function extractOfficeText(file: File): Promise<OfficeExtraction> {
     ({ markdown: text, slideCount, slidesWithText } = await pptxToMarkdown(bytes, entries));
   }
 
-  const truncated = text.length > MAX_OFFICE_CHARS;
+  const truncated = text.length > maxChars;
   if (truncated) {
     // Cut at a paragraph boundary so the last block isn't half a sentence.
-    const cut = text.lastIndexOf("\n\n", MAX_OFFICE_CHARS);
-    text = text.slice(0, cut > MAX_OFFICE_CHARS / 2 ? cut : MAX_OFFICE_CHARS);
+    const cut = text.lastIndexOf("\n\n", maxChars);
+    text = text.slice(0, cut > maxChars / 2 ? cut : maxChars);
   }
   return { kind, text, truncated, slideCount, slidesWithText };
 }
@@ -435,10 +438,13 @@ export type OfficePlan =
 /** Decides what an Office upload becomes. Unlike a scanned PDF there is no
  *  attachment fallback — no provider reads the binary — so a file without
  *  readable text is refused with what to do instead. */
-export async function planOfficeUpload(file: File): Promise<OfficePlan> {
+export async function planOfficeUpload(
+  file: File,
+  maxChars = MAX_OFFICE_CHARS,
+): Promise<OfficePlan> {
   let extraction: OfficeExtraction;
   try {
-    extraction = await extractOfficeText(file);
+    extraction = await extractOfficeText(file, maxChars);
   } catch (err) {
     console.warn("[officeText] Could not read the document.", err);
     return {
