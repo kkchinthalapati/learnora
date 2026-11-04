@@ -532,7 +532,7 @@ export function NotesAiSidebar({
             <input
               type="file"
               hidden
-              accept=".pdf,.docx,.pptx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg"
+              accept=".pdf,.docx,.pptx,.xlsx,.epub,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg"
               onChange={(e) => {
                 const picked = e.target.files?.[0];
                 if (picked) attachFile(picked);

@@ -239,3 +239,65 @@ describe("planOfficeUpload", () => {
     expect(plan).toEqual({ kind: "unreadable", message: expect.stringMatching(/valid Office document/) });
   });
 });
+
+describe("extractOfficeText — xlsx", () => {
+  const S = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+  function xlsx(): File {
+    return new File(
+      [
+        makeZip({
+          "xl/workbook.xml": `<?xml version="1.0"?><workbook ${S}><sheets><sheet name="Vocab" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+          "xl/_rels/workbook.xml.rels": `<?xml version="1.0"?><Relationships><Relationship Id="rId1" Type="x/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`,
+          "xl/sharedStrings.xml": `<?xml version="1.0"?><sst ${S}><si><t>Term</t></si><si><t>Meaning</t></si><si><t>Osmosis</t></si><si><r><t>Water </t></r><r><t>diffusion</t></r></si></sst>`,
+          "xl/worksheets/sheet1.xml": `<?xml version="1.0"?><worksheet ${S}><sheetData>
+            <row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="C1" t="inlineStr"><is><t>Marks</t></is></c></row>
+            <row r="2"><c r="A2" t="s"><v>2</v></c><c r="B2" t="s"><v>3</v></c><c r="C2"><v>4</v></c></row>
+            <row r="3"><c r="C3"><v>7</v></c></row>
+          </sheetData></worksheet>`,
+        }) as Uint8Array<ArrayBuffer>,
+      ],
+      "biology.xlsx",
+    );
+  }
+
+  it("reads each sheet as a table, keeping blank cells in their columns", async () => {
+    const result = await extractOfficeText(xlsx());
+    expect(result.kind).toBe("xlsx");
+    expect(result.text).toBe(
+      "## Sheet: Vocab\n| Term | Meaning | Marks |\n| Osmosis | Water diffusion | 4 |\n|  |  | 7 |",
+    );
+  });
+});
+
+describe("extractOfficeText — epub", () => {
+  function epub(): File {
+    const chapter = (title: string, body: string) =>
+      `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>x</title><style>p{}</style></head><body><nav>Contents</nav><h1>${title}</h1>${body}</body></html>`;
+    return new File(
+      [
+        makeZip({
+          mimetype: "application/epub+zip",
+          "META-INF/container.xml": `<?xml version="1.0"?><container><rootfiles><rootfile full-path="OEBPS/content.opf"/></rootfiles></container>`,
+          "OEBPS/content.opf": `<?xml version="1.0"?><package><manifest><item id="c2" href="text/ch2.xhtml"/><item id="c1" href="text/ch1.xhtml"/></manifest><spine><itemref idref="c1"/><itemref idref="c2"/></spine></package>`,
+          "OEBPS/text/ch1.xhtml": chapter("Cells", "<p>All living things are made of cells.</p><ul><li><p>Nucleus</p></li><li>Membrane</li></ul>"),
+          "OEBPS/text/ch2.xhtml": chapter("Enzymes", "<p>Enzymes are biological catalysts.</p>"),
+        }) as Uint8Array<ArrayBuffer>,
+      ],
+      "biology.epub",
+    );
+  }
+
+  it("reads chapters in spine order, without navigation or styles", async () => {
+    const result = await extractOfficeText(epub());
+    expect(result.kind).toBe("epub");
+    expect(result.text).toBe(
+      "## Cells\n\nAll living things are made of cells.\n\n- Nucleus\n\n- Membrane\n\n## Enzymes\n\nEnzymes are biological catalysts.",
+    );
+  });
+});
+
+describe("legacy formats", () => {
+  it("points an old Excel file at .xlsx or CSV", () => {
+    expect(isLegacyOffice({ name: "marks.xls" })).toBe(true);
+  });
+});

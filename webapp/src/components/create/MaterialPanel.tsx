@@ -78,7 +78,7 @@ type Difficulty = typeof CREATE_DEFAULTS.difficulty;
 /* Documents and recordings, plus photos of a whiteboard, worksheet or
    textbook page — those are shrunk in the browser first (lib/studyImage.ts)
    and read by the one provider that can see images. */
-const UPLOAD_ACCEPT = `.pdf,.docx,.pptx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg,${STUDY_IMAGE_ACCEPT}`;
+const UPLOAD_ACCEPT = `.pdf,.docx,.pptx,.xlsx,.epub,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg,${STUDY_IMAGE_ACCEPT}`;
 
 const FOLDER_COLORS = ["#4A90E2", "#E24A4A", "#4AE283", "#E2A84A", "#9B4AE2"];
 const PERSONALITY_DESC: Record<string, string> = {
@@ -764,7 +764,7 @@ export function MaterialPanel({
                 <div className={styles.dropzonePrompt}>
                   <strong>Drop a file here, or browse</strong>
                   <span>
-                    PDF, Word, PowerPoint, text, audio, video, or a photo of a whiteboard,
+                    PDF, Word, PowerPoint, Excel, EPUB, text, audio, video, or a photo of a whiteboard,
                     worksheet or textbook page · up to 10MB
                   </span>
                 </div>

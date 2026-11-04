@@ -42,7 +42,8 @@ const W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
-export type OfficeKind = "docx" | "pptx";
+/** Every format here is a ZIP of XML: Word, PowerPoint, Excel and EPUB. */
+export type OfficeKind = "docx" | "pptx" | "xlsx" | "epub";
 
 export interface OfficeExtraction {
   kind: OfficeKind;
@@ -64,12 +65,24 @@ export class OfficeReadError extends Error {
 
 const DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const PPTX_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const EPUB_TYPE = "application/epub+zip";
 
 export function officeKind(file: { name: string; type?: string }): OfficeKind | null {
   if (/\.docx$/i.test(file.name || "") || file.type === DOCX_TYPE) return "docx";
   if (/\.pptx$/i.test(file.name || "") || file.type === PPTX_TYPE) return "pptx";
+  if (/\.xlsx$/i.test(file.name || "") || file.type === XLSX_TYPE) return "xlsx";
+  if (/\.epub$/i.test(file.name || "") || file.type === EPUB_TYPE) return "epub";
   return null;
 }
+
+/** How a kind is named in messages to the student and the model. */
+export const KIND_NOUN: Record<OfficeKind, string> = {
+  docx: "document",
+  pptx: "deck",
+  xlsx: "spreadsheet",
+  epub: "book",
+};
 
 export function isOfficeDoc(file: { name: string; type?: string }): boolean {
   return officeKind(file) !== null;
@@ -79,15 +92,20 @@ export function isOfficeDoc(file: { name: string; type?: string }): boolean {
  *  the chain reads them, so they are turned away with a way forward. */
 export function isLegacyOffice(file: { name: string; type?: string }): boolean {
   return (
-    /\.(doc|ppt)$/i.test(file.name || "") ||
+    /\.(doc|ppt|xls)$/i.test(file.name || "") ||
     file.type === "application/msword" ||
-    file.type === "application/vnd.ms-powerpoint"
+    file.type === "application/vnd.ms-powerpoint" ||
+    file.type === "application/vnd.ms-excel"
   );
 }
 
 export function legacyOfficeMessage(name: string): string {
-  const slides = /\.ppt$/i.test(name);
-  return `"${name}" is an older ${slides ? "PowerPoint" : "Word"} format Learnora can't read. Save it as ${slides ? ".pptx" : ".docx"} or PDF and upload that instead.`;
+  const [app, modern, other] = /\.ppt$/i.test(name)
+    ? ["PowerPoint", ".pptx", "PDF"]
+    : /\.xls$/i.test(name)
+      ? ["Excel", ".xlsx", "CSV"]
+      : ["Word", ".docx", "PDF"];
+  return `"${name}" is an older ${app} format Learnora can't read. Save it as ${modern} or ${other} and upload that instead.`;
 }
 
 /* --- ZIP --------------------------------------------------------------- */
@@ -397,6 +415,152 @@ async function pptxToMarkdown(
   return { markdown: sections.join("\n\n"), slideCount: slidePaths.length, slidesWithText };
 }
 
+/* --- shared part reading ------------------------------------------------ */
+
+function partReader(bytes: Uint8Array, entries: Map<string, ZipEntry>) {
+  return async (path: string): Promise<Document | null> => {
+    const entry = entries.get(path);
+    return entry ? parseXml(await readZipPart(bytes, entry)) : null;
+  };
+}
+
+/* --- .xlsx ------------------------------------------------------------- */
+
+/** Rows read per sheet: a study spreadsheet is a vocabulary list or a table
+ *  of results, not a dataset; past this the rest is said to be missing. */
+const MAX_SHEET_ROWS = 400;
+
+/** "C12" → 2: a cell's column from its reference, so a row with blanks keeps
+ *  its values under the right headers. */
+export function columnIndex(ref: string): number {
+  const letters = /^[A-Z]+/i.exec(ref)?.[0].toUpperCase() ?? "";
+  let n = 0;
+  for (const ch of letters) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return Math.max(0, n - 1);
+}
+
+function cellText(cell: Element, shared: string[]): string {
+  const type = cell.getAttribute("t");
+  if (type === "inlineStr") {
+    return Array.from(cell.getElementsByTagName("*"))
+      .filter((el) => el.localName === "t")
+      .map((el) => el.textContent ?? "")
+      .join("");
+  }
+  const value = Array.from(cell.children).find((el) => el.localName === "v")?.textContent ?? "";
+  if (type === "s") return shared[Number(value)] ?? "";
+  if (type === "b") return value === "1" ? "TRUE" : "FALSE";
+  return value;
+}
+
+async function xlsxToMarkdown(bytes: Uint8Array, entries: Map<string, ZipEntry>): Promise<string> {
+  const read = partReader(bytes, entries);
+  const sharedDoc = await read("xl/sharedStrings.xml");
+  const shared = sharedDoc
+    ? Array.from(sharedDoc.getElementsByTagName("*"))
+        .filter((el) => el.localName === "si")
+        .map((si) =>
+          Array.from(si.getElementsByTagName("*"))
+            .filter((el) => el.localName === "t")
+            .map((t) => t.textContent ?? "")
+            .join(""),
+        )
+    : [];
+
+  const workbook = await read("xl/workbook.xml");
+  const rels = await read("xl/_rels/workbook.xml.rels");
+  const targets = new Map(rels ? relationships(rels).map((r) => [r.id, r.target]) : []);
+  const sheets = workbook
+    ? Array.from(workbook.getElementsByTagName("*"))
+        .filter((el) => el.localName === "sheet")
+        .map((el) => ({
+          name: el.getAttribute("name") ?? "Sheet",
+          path: resolvePart("xl", targets.get(attr(el, R_NS, "id")) ?? ""),
+        }))
+        .filter((s) => s.path.endsWith(".xml"))
+    : [];
+
+  const sections: string[] = [];
+  for (const sheet of sheets) {
+    const doc = await read(sheet.path);
+    if (!doc) continue;
+    const rows = Array.from(doc.getElementsByTagName("*")).filter((el) => el.localName === "row");
+    const lines: string[] = [];
+    for (const row of rows.slice(0, MAX_SHEET_ROWS)) {
+      const values: string[] = [];
+      for (const cell of Array.from(row.children).filter((el) => el.localName === "c")) {
+        values[columnIndex(cell.getAttribute("r") ?? "")] = cellText(cell, shared).replace(/\s+/g, " ").trim();
+      }
+      const filled = Array.from(values, (v) => v ?? "");
+      if (filled.some(Boolean)) lines.push(`| ${filled.join(" | ")} |`);
+    }
+    if (!lines.length) continue;
+    const more = rows.length > MAX_SHEET_ROWS ? `\n\n(${rows.length - MAX_SHEET_ROWS} more rows not read.)` : "";
+    sections.push(`## Sheet: ${sheet.name}\n${lines.join("\n")}${more}`);
+  }
+  return sections.join("\n\n");
+}
+
+/* --- .epub ------------------------------------------------------------- */
+
+/** Pure: Markdown for one XHTML chapter — headings, paragraphs, list items
+ *  and quotes, in order; scripts, styles and navigation chrome dropped. */
+export function chapterToMarkdown(html: string): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.querySelectorAll("script, style, nav").forEach((el) => el.remove());
+  const blocks: string[] = [];
+  for (const el of Array.from(doc.body.querySelectorAll("h1, h2, h3, h4, p, li, blockquote, td"))) {
+    // A block nested in another block (a <p> inside an <li>) is read once.
+    if (el.parentElement?.closest("p, li, blockquote, td")) continue;
+    const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
+    if (!text) continue;
+    const level = /^H([1-4])$/.exec(el.tagName)?.[1];
+    if (level) blocks.push(`${"#".repeat(Number(level) + 1)} ${text}`);
+    else if (el.tagName === "LI") blocks.push(`- ${text}`);
+    else blocks.push(text);
+  }
+  return blocks.join("\n\n");
+}
+
+async function epubToMarkdown(bytes: Uint8Array, entries: Map<string, ZipEntry>): Promise<string> {
+  const read = partReader(bytes, entries);
+  const container = await read("META-INF/container.xml");
+  const opfPath = container
+    ? Array.from(container.getElementsByTagName("*"))
+        .find((el) => el.localName === "rootfile")
+        ?.getAttribute("full-path")
+    : null;
+  if (!opfPath) throw new OfficeReadError("That EPUB has no table of contents Learnora can follow.");
+  const opf = await read(opfPath);
+  if (!opf) throw new OfficeReadError("That EPUB has no table of contents Learnora can follow.");
+
+  const baseDir = opfPath.includes("/") ? opfPath.slice(0, opfPath.lastIndexOf("/")) : "";
+  const all = Array.from(opf.getElementsByTagName("*"));
+  const hrefs = new Map(
+    all.filter((el) => el.localName === "item").map((el) => [el.getAttribute("id") ?? "", el.getAttribute("href") ?? ""]),
+  );
+  // The spine is the reading order; the manifest alone is just a file list.
+  const chapters = all
+    .filter((el) => el.localName === "itemref" && el.getAttribute("linear") !== "no")
+    .map((el) => hrefs.get(el.getAttribute("idref") ?? ""))
+    .filter((href): href is string => Boolean(href))
+    .map((href) => resolvePart(baseDir, decodeURIComponent(href.split("#")[0])));
+
+  const parts: string[] = [];
+  let length = 0;
+  for (const path of chapters) {
+    const entry = entries.get(path);
+    if (!entry) continue;
+    const markdown = chapterToMarkdown(await readZipPart(bytes, entry));
+    if (!markdown) continue;
+    parts.push(markdown);
+    length += markdown.length;
+    // A whole novel is far past what is read; stop once there is enough.
+    if (length > MAX_OFFICE_CHARS * 4) break;
+  }
+  return parts.join("\n\n");
+}
+
 /* --- entry points ------------------------------------------------------ */
 
 export async function extractOfficeText(
@@ -404,7 +568,7 @@ export async function extractOfficeText(
   maxChars = MAX_OFFICE_CHARS,
 ): Promise<OfficeExtraction> {
   const kind = officeKind(file);
-  if (!kind) throw new OfficeReadError(`"${file.name}" isn't a Word or PowerPoint file.`);
+  if (!kind) throw new OfficeReadError(`"${file.name}" isn't a document Learnora can read.`);
   const bytes = new Uint8Array(await file.arrayBuffer());
   const entries = readZipDirectory(bytes);
 
@@ -415,6 +579,16 @@ export async function extractOfficeText(
     const entry = entries.get("word/document.xml");
     if (!entry) throw new OfficeReadError("That file isn't a valid Word document.");
     text = docxToMarkdown(parseXml(await readZipPart(bytes, entry)));
+  } else if (kind === "xlsx") {
+    if (!entries.has("xl/workbook.xml")) {
+      throw new OfficeReadError("That file isn't a valid Excel spreadsheet.");
+    }
+    text = await xlsxToMarkdown(bytes, entries);
+  } else if (kind === "epub") {
+    if (!entries.has("META-INF/container.xml")) {
+      throw new OfficeReadError("That file isn't a valid EPUB book.");
+    }
+    text = await epubToMarkdown(bytes, entries);
   } else {
     if (!entries.has("ppt/presentation.xml")) {
       throw new OfficeReadError("That file isn't a valid PowerPoint deck.");
@@ -472,7 +646,7 @@ export function officeExtractionNote(extraction: OfficeExtraction): string {
   const notes: string[] = [];
   if (extraction.truncated) {
     notes.push(
-      `Only the first part of this ${extraction.kind === "pptx" ? "deck" : "document"} was read because it is long. Say so if the material appears to stop mid-topic.`,
+      `Only the first part of this ${KIND_NOUN[extraction.kind]} was read because it is long. Say so if the material appears to stop mid-topic.`,
     );
   }
   if (extraction.kind === "pptx" && extraction.slidesWithText < extraction.slideCount) {

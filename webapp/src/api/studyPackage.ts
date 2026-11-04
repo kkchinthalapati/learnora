@@ -104,12 +104,12 @@ const YOUTUBE_LINK = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//;
    could not read it, and its "please share the material" reply was saved as
    the lesson's notes. Checked by extension or by declared type, because a
    file from Google Drive can arrive with a type but no extension. Word and
-   PowerPoint are read as text in the browser (lib/officeText.ts); the old
-   binary .doc/.ppt are not, so they are refused with their own message. */
+   PowerPoint (and Excel and EPUB) are read as text in the browser
+   (lib/officeText.ts); the old binary .doc/.ppt/.xls are not, so they are refused with their own message. */
 const STUDY_FILE_EXTENSION =
-  /\.(pdf|docx|pptx|txt|md|csv|mp3|mp4|wav|m4a|aac|ogg|webm|jpe?g|png|webp)$/i;
+  /\.(pdf|docx|pptx|xlsx|epub|txt|md|csv|mp3|mp4|wav|m4a|aac|ogg|webm|jpe?g|png|webp)$/i;
 const STUDY_FILE_TYPE =
-  /^(application\/pdf|application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|presentationml\.presentation)|text\/(plain|markdown|csv)|audio\/.+|video\/(mp4|webm)|image\/(jpeg|png|webp))$/i;
+  /^(application\/pdf|application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|presentationml\.presentation|spreadsheetml\.sheet)|application\/epub\+zip|text\/(plain|markdown|csv)|audio\/.+|video\/(mp4|webm)|image\/(jpeg|png|webp))$/i;
 
 export function isStudyFile(file: { name: string; type?: string }): boolean {
   return STUDY_FILE_EXTENSION.test(file.name || "") || STUDY_FILE_TYPE.test(file.type || "");
@@ -118,7 +118,7 @@ export function isStudyFile(file: { name: string; type?: string }): boolean {
 /** Said wherever a file is refused, so every way in uses the same words. */
 export function unsupportedFileMessage(name: string): string {
   if (isLegacyOffice({ name })) return legacyOfficeMessage(name);
-  return `Learnora can't read "${name}". Use a PDF, Word or PowerPoint file, text file, photo or audio recording.`;
+  return `Learnora can't read "${name}". Use a PDF, Word, PowerPoint or Excel file, an EPUB book, a text file, a photo or an audio recording.`;
 }
 
 /** Thrown when the model replied but the reply was too short to be a study

@@ -29,6 +29,8 @@ const PICK_MIME = [
   "application/vnd.google-apps.presentation",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/epub+zip",
   "text/plain",
   "image/jpeg",
   "image/png",
