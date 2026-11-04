@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "../../../components/Button";
 import { EmptyState } from "../../../components/EmptyState";
 import { Skeleton } from "../../../components/Skeleton";
@@ -8,7 +8,7 @@ import { useAllDueFlashcards, useUpdateFlashcardReview } from "../../../hooks/us
 import { useToast } from "../../../context/toast";
 import { nextReviewState } from "../../review/srs";
 import { SessionComposer } from "../SessionComposer";
-import { pickRecallCards, RECALL_RATINGS } from "./recall";
+import { checkRecall, isOverrated, pickRecallCards, RECALL_RATINGS } from "./recall";
 import type { ModeProps } from "../modeTypes";
 import text from "../../../styles/text.module.css";
 import styles from "../session.module.css";
@@ -20,6 +20,10 @@ export interface RecallData {
   index: number;
   revealed: boolean;
   typed?: string;
+  /** Answers typed before revealing, across the session. */
+  typedCount?: number;
+  /** Cards kept at "Got it" although the typed answer didn't support it. */
+  overrated?: string[];
 }
 
 export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
@@ -65,6 +69,13 @@ export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
   const card = cards[index];
   const revealed = data?.revealed ?? false;
   const done = session.status === "done" || (cards.length > 0 && index >= cards.length);
+  const check = useMemo(
+    () => (revealed && card ? checkRecall(data?.typed, card.back) : null),
+    [revealed, card, data?.typed],
+  );
+  /* Asking once before a "Got it" the typed answer doesn't support. */
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => setConfirming(false), [index]);
 
   const save = useCallback(
     (patch: Partial<RecallData>) =>
@@ -83,8 +94,13 @@ export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
   }, [card, revealed, save]);
 
   const rate = useCallback(
-    (quality: number) => {
+    (quality: number, confirmed = false) => {
       if (!card || !revealed) return;
+      if (isOverrated(check, quality) && !confirmed) {
+        setConfirming(true);
+        return;
+      }
+      const kept = isOverrated(check, quality);
       const next = nextReviewState(card, quality);
       updateReview.mutate(
         {
@@ -110,11 +126,20 @@ export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
         status: nextIndex >= cards.length ? "done" : s.status,
         data: {
           ...s.data,
-          recall: { ...(s.data.recall as RecallData), index: nextIndex, revealed: false, typed: undefined },
+          recall: {
+            ...(s.data.recall as RecallData),
+            index: nextIndex,
+            revealed: false,
+            typed: undefined,
+            typedCount: ((s.data.recall as RecallData).typedCount ?? 0) + (check ? 1 : 0),
+            overrated: kept
+              ? [...((s.data.recall as RecallData).overrated ?? []), card.id]
+              : (s.data.recall as RecallData).overrated,
+          },
         },
       }));
     },
-    [card, revealed, updateReview, showToast, index, ctl, cards.length],
+    [card, revealed, check, updateReview, showToast, index, ctl, cards.length],
   );
 
   /* Space reveals; 1 · 2 · 3 rate. Not while typing in the composer. */
@@ -128,11 +153,17 @@ export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
         return;
       }
       const rating = RECALL_RATINGS.find((r) => r.key === e.key);
-      if (rating && revealed) rate(rating.quality);
+      // While asking, 3 keeps "Got it" and any other rating key replaces it.
+      if (rating && revealed) rate(rating.quality, confirming);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [reveal, rate, revealed]);
+  }, [reveal, rate, revealed, confirming]);
+
+  const typedCount = data?.typedCount ?? 0;
+  const secondLook = (data?.overrated ?? [])
+    .map((id) => cards.find((c) => c.id === id))
+    .filter((c): c is Flashcard => Boolean(c));
 
   if (dueQuery.isPending || !picked) {
     return (
@@ -168,8 +199,25 @@ export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
           {done ? (
             <EmptyState
               title="That's the set."
-              message={`${cards.length} cards reviewed. Each one is rescheduled for when it would start to slip.`}
-            />
+              message={`${cards.length} cards reviewed. Each one is rescheduled for when it would start to slip.${
+                typedCount
+                  ? ` You typed ${typedCount} of ${cards.length} answers, so those ratings were checked against what you wrote.`
+                  : " Next time, type each answer before revealing it, and your ratings are checked against what you wrote."
+              }`}
+            >
+              {secondLook.length > 0 ? (
+                <div className={styles.secondLook}>
+                  <p className={styles.caption}>
+                    You kept these at “Got it”, but your answer left out key words. Worth a second look:
+                  </p>
+                  <ul>
+                    {secondLook.map((c) => (
+                      <li key={c.id}>{c.front}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </EmptyState>
           ) : card ? (
             <>
               <span className={text.meta}>
@@ -183,27 +231,60 @@ export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
                     {data?.typed ? (
                       <p className={styles.caption}>You said: {data.typed}</p>
                     ) : null}
+                    {check ? (
+                      <p className={styles.recallCheck}>
+                        {check.missed.length === 0 ? (
+                          "Your answer has every key word on the card."
+                        ) : (
+                          <>
+                            Not in your answer: <strong>{check.missed.slice(0, 6).join(", ")}</strong>
+                          </>
+                        )}
+                      </p>
+                    ) : null}
                     <p className={styles.recallAnswer}>{card.back}</p>
                   </>
                 ) : (
                   <p className={styles.caption}>Say it or type it before revealing.</p>
                 )}
               </div>
-              {revealed ? (
-                <div className={styles.ratings} role="group" aria-label="How did you do?">
-                  {RECALL_RATINGS.map((r) => (
-                    <button
-                      key={r.key}
-                      type="button"
-                      className={styles.rating}
-                      onClick={() => rate(r.quality)}
-                    >
-                      {r.label}
-                      <span className={styles.ratingKey} aria-hidden="true">
-                        {r.key}
-                      </span>
+              {revealed && confirming && check ? (
+                <div className={styles.ratingConfirm} role="group" aria-label="Check your rating">
+                  <p className={styles.caption}>
+                    Your answer didn't include <strong>{check.missed.slice(0, 4).join(", ")}</strong>.
+                    “Got it” moves this card weeks away. Did you know it anyway?
+                  </p>
+                  <div className={styles.ratings}>
+                    <button type="button" className={styles.rating} onClick={() => rate(3, true)}>
+                      Yes, I knew it
+                      <span className={styles.ratingKey} aria-hidden="true">3</span>
                     </button>
-                  ))}
+                    <button type="button" className={styles.rating} onClick={() => rate(2)}>
+                      Count it as Hard
+                      <span className={styles.ratingKey} aria-hidden="true">2</span>
+                    </button>
+                  </div>
+                </div>
+              ) : revealed ? (
+                <div className={styles.ratings} role="group" aria-label="How did you do?">
+                  {RECALL_RATINGS.map((r) => {
+                    const suggested = check?.suggested === r.quality;
+                    return (
+                      <button
+                        key={r.key}
+                        type="button"
+                        className={styles.rating}
+                        data-suggested={suggested || undefined}
+                        aria-label={suggested ? `${r.label} (what your answer suggests)` : undefined}
+                        onClick={() => rate(r.quality)}
+                      >
+                        {r.label}
+                        <span className={styles.ratingKey} aria-hidden="true">
+                          {suggested ? `${r.key} · suggested` : r.key}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <Button variant="primary" size="lg" onClick={reveal}>
