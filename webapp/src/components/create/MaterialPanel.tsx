@@ -764,7 +764,7 @@ export function MaterialPanel({
                 <div className={styles.dropzonePrompt}>
                   <strong>Drop a file here, or browse</strong>
                   <span>
-                    PDF, Word, PowerPoint, Excel, EPUB, text, audio, video, or a photo of a whiteboard,
+                    Notes, slides, a chapter or a recording, or a photo of a whiteboard,
                     worksheet or textbook page · up to 10MB
                   </span>
                 </div>

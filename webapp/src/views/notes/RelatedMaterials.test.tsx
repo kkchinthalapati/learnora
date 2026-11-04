@@ -40,7 +40,7 @@ describe("RelatedMaterials", () => {
     const onAsk = vi.fn();
     renderWithProviders(<RelatedMaterials materialId="bio" onAsk={onAsk} />, undefined, { withRouter: true });
 
-    const link = await screen.findByRole("link", { name: "Solutions" });
+    const link = await screen.findByRole("link", { name: /^Solutions/ });
     expect(link).toHaveAttribute("href", "/notes/chem");
     expect(screen.getByText(/Also covers Osmosis, partially permeable membrane/)).toBeInTheDocument();
 
@@ -59,6 +59,6 @@ describe("RelatedMaterials", () => {
     ]);
     renderWithProviders(<RelatedMaterials materialId="bio" onAsk={() => {}} />, undefined, { withRouter: true });
     await new Promise((r) => setTimeout(r, 50));
-    expect(screen.queryByText("In your other materials")).not.toBeInTheDocument();
+    expect(screen.queryByText("In your other lessons")).not.toBeInTheDocument();
   });
 });

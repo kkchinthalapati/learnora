@@ -17,7 +17,15 @@ import {
 import { INTERVENTION_BLOCK_MINS, type Verdict } from "../../lib/trajectory";
 import { TrajectoryChart } from "./TrajectoryChart";
 import { QuizOnlyForecast } from "./QuizOnlyForecast";
-import { MIN_FORECAST_EVIDENCE, MIN_TOPIC_EVIDENCE } from "../../lib/trajectory";
+import { masteryLevel, MIN_FORECAST_EVIDENCE, MIN_TOPIC_EVIDENCE } from "../../lib/trajectory";
+
+/* A topic's measured standing in words (DESIGN.md 0.6: numbers say what they
+   count, and this is an estimate, not a count). */
+const MEASURED_WORDS = {
+  low: "Shaky on your checks so far",
+  building: "Building, on your checks so far",
+  solid: "Solid on your checks so far",
+} as const;
 import styles from "./trajectory.module.css";
 
 /* The screen that answers "is what I'm doing going to be enough?"
@@ -275,7 +283,7 @@ export function TrajectoryBody() {
                 </span>
                 <span className={styles.interventionMeta}>
                   {item.measuredEvidence >= MIN_TOPIC_EVIDENCE
-                    ? `${Math.round(item.measuredMastery * 100)}% on checks so far`
+                    ? MEASURED_WORDS[masteryLevel(item.measuredMastery)]
                     : "Not checked yet"}
                 </span>
               </div>
