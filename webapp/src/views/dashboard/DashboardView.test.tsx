@@ -88,6 +88,8 @@ function serveDashboard({
     http.get(rest("quizzes"), () => HttpResponse.json([])),
     http.get(rest("quiz_attempts"), () => HttpResponse.json([])),
     http.get(rest("notebooks"), () => HttpResponse.json([])),
+    // Read by the chat for passages of the student's own notes.
+    http.get(rest("notes"), () => HttpResponse.json([])),
     http.post(`${SUPABASE_URL}/functions/v1/web-research`, () =>
       HttpResponse.json({ query: "", results: [] }),
     ),

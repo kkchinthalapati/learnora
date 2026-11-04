@@ -11,7 +11,23 @@ import { useFolders, useAddFolder } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useQuizDraft } from "../../hooks/useQuizDraft";
 import { Storage } from "../../lib/storage";
-import { isPdf, planPdfUpload } from "../../lib/pdfText";
+import {
+  isPdf,
+  MAX_NOTES_PARTS,
+  MAX_PDF_CHARS,
+  NOTES_READ,
+  planPdfUpload,
+} from "../../lib/pdfText";
+
+/* Said when a file is read in full but in parts (api/studyPackage.ts
+   generateNotes), so the longer wait has a reason. */
+function partsNote(chars: number): string | null {
+  const parts = Math.min(MAX_NOTES_PARTS, Math.ceil(chars / MAX_PDF_CHARS));
+  return parts > 1
+    ? `This is a long file, so its notes are written in ${parts} parts. It takes a little longer.`
+    : null;
+}
+import { isOfficeDoc, planOfficeUpload } from "../../lib/officeText";
 import {
   GOOGLE_DRIVE_ENABLED,
   importFromDrive,
@@ -62,7 +78,7 @@ type Difficulty = typeof CREATE_DEFAULTS.difficulty;
 /* Documents and recordings, plus photos of a whiteboard, worksheet or
    textbook page — those are shrunk in the browser first (lib/studyImage.ts)
    and read by the one provider that can see images. */
-const UPLOAD_ACCEPT = `.pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg,${STUDY_IMAGE_ACCEPT}`;
+const UPLOAD_ACCEPT = `.pdf,.docx,.pptx,.xlsx,.epub,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg,${STUDY_IMAGE_ACCEPT}`;
 
 const FOLDER_COLORS = ["#4A90E2", "#E24A4A", "#4AE283", "#E2A84A", "#9B4AE2"];
 const PERSONALITY_DESC: Record<string, string> = {
@@ -138,16 +154,50 @@ export function MaterialPanel({
   });
 
   const [file, setFile] = useState<File | null>(null);
-  /* Set when a chosen PDF has no usable text layer: it will be sent as an
-     attachment for OCR, which is slower and less reliable than text. */
+  /* Set when a chosen file will be read less than fully: a PDF with no
+     text layer goes to OCR, and a long PDF or document is cut to fit. The
+     model is told either way; this tells the student. */
   const [fileWarning, setFileWarning] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     setFileWarning(null);
+    /* A Word or PowerPoint file is read now, so a deck of pictures is
+       turned away at the pick rather than after the upload. */
+    if (file && isOfficeDoc(file)) {
+      planOfficeUpload(file, NOTES_READ.chars).then((plan) => {
+        if (cancelled) return;
+        if (plan.kind === "unreadable") {
+          setFile(null);
+          setError(plan.message);
+        } else if (plan.extraction.truncated) {
+          setFileWarning(
+            "This file is very long, so only its first part will be read. For full coverage, upload it in parts — a chapter or a section at a time.",
+          );
+        } else {
+          setFileWarning(partsNote(plan.text.length));
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     if (!file || !isPdf(file)) return;
-    planPdfUpload(file)
+    planPdfUpload(file, NOTES_READ)
       .then((plan) => {
-        if (cancelled || plan.kind !== "attach" || plan.reason !== "scanned") return;
+        if (cancelled) return;
+        if (plan.kind === "inline" && plan.extraction.truncated) {
+          setFileWarning(
+            plan.extraction.pageCount > plan.extraction.pagesRead
+              ? `Only the first ${plan.extraction.pagesRead} of ${plan.extraction.pageCount} pages will be read. For full coverage, upload it in parts — a chapter at a time.`
+              : "This PDF is very long, so only its first part will be read. For full coverage, upload it in parts — a chapter at a time.",
+          );
+          return;
+        }
+        if (plan.kind === "inline") {
+          setFileWarning(partsNote(plan.text.length));
+          return;
+        }
+        if (plan.kind !== "attach" || plan.reason !== "scanned") return;
         setFileWarning(
           "This PDF looks scanned (no text layer). It will be read by OCR, so notes may take longer and miss handwriting or faint print.",
         );
@@ -714,7 +764,7 @@ export function MaterialPanel({
                 <div className={styles.dropzonePrompt}>
                   <strong>Drop a file here, or browse</strong>
                   <span>
-                    PDF, Word, text, audio, video, or a photo of a whiteboard,
+                    Notes, slides, a chapter or a recording, or a photo of a whiteboard,
                     worksheet or textbook page · up to 10MB
                   </span>
                 </div>

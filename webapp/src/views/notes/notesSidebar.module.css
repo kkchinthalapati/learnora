@@ -415,3 +415,27 @@
     transition: none;
   }
 }
+
+/* "In your other lessons": the same concepts elsewhere in the library. */
+.related {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  flex-shrink: 0;
+}
+
+.relatedAsk {
+  padding: var(--s-1) var(--s-2);
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.relatedAsk:hover,
+.relatedAsk:focus-visible {
+  text-decoration: underline;
+}

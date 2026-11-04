@@ -3,6 +3,7 @@ import {
   DEFAULT_TARGET_SCORE,
   EVENT_HORIZON_DAYS,
   INTERVENTION_BLOCK_MINS,
+  MIN_TOPIC_EVIDENCE,
   MAX_CONFIDENCE_BAND,
   SCORE_EVENT_WEIGHT,
   TIME_EVENT_EVIDENCE,
@@ -838,5 +839,24 @@ describe("the Missed questions pile is not a topic", () => {
     ] as never[];
     const states = buildTopicStates({ decks, cards: [], attempts: [], now: new Date("2026-10-01") });
     expect(states.map((t) => t.label)).toEqual(["Enzymes"]);
+  });
+});
+
+describe("per-topic figures shown to the student", () => {
+  it("never calls timer minutes alone a fading memory", () => {
+    const f = forecast({
+      examName: "Chemistry Paper 1",
+      examDate: EXAM,
+      today: TODAY,
+      plannedMinutes: plan(90),
+      topics: evenly([
+        topic({ id: "timed-only", mastery: 0.4, evidence: 0.6, measuredMastery: 0.25, measuredEvidence: 0 }),
+        topic({ id: "checked", mastery: 0.4, evidence: 0.6, measuredMastery: 0.4, measuredEvidence: 0.6 }),
+      ]),
+    });
+    const byId = Object.fromEntries(f.interventions.map((i) => [i.topicId, i]));
+    expect(byId["timed-only"].atRisk).toBe(false);
+    expect(byId.checked.atRisk).toBe(true);
+    expect(byId["timed-only"].measuredEvidence).toBeLessThan(MIN_TOPIC_EVIDENCE);
   });
 });

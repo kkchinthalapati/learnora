@@ -18,6 +18,8 @@ function intervention(
     points: 3,
     pointsPerHour: 4,
     mastery: 0.3,
+    measuredMastery: 0.3,
+    measuredEvidence: 0.3,
     atRisk: false,
     ...patch,
   };

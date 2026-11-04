@@ -11,6 +11,7 @@ import { decksApi } from "../../api/decks";
 import { flashcardsApi } from "../../api/flashcards";
 import { CREATE_DEFAULTS, generateDeck } from "../../api/studyPackage";
 import { generateQuizFrom } from "../../api/aiQuiz";
+import { sectionExcerpt } from "../../lib/sourceExcerpt";
 import { useToast } from "../../context/toast";
 import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
@@ -228,7 +229,7 @@ export function NotebookStudioView() {
       .map(
         (s, idx) =>
           `[Source ${idx + 1}: ${s.title}]\n"""\n${fenceUntrusted(
-            s.content.slice(0, MAX_NOTEBOOK_SOURCE_CHARS),
+            sectionExcerpt(s.content, MAX_NOTEBOOK_SOURCE_CHARS),
           )}\n"""`,
       )
       .join("\n\n---\n\n");

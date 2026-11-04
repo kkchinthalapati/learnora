@@ -40,6 +40,26 @@ export const MAX_PDF_PAGES = 40;
  *  answering. */
 export const MAX_PDF_CHARS = 60_000;
 
+/** Most parts a long document's notes are written in, one request each
+ *  (api/studyPackage.ts generateNotes). Each part stays within
+ *  MAX_PDF_CHARS, so no single request grows; a long chapter just costs a
+ *  few requests instead of being cut at its opening. */
+export const MAX_NOTES_PARTS = 3;
+
+export interface ReadLimits {
+  pages: number;
+  chars: number;
+}
+
+/** What a chat attachment reads: one request's worth. */
+export const SINGLE_READ: ReadLimits = { pages: MAX_PDF_PAGES, chars: MAX_PDF_CHARS };
+
+/** What notes generation reads: up to MAX_NOTES_PARTS requests' worth. */
+export const NOTES_READ: ReadLimits = {
+  pages: MAX_PDF_PAGES * MAX_NOTES_PARTS,
+  chars: MAX_PDF_CHARS * MAX_NOTES_PARTS,
+};
+
 /** Below this many characters per page, the page is assumed to be an image
  *  rather than text — a scan, a photographed worksheet, a slide deck exported
  *  as pictures. Chosen well under a real page of prose (~1500-3000 chars) but
@@ -150,7 +170,10 @@ async function loadPdfjs() {
 /** Parses a PDF's text layer in the browser. Rejects only when the file
  *  cannot be opened at all (encrypted, corrupt, not really a PDF); a PDF with
  *  no text layer resolves with empty text and is caught by `looksScanned`. */
-export async function extractPdfText(file: File): Promise<PdfExtraction> {
+export async function extractPdfText(
+  file: File,
+  limits: ReadLimits = SINGLE_READ,
+): Promise<PdfExtraction> {
   const pdfjs = await loadPdfjs();
   const data = new Uint8Array(await file.arrayBuffer());
 
@@ -166,7 +189,7 @@ export async function extractPdfText(file: File): Promise<PdfExtraction> {
   const doc = await loadingTask.promise;
 
   const pageCount = doc.numPages;
-  const pagesRead = Math.min(pageCount, MAX_PDF_PAGES);
+  const pagesRead = Math.min(pageCount, limits.pages);
   const pages: string[] = [];
   let chars = 0;
   let hitCharCap = false;
@@ -179,7 +202,7 @@ export async function extractPdfText(file: File): Promise<PdfExtraction> {
     chars += pageText.length;
     /* Stop at the ceiling rather than parsing pages whose text will be
        thrown away — on a long document that is most of the work. */
-    if (chars >= MAX_PDF_CHARS) {
+    if (chars >= limits.chars) {
       hitCharCap = true;
       break;
     }
@@ -190,13 +213,13 @@ export async function extractPdfText(file: File): Promise<PdfExtraction> {
 
   const tidied = tidyPdfText(pages.join("\n\n"));
   const text =
-    tidied.length > MAX_PDF_CHARS ? tidied.slice(0, MAX_PDF_CHARS) : tidied;
+    tidied.length > limits.chars ? tidied.slice(0, limits.chars) : tidied;
 
   return {
     text,
     pageCount,
     pagesRead: pages.length,
-    truncated: pageCount > pagesRead || hitCharCap || tidied.length > MAX_PDF_CHARS,
+    truncated: pageCount > pagesRead || hitCharCap || tidied.length > limits.chars,
   };
 }
 
@@ -212,10 +235,13 @@ export type PdfPlan =
   | { kind: "inline"; text: string; extraction: PdfExtraction }
   | { kind: "attach"; reason: "scanned" | "unreadable" };
 
-export async function planPdfUpload(file: File): Promise<PdfPlan> {
+export async function planPdfUpload(
+  file: File,
+  limits: ReadLimits = SINGLE_READ,
+): Promise<PdfPlan> {
   let extraction: PdfExtraction;
   try {
-    extraction = await extractPdfText(file);
+    extraction = await extractPdfText(file, limits);
   } catch (err) {
     console.warn("[pdfText] Could not parse the PDF; falling back to attaching it.", err);
     return { kind: "attach", reason: "unreadable" };

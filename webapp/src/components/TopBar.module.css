@@ -305,6 +305,15 @@
   }
 }
 
+/* On the narrowest phones the four tools and the profile button need the
+   room the wordmark takes; the mark alone still brands the bar, and the link
+   keeps its "Learnora, home" name. */
+@media (max-width: 400px) {
+  .brandName {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .navLink,
   .tool {

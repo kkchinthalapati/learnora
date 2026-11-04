@@ -6,6 +6,9 @@ import {
   GUESS_FIRST_INSTRUCTION,
   looksConceptual,
   NOTES_CONTEXT_CHARS,
+  citedNotePassages,
+  formatNotesEvidence,
+  stripNoteCitations,
 } from "./chatPrompt";
 
 /* The prompt is carried over verbatim from js/ai.js:967-1030 because it is the
@@ -233,7 +236,9 @@ describe("activeContextForPath", () => {
 
   it("truncates a long note rather than blowing the context window", () => {
     const context = activeContextForPath("/notes/m-1", "x".repeat(10_000));
-    expect(context.match(/x+/)?.[0].length).toBe(NOTES_CONTEXT_CHARS);
+    const block = context.split("\"\"\"")[1] ?? "";
+    expect(block.length).toBeLessThanOrEqual(NOTES_CONTEXT_CHARS + 2);
+    expect(block.length).toBeGreaterThan(NOTES_CONTEXT_CHARS * 0.8);
   });
 
   /* A note body is student- and model-authored content about to be
@@ -266,5 +271,54 @@ describe("guess first", () => {
     expect(looksConceptual("just explain it")).toBe(false);
     expect(looksConceptual("What should I study next?")).toBe(false);
     expect(looksConceptual("ok")).toBe(false);
+  });
+});
+
+describe("the student's own notes in the chat", () => {
+  const passage = (title: string, text: string, index = 1) => ({
+    materialId: `m-${title}`,
+    title,
+    kind: "notes" as const,
+    index,
+    text,
+    score: 1,
+    matched: [],
+  });
+  const base = { pendingTasks: "None", upcomingExams: "None", activeContext: DEFAULT_ACTIVE_CONTEXT, query: "q" };
+
+  it("numbers note passages [N1], [N2] so they never collide with web sources", () => {
+    const out = formatNotesEvidence([passage("Biology", "Osmosis is water moving."), passage("Chemistry", "Ions.", 3)]);
+    expect(out).toContain('[N1] Biology (notes), part 1:\n"""\nOsmosis is water moving.\n"""');
+    expect(out).toContain("[N2] Chemistry (notes), part 3:");
+  });
+
+  it("asks for citations and labelled general knowledge only when passages are given", () => {
+    const withNotes = buildSystemContext({ ...base, notesEvidence: formatNotesEvidence([passage("Biology", "x")]) });
+    expect(withNotes).toContain("FROM THE STUDENT'S OWN NOTES:\n[N1]");
+    expect(withNotes).toMatch(/cite it as \[N1\].*general knowledge/s);
+    const without = buildSystemContext(base);
+    expect(without).not.toContain("STUDENT'S OWN NOTES");
+  });
+
+  it("makes the tutor say so when notes-only mode finds nothing", () => {
+    const out = buildSystemContext({ ...base, notesOnly: true });
+    expect(out).toContain("nothing in their saved notes matches this question");
+    expect(out).toMatch(/Say that first/);
+  });
+
+  it("lists only the passages the reply cited", () => {
+    const passages = ["a", "b", "c"];
+    expect(citedNotePassages("Water moves in [N1] and out [N3].", passages)).toEqual(["a", "c"]);
+    expect(citedNotePassages("Web says [1].", passages)).toEqual([]);
+  });
+
+  it("drops note markers from history so the next question's numbering is not confused", () => {
+    expect(stripNoteCitations("Osmosis needs a membrane [N2].")).toBe("Osmosis needs a membrane.");
+  });
+
+  it("spreads a long note across its sections on the notes page", () => {
+    const long = `## Start\n\n${"a ".repeat(2000)}\n\n## Ending\n\nThe final section.`;
+    const out = activeContextForPath("/notes/m1", long);
+    expect(out).toContain("## Ending");
   });
 });

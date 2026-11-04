@@ -42,6 +42,9 @@ function serveWorkspace() {
   server.use(
     http.get(rest("tasks"), () => HttpResponse.json([])),
     http.get(rest("exams"), () => HttpResponse.json([])),
+    // The student's own notes, searched for passages on every question.
+    http.get(rest("materials"), () => HttpResponse.json([])),
+    http.get(rest("notes"), () => HttpResponse.json([])),
     http.post(WEB_RESEARCH_URL, () =>
       HttpResponse.json({ query: "", results: [] }),
     ),
@@ -130,6 +133,38 @@ describe("TutorChat", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  /* "Notebook" mode used to mean only "no web search": the tutor never read
+     the notes it was named after. It now gets the matching passages, cites
+     them as [N1], and the bubble links the cited note. */
+  it("answers from the student's own notes and links the one it cited", async () => {
+    server.use(
+      http.get(rest("materials"), () =>
+        HttpResponse.json([{ id: "mat-bio", title: "Cell transport", type: "pdf", raw_content: null }]),
+      ),
+      http.get(rest("notes"), () =>
+        HttpResponse.json([
+          {
+            id: "note-1",
+            material_id: "mat-bio",
+            markdown_content:
+              "## Osmosis\n\nOsmosis is the diffusion of water across a partially permeable membrane, from a dilute solution to a concentrated one.",
+          },
+        ]),
+      ),
+    );
+    const sent = capturePrompts("Water moves from dilute to concentrated [N1].");
+    renderChat();
+    await openChat();
+
+    await ask("explain osmosis across a membrane");
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toContain("FROM THE STUDENT'S OWN NOTES:\n[N1] Cell transport (notes)");
+    expect(sent[0]).toContain("partially permeable membrane");
+
+    const link = await screen.findByRole("link", { name: /Cell transport \(notes\)/ });
+    expect(link).toHaveAttribute("href", "/notes/mat-bio");
   });
 
   /* Auto-Adapt promises to "adjust its next reply when your follow-up shows

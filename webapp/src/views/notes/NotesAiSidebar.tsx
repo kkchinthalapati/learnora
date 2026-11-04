@@ -13,6 +13,13 @@ import {
 } from "../../api/ai";
 import { stripActionTagBlocks, streamingVisibleText, fenceUntrusted } from "../../lib/actionTags";
 import { isPdf, planPdfUpload, truncationNote } from "../../lib/pdfText";
+import {
+  isLegacyOffice,
+  isOfficeDoc,
+  legacyOfficeMessage,
+  officeExtractionNote,
+  planOfficeUpload,
+} from "../../lib/officeText";
 import type { AttachedFile } from "../../context/chat";
 import { decodeBase64UTF8 } from "../../lib/aiJson";
 import {
@@ -25,6 +32,7 @@ import { loadOpenUiSection } from "../../lib/openui/load";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import chatStyles from "../../components/chat/chat.module.css";
 import styles from "./notesSidebar.module.css";
+import { RelatedMaterials } from "./RelatedMaterials";
 
 /* The AI study sidebar docked beside the notes editor — ports the vanilla's
  * `.notes-ai-panel` (index.html:1084-1155), its wiring in js/main.js's
@@ -349,6 +357,26 @@ export function NotesAiSidebar({
     /* Parsed to text here rather than attached, so any provider in the chain
        can read it — see lib/pdfText.ts. A scan with no text layer still needs
        the binary, because OCR is the only thing that will read it. */
+    if (isLegacyOffice(picked)) {
+      showToast(legacyOfficeMessage(picked.name), { error: true });
+      return;
+    }
+    // Word and PowerPoint have no attachment fallback: no provider reads them.
+    if (isOfficeDoc(picked)) {
+      planOfficeUpload(picked).then((plan) => {
+        if (plan.kind === "unreadable") {
+          showToast(plan.message, { error: true });
+          return;
+        }
+        setFile({
+          name: picked.name,
+          mimeType: "text/plain",
+          data: "",
+          inlineText: plan.text + officeExtractionNote(plan.extraction),
+        });
+      });
+      return;
+    }
     if (isPdf(picked)) {
       planPdfUpload(picked)
         .then((plan) => {
@@ -426,6 +454,22 @@ export function NotesAiSidebar({
             yet" makes the screen feel unfinished. */}
       </div>
 
+      <RelatedMaterials
+        materialId={materialId}
+        onAsk={(question, source) => {
+          /* The other material's passage rides as an attachment, the way a
+             parsed PDF does, so the chip shows what the tutor was given. */
+          setFile({
+            name: `${source.title} (your notes)`,
+            mimeType: "text/plain",
+            data: "",
+            inlineText: source.text,
+          });
+          setInput(question);
+          inputRef.current?.focus();
+        }}
+      />
+
       <div className={styles.chat}>
         <div className={styles.intro}>
           <div>
@@ -488,7 +532,7 @@ export function NotesAiSidebar({
             <input
               type="file"
               hidden
-              accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg"
+              accept=".pdf,.docx,.pptx,.xlsx,.epub,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg"
               onChange={(e) => {
                 const picked = e.target.files?.[0];
                 if (picked) attachFile(picked);

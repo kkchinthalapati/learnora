@@ -702,7 +702,7 @@ export function TutorChat() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.txt,.docx,.png,.jpg,.jpeg,.webp"
+            accept=".pdf,.txt,.docx,.pptx,.xlsx,.epub,.png,.jpg,.jpeg,.webp"
             hidden
             onChange={(e) => {
               const picked = e.target.files?.[0];

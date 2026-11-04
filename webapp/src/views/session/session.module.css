@@ -972,3 +972,40 @@ button[data-rank="primary"] .ratingKey {
   box-shadow: var(--shadow-lg);
   border-radius: var(--r-lg);
 }
+
+/* Recall: what a typed answer left out, and the rating it supports. */
+.recallCheck {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.recallCheck strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.rating[data-suggested] {
+  border-color: var(--accent-line-strong);
+}
+
+.ratingConfirm {
+  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  text-align: center;
+}
+
+.secondLook {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  text-align: left;
+}
+
+.secondLook ul {
+  margin: 0;
+  padding-left: var(--s-5);
+}

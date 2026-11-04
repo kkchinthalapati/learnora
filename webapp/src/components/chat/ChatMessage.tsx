@@ -18,6 +18,7 @@ import { sourceSnippet } from "../../lib/sourceSnippet";
 import styles from "./chat.module.css";
 import { useNavigate } from "react-router";
 import { AiErrorCard } from "../learning/AiErrorCard";
+import { SourceAttribution } from "../learning/SourceAttribution";
 
 /* One chat bubble — ports `_appendBubble` (js/ai.js:1276-1298) and the action
  * widgets from the replace pass at :1181-1240.
@@ -350,6 +351,12 @@ export function ChatMessageBubble({
   return (
     <div className={classes} role={message.error ? "alert" : undefined}>
       {body}
+
+      {/* The student's own notes the reply cited as [N1], [N2], each linking
+          back to the note so "from your notes" can be checked. */}
+      {message.noteSources && !message.pending && !message.streaming && (
+        <SourceAttribution sources={message.noteSources} />
+      )}
 
       {/* Web Citation Cards */}
       {webSources.length > 0 && !message.pending && (

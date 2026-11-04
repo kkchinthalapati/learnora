@@ -325,6 +325,37 @@ const REQ = {
   wantsJson: false,
 };
 
+test('a vision request sends the photo as an image part with the text', () => {
+  const api = load();
+  const groq = api.BUILTIN_PROVIDERS.find((p) => p.id === 'groq');
+  const { body } = api.buildProviderRequest(groq, 'vision-model', 'secret', {
+    ...REQ,
+    image: { data: 'QUJD', mimeType: 'image/png' },
+  });
+  const last = body.messages[body.messages.length - 1];
+  assert.strictEqual(body.model, 'vision-model');
+  // Compared as JSON: the snippet runs in its own vm realm.
+  assert.strictEqual(
+    JSON.stringify(last.content),
+    JSON.stringify([
+      { type: 'text', text: 'now' },
+      { type: 'image_url', image_url: { url: 'data:image/png;base64,QUJD' } },
+    ]),
+  );
+  // A text request is unchanged: plain string content.
+  assert.strictEqual(api.buildProviderRequest(groq, 'm', 'k', REQ).body.messages.at(-1).content, 'now');
+});
+
+test('only providers with a vision model are tried for a photo, and none of them bills', () => {
+  const table = slice('const VISION_MODELS', '};');
+  const ids = [...table.matchAll(/^\s{2}(\w[\w-]*):/gm)].map((m) => m[1]);
+  assert.deepStrictEqual(ids, ['groq', 'mistral']);
+  const api = load();
+  for (const id of ids) {
+    assert.strictEqual(api.BUILTIN_PROVIDERS.find((p) => p.id === id)?.cost, 'free', id);
+  }
+});
+
 test('OpenAI-dialect requests authenticate with a bearer token', () => {
   const api = load();
   const groq = api.BUILTIN_PROVIDERS.find((p) => p.id === 'groq');
@@ -400,9 +431,11 @@ test('an image attachment is recognised; documents and empty payloads are not', 
   assert.strictEqual(isImageAttachment(null), false);
 });
 
-test('an image request Gemini did not answer stops before the text-only chain, and is refunded', () => {
+test('an image request no vision model answered stops before the text-only chain, and is refunded', () => {
   const gemini = SOURCE.indexOf('CHANNEL 1: GEMINI');
-  const guard = SOURCE.indexOf('if (isImageAttachment(file))');
+  const vision = SOURCE.indexOf("// A photo Gemini didn't read goes to a vision model on the chain.");
+  const guard = SOURCE.indexOf('if (isImageAttachment(file))', SOURCE.indexOf('// Nothing below this line can see an image'));
+  assert.ok(vision !== -1 && vision < guard, 'the vision fallback must run before the refusal');
   const fallback = SOURCE.indexOf('CHANNELS 2..N');
   assert.ok(gemini !== -1 && guard !== -1 && fallback !== -1);
   assert.ok(gemini < guard && guard < fallback, 'the guard must run after Gemini and before the fallback loop');

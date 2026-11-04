@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import type { IconName } from "../components/icons";
 import type { FlashcardDraft } from "../lib/aiJson";
+import type { GroundingSource } from "../api/grounding";
 
 /* Chat context + hook. Provider lives in ChatProvider.tsx.
  *
@@ -81,6 +82,8 @@ export interface ChatMessage {
   savingCards?: boolean;
   /** Web citations attached to this AI response. */
   webSources?: WebCitation[];
+  /** Passages of the student's own notes the reply cited as [N1], [N2]. */
+  noteSources?: GroundingSource[];
 }
 
 export interface AttachedFile {

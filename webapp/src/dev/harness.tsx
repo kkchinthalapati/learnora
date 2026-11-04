@@ -215,6 +215,13 @@ function install(supabaseUrl: string) {
       if (/"stream":\s*true/.test(prompt) && /openui demo/i.test(prompt)) {
         return sseReply(fx.sampleOpenUiReply);
       }
+      /* A chat turn that was given the student's own notes cites the first
+         passage, so the "From your notes" list under the reply can be seen. */
+      if (/"stream":\s*true/.test(prompt) && /\[N1\] /.test(prompt)) {
+        return sseReply(
+          "Your notes put it well: an enzyme lowers the activation energy, so more collisions have enough energy to react [N1]. Your notes don't cover why the rate falls at high temperature, but generally the active site changes shape and the substrate no longer fits.",
+        );
+      }
       /* Talk past you out of it: the next scripted line, by how many
          arguments the student has sent so far. */
       if (/Talk past you out of it/.test(prompt)) {
@@ -391,14 +398,19 @@ function install(supabaseUrl: string) {
             }
           }
         }
-        return json(
-          echoed.map((row, i) => ({
-            id: `harness-${Date.now()}-${i}`,
-            user_id: fx.USER_ID,
-            created_at: new Date().toISOString(),
-            ...(row as object),
-          })),
-        );
+        const written = echoed.map((row, i) => ({
+          id: `harness-${Date.now()}-${i}`,
+          user_id: fx.USER_ID,
+          created_at: new Date().toISOString(),
+          ...(row as object),
+        }));
+        /* `.insert().select().single()` asks for one object back, as reads
+           do below; a list there left a new material with no id. */
+        const wantsObject = (
+          new Headers(init?.headers).get("accept") ??
+          (input instanceof Request ? (input.headers.get("accept") ?? "") : "")
+        ).includes("vnd.pgrst.object+json");
+        return json(wantsObject ? (written[0] ?? null) : written);
       }
 
       /* `.single()`/`.maybeSingle()` ask PostgREST for an object rather than
@@ -429,7 +441,25 @@ function install(supabaseUrl: string) {
       return json(rows, { headers });
     }
 
-    return real(input as RequestInfo, init);
+    /* storage: an upload is accepted and named, so the create flow can be
+       walked through; there are no files to download. */
+    if (path.startsWith("/storage/v1/object/")) {
+      if (method === "POST" || method === "PUT") {
+        const key = path.slice("/storage/v1/object/".length);
+        return json({ Key: key, Id: `harness-${Date.now()}` });
+      }
+      return json({ error: "No files in the harness" }, { status: 404 });
+    }
+
+    /* web research: no results, so the tutor answers without it. */
+    if (path.startsWith("/functions/v1/web-research")) {
+      return json({ query: "", results: [] });
+    }
+
+    /* Anything else on the project's URL is refused here rather than passed
+       to the real project: the harness is fixtures only, and its fake
+       session must never send study data to production. */
+    return json({ error: `Not faked in the harness: ${method} ${path}` }, { status: 503 });
   };
 }
 
