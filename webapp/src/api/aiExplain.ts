@@ -22,7 +22,7 @@ import { extractJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { levelRules, studentStandard } from "../lib/studentLevel";
 import { loadGroundingPassages } from "./grounding";
-import { formatGroundingForPrompt, passageLabel } from "../lib/grounding";
+import { formatGroundingForPrompt, passageLabel, passageText } from "../lib/grounding";
 import { sourceSnippet } from "../lib/sourceSnippet";
 import { isLimitOrRefusal } from "./aiLimit";
 
@@ -126,7 +126,7 @@ export async function planExplanation(
             sources: passages.map((p) => ({
               materialId: p.materialId,
               label: passageLabel(p),
-              excerpt: sourceSnippet(p.text),
+              excerpt: sourceSnippet(passageText(p)),
             })),
           }
         : {}),

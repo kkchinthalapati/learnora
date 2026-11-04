@@ -46,7 +46,16 @@ import {
   planOfficeUpload,
 } from "../lib/officeText";
 import { isImageFile, prepareStudyImage, StudyImageError } from "../lib/studyImage";
-import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
+import {
+  activeContextForPath,
+  buildSystemContext,
+  citedNotePassages,
+  formatNotesEvidence,
+  stripNoteCitations,
+} from "../lib/chatPrompt";
+import { loadGroundingPassages } from "../api/grounding";
+import { passageLabel, passageText } from "../lib/grounding";
+import { sourceSnippet } from "../lib/sourceSnippet";
 import { loadKnowledgeSummary, loadStudentEvidence } from "../api/studentEvidence";
 import { formatEvidenceForPrompt } from "../lib/studentEvidence";
 import { misconceptionsApi } from "../api/misconceptions";
@@ -118,6 +127,19 @@ function requestsLearningVideo(query: string): boolean {
   return /\b(video|youtube|watch|visual lesson|lecture recording)\b/i.test(
     query,
   );
+}
+
+/* The first read of a student's notes on a slow connection — or one the
+   query client is retrying with backoff — must not hold up the reply. Past
+   this the tutor answers without them; the read still finishes and fills
+   the cache for the next question. */
+const GROUNDING_BUDGET_MS = 2500;
+
+function withinBudget<T>(work: Promise<T[]>): Promise<T[]> {
+  return Promise.race([
+    work,
+    new Promise<T[]>((resolve) => setTimeout(() => resolve([]), GROUNDING_BUDGET_MS)),
+  ]);
 }
 
 function formatWebEvidence(results: WebSearchResult[]): string {
@@ -642,6 +664,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           shouldSearchWeb(query, sourceMode === "web");
         const wantsVideo =
           sourceMode !== "notebook" && requestsLearningVideo(query);
+        /* The student's own passages for this question, unless they asked
+           for the web alone. "Notebook" mode used to mean only "no web
+           search": the tutor never read the notes it was named after.
+           Resolves to [] rather than throwing (api/grounding.ts). */
+        const groundingPromise =
+          sourceMode === "web" ? Promise.resolve([]) : withinBudget(loadGroundingPassages(query, 4));
         const webPromise =
           wantsWeb || wantsVideo
             ? searchWebSources(
@@ -678,6 +706,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           await ledgerPromise,
         );
         const webResponse = await webPromise;
+        const notePassages = await groundingPromise;
 
         const pathname = pathnameRef.current;
         let notesMarkdown: string | null = null;
@@ -739,6 +768,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           webEvidence: webResponse
             ? formatWebEvidence(webResponse.results)
             : "",
+          notesEvidence: formatNotesEvidence(notePassages, fenceUntrusted),
+          notesOnly: sourceMode === "notebook",
           includeQuery: false,
         });
 
@@ -795,9 +826,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               }),
             )
           : undefined;
+        const noteSources = citedNotePassages(text, notePassages).map((p) => ({
+          materialId: p.materialId,
+          label: passageLabel(p),
+          excerpt: sourceSnippet(passageText(p)),
+        }));
         finish({
           text: stripActionTagBlocks(text).trim(),
           webSources: webSources?.length ? webSources : undefined,
+          noteSources: noteSources.length ? noteSources : undefined,
         });
 
         const cards = detectFlashcardReply(text);
@@ -824,13 +861,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         historyRef.current = [
           ...historyRef.current,
           { role: "user", content: query },
-          { role: "model", content: cleanText },
+          { role: "model", content: stripNoteCitations(cleanText) },
         ];
 
         finish({
           text: cleanText,
           parts: parts.some((p) => p.kind === "widget") ? parts : undefined,
           webSources: webSources?.length ? webSources : undefined,
+          noteSources: noteSources.length ? noteSources : undefined,
           /* The model was asked for a guess-first question and replied with
              one: the bubble offers the two ways out. */
           guessPrompt:

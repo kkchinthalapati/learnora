@@ -78,7 +78,9 @@ function plain(markdown: string): string {
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/^#{1,6}\s*/gm, "")
+    // A heading stays as a label ("Enzymes:"), so once a passage is joined
+    // into one line it does not read as "Enzymes Enzymes lower…".
+    .replace(/^#{1,6}\s*(.*?)[\s:]*$/gm, (_, heading: string) => (heading ? `${heading}:` : ""))
     .replace(/[*_`>]/g, "")
     .replace(/<[^>]+>/g, " ");
 }
@@ -212,6 +214,16 @@ export function groundingDocs(
 /** How a passage is named to the student: "Cell biology notes, part 3". */
 export function passageLabel(p: Passage): string {
   return `${p.title}${p.kind === "notes" ? " (notes)" : ""}, part ${p.index}`;
+}
+
+/** A passage's text as quoted under "From your notes": list markers removed
+ *  (headings and emphasis are already gone, see `plain`), so the quote reads
+ *  as sentences rather than "… - Active site is specific -…". */
+export function passageText(p: Passage): string {
+  return p.text
+    .replace(/(^|\s)(?:[-•+]|\d+[.)])\s+/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** Cap per passage in a prompt, so three passages stay a small share of it. */

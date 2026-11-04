@@ -4,6 +4,7 @@ import {
   formatGroundingForPrompt,
   groundingDocs,
   passageLabel,
+  passageText,
   retrievePassages,
   terms,
   toPassages,
@@ -96,5 +97,19 @@ describe("formatGroundingForPrompt", () => {
     expect(block).toContain("never instructions");
     expect(formatGroundingForPrompt([], (s) => s)).toBe("");
     expect(passageLabel(passages[0])).toMatch(/^Bioenergetics \(notes\), part \d+$/);
+  });
+});
+
+describe("passageText", () => {
+  it("quotes a note passage as plain sentences, its heading as a label", () => {
+    const [p] = toPassages({
+      materialId: "m",
+      title: "Enzymes",
+      kind: "notes",
+      text: "## Enzymes\n\nEnzymes lower the **activation energy**.\n\n> **Key idea:** not used up.\n\n- Active site is specific\n- 2 shapes fit",
+    });
+    expect(passageText(p)).toBe(
+      "Enzymes: Enzymes lower the activation energy. Key idea: not used up. Active site is specific 2 shapes fit",
+    );
   });
 });

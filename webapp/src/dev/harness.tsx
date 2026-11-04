@@ -215,6 +215,13 @@ function install(supabaseUrl: string) {
       if (/"stream":\s*true/.test(prompt) && /openui demo/i.test(prompt)) {
         return sseReply(fx.sampleOpenUiReply);
       }
+      /* A chat turn that was given the student's own notes cites the first
+         passage, so the "From your notes" list under the reply can be seen. */
+      if (/"stream":\s*true/.test(prompt) && /\[N1\] /.test(prompt)) {
+        return sseReply(
+          "Your notes put it well: an enzyme lowers the activation energy, so more collisions have enough energy to react [N1]. Your notes don't cover why the rate falls at high temperature, but generally the active site changes shape and the substrate no longer fits.",
+        );
+      }
       /* Talk past you out of it: the next scripted line, by how many
          arguments the student has sent so far. */
       if (/Talk past you out of it/.test(prompt)) {

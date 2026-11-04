@@ -28,16 +28,21 @@ export interface GroundingSource {
 export async function loadGroundingPassages(query: string, limit = 3): Promise<RetrievedPassage[]> {
   if (!query.trim()) return [];
   try {
+    /* No retries: a failed read is answered without grounding, now, rather
+       than after the client's backoff — the chat waits on this before every
+       reply. */
     const [materials, notes] = await Promise.all([
       queryClient.fetchQuery({
         queryKey: materialsKeys.list(null),
         queryFn: () => materialsApi.fetch(null),
         staleTime: STALE_MS,
+        retry: false,
       }),
       queryClient.fetchQuery({
         queryKey: notesKeys.all,
         queryFn: notesApi.fetchAll,
         staleTime: STALE_MS,
+        retry: false,
       }),
     ]);
     return retrievePassages(buildCorpus(groundingDocs(materials, notes)), query, limit);
