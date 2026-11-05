@@ -247,6 +247,26 @@ describe("TrajectoryView", () => {
     ).toBeInTheDocument();
   });
 
+  /* A topic nothing has checked (cards made, never reviewed) has no figure of
+     its own, only the model's starting assumption: it is offered a check
+     rather than a block of study on a guess. */
+  it("offers a check, not a study block, for a topic nothing has measured", async () => {
+    serve({
+      decks: [
+        { id: "d-strong", user_id: "user-1", folder_id: "chem", title: "Bonding", created_at: "" },
+        { id: "d-new", user_id: "user-1", folder_id: "chem", title: "Moles", created_at: "" },
+      ],
+      cards: [
+        ...[1, 2, 3, 4, 5].map((i) => card(`s${i}`, "d-strong", 40)),
+        ...[1, 2, 3].map((i) => card(`n${i}`, "d-new", 0, 0)),
+      ],
+    });
+    render();
+
+    expect(await screen.findByRole("button", { name: "Check what you know about Moles" })).toBeInTheDocument();
+    expect(screen.getByText("Not checked yet")).toBeInTheDocument();
+  });
+
   it("says so when there is no exam to forecast", async () => {
     serve({ exams: [] });
     render();

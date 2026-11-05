@@ -83,11 +83,14 @@ export const MAX_CONFIDENCE_BAND = 22;
  *  says so instead of showing a score built from assumptions. */
 export const MIN_FORECAST_EVIDENCE = 0.1;
 
-/** A topic's own figure is shown only from this much measured evidence, one
- *  scored check's worth (SCORE_EVENT_EVIDENCE). Below it the row says the
- *  topic has not been checked, rather than showing the starting assumption
+/** A topic counts as checked once anything measured it: a reviewed card or a
+ *  scored answer (timer minutes never add to measured evidence). Not a volume
+ *  bar: card evidence grows with the review interval, so a deck reviewed and
+ *  being forgotten at one-day intervals scores ~0.05, and that is exactly the
+ *  topic a student most needs told about. Below it the row says the topic has
+ *  not been checked, rather than showing the starting assumption
  *  (UNMEASURED_MASTERY) as if it had been measured. */
-export const MIN_TOPIC_EVIDENCE = 0.15;
+export const MIN_TOPIC_EVIDENCE = 0.01;
 
 /** A topic with no cards and no quiz history is not "0% mastered", it is
  *  unmeasured — and treating unmeasured as zero would make a student who has

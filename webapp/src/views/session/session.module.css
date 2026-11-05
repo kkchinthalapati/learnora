@@ -1009,3 +1009,10 @@ button[data-rank="primary"] .ratingKey {
   margin: 0;
   padding-left: var(--s-5);
 }
+
+.secondLookLink {
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}

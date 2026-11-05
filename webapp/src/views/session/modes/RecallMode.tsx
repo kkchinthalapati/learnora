@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 import { Button } from "../../../components/Button";
+import { newSessionHref } from "../../../lib/sessionModes";
 import { EmptyState } from "../../../components/EmptyState";
 import { Skeleton } from "../../../components/Skeleton";
 import type { Flashcard } from "../../../api/types";
@@ -212,7 +214,12 @@ export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
                   </p>
                   <ul>
                     {secondLook.map((c) => (
-                      <li key={c.id}>{c.front}</li>
+                      <li key={c.id}>
+                        {c.front}{" "}
+                        <Link to={newSessionHref("explain", { topic: c.front })} className={styles.secondLookLink}>
+                          Go over it
+                        </Link>
+                      </li>
                     ))}
                   </ul>
                 </div>
