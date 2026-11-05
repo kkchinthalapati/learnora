@@ -86,3 +86,49 @@ describe("notesPartInstruction", () => {
     expect(notesPartInstruction(1, 1)).toBe("");
   });
 });
+
+describe("a drawing for notes that came back without one", () => {
+  beforeEach(() => mockAuthSession("user-1"));
+
+  const longNote = [
+    "## Photosynthesis",
+    "",
+    "### The light-dependent stage",
+    "",
+    "The process happens in the thylakoid, in steps that split water and release oxygen. ".repeat(6),
+    "",
+    "### Why it matters",
+    "",
+    "Food chains start with plants, which is why this matters for every ecosystem. ".repeat(4),
+  ].join("\n");
+  const SVG = '<svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg"><title>Light stage</title></svg>';
+
+  it("adds one drawing of the most drawable section, from that section's text", async () => {
+    const prompts = servePrompts((prompt) =>
+      HttpResponse.json({
+        text: prompt.includes("Draw one clear revision diagram") ? `Light stage\n\n\`\`\`svg\n${SVG}\n\`\`\`` : longNote,
+      }),
+    );
+    const md = await generateNotes({ material: MATERIAL, source: { inlineText: "Material." }, settings: DEFAULT_SETTINGS, persist: false });
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain('"The light-dependent stage"');
+    expect(prompts[1]).toContain("split water");
+    expect(md.indexOf("```svg")).toBeLessThan(md.indexOf("### Why it matters"));
+    expect(md).toContain("<title>Light stage</title>");
+  });
+
+  it("leaves notes that already have a drawing, and keeps notes when the drawing fails", async () => {
+    const withDrawing = `${longNote}\n\n\`\`\`svg\n${SVG}\n\`\`\``;
+    let prompts = servePrompts(() => HttpResponse.json({ text: withDrawing }));
+    await generateNotes({ material: MATERIAL, source: { inlineText: "Material." }, settings: DEFAULT_SETTINGS, persist: false });
+    expect(prompts).toHaveLength(1);
+
+    prompts = servePrompts((prompt) =>
+      prompt.includes("Draw one clear revision diagram")
+        ? HttpResponse.json({ error: "over allowance" }, { status: 429 })
+        : HttpResponse.json({ text: longNote }),
+    );
+    const md = await generateNotes({ material: MATERIAL, source: { inlineText: "Material." }, settings: DEFAULT_SETTINGS, persist: false });
+    expect(md).toBe(longNote.trim());
+  });
+});
