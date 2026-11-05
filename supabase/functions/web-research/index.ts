@@ -114,6 +114,8 @@ async function enforceResearchLimit(supabase: any, userId: string) {
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("tool", "webResearch")
+    // A search that failed was refunded (refundResearch) and does not count.
+    .eq("refunded", false)
     .gte("created_at", midnight.toISOString());
   if (error) throw new Error("Research usage could not be checked.");
   if ((count ?? 0) >= limits[plan]) {
@@ -121,10 +123,34 @@ async function enforceResearchLimit(supabase: any, userId: string) {
       "You've reached today's web research allowance. It resets at midnight UTC.",
     );
   }
-  const { error: logError } = await supabase
+  const { data: logRow, error: logError } = await supabase
     .from("ai_request_log")
-    .insert({ user_id: userId, mode: "research", tool: "webResearch" });
+    .insert({ user_id: userId, mode: "research", tool: "webResearch" })
+    .select("id")
+    .single();
   if (logError) throw new Error("Research usage could not be recorded.");
+  return logRow?.id as string | undefined;
+}
+
+/* A search or page import that failed, or was refused, gave the student
+   nothing, so it stops counting against their allowance, the same as an AI
+   request no provider answered in learnora-ai. Service role, because
+   students have no UPDATE on ai_request_log. Best-effort. */
+async function refundResearch(logId: string | undefined): Promise<void> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!logId || !url || !serviceKey) return;
+  try {
+    const admin = createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    await admin
+      .from("ai_request_log")
+      .update({ refunded: true, status: "failed_all" })
+      .eq("id", logId);
+  } catch (err) {
+    console.error("[research] refund failed", err);
+  }
 }
 
 async function tavily(
@@ -185,97 +211,102 @@ Deno.serve(async (req: Request) => {
       cors,
     );
 
+  let logId: string | undefined;
   try {
     const body = await req.json();
-    await enforceResearchLimit(supabase, user.id);
+    logId = await enforceResearchLimit(supabase, user.id);
+    const response = await (async () => {
+      if (body.action === "search") {
+        const query = typeof body.query === "string" ? body.query.trim() : "";
+        if (!query || query.length > MAX_QUERY_CHARS) {
+          return json(
+            { error: `Search queries must be 1-${MAX_QUERY_CHARS} characters.` },
+            400,
+            cors,
+          );
+        }
+        if (isUnsuitable(query)) return refusal(query, cors);
+        const domain =
+          typeof body.domain === "string" && body.domain.trim()
+            ? body.domain.trim().toLowerCase()
+            : null;
+        const depth = Number(body.depth) >= 4 ? "advanced" : "basic";
+        const result = await tavily("search", {
+          query,
+          search_depth: depth,
+          max_results: 6,
+          include_answer: false,
+          include_raw_content: false,
+          ...(domain ? { include_domains: [domain] } : {}),
+        });
+        const results = (Array.isArray(result.results) ? result.results : [])
+          .map((item: any, index: number) => {
+            const url = safePublicUrl(item.url);
+            if (!url) return null;
+            if (
+              isAdultUrl(url.href) ||
+              isUnsuitable(`${item.title || ""}. ${item.content || ""}`)
+            )
+              return null;
+            return {
+              id: `${index + 1}-${url.href}`,
+              title: String(item.title || url.hostname).slice(0, 300),
+              url: url.href,
+              domain: url.hostname.replace(/^www\./, ""),
+              snippet: String(item.content || "").slice(0, 1_500),
+              score: typeof item.score === "number" ? item.score : undefined,
+            };
+          })
+          .filter(Boolean);
+        return json({ query, results }, 200, cors);
+      }
 
-    if (body.action === "search") {
-      const query = typeof body.query === "string" ? body.query.trim() : "";
-      if (!query || query.length > MAX_QUERY_CHARS) {
+      if (body.action === "extract") {
+        const url = safePublicUrl(body.url);
+        if (!url)
+          return json({ error: "Enter a public HTTPS web address." }, 400, cors);
+        if (isAdultUrl(url.href))
+          return json({ error: PAGE_REFUSAL, refused: true }, 422, cors);
+        const result = await tavily("extract", {
+          urls: [url.href],
+          extract_depth: "advanced",
+        });
+        const extracted = Array.isArray(result.results)
+          ? result.results[0]
+          : null;
+        const markdown = String(
+          extracted?.raw_content || extracted?.content || "",
+        ).trim();
+        if (!markdown)
+          throw new Error("No readable text was found on that page.");
+        const title = String(extracted?.title || "");
+        const finalUrl = safePublicUrl(extracted?.url)?.href;
+        if (
+          (finalUrl && isAdultUrl(finalUrl)) ||
+          isAdultPage(title, markdown) ||
+          screenReferenceText(`${title}\n${markdown}`)
+        ) {
+          console.warn("[safety] web-research import refused", { userId: user.id });
+          return json({ error: PAGE_REFUSAL, refused: true }, 422, cors);
+        }
         return json(
-          { error: `Search queries must be 1-${MAX_QUERY_CHARS} characters.` },
-          400,
+          {
+            title: (title || url.hostname).slice(0, 300),
+            url: finalUrl || url.href,
+            domain: url.hostname.replace(/^www\./, ""),
+            markdown: markdown.slice(0, MAX_EXTRACT_CHARS),
+          },
+          200,
           cors,
         );
       }
-      if (isUnsuitable(query)) return refusal(query, cors);
-      const domain =
-        typeof body.domain === "string" && body.domain.trim()
-          ? body.domain.trim().toLowerCase()
-          : null;
-      const depth = Number(body.depth) >= 4 ? "advanced" : "basic";
-      const result = await tavily("search", {
-        query,
-        search_depth: depth,
-        max_results: 6,
-        include_answer: false,
-        include_raw_content: false,
-        ...(domain ? { include_domains: [domain] } : {}),
-      });
-      const results = (Array.isArray(result.results) ? result.results : [])
-        .map((item: any, index: number) => {
-          const url = safePublicUrl(item.url);
-          if (!url) return null;
-          if (
-            isAdultUrl(url.href) ||
-            isUnsuitable(`${item.title || ""}. ${item.content || ""}`)
-          )
-            return null;
-          return {
-            id: `${index + 1}-${url.href}`,
-            title: String(item.title || url.hostname).slice(0, 300),
-            url: url.href,
-            domain: url.hostname.replace(/^www\./, ""),
-            snippet: String(item.content || "").slice(0, 1_500),
-            score: typeof item.score === "number" ? item.score : undefined,
-          };
-        })
-        .filter(Boolean);
-      return json({ query, results }, 200, cors);
-    }
 
-    if (body.action === "extract") {
-      const url = safePublicUrl(body.url);
-      if (!url)
-        return json({ error: "Enter a public HTTPS web address." }, 400, cors);
-      if (isAdultUrl(url.href))
-        return json({ error: PAGE_REFUSAL, refused: true }, 422, cors);
-      const result = await tavily("extract", {
-        urls: [url.href],
-        extract_depth: "advanced",
-      });
-      const extracted = Array.isArray(result.results)
-        ? result.results[0]
-        : null;
-      const markdown = String(
-        extracted?.raw_content || extracted?.content || "",
-      ).trim();
-      if (!markdown)
-        throw new Error("No readable text was found on that page.");
-      const title = String(extracted?.title || "");
-      const finalUrl = safePublicUrl(extracted?.url)?.href;
-      if (
-        (finalUrl && isAdultUrl(finalUrl)) ||
-        isAdultPage(title, markdown) ||
-        screenReferenceText(`${title}\n${markdown}`)
-      ) {
-        console.warn("[safety] web-research import refused", { userId: user.id });
-        return json({ error: PAGE_REFUSAL, refused: true }, 422, cors);
-      }
-      return json(
-        {
-          title: (title || url.hostname).slice(0, 300),
-          url: finalUrl || url.href,
-          domain: url.hostname.replace(/^www\./, ""),
-          markdown: markdown.slice(0, MAX_EXTRACT_CHARS),
-        },
-        200,
-        cors,
-      );
-    }
-
-    return json({ error: "Unknown research action." }, 400, cors);
+      return json({ error: "Unknown research action." }, 400, cors);
+    })();
+    if (!response.ok) await refundResearch(logId);
+    return response;
   } catch (cause) {
+    await refundResearch(logId);
     const message =
       cause instanceof Error
         ? cause.message
