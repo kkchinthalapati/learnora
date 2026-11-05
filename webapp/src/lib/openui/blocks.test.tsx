@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { Renderer } from "@openuidev/react-lang";
 import { openUiPromptSection, openUiReference } from "./blocks";
 import { hasOpenUiBlock, splitOpenUiBlocks } from "./fence";
+import { addTermCards } from "./cardify";
 import { askLibrary, guideLibrary } from "./library";
 import { AskContext } from "./askContext";
 import { buildSystemContext } from "../chatPrompt";
@@ -164,5 +165,23 @@ describe("study guide library", () => {
     expect(screen.getByText("Kept.")).toBeTruthy();
     expect(screen.queryByText("Q?")).toBeNull();
     expect(errors.flat().length).toBeGreaterThan(0);
+  });
+});
+
+describe("the vocabulary card built from a note", () => {
+  it("parses and draws in the notes library, terms and definitions intact", () => {
+    const note = [
+      "### Cell transport",
+      "**Osmosis** is the diffusion of water across a partially permeable membrane.",
+      "- **Solute**: the substance that dissolves",
+      "- **Solvent**: the liquid it dissolves in",
+    ].join("\n");
+    const block = splitOpenUiBlocks(addTermCards(note)).find((b) => b.kind === "openui");
+    const card = block?.kind === "openui" ? block.code : "";
+    expect(card).toContain("KeyTerms");
+    render(<Renderer library={guideLibrary} response={card} isStreaming={false} />);
+    expect(screen.getByText("Words to know")).toBeInTheDocument();
+    expect(screen.getByText("Osmosis")).toBeInTheDocument();
+    expect(screen.getByText("The liquid it dissolves in")).toBeInTheDocument();
   });
 });

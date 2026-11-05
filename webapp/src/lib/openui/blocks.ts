@@ -75,11 +75,17 @@ ${studyGuideReference()}`);
 let notesCached: string | null = null;
 export function notesCardSection(): string {
   return (notesCached ??= `CARDS IN NOTES:
-- The notes stay Markdown, written exactly as asked above. Inside a section, after its prose, you may add ONE fenced code block whose language is openui (three backticks, the word openui, the OpenUI Lang program, three backticks). The app draws it as a card in the student's notes.
-- Use a card only where structure teaches better than prose: KeyTerms for the vocabulary a section introduces, WorkedExample for a calculation or a method with numbers, Steps for a process, Timeline for a sequence of events, CompareTable for ideas that are easily confused, BarChart only for numbers the material itself gives, Accordion for optional extra depth.
+- The notes stay Markdown, written exactly as asked above. Inside a section, after its prose, add ONE fenced code block whose language is openui (three backticks, the word openui, the OpenUI Lang program, three backticks) wherever the section has one of the shapes below. The app draws it as a card in the student's notes; a student revising from notes with no structure in them is the failure to avoid.
+- Match the card to what the section contains, and use it whenever the section has it:
+  - a method or calculation with numbers: WorkedExample, every step with its reason
+  - a process in order: Steps; a sequence of events: Timeline
+  - two or more ideas that are easily confused: CompareTable
+  - numbers the material itself gives: BarChart (never invent numbers)
+  - optional extra depth: Accordion
+- Define each key term where it is introduced, as "**Term** is …" or as a bullet "- **Term**: …". The app builds a vocabulary card from those lines for any section that defines three or more, so a KeyTerms card is only needed where the terms are defined some other way.
 - Do not use Callout cards in notes: keep using the "> **Key idea:**" / "> **Definition:**" / "> **Common mistake:**" lines for those.
-- Aim for two to five cards across the whole note, never more than one per section. A very short note needs none.
-- ${DIAGRAM_RULE} Use at most one diagram per note section and two per note, and skip diagrams for simple lists or facts.
+- Expect two to five cards across a full note, at most one per section. A very short note may need none.
+- ${DIAGRAM_RULE} Draw one whenever a section describes a process, a cycle, a structure with named parts, a graph or a spatial arrangement, usually one to three per note and at most one per section; skip it for simple lists or facts.
 - The prose must stand on its own: never put a fact only in a card. Use only what the material says.
 - No quiz questions, flashcards or follow-up chips. Quizzes and flashcards are made elsewhere in the app.
 
