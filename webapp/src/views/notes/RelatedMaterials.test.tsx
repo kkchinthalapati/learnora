@@ -41,7 +41,7 @@ describe("RelatedMaterials", () => {
     renderWithProviders(<RelatedMaterials materialId="bio" onAsk={onAsk} />, undefined, { withRouter: true });
 
     const link = await screen.findByRole("link", { name: /^Solutions/ });
-    expect(link).toHaveAttribute("href", "/notes/chem");
+    expect(link).toHaveAttribute("href", "/lessons/chem");
     expect(screen.getByText(/Also covers Osmosis, partially permeable membrane/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Ask the tutor how this page connects to Solutions" }));

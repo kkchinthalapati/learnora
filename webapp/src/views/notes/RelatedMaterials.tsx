@@ -15,8 +15,9 @@ export function RelatedMaterials({
 }: {
   materialId: string;
   /** Puts a question in the page's tutor box without sending it, with the
-   *  other lesson's matching passage attached so the tutor can see it. */
-  onAsk: (question: string, source: { title: string; text: string }) => void;
+   *  other lesson's matching passage attached so the tutor can see it.
+   *  Without it (the lesson page, which has no tutor box) rows only link. */
+  onAsk?: (question: string, source: { title: string; text: string }) => void;
 }) {
   const { data: related = [] } = useQuery({
     queryKey: ["relatedMaterials", materialId],
@@ -39,9 +40,10 @@ export function RelatedMaterials({
               key={r.materialId}
               title={r.title}
               icon="book-open"
-              to={`/notes/${encodeURIComponent(r.materialId)}`}
+              to={`/lessons/${encodeURIComponent(r.materialId)}`}
               meta={`Also covers ${shown.join(", ")}${more > 0 ? ` and ${more} more` : ""}`}
               trailing={
+                onAsk ? (
                 <button
                   type="button"
                   className={styles.relatedAsk}
@@ -55,6 +57,7 @@ export function RelatedMaterials({
                 >
                   Ask
                 </button>
+                ) : undefined
               }
             />
           );

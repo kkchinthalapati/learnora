@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { RelatedMaterials } from "../notes/RelatedMaterials";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
@@ -271,6 +272,8 @@ function NotesPanel({
       <article className={`${text.prose} ${styles.prose}`}>
         <AiReply text={isFlagOn("openUi") ? cardifyNotes(markdown) : markdown} notes />
       </article>
+      {/* Where else this lesson's ideas turn up in the library. */}
+      <RelatedMaterials materialId={materialId} />
     </div>
   );
 }

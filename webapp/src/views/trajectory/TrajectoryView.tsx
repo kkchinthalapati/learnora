@@ -18,6 +18,7 @@ import { INTERVENTION_BLOCK_MINS, type Verdict } from "../../lib/trajectory";
 import { TrajectoryChart } from "./TrajectoryChart";
 import { QuizOnlyForecast } from "./QuizOnlyForecast";
 import { masteryLevel, MIN_FORECAST_EVIDENCE, MIN_TOPIC_EVIDENCE } from "../../lib/trajectory";
+import { newSessionHref } from "../../lib/sessionModes";
 
 /* A topic's measured standing in words (DESIGN.md 0.6: numbers say what they
    count, and this is an estimate, not a count). */
@@ -301,14 +302,28 @@ export function TrajectoryBody() {
                 +{item.pointsPerHour.toFixed(1)}
                 <span className={styles.perHourUnit}> pts/hr</span>
               </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => startBlock(item.label)}
-                aria-label={`Start a ${INTERVENTION_BLOCK_MINS} minute block on ${item.label}`}
-              >
-                Start
-              </Button>
+              {/* A topic nothing has checked is measured first: a block of
+                  study on a guess is the effort this page exists to point
+                  somewhere better. */}
+              {item.measuredEvidence >= MIN_TOPIC_EVIDENCE ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => startBlock(item.label)}
+                  aria-label={`Start a ${INTERVENTION_BLOCK_MINS} minute block on ${item.label}`}
+                >
+                  Start
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void navigate(newSessionHref("practice", { topic: item.label }))}
+                  aria-label={`Check what you know about ${item.label}`}
+                >
+                  Check it
+                </Button>
+              )}
             </li>
           ))}
         </ul>
