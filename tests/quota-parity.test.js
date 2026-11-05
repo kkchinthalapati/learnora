@@ -153,5 +153,18 @@ test('an unknown tool name is billed as chat, not given its own allowance', () =
   );
   assert.match(source, /const DEFAULT_TOOL = "chat";/);
   assert.match(source, /\.eq\("tool", billedTool\)/);
-  assert.match(source, /tool: billedTool, session_key: sessionKey \}/);
+  assert.match(source, /tool: billedTool,[\s\S]{0,160}session_key: verdict\.allowed \? verdict\.sessionKey : null/);
+});
+
+/* The notebook allowance is enforced by a database trigger, which carries its
+   own copy of the numbers the app shows. */
+test('the notebook trigger enforces the allowance the app shows', () => {
+  const sql = read('../supabase/migrations/20261105000000_enforce_notebook_limit.sql');
+  const plus = /when 'plus' then (\d+)/.exec(sql);
+  const free = /else (\d+)\s*\n\s*end;/.exec(sql);
+  assert.ok(plus && free, 'allowance case not found in the migration');
+  assert.strictEqual(Number(plus[1]), CLIENT.plus.notebooks);
+  assert.strictEqual(Number(free[1]), CLIENT.free.notebooks);
+  assert.strictEqual(CLIENT.pro.notebooks, Infinity);
+  assert.match(sql, /when 'pro' then null/);
 });

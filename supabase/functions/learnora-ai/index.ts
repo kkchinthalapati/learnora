@@ -9,7 +9,7 @@ import {
 } from "../_shared/contentSafety.js";
 import { improveQuiz } from "../_shared/quizQuality.js";
 import { buildSystemInstruction, isJsonMode, JSON_MODES } from "../_shared/systemPrompt.js";
-import { billingDecision } from "../_shared/sessionBilling.js";
+import { billingDecision, sessionCapFor } from "../_shared/sessionBilling.js";
 import {
   createDeadKeyRegistry,
   failedProviderLabels,
@@ -1714,12 +1714,13 @@ async function getUserPlan(supabase: any, userId: string): Promise<Plan> {
    every explanation. The daily allowance was counted per call, so the free
    plan's 2 a day meant one Explain session, and Socratic ran out after the
    first answer. Calls that carry the same session key now count once
-   against the allowance, up to SESSION_CALL_CAP calls; the allowance is
-   therefore "sessions a day" for these tools. */
-const SESSION_CALL_CAP = Number(Deno.env.get("AI_SESSION_CALL_CAP")) || 16;
+   against the allowance, up to a per-tool cap (SESSION_CALL_CAPS in
+   _shared/sessionBilling.js); the allowance is therefore "sessions a day"
+   for these tools. Past the cap a call is billed on its own. Tools with no
+   cap there (flashcards, plan, image, Studio) ignore session keys.
+   AI_SESSION_CALL_CAP overrides the 16-call cap of the Study tools. */
+const SESSION_CALL_CAP = Number(Deno.env.get("AI_SESSION_CALL_CAP")) || 0;
 const SESSION_KEY_PATTERN = /^[A-Za-z0-9_-]{6,80}$/;
-const SESSION_CAP_MESSAGE =
-  "This study session has had all the AI help it can today. Start a new session to keep going — your work here is saved.";
 
 async function checkAndLogRateLimit(
   supabase: any,
@@ -1780,12 +1781,7 @@ async function checkAndLogRateLimit(
       .gte("created_at", midnight.toISOString())
       .limit(1000);
     const rows: { session_key: string | null }[] = dailyError ? [] : (todayRows ?? []);
-    const verdict = billingDecision(rows, sessionKey, dailyMax, SESSION_CALL_CAP);
-
-    if (!dailyError && !verdict.allowed && verdict.reason === "session") {
-      console.warn("[rate-limit] session cap", { userId, tool: billedTool, plan });
-      return { allowed: false, message: SESSION_CAP_MESSAGE };
-    }
+    const verdict = billingDecision(rows, sessionKey, dailyMax, sessionCapFor(billedTool, SESSION_CALL_CAP));
 
     if (!dailyError && !verdict.allowed) {
       console.warn("[rate-limit] daily blocked", { userId, mode, tool: billedTool, plan });
@@ -1797,7 +1793,13 @@ async function checkAndLogRateLimit(
 
     const { data: logRow, error: insertError } = await supabase
       .from("ai_request_log")
-      .insert({ user_id: userId, mode: mode ?? null, tool: billedTool, session_key: sessionKey })
+      .insert({
+        user_id: userId,
+        mode: mode ?? null,
+        tool: billedTool,
+        // Null when this call was billed on its own (see billingDecision).
+        session_key: verdict.allowed ? verdict.sessionKey : null,
+      })
       .select("id")
       .single();
     if (insertError) {

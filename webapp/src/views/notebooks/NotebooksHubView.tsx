@@ -11,6 +11,8 @@ import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
 import { useFolders } from "../../hooks/useFolders";
+import { useEntitlements } from "../../hooks/useSubscription";
+import { PaywallModal } from "../../components/PaywallModal";
 
 const SUBJECT_COLORS = [
   "#4A90E2", // Blue (Maths)
@@ -39,6 +41,14 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<string>("All");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  /* The plan's notebook allowance (QUOTAS.notebooks): 3 free, 10 on Plus.
+     The database refuses one past it too (enforce_notebook_limit); this is
+     so the student hears it before filling in the form. */
+  const { plan, usage, isPending: planPending } = useEntitlements();
+  const notebookAllowance = usage("notebooks", notebooks.length);
+  const atNotebookLimit = !planPending && !isLoading && notebookAllowance.exceeded;
+  const openCreate = () => (atNotebookLimit ? setPaywallOpen(true) : setIsCreateOpen(true));
 
   // New notebook form state
   const [title, setTitle] = useState("");
@@ -119,7 +129,7 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
             page's own main action. */}
         <Button
           variant={embedded ? "secondary" : "primary"}
-          onClick={() => setIsCreateOpen(true)}
+          onClick={openCreate}
           disabled={isLoading || isError}
           style={{
             display: "inline-flex",
@@ -131,6 +141,18 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
           New notebook
         </Button>
       </header>
+      {atNotebookLimit ? (
+        <p className={styles.hubSubtitle} role="status">
+          The {plan === "plus" ? "Plus" : "free"} plan keeps {notebookAllowance.limit}{" "}
+          notebooks, and you have {notebooks.length}. Delete one to start another, or upgrade
+          for more.
+        </p>
+      ) : null}
+      <PaywallModal
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        initialPlan={plan === "plus" ? "pro" : "plus"}
+      />
 
       {!embedded ? (
         <div className={styles.hubGuide}>
@@ -318,7 +340,7 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
                   Clear filters
                 </Button>
               )}
-              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>
+              <Button variant="primary" onClick={openCreate}>
                 New notebook
               </Button>
             </EmptyState>
