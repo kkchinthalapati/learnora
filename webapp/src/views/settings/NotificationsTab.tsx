@@ -286,10 +286,10 @@ export function NotificationsTab() {
             <div className={styles.field}>
               <div className={styles.fieldLabel}>
                 <span className={styles.labelText} id={pushFlashcardsId}>
-                  Flashcard due push
+                  Review reminder
                 </span>
                 <p className={styles.fieldDesc}>
-                  Once a day, if you have cards due for review
+                  Once a day, when cards or a check on a past mix-up are due
                 </p>
               </div>
               <div className={styles.fieldAction}>
@@ -403,10 +403,10 @@ export function NotificationsTab() {
             <div className={styles.field}>
               <div className={styles.fieldLabel}>
                 <span className={styles.labelText} id={emailFlashcardsId}>
-                  Flashcard due email
+                  Review reminder email
                 </span>
                 <p className={styles.fieldDesc}>
-                  Once a day, if you have cards due for review
+                  Once a day, when cards or a check on a past mix-up are due
                 </p>
               </div>
               <div className={styles.fieldAction}>

@@ -22,6 +22,7 @@
  * Setting RESEND_API_KEY later switches over with no code change. */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { dueCheckBacksByUser, escapeHtml, reviewNudge } from "../_shared/reviewNudge.js";
 
 interface EmailPrefRow {
   user_id: string;
@@ -220,6 +221,17 @@ Deno.serve(async (req) => {
     dueCountByUser.set(row.user_id, (dueCountByUser.get(row.user_id) ?? 0) + 1);
   }
 
+  /* Check-backs on re-taught mix-ups (_shared/reviewNudge.js).
+     The filter here only narrows the read; dueCheckBacksByUser decides. */
+  const { data: checkBackRows } = await supabase
+    .from("misconceptions")
+    .select("id, user_id, concept, status, repaired_at, retest_due_at")
+    .neq("status", "resolved")
+    .not("repaired_at", "is", null)
+    .lte("retest_due_at", new Date().toISOString());
+  const checkBacksByUser = dueCheckBacksByUser(checkBackRows ?? [], new Date());
+  const reviewUsers = new Set([...dueCountByUser.keys(), ...checkBacksByUser.keys()]);
+
   let sent = 0;
   let skippedAlreadyNotified = 0;
   let skippedNoEmail = 0;
@@ -279,14 +291,20 @@ Deno.serve(async (req) => {
     );
   }
 
-  for (const [userId, count] of dueCountByUser) {
-    if (count === 0) continue;
+  // The same reminder as the push one (_shared/reviewNudge.js).
+  for (const userId of reviewUsers) {
+    const nudge = reviewNudge({
+      cardsDue: dueCountByUser.get(userId) ?? 0,
+      checkBacks: checkBacksByUser.get(userId) ?? [],
+    });
+    if (!nudge) continue;
+    const action = nudge.path.includes("/check-back/") ? "Take the check" : "Start reviewing";
     await sendToUser(
       userId,
       "flashcards_due",
       (p) => p.notify_flashcards_due,
-      `${count} flashcard${count > 1 ? "s" : ""} due`,
-      `<p>Time for a quick review round — ${count} card${count > 1 ? "s are" : " is"} due.</p><p><a href="${APP_URL}/app/review">Start reviewing</a></p>`,
+      nudge.title,
+      `<p>${escapeHtml(nudge.body)}</p><p><a href="${APP_URL}${nudge.path}">${action}</a></p>`,
     );
   }
 

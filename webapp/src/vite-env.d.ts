@@ -16,6 +16,11 @@ interface ImportMetaEnv {
    *  Supabase — see views/auth/OAuthSignInButtons.tsx. */
   readonly VITE_GOOGLE_SIGNIN?: string;
   readonly VITE_APPLE_SIGNIN?: string;
+  /** "true" once send-email-reminders has a provider (RESEND_API_KEY, or
+   *  SMTP_USER + SMTP_PASS): the reminder prompt then offers email too. Left
+   *  unset, it offers only push, so it never promises an email that cannot
+   *  arrive. See components/learning/ReminderOffer.tsx. */
+  readonly VITE_EMAIL_REMINDERS?: string;
 }
 
 interface ImportMeta {

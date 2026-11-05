@@ -25,6 +25,7 @@ import text from "../../styles/text.module.css";
 import styles from "./session.module.css";
 import { useDocumentTitle } from "../../lib/routeTitle";
 import { setActiveAiSession } from "../../api/ai";
+import { ReminderOffer } from "../../components/learning/ReminderOffer";
 
 const MODE_VIEWS: Record<SessionMode, (props: ModeProps) => React.JSX.Element> = {
   explain: ExplainMode,
@@ -294,6 +295,9 @@ function SessionScreen() {
             onFlag={setFlagging}
             onSwitchMode={setMode}
           />
+          {session.status === "done" ? (
+            <ReminderOffer lead="What you studied comes back on a schedule: cards when they're due, and a check on anything you mixed up a couple of days after it's re-taught." />
+          ) : null}
         </div>
       </div>
     </main>
