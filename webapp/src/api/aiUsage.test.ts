@@ -3,11 +3,47 @@ import { http, HttpResponse } from "msw";
 import { server } from "../test/mocks/server";
 import { SUPABASE_URL } from "../lib/supabase";
 import { mockAuthSession } from "../test/mockSession";
-import { fetchDailyAiUsage, nextUtcDayStart, utcDayStart } from "./aiUsage";
+import { fetchDailyAiUsage, nextUtcDayStart, unitsByTool, utcDayStart } from "./aiUsage";
 
 function rowsResponse(tools: (string | null)[]) {
-  return HttpResponse.json(tools.map((tool) => ({ tool })));
+  return HttpResponse.json(tools.map((tool) => ({ tool, session_key: null })));
 }
+
+describe("unitsByTool", () => {
+  /* Mirrors billingDecision's unitsToday: one unit per distinct session key,
+     plus one per call without a key. The server enforces this; the meter must
+     show the same number or it tells a student one thing and blocks them with
+     another. */
+  it("counts a session-keyed run of calls once, however many parts it took", () => {
+    const units = unitsByTool([
+      { tool: "learn", session_key: "learn-aaaaaa1" },
+      { tool: "learn", session_key: "learn-aaaaaa1" },
+      { tool: "learn", session_key: "learn-aaaaaa1" },
+      { tool: "learn", session_key: "learn-bbbbbb2" },
+    ]);
+    expect(units).toEqual({ learn: 2 });
+  });
+
+  it("counts a call with no key as its own unit", () => {
+    expect(
+      unitsByTool([
+        { tool: "chat", session_key: null },
+        { tool: "chat", session_key: null },
+        { tool: "chat", session_key: "chat-sess01" },
+      ]),
+    ).toEqual({ chat: 3 });
+  });
+
+  it("keeps each tool's units separate, and bills a null tool to chat", () => {
+    expect(
+      unitsByTool([
+        { tool: "learn", session_key: "learn-aaaaaa1" },
+        { tool: "quiz", session_key: null },
+        { tool: null, session_key: null },
+      ]),
+    ).toEqual({ learn: 1, quiz: 1, chat: 1 });
+  });
+});
 
 describe("utcDayStart / nextUtcDayStart", () => {
   it("floors to midnight UTC, matching what the edge function counts from", () => {
@@ -94,6 +130,23 @@ describe("fetchDailyAiUsage", () => {
     expect(url?.searchParams.get("created_at")).toBe(
       "gte.2026-09-04T00:00:00.000Z",
     );
+  });
+
+  /* The bug this pins: a three-part Learn lesson wrote three rows, the meter
+     read "3 of 3", and the server had spent one lesson. */
+  it("shows a Learn lesson as one unit, not one per part", async () => {
+    server.use(
+      http.all(`${SUPABASE_URL}/rest/v1/ai_request_log`, () =>
+        HttpResponse.json([
+          { tool: "learn", session_key: "learn-2b1c6f0e1d1a" },
+          { tool: "learn", session_key: "learn-2b1c6f0e1d1a" },
+          { tool: "learn", session_key: "learn-2b1c6f0e1d1a" },
+        ]),
+      ),
+    );
+    await expect(fetchDailyAiUsage()).resolves.toMatchObject({
+      usedByTool: { learn: 1 },
+    });
   });
 
   it("bills a null tool (an unmigrated caller) to chat, matching the edge function's default", async () => {
