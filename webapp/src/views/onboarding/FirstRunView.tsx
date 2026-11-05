@@ -7,6 +7,7 @@ import { LearnoraMark } from "../../components/LearnoraMark";
 import { AiErrorCard } from "../../components/learning/AiErrorCard";
 import { MasteryLadder } from "../../components/learning/MasteryLadder";
 import { TutorTurn } from "../../components/learning/TutorTurn";
+import { ReminderOffer } from "../../components/learning/ReminderOffer";
 import { generateFirstLesson, type FirstLesson } from "../../api/firstLesson";
 import { learningEventsApi } from "../../api/learningEvents";
 import { decksApi } from "../../api/decks";
@@ -636,6 +637,7 @@ export function FirstRunView() {
               We saved the lesson as flashcards. Recall will bring it back
               before it starts to fade.
             </p>
+            <ReminderOffer lead={`Your ${topic} cards come back tomorrow.`} />
           </div>
           <form className={styles.planCard} onSubmit={(e) => void savePlan(e)}>
             <h2 className={styles.planTitle}>Two questions so we can plan with you</h2>

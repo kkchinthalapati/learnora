@@ -71,8 +71,8 @@ not the filename. If you want `supabase migration list` to match, run
 | `stripe-billing` | v21 | Nothing known. Needs Stripe secrets (4.1). |
 | `stripe-webhook` | v19 | Nothing known. Needs `STRIPE_WEBHOOK_SECRET` (4.1). |
 | `delete-account` | v15 | Nothing. |
-| `send-email-reminders` | v16 | A mail provider secret (4.2) or it answers 500. |
-| `send-push-reminders` | v6 | Nothing; VAPID keys set per 2026-09-24 notes. |
+| `send-email-reminders` | v16 | **A mail provider secret (4.2); checked 2026-11-05: it still answers 500 "No email provider configured" every day, and `email_notification_log` is empty, so no reminder email has ever been sent.** Then **a deploy from `main` (2026-11-05)**: the daily review email leads with a due check-back on a re-taught mix-up (`misconceptions.retest_due_at`, wording in `_shared/reviewNudge.js`) and links to `/app/check-back/:id`, with due cards alongside; same `flashcards_due` kind and toggle, so no migration. After deploying, **UNVERIFIED**: an email naming the concept for a student with a due check-back. |
+| `send-push-reminders` | v6 | **A deploy from `main` (2026-11-05)**: the daily review push leads with a due check-back ("Did your fix on … stick?") and opens `/app/check-back/:id`; same `flashcards_due` kind and toggle. Checked 2026-11-05: the cron job runs daily and answers `no subscriptions`, since no student had turned push on; the app now asks at the end of a first lesson and of a Study session. After deploying, **UNVERIFIED**: a push on a real subscribed device. Rollback: Edge Functions > send-push-reminders > versions (v6). |
 | `web-research` | v8 | Nothing. |
 
 The 2026-10-06 review recorded each non-AI function two versions lower, but
@@ -127,7 +127,8 @@ and consent before the app opens; email sign-ups already do at the form.
 
 | Item | Status |
 |------|--------|
-| A provider secret: Gmail stopgap (`SMTP_USER` + `SMTP_PASS` app password, 400/day cap) **or** `RESEND_API_KEY` + `EMAIL_FROM` | UNVERIFIED (as of 2026-09-24 neither was set; the function returned 500 naming what was missing) |
+| A provider secret: Gmail stopgap (`SMTP_USER` + `SMTP_PASS` app password, 400/day cap) **or** `RESEND_API_KEY` + `EMAIL_FROM` | **Still not set (checked 2026-11-05: the daily run returned 500 naming what was missing).** This is the one thing keeping review reminders from reaching students who don't install push. |
+| `VITE_EMAIL_REMINDERS=true` in Vercel (Production and Preview) | **Set it only after the secret above works.** It makes the end-of-lesson reminder prompt offer "Email me"; left unset, the prompt offers push only, so it never promises an email that can't arrive. |
 | Verify the sending domain in Resend | BLOCKED on the domain (5.1) |
 | After Resend works: `supabase secrets unset SMTP_USER SMTP_PASS` | Later |
 

@@ -44,6 +44,38 @@ export const emailNotificationsApi = {
     return DEFAULTS;
   },
 
+  /** This account's preferences, or null when it has none yet. Unlike
+   *  `fetch`, never creates the row: reading must not opt anyone in. */
+  async peek(): Promise<EmailNotificationPrefs | null> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("email_notification_prefs")
+      .select("notify_exams, notify_flashcards_due, notify_weekly_digest")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data
+      ? {
+          notifyExams: data.notify_exams,
+          notifyFlashcardsDue: data.notify_flashcards_due,
+          notifyWeeklyDigest: data.notify_weekly_digest,
+        }
+      : null;
+  },
+
+  /** The student said yes to review reminders by email: the row exists
+   *  with review on, whatever else it already said. */
+  async optInToReview(): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from("email_notification_prefs")
+      .upsert(
+        { user_id: userId, notify_flashcards_due: true, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
+    if (error) throw new Error(error.message);
+  },
+
   async update(
     patch: Partial<EmailNotificationPrefs>,
   ): Promise<void> {

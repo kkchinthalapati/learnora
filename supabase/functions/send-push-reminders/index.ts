@@ -16,6 +16,7 @@
  * Node-compat layer instead, which does. */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import { dueCheckBacksByUser, reviewNudge } from "../_shared/reviewNudge.js";
 
 interface PushSubscriptionRow {
   id: string;
@@ -139,6 +140,17 @@ Deno.serve(async (req) => {
     dueCountByUser.set(row.user_id, (dueCountByUser.get(row.user_id) ?? 0) + 1);
   }
 
+  /* Check-backs on re-taught mix-ups (_shared/reviewNudge.js).
+     The filter here only narrows the read; dueCheckBacksByUser decides. */
+  const { data: checkBackRows } = await supabase
+    .from("misconceptions")
+    .select("id, user_id, concept, status, repaired_at, retest_due_at")
+    .neq("status", "resolved")
+    .not("repaired_at", "is", null)
+    .lte("retest_due_at", new Date().toISOString());
+  const checkBacksByUser = dueCheckBacksByUser(checkBackRows ?? [], new Date());
+  const reviewUsers = new Set([...dueCountByUser.keys(), ...checkBacksByUser.keys()]);
+
   const subsByUser = new Map<string, PushSubscriptionRow[]>();
   for (const sub of subs) {
     const list = subsByUser.get(sub.user_id) ?? [];
@@ -207,16 +219,19 @@ Deno.serve(async (req) => {
     );
   }
 
-  for (const [userId, count] of dueCountByUser) {
-    if (count === 0) continue;
+  /* One review reminder a day: a due check-back leads, cards ride along.
+     Logged as `flashcards_due` so the dedupe and the review toggle are
+     unchanged. */
+  for (const userId of reviewUsers) {
+    const nudge = reviewNudge({
+      cardsDue: dueCountByUser.get(userId) ?? 0,
+      checkBacks: checkBacksByUser.get(userId) ?? [],
+    });
+    if (!nudge) continue;
     await sendToUser(
       userId,
       "flashcards_due",
-      {
-        title: `${count} flashcard${count > 1 ? "s" : ""} due`,
-        body: "Time for a quick review round.",
-        url: "/app/review",
-      },
+      { title: nudge.title, body: nudge.body, url: nudge.path },
       (s) => s.notify_flashcards,
     );
   }
