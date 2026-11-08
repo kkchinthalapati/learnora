@@ -72,8 +72,10 @@ export interface EdgePayload {
   context?: string;
   /** The Study session this call belongs to. The edge function bills a
    *  session's calls once against the daily allowance (see
-   *  checkAndLogRateLimit). Set automatically while a session is open. */
-  sessionKey?: string;
+   *  checkAndLogRateLimit). Set automatically while a session is open;
+   *  `null` says the call is not part of the open session (the tutor chat,
+   *  which a student can open from inside one). */
+  sessionKey?: string | null;
   /** For quiz generation: whether the topic is in a seeded syllabus, so the
    *  server logs questions its checker rejects for human review. */
   quizMeta?: { seeded: boolean; subject?: string; specId?: string };
@@ -175,7 +177,7 @@ export async function callEdge(
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   const body = JSON.stringify(
-    activeSessionKey && !payload.sessionKey ? { ...payload, sessionKey: activeSessionKey } : payload,
+    activeSessionKey && payload.sessionKey === undefined ? { ...payload, sessionKey: activeSessionKey } : payload,
   );
 
   /* Every AI feature funnels through here, so this is the one gate. A student
@@ -406,7 +408,7 @@ export async function callEdgeStream(
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   const withSession =
-    activeSessionKey && !payload.sessionKey ? { ...payload, sessionKey: activeSessionKey } : payload;
+    activeSessionKey && payload.sessionKey === undefined ? { ...payload, sessionKey: activeSessionKey } : payload;
   const body = JSON.stringify({ ...withSession, stream: true });
 
   if (!(await ensureAiConsent(data.session?.user?.user_metadata))) {
