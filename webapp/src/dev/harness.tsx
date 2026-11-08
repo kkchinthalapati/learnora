@@ -285,6 +285,30 @@ function install(supabaseUrl: string) {
           text: "Think of a **torch** held at the centre of a circle, and another held on the edge. Both light up the same arc, but the one at the centre has to open its beam twice as wide to do it. That is why the angle at the centre is $2x$.",
         });
       }
+      /* The first lesson on /welcome, so the whole first run (and its win
+         screen) can be walked through without a model. */
+      if (/Write a three-minute first lesson/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 600));
+        return json({
+          text: JSON.stringify({
+            concept: "Water moves towards more solute",
+            hook: {
+              question: "A raisin is left in a glass of water overnight. What happens to it?",
+              choices: ["It swells up", "It shrinks further", "It dissolves", "Nothing changes"],
+              correctIndex: 0,
+              feedback: "Water moves into the raisin, where there is more dissolved sugar.",
+            },
+            explanation:
+              "Osmosis is water moving across a membrane from where there is less dissolved stuff to where there is more. A raisin is full of sugar, so water moves in and it swells.",
+            check: {
+              question: "Which way does water move by osmosis?",
+              choices: ["Towards the side with more solute", "Towards the side with less solute", "It stays still", "Only upwards"],
+              correctIndex: 0,
+              feedback: "Water follows the solute: it moves to where there is more dissolved stuff.",
+            },
+          }),
+        });
+      }
       /* Learn: one section, scripted on the section's own title. */
       if (/Teach one section of a student/.test(prompt)) {
         const title = /THIS SECTION: \\"\\"\\"(.+?)\\"\\"\\"/.exec(prompt)?.[1] ?? "this part";

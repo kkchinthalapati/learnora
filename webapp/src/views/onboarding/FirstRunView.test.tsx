@@ -204,6 +204,42 @@ describe("FirstRunView", () => {
     await waitFor(() => expect(readPendingTopic("user-1")).toBe("Mitochondria"));
   });
 
+  it("records each screen reached and how they left, so drop-off can be placed", async () => {
+    /* The test client has no stored session for updateUser to use, so the
+       write is watched at the app's own seam. */
+    const trails: Array<Record<string, unknown>> = [];
+    const { authApi } = await import("../../api/auth");
+    vi.spyOn(authApi, "updateProfile").mockImplementation(async (data) => {
+      const trail = data.onboarding_trail as Record<string, unknown> | undefined;
+      if (trail) trails.push(trail);
+    });
+    const user = userEvent.setup();
+    render();
+    await topicPath(user);
+    await user.click(await screen.findByRole("button", { name: "Supply & demand" }));
+    await user.click(await screen.findByRole("button", { name: /it falls/i }));
+    await user.click(screen.getByRole("button", { name: /show me how/i }));
+    await user.click(await screen.findByRole("button", { name: /check me/i }));
+    await user.click(await screen.findByRole("button", { name: /down/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(await screen.findByRole("button", { name: /save and see my plan/i }));
+
+    await waitFor(() => expect(trails.at(-1)?.exit, JSON.stringify(trails)).toBe("plan"), { timeout: 5000 });
+    const last = trails.at(-1)!;
+    expect(Object.keys(last.steps as object)).toEqual([
+      "board",
+      "start",
+      "lesson_wait",
+      "lesson_hook",
+      "lesson_teach",
+      "lesson_check",
+      "win",
+    ]);
+    expect(last.last).toBe("win");
+    /* Only step names and times: nothing typed or answered is kept. */
+    expect(JSON.stringify(trails)).not.toMatch(/supply/i);
+  });
+
   it("counts a skip as set up so the gate lets them through", async () => {
     const user = userEvent.setup();
     render();

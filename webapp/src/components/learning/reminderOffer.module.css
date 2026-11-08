@@ -1,0 +1,38 @@
+/* ReminderOffer: one quiet card after a win, never a modal. */
+.offer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug, 1.45);
+}
+
+.offer p {
+  margin: 0;
+}
+
+.title {
+  font-size: var(--fs-base);
+  font-weight: 700;
+}
+
+.body {
+  color: var(--text-muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+}
+
+.error {
+  color: var(--danger-text, var(--danger));
+}
