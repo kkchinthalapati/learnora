@@ -46,8 +46,17 @@ export function useDeleteMaterial() {
       id: string;
       storagePath?: string | null;
     }) => materialsApi.delete(id, storagePath),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: materialsKeys.all });
+    onSuccess: (_data, { id }) => {
+      /* Every list refetches, but not the deleted lesson's own query: its
+         page is about to leave, and refetching it first flashed "This
+         lesson isn't here" on the way out (audit 2026-11-08). */
+      const gone = materialsKeys.byId(id);
+      qc.invalidateQueries({
+        queryKey: materialsKeys.all,
+        predicate: (query) =>
+          query.queryKey.length !== gone.length ||
+          query.queryKey.some((part, i) => part !== gone[i]),
+      });
       qc.invalidateQueries({ queryKey: notesKeys.all });
       qc.invalidateQueries({ queryKey: quizzesKeys.all });
     },
