@@ -87,6 +87,29 @@ describe("fetchDailyAiUsage", () => {
     vi.useRealTimers();
   });
 
+  it("counts a session's calls once per tool, as the edge function bills them", async () => {
+    server.use(
+      http.all(`${SUPABASE_URL}/rest/v1/ai_request_log`, () =>
+        HttpResponse.json([
+          // One Explain session: a plan, a check and two follow-ups.
+          { tool: "debugger", session_key: "s-explain1" },
+          { tool: "debugger", session_key: "s-explain1" },
+          { tool: "chat", session_key: "s-explain1" },
+          { tool: "chat", session_key: "s-explain1" },
+          // Two tutor messages, billed one each.
+          { tool: "chat", session_key: null },
+          { tool: "chat", session_key: null },
+          // A three-part note.
+          { tool: "notes", session_key: "notes-abc123" },
+          { tool: "notes", session_key: "notes-abc123" },
+          { tool: "notes", session_key: "notes-abc123" },
+        ]),
+      ),
+    );
+    const usage = await fetchDailyAiUsage();
+    expect(usage.usedByTool).toEqual({ debugger: 1, chat: 3, notes: 1 });
+  });
+
   it("buckets only this user's rows since midnight UTC, by tool", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-04T09:00:00Z"));

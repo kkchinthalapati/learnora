@@ -117,6 +117,29 @@ describe("a drawing for notes that came back without one", () => {
     expect(md).toContain("<title>Light stage</title>");
   });
 
+  it("bills every part and the drawing as one note", async () => {
+    const bodies: { tool?: string; sessionKey?: string }[] = [];
+    server.use(
+      http.post(EDGE_URL, async ({ request }) => {
+        const body = (await request.json()) as { tool?: string; sessionKey?: string; history: { content: string }[] };
+        bodies.push(body);
+        const drawing = body.history[0].content.includes("Draw one clear revision diagram");
+        return HttpResponse.json({ text: drawing ? `\`\`\`svg\n${SVG}\n\`\`\`` : longNote });
+      }),
+    );
+    await generateNotes({ material: MATERIAL, source: { inlineText: LONG }, settings: DEFAULT_SETTINGS, persist: false });
+    expect(bodies.length).toBe(4);
+    expect(new Set(bodies.map((b) => b.tool))).toEqual(new Set(["notes"]));
+    const keys = new Set(bodies.map((b) => b.sessionKey));
+    expect(keys.size).toBe(1);
+    expect([...keys][0]).toMatch(/^notes-[A-Za-z0-9_-]{6,80}$/);
+
+    // A second note is its own unit.
+    bodies.length = 0;
+    await generateNotes({ material: MATERIAL, source: { inlineText: "Material." }, settings: DEFAULT_SETTINGS, persist: false });
+    expect(bodies[0].sessionKey).not.toBe([...keys][0]);
+  });
+
   it("leaves notes that already have a drawing, and keeps notes when the drawing fails", async () => {
     const withDrawing = `${longNote}\n\n\`\`\`svg\n${SVG}\n\`\`\``;
     let prompts = servePrompts(() => HttpResponse.json({ text: withDrawing }));
