@@ -11,13 +11,14 @@ import { useTimer } from "../../context/timer";
 import { useContinuity } from "../../hooks/useContinuity";
 import { useExams } from "../../hooks/useExams";
 import { useFlashcards, useFlashcardsDueCount } from "../../hooks/useFlashcards";
+import { useAllDecks } from "../../hooks/useDecks";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { isLoopSupported } from "../../api/misconceptions";
 import { activePairs, loadPairState, nextDuePair, tellApartHref } from "../../lib/confusionPairs";
 import { localDateStr } from "../../lib/date";
-import { progressByLesson } from "../../lib/lessons";
+import { deckLessonMap, progressByLesson } from "../../lib/lessons";
 import { needsRepair, retestsDue } from "../../lib/mistakeLoop";
 import { daysUntil } from "../../lib/quizForecast";
 import { MistakeLoopSection } from "../today/MistakeLoopSection";
@@ -44,7 +45,11 @@ export function HomeView() {
   const { ranked: misconceptions, all: ledger } = useMisconceptions();
   const exams = useExams();
 
-  const progress = useMemo(() => progressByLesson(cards.data ?? []), [cards.data]);
+  const decks = useAllDecks();
+  const progress = useMemo(
+    () => progressByLesson(cards.data ?? [], deckLessonMap(decks.data ?? [])),
+    [cards.data, decks.data],
+  );
 
   const today = localDateStr(now);
   const nextExam = useMemo(() => {

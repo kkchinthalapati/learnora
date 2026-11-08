@@ -42,6 +42,8 @@ export const MAX_OFFLINE_CARDS = 500;
 export const MAX_OFFLINE_IMAGES = 40;
 export const MAX_OFFLINE_IMAGE_BYTES = 15 * 1024 * 1024;
 export const DAILY_DRILL_ID = "daily-drill";
+/** The most cards one daily drill pulls, across every deck. */
+export const DAILY_DRILL_SIZE = 20;
 
 /* ── Storage ─────────────────────────────────────────────────────────────── */
 

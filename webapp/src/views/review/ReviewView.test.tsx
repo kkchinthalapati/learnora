@@ -1580,3 +1580,28 @@ describe("ReviewView", () => {
   });
 
 });
+
+describe("ReviewView daily drill count", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  /* Audit F-05: Home said 288 cards were due and the drill said 20, because
+     the drill only fetches its first 20 and called those "due". */
+  it("states every due card, not just the ones this drill takes", async () => {
+    serve({ cards: [card(), card({ id: "c-2", front: "What is ATP?" })] });
+    server.use(
+      http.head(rest("flashcards"), () =>
+        new HttpResponse(null, { headers: { "Content-Range": "*/288" } }),
+      ),
+    );
+    renderReview("daily-drill", false);
+
+    expect(
+      await screen.findByText(
+        /288 cards are due\. This drill takes the 2 that most need it\./,
+      ),
+    ).toBeInTheDocument();
+  });
+});

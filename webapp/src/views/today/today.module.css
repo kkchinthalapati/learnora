@@ -629,6 +629,16 @@
   background: var(--recall);
 }
 
+.rowSubject {
+  margin-right: var(--s-2);
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
 .rowLabel {
   min-width: 0;
   overflow: hidden;

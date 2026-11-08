@@ -127,3 +127,11 @@
     transition: none;
   }
 }
+
+/* Rename / file / delete, kept quiet below the lesson so it never competes
+   with learning it. */
+.manage {
+  margin-top: var(--s-6);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hairline);
+}

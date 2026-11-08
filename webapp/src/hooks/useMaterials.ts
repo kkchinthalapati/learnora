@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { materialsApi } from "../api/materials";
 import { notesKeys } from "./useNotes";
 import { quizzesKeys } from "./useQuizzes";
+import { decksKeys } from "./useDecks";
 
 export const materialsKeys = {
   all: ["materials"] as const,
@@ -49,6 +50,29 @@ export function useDeleteMaterial() {
       qc.invalidateQueries({ queryKey: materialsKeys.all });
       qc.invalidateQueries({ queryKey: notesKeys.all });
       qc.invalidateQueries({ queryKey: quizzesKeys.all });
+    },
+  });
+}
+
+export function useRenameMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => materialsApi.rename(id, title),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: materialsKeys.all });
+    },
+  });
+}
+
+export function useMoveMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, folderId }: { id: string; folderId: string | null }) =>
+      materialsApi.moveToFolder(id, folderId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: materialsKeys.all });
+      qc.invalidateQueries({ queryKey: quizzesKeys.all });
+      qc.invalidateQueries({ queryKey: decksKeys.all });
     },
   });
 }

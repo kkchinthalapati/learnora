@@ -43,3 +43,19 @@ export function guessCapture(input: string): CaptureGuess {
   }
   return { kind: "topic", topic: raw.replace(/\s+/g, " ") };
 }
+
+/* "i want to learn photosynthesis" became the lesson's title, and was then
+   quoted back in tutor chips ("Explain the main idea of 'i want to learn
+   photosynthesis'"), audit F-08. The request's lead-in is not the topic. */
+const TOPIC_LEAD_IN =
+  /^(?:(?:hi|hey|hello|please|pls|ok|okay)[,!.]?\s+)*(?:(?:i\s+(?:want|need|would\s+like|'d\s+like)\s+to\s+(?:learn|know|understand|study|revise|review)|(?:can|could)\s+you\s+(?:teach|explain|help)(?:\s+me)?|teach\s+me|explain|help\s+me\s+(?:with|understand|learn|study|revise)|learn|study|revise|tell\s+me)(?:\s+(?:about|on))?\s+)?(?:the\s+(?:basics|topic)\s+of\s+)?/i;
+
+/** A lesson title for a typed topic: the request's lead-in and trailing
+ *  punctuation dropped, the first letter capitalised. Falls back to the
+ *  topic as typed when nothing would be left. */
+export function topicTitle(topic: string): string {
+  const typed = topic.trim().replace(/\s+/g, " ");
+  const core = typed.replace(TOPIC_LEAD_IN, "").replace(/[\s.?!,;:]+$/, "").trim();
+  const title = core || typed;
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}

@@ -75,3 +75,25 @@ describe("lessonTopic", () => {
     expect(lessonTopic({ title: "Cells" }, "## 🧬\nBody")).toBe("Cells");
   });
 });
+
+describe("cards found through their set (audit F-16)", () => {
+  it("credits a card to the lesson its deck was made from", async () => {
+    const { deckLessonMap, lessonIdOfCard, progressByLesson } = await import("./lessons");
+    const deckLessons = deckLessonMap([
+      { id: "d-1", material_id: "mat-1" },
+      { id: "d-2", material_id: null },
+    ]);
+    const card = { material_id: undefined, source_material_id: undefined, deck_id: "d-1" };
+    expect(lessonIdOfCard(card, deckLessons)).toBe("mat-1");
+    expect(lessonIdOfCard({ ...card, deck_id: "d-2" }, deckLessons)).toBeNull();
+    expect(lessonIdOfCard(card)).toBeNull();
+    const progress = progressByLesson(
+      [
+        { ...card, last_reviewed_at: "2026-11-07T00:00:00Z", srs_interval: 1 },
+        { ...card, last_reviewed_at: null, srs_interval: 0 },
+      ],
+      deckLessons,
+    );
+    expect(progress.get("mat-1")).toEqual({ total: 2, practised: 1 });
+  });
+});

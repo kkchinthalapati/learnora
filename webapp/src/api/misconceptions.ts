@@ -422,6 +422,72 @@ export const misconceptionsApi = {
    *  relevant. Deleting rather than resolving: a resolved row claims they
    *  learned something, and the ledger must not put words in their mouth.
    *  Observations cascade. */
+  /** After a lesson moves subject, moves the mistakes only that lesson's
+   *  Learn checks and marked answers produced from the old subject's name to
+   *  the new one ("General" when it had or has none). Without this, misses
+   *  recorded before a lesson was filed stayed under "General" for good
+   *  (audit F-01's known limit). A mistake also seen anywhere else stays put,
+   *  and so does one the new subject already holds (one row per subject and
+   *  concept). Returns how many moved. */
+  async refileLesson(materialId: string, fromSubject: string, toSubject: string): Promise<number> {
+    if (fromSubject === toSubject) return 0;
+    const userId = await requireUserId();
+    const fromLesson = (o: { idempotency_key: string | null; source_id: string | null }) =>
+      (o.idempotency_key ?? "").startsWith(`learn:${materialId}:`) ||
+      (o.source_id ?? "").startsWith(`marked:learn-exam:${materialId}:`);
+
+    const { data: seen, error: seenError } = await supabase
+      .from("misconception_observations")
+      .select("misconception_id, idempotency_key, source_id")
+      .eq("user_id", userId)
+      .or(
+        `idempotency_key.like."learn:${materialId}:*",source_id.like."marked:learn-exam:${materialId}:*"`,
+      );
+    if (seenError) throw seenError;
+    const candidateIds = [...new Set((seen ?? []).map((o) => o.misconception_id as string))];
+    if (candidateIds.length === 0) return 0;
+
+    const { data: rows, error: rowsError } = await supabase
+      .from("misconceptions")
+      .select("id, concept_key")
+      .eq("user_id", userId)
+      .eq("subject", fromSubject)
+      .in("id", candidateIds);
+    if (rowsError) throw rowsError;
+    if (!rows?.length) return 0;
+
+    const { data: all, error: allError } = await supabase
+      .from("misconception_observations")
+      .select("misconception_id, idempotency_key, source_id")
+      .eq("user_id", userId)
+      .in("misconception_id", rows.map((r) => r.id));
+    if (allError) throw allError;
+    const elsewhere = new Set(
+      (all ?? []).filter((o) => !fromLesson(o)).map((o) => o.misconception_id as string),
+    );
+
+    const { data: taken, error: takenError } = await supabase
+      .from("misconceptions")
+      .select("concept_key")
+      .eq("user_id", userId)
+      .eq("subject", toSubject)
+      .in("concept_key", rows.map((r) => r.concept_key));
+    if (takenError) throw takenError;
+    const takenKeys = new Set((taken ?? []).map((r) => r.concept_key as string));
+
+    const ids = rows
+      .filter((r) => !elsewhere.has(r.id) && !takenKeys.has(r.concept_key))
+      .map((r) => r.id as string);
+    if (ids.length === 0) return 0;
+    const { error } = await supabase
+      .from("misconceptions")
+      .update({ subject: toSubject })
+      .eq("user_id", userId)
+      .in("id", ids);
+    if (error) throw error;
+    return ids.length;
+  },
+
   async dismiss(id: string): Promise<void> {
     await requireUserId();
     const { error } = await supabase.from("misconceptions").delete().eq("id", id);

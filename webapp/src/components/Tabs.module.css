@@ -6,6 +6,18 @@
   scrollbar-width: none;
 }
 
+.strip[data-more="right"] {
+  mask-image: linear-gradient(to right, black calc(100% - 40px), transparent);
+}
+
+.strip[data-more="left"] {
+  mask-image: linear-gradient(to left, black calc(100% - 40px), transparent);
+}
+
+.strip[data-more="left right"] {
+  mask-image: linear-gradient(to right, transparent, black 40px, black calc(100% - 40px), transparent);
+}
+
 .tab {
   position: relative;
   display: inline-flex;

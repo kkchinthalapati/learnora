@@ -93,6 +93,9 @@ describe("AppShell", () => {
     const subjects = within(mainNav()).getByRole("link", { name: "Subjects" });
     expect(subjects).toHaveAttribute("aria-current", "true");
     expect(within(mainNav()).getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current");
+    /* The phone tabs say the same. */
+    const phone = screen.getByRole("navigation", { name: "Main navigation, phone" });
+    expect(within(phone).getByRole("link", { name: "Subjects" })).toHaveAttribute("aria-current", "true");
   });
 
   it("shows how many cards are due on Subjects, and nothing when none are", async () => {

@@ -110,9 +110,13 @@ export function CaptureBar({
     quiz: outputs?.quiz ?? false,
   };
   const busy = create.isPending;
+  /* `busy` is state, so two submits in one tick both read it as false and
+     make two lessons (audit F-06). The ref flips synchronously. */
+  const inFlight = useRef(false);
 
   const run = async (source: StudySource, title?: string) => {
-    if (busy) return;
+    if (busy || inFlight.current) return;
+    inFlight.current = true;
     setError(null);
     setProgress("Getting started…");
     try {
@@ -152,6 +156,7 @@ export function CaptureBar({
           : "Something went wrong. Please try again.",
       );
     } finally {
+      inFlight.current = false;
       setProgress(null);
     }
   };

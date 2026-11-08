@@ -16,8 +16,27 @@ export interface LessonProgress {
 /** Which lesson a card belongs to. Cards from the study-package pipeline
  *  carry `material_id`; cards added from a source quote carry
  *  `source_material_id`. Either counts. */
-export function lessonIdOfCard(card: Pick<Flashcard, "material_id" | "source_material_id">): string | null {
-  return card.material_id ?? card.source_material_id ?? null;
+export function lessonIdOfCard(
+  card: Pick<Flashcard, "material_id" | "source_material_id"> & { deck_id?: string | null },
+  /** Deck id → the lesson its set was made from. The study package links the
+   *  set, not each card (audit F-16), so a card is found through its deck. */
+  deckLessons?: ReadonlyMap<string, string>,
+): string | null {
+  return (
+    card.material_id ??
+    card.source_material_id ??
+    (card.deck_id ? deckLessons?.get(card.deck_id) : undefined) ??
+    null
+  );
+}
+
+/** Deck id → lesson id, for the sets that record one. */
+export function deckLessonMap(
+  decks: ReadonlyArray<{ id: string; material_id?: string | null }>,
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const d of decks) if (d.material_id) out.set(d.id, d.material_id);
+  return out;
 }
 
 /** A card counts as practised once it has been reviewed: it has a review
@@ -27,11 +46,16 @@ export function isPractised(card: Pick<Flashcard, "last_reviewed_at" | "srs_inte
 }
 
 export function progressByLesson(
-  cards: ReadonlyArray<Pick<Flashcard, "material_id" | "source_material_id" | "last_reviewed_at" | "srs_interval">>,
+  cards: ReadonlyArray<
+    Pick<Flashcard, "material_id" | "source_material_id" | "last_reviewed_at" | "srs_interval"> & {
+      deck_id?: string | null;
+    }
+  >,
+  deckLessons?: ReadonlyMap<string, string>,
 ): Map<string, LessonProgress> {
   const out = new Map<string, LessonProgress>();
   for (const card of cards) {
-    const id = lessonIdOfCard(card);
+    const id = lessonIdOfCard(card, deckLessons);
     if (!id) continue;
     const entry = out.get(id) ?? { total: 0, practised: 0 };
     entry.total += 1;
@@ -59,6 +83,11 @@ const ICONS: Record<MaterialType, IconName> = {
   text: "book-open",
   audio: "mic",
 };
+
+/** The subject a lesson's mistakes are recorded under when it has none.
+ *  The ledger is keyed by subject name, so the lesson's Mistakes tab reads
+ *  the same string back. */
+export const UNFILED_SUBJECT = "General";
 
 export function lessonIcon(type: MaterialType | string | null | undefined): IconName {
   return ICONS[type as MaterialType] ?? "book-open";

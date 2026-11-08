@@ -1,4 +1,4 @@
-import { useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import styles from "./Tabs.module.css";
 
 /* Parts of one page (DESIGN.md rule 0.4). The WAI-ARIA tabs pattern: one tab
@@ -35,6 +35,54 @@ export function Tabs<T extends string>({
   idBase: string;
 }) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
+  const stripRef = useRef<HTMLDivElement>(null);
+  /* On a phone the lesson's six tabs overflow and Tutor and Mistakes sat
+     off-screen with nothing to say so (audit 2026-11-07 §5). A fade marks
+     the edge that has more. */
+  const [more, setMore] = useState("");
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    const update = () => {
+      const left = strip.scrollLeft > 1;
+      const right = strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1;
+      setMore([left ? "left" : "", right ? "right" : ""].filter(Boolean).join(" "));
+    };
+    update();
+    strip.addEventListener("scroll", update, { passive: true });
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    observer?.observe(strip);
+    return () => {
+      strip.removeEventListener("scroll", update);
+      observer?.disconnect();
+    };
+  }, [items.length]);
+  /* A page opened on a later tab (?tab=mistakes) shows it. */
+  const selectedIndex = items.findIndex((item) => item.value === value);
+  /* Counts arrive after the first render and web fonts after that, and both
+     widen the tabs, so this runs again when the counts change and once the
+     fonts and the next frame are in. */
+  const shape = items.map((item) => `${item.label}:${item.count ?? ""}`).join("|");
+  useEffect(() => {
+    let cancelled = false;
+    /* Only the strip scrolls, sideways; scrollIntoView could move the page. */
+    const reveal = () => {
+      const el = refs.current[selectedIndex];
+      const strip = stripRef.current;
+      if (cancelled || !el || !strip) return;
+      const tab = el.getBoundingClientRect();
+      const box = strip.getBoundingClientRect();
+      if (tab.right > box.right) strip.scrollLeft += tab.right - box.right;
+      else if (tab.left < box.left) strip.scrollLeft -= box.left - tab.left;
+    };
+    reveal();
+    const frame = typeof requestAnimationFrame === "function" ? requestAnimationFrame(reveal) : 0;
+    void document.fonts?.ready.then(reveal);
+    return () => {
+      cancelled = true;
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [selectedIndex, shape]);
   const move = (index: number) => {
     const next = items[(index + items.length) % items.length];
     onChange(next.value);
@@ -49,7 +97,13 @@ export function Tabs<T extends string>({
     event.preventDefault();
   };
   return (
-    <div className={styles.strip} role="tablist" aria-label={label}>
+    <div
+      ref={stripRef}
+      className={styles.strip}
+      role="tablist"
+      aria-label={label}
+      data-more={more || undefined}
+    >
       {items.map((item, index) => {
         const selected = item.value === value;
         return (

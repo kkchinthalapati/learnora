@@ -48,6 +48,7 @@ import { sectionExcerpt, splitIntoParts } from "../lib/sourceExcerpt";
 import { insertDrawing, pickDrawableSection } from "../lib/noteDrawing";
 import { buildDiagramTaskPrompt } from "../lib/diagramPrompt";
 import { extractSvgSource } from "../lib/diagramSvg";
+import { topicTitle } from "../lib/captureInput";
 import {
   isPdf,
   MAX_NOTES_PARTS,
@@ -441,6 +442,7 @@ export async function loadSourceText(materialId: string): Promise<string> {
 /** `sourceText` is already fenced by the caller — see `loadSourceText`. */
 export function buildDeckPrompt(sourceText: string, count: number): string {
   return `Generate exactly ${count} flashcards from the study material below. Each card must test a distinct concept — no two cards may restate the same fact.
+Write any formula, equation or symbol in TeX between dollar signs, e.g. $c = \\sqrt{a^2 + b^2}$; everything else stays plain text.
 
 Study Material:
 """
@@ -452,6 +454,7 @@ export async function generateDeck({
   sourceText,
   folderId,
   notebookId,
+  materialId,
   title,
   count,
   settings,
@@ -459,6 +462,8 @@ export async function generateDeck({
   sourceText: string;
   folderId: string | null;
   notebookId?: string | null;
+  /** The lesson the set is made from, so its page can find the cards. */
+  materialId?: string | null;
   title: string;
   count: number;
   settings: Settings;
@@ -486,7 +491,7 @@ export async function generateDeck({
   // Created only once there are cards to put in it — an empty deck row is
   // worse than no deck, since the library lists it and the review screen
   // serves nothing.
-  const deck = await decksApi.add(folderId, title, notebookId);
+  const deck = await decksApi.add(folderId, title, notebookId, materialId);
   await flashcardsApi.addBatch(deck.id, cards);
   return deck;
 }
@@ -823,7 +828,7 @@ export async function createStudyPackage(
   } else {
     const trimmed = source.topic.trim();
     if (!trimmed) throw new Error("Please enter a topic.");
-    baseTitle = baseTitle || trimmed;
+    baseTitle = baseTitle || topicTitle(trimmed);
     topic = trimmed;
     if (wantsNotes) {
       step("Writing summary notes…");
@@ -859,6 +864,7 @@ export async function createStudyPackage(
         sourceText,
         folderId,
         notebookId,
+        materialId: result.material?.id ?? null,
         title: withOutputSuffix(baseTitle, "Flashcards"),
         count: options.cardCount,
         settings,
