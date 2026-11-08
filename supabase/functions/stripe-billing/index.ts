@@ -37,6 +37,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "https://learnora-app.vercel.app",
   "https://learnora.app",
   "https://www.learnora.app",
+  "https://learnora-app.com",
+  "https://www.learnora-app.com",
   "http://localhost:5173",
   "http://localhost:4173",
 ];

@@ -51,6 +51,8 @@ type TokenUsage = { input: number; output: number; reported: boolean };
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://learnora-app.vercel.app",
   "https://study-planner-delta-six.vercel.app",
+  "https://learnora-app.com",
+  "https://www.learnora-app.com",
   "https://learnora.app",
   "https://www.learnora.app",
   "http://localhost:3000",
