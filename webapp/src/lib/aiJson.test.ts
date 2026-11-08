@@ -285,6 +285,17 @@ describe("extractFlashcardJSON with TeX", () => {
     ]);
   });
 
+  /* Production 2026-11-08: a reply whose structure did not parse went
+     through the regex fallback, which kept "\\dfrac" as two backslashes;
+     KaTeX then drew a line break and the word "dfrac". */
+  it("decodes cards the regex fallback pulls out, to one backslash", () => {
+    const reply = String.raw`Cards: {"front":"Current?","back":"$I = \\dfrac{V}{R}$"} and {"front":"Area?","back":"$\frac{1}{2}bh$ and \"base\""}`;
+    expect(extractFlashcardJSON(reply)).toEqual([
+      { front: "Current?", back: String.raw`$I = \dfrac{V}{R}$` },
+      { front: "Area?", back: String.raw`$\frac{1}{2}bh$ and "base"` },
+    ]);
+  });
+
   it("leaves correctly doubled backslashes and escapes outside maths alone", () => {
     const reply = String.raw`[{"front":"Line one\nline two","back":"$\\frac{1}{2}$ and a \"quote\""}]`;
     expect(extractFlashcardJSON(reply)).toEqual([

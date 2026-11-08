@@ -214,16 +214,28 @@ export function extractFlashcardJSON(
 
   /* Last resort: pull individual card objects out with a regex, for a reply
    * whose surrounding structure is unsalvageable but whose cards are intact. */
+  /* Each value may hold escapes, an escaped quote among them. */
   const regex =
-    /\{\s*"front"\s*:\s*"([^"]+)"\s*,\s*"back"\s*:\s*"([^"]+)"\s*\}/g;
+    /\{\s*"front"\s*:\s*"((?:[^"\\]|\\.)+)"\s*,\s*"back"\s*:\s*"((?:[^"\\]|\\.)+)"\s*\}/g;
   const cards: FlashcardDraft[] = [];
   let match: RegExpExecArray | null;
-  /* The raw reply: these captures are not JSON-unescaped, so the doubled
-     backslashes added above would survive into the card. */
   while ((match = regex.exec(rawText)) !== null) {
-    cards.push({ front: match[1], back: match[2] });
+    cards.push({ front: decodeJsonString(match[1]), back: decodeJsonString(match[2]) });
   }
   return cards;
+}
+
+/* A capture from the regex above is still JSON source: "\\dfrac" there is
+   one backslash in the card. Kept raw, it reached production as two, which
+   KaTeX draws as a line break and the word "dfrac" (2026-11-08). The TeX
+   repair runs first so a lone "\frac" decodes to \frac, not a form feed. */
+function decodeJsonString(captured: string): string {
+  try {
+    const value: unknown = JSON.parse(`"${escapeTexInJson(captured)}"`);
+    return typeof value === "string" ? value : captured;
+  } catch {
+    return captured;
+  }
 }
 
 export function extractPlanJSON(
