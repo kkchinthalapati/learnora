@@ -442,7 +442,7 @@ export async function loadSourceText(materialId: string): Promise<string> {
 /** `sourceText` is already fenced by the caller — see `loadSourceText`. */
 export function buildDeckPrompt(sourceText: string, count: number): string {
   return `Generate exactly ${count} flashcards from the study material below. Each card must test a distinct concept — no two cards may restate the same fact.
-Write any formula, equation or symbol in TeX between dollar signs, e.g. $c = \\sqrt{a^2 + b^2}$; everything else stays plain text.
+Write any formula, equation or symbol in TeX between dollar signs; everything else stays plain text. The cards are JSON strings, so every TeX backslash must be doubled, e.g. "$c = \\\\sqrt{a^2 + b^2}$".
 
 Study Material:
 """

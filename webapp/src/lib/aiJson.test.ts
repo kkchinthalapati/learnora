@@ -263,3 +263,32 @@ describe("extractJSON", () => {
     expect(extractJSON(null)).toBeUndefined();
   });
 });
+
+describe("extractFlashcardJSON with TeX", () => {
+  /* Cards are asked for TeX (audit F-11). A model that writes \frac or
+     \times with one backslash produces valid JSON escapes (\f, \t), so a plain
+     JSON.parse turned "\frac" into a form feed plus "rac" without failing. */
+  it("keeps single-backslash TeX commands inside $…$ intact", () => {
+    /* Every command here starts with a valid JSON escape, so without the
+       repair this parses cleanly into control characters. */
+    const reply = String.raw`[{"front":"Area of a triangle?","back":"$A = \frac{1}{2}bh$"},{"front":"Cross product of a and b","back":"$a \times b$"}]`;
+    expect(extractFlashcardJSON(reply)).toEqual([
+      { front: "Area of a triangle?", back: String.raw`$A = \frac{1}{2}bh$` },
+      { front: "Cross product of a and b", back: String.raw`$a \times b$` },
+    ]);
+  });
+
+  it("keeps a command that is not a JSON escape, like \\sqrt", () => {
+    const reply = String.raw`[{"front":"Hypotenuse?","back":"$c = \sqrt{a^2 + b^2}$"}]`;
+    expect(extractFlashcardJSON(reply)).toEqual([
+      { front: "Hypotenuse?", back: String.raw`$c = \sqrt{a^2 + b^2}$` },
+    ]);
+  });
+
+  it("leaves correctly doubled backslashes and escapes outside maths alone", () => {
+    const reply = String.raw`[{"front":"Line one\nline two","back":"$\\frac{1}{2}$ and a \"quote\""}]`;
+    expect(extractFlashcardJSON(reply)).toEqual([
+      { front: "Line one\nline two", back: String.raw`$\frac{1}{2}$ and a "quote"` },
+    ]);
+  });
+});
