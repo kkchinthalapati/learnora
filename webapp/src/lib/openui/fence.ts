@@ -42,8 +42,56 @@ function splitBare(text: string): ReplySegment[] {
   return out;
 }
 
+/* Some models wrap the program in XML-style tags instead of a fence
+   (audit F-02: a literal <openui> showed in a tutor reply). Read them as a
+   fence, closing tag optional like the fence's. */
+const TAG_OPEN = /<openui(?:[-_ ]?lang)?>[ \t]*\r?\n?/gi;
+const TAG_CLOSE = /\r?\n?[ \t]*<\/openui(?:[-_ ]?lang)?>/gi;
+
+/* A top-level assignment: one that starts at the margin. Arguments that
+   wrap onto later lines are indented or start with a bracket. */
+const TOP_LEVEL = /^([A-Za-z_]\w*)[ \t]*=/gm;
+const IDENT = /[A-Za-z_]\w*/g;
+
+function assignedNames(code: string): string[] {
+  return [...code.matchAll(TOP_LEVEL)].map((m) => m[1]);
+}
+
+/* Models often split ONE program across several fences: each card in its
+   own block next to its prose, and `root = Stack([...])` in a block of its
+   own (audit F-03: "couldn't be drawn" twice in one set of notes). Alone,
+   each block has no root, or a root naming cards it does not hold, so none
+   could be drawn. Give a rootless block a root over its own cards, and drop
+   a root-only block whose cards are all drawn by the other blocks. */
+function completePrograms(segments: ReplySegment[]): ReplySegment[] {
+  const blocks = segments.filter((s) => s.kind === "openui");
+  const elsewhere = new Set<string>();
+  for (const b of blocks) {
+    for (const n of assignedNames(b.code)) if (n !== "root") elsewhere.add(n);
+  }
+  return segments.flatMap((s): ReplySegment[] => {
+    if (s.kind !== "openui") return [s];
+    const names = assignedNames(s.code);
+    if (names.length === 0) return [s];
+    if (!names.includes("root")) {
+      /* Only the cards nothing else in the block already holds. */
+      const used = (n: string) => (s.code.match(new RegExp(`\\b${n}\\b`, "g")) ?? []).length > 1;
+      const top = names.filter((n) => !used(n));
+      return [{ kind: "openui", code: `root = Stack([${(top.length ? top : names).join(", ")}])\n${s.code}` }];
+    }
+    if (names.length === 1) {
+      const refs = [...s.code.matchAll(IDENT)]
+        .map((m) => m[0])
+        .filter((n) => n !== "root" && n !== "Stack");
+      if (refs.length > 0 && refs.every((n) => elsewhere.has(n))) return [];
+    }
+    return [s];
+  });
+}
+
 /** Splits a reply into Markdown runs and OpenUI Lang blocks, in order. */
-export function splitOpenUiBlocks(text: string): ReplySegment[] {
+export function splitOpenUiBlocks(raw: string): ReplySegment[] {
+  const text = raw.replace(TAG_OPEN, "\n```openui\n").replace(TAG_CLOSE, "\n```");
   const out: ReplySegment[] = [];
   let last = 0;
   for (const match of text.matchAll(FENCE)) {
@@ -53,7 +101,9 @@ export function splitOpenUiBlocks(text: string): ReplySegment[] {
     last = start + match[0].length;
   }
   if (last < text.length) out.push(...splitBare(text.slice(last)));
-  return out.filter((s) => s.kind === "openui" ? s.code.length > 0 : s.text.trim().length > 0);
+  return completePrograms(
+    out.filter((s) => (s.kind === "openui" ? s.code.length > 0 : s.text.trim().length > 0)),
+  );
 }
 
 export function hasOpenUiBlock(text: string): boolean {

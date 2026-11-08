@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Button } from "../../components/Button";
+import { UNFILED_SUBJECT } from "../../lib/lessons";
+import { asSentence } from "../../lib/sentence";
 import { EmptyState } from "../../components/EmptyState";
 import { AiErrorCard } from "../../components/learning/AiErrorCard";
 import { TutorTurn } from "../../components/learning/TutorTurn";
@@ -301,7 +303,7 @@ function LearnFlow({
         ? []
         : [
             {
-              subject: subject || "General",
+              subject: subject || UNFILED_SUBJECT,
               concept: step.concept,
               summary: question.feedback || proseOnly(step.explanation).slice(0, 280),
               severity: "moderate",
@@ -577,7 +579,7 @@ function LearnFlow({
           ) : (
             <div className={styles.results} aria-live="polite">
               <p className={styles.result} data-result={right ? "right" : "wrong"}>
-                {right ? "✓ Right." : `✕ Not this time. The answer is ${question.choices[question.correctIndex]}.`}
+                {right ? "✓ Right." : `✕ Not this time. The answer is ${asSentence(question.choices[question.correctIndex])}`}
               </p>
               {question.feedback ? (
                 <div className={styles.feedback}>
@@ -883,7 +885,7 @@ function ExamPart({
         lesson,
         exam,
         answer,
-        subject: subject || "General",
+        subject: subject || UNFILED_SUBJECT,
       });
       onSave({ question: exam, answer, marking });
       if (marking.kind === "marked") {
@@ -899,7 +901,7 @@ function ExamPart({
               clientId: runId,
               payload: { mode: "learn-exam", concept, section: section.title, materialId },
             },
-            candidatesFromMarking(marking, subject || "General", runId),
+            candidatesFromMarking(marking, subject || UNFILED_SUBJECT, runId),
           )
           .catch(() => {
             /* Best-effort, like every other evidence write. */

@@ -23,3 +23,7 @@ export const TASK_MAX = 300;
 
 /** A subject (folder) name, and an exam name. */
 export const SUBJECT_MAX = 80;
+
+/** A lesson's name when the student renames it. Long enough for a file name
+ *  or a chapter heading; Home's composer already cuts its label at 80. */
+export const LESSON_TITLE_MAX = 120;

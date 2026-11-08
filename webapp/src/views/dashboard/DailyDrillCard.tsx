@@ -6,6 +6,7 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useFlashcardsDueCount } from "../../hooks/useFlashcards";
 import { useWeakTopics } from "../../hooks/useQuizzes";
+import { DAILY_DRILL_SIZE } from "../../lib/offlineCards";
 import styles from "./dashboard.module.css";
 
 export function DailyDrillCard() {
@@ -13,7 +14,7 @@ export function DailyDrillCard() {
   const { data: weakTopics } = useWeakTopics(2);
   const navigate = useNavigate();
   const totalDue = dueCount || 0;
-  const drillSize = Math.min(totalDue, 20);
+  const drillSize = Math.min(totalDue, DAILY_DRILL_SIZE);
 
   return (
     <Card variant="elevated" className={styles.drillCard}>

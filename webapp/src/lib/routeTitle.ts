@@ -47,6 +47,16 @@ const TITLES: ReadonlyArray<readonly [prefix: string, title: string]> = [
   ["/friends", "Friends"],
   ["/room", "Study room"],
   ["/settings", "Settings"],
+  /* Audit F-10: these fell through to a bare "Learnora". */
+  ["/capture", "New lesson"],
+  ["/exam-detective", "Exam traps"],
+  ["/setup", "Study profile"],
+  ["/check-back", "Check-back"],
+  ["/past-you", "Past you"],
+  ["/tell-apart", "Tell them apart"],
+  ["/about", "About"],
+  ["/contact", "Contact"],
+  ["/developers", "Developers"],
 ];
 
 export const APP_NAME = "Learnora";

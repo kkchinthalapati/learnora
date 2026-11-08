@@ -207,6 +207,12 @@ describe("buildDeckPrompt", () => {
     expect(prompt).toContain("exactly 7 flashcards");
     expect(prompt).toContain("no two cards may restate the same fact");
   });
+
+  /* Audit F-11: a card read "c = sqrt(a^2 + b^2)" because nothing asked for
+     TeX, though review typesets $…$ (ReviewView cardFace). */
+  it("asks for maths in TeX so review can typeset it", () => {
+    expect(buildDeckPrompt("Some notes", 7)).toContain(String.raw`$c = \sqrt{a^2 + b^2}$`);
+  });
 });
 
 describe("generateDeck", () => {

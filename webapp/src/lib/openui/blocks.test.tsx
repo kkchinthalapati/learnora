@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Renderer } from "@openuidev/react-lang";
-import { openUiPromptSection, openUiReference } from "./blocks";
+import { learnCardSection, openUiPromptSection, openUiReference } from "./blocks";
 import { hasOpenUiBlock, splitOpenUiBlocks } from "./fence";
 import { addTermCards } from "./cardify";
 import { askLibrary, guideLibrary } from "./library";
@@ -36,6 +36,49 @@ describe("splitOpenUiBlocks", () => {
 
   it("does not mistake ordinary prose or code for a card", () => {
     expect(hasOpenUiBlock("x = 5 is a fact.\nroot = the base of a tree")).toBe(false);
+  });
+
+  /* Audit F-02: a tutor reply showed a literal <openui> before its cards. */
+  it("reads <openui> tags as a fence and leaves no tag in the text", () => {
+    const text = `Here you go.\n<openui>\n${CARD}\n</openui>\nAnything else?`;
+    const segments = splitOpenUiBlocks(text);
+    expect(segments.map((s) => s.kind)).toEqual(["text", "openui", "text"]);
+    expect(segments[1]).toEqual({ kind: "openui", code: CARD });
+    const prose = segments.flatMap((s) => (s.kind === "text" ? [s.text] : [])).join("");
+    expect(prose).not.toMatch(/openui/i);
+  });
+
+  /* Audit F-03: generated notes put each card in its own fence and the root
+     in another, so no block could be drawn on its own. */
+  it("gives each split-out card a root and drops the separate root block", () => {
+    const text = [
+      "Intro.",
+      "```openui",
+      'intro = Callout("definition", "Osmosis is water moving.")',
+      "```",
+      "Terms.",
+      "```openui",
+      'terms = KeyTerms("Key terms", [',
+      '  ["Osmosis", "Water moving"]',
+      "])",
+      "```",
+      "End.",
+      "```openui",
+      "root = Stack([intro, terms])",
+      "```",
+    ].join("\n");
+    const cards = splitOpenUiBlocks(text).filter((s) => s.kind === "openui");
+    expect(cards.map((c) => c.code.split("\n")[0])).toEqual([
+      "root = Stack([intro])",
+      "root = Stack([terms])",
+    ]);
+  });
+
+  it("roots a split-out block only over cards nothing else in it holds", () => {
+    const text = '```openui\ns = Stack([k])\nk = Callout("key", "One.")\n```\n```openui\nroot = Stack([s])\n```';
+    const cards = splitOpenUiBlocks(text).filter((s) => s.kind === "openui");
+    expect(cards).toHaveLength(1);
+    expect(cards[0].code.split("\n")[0]).toBe("root = Stack([s])");
   });
 
   it("does not touch mermaid or svg fences", () => {
@@ -183,5 +226,16 @@ describe("the vocabulary card built from a note", () => {
     expect(screen.getByText("Words to know")).toBeInTheDocument();
     expect(screen.getByText("Osmosis")).toBeInTheDocument();
     expect(screen.getByText("The liquid it dissolves in")).toBeInTheDocument();
+  });
+});
+
+describe("lesson card section", () => {
+  /* Audit F-15: Learn stated each definition and common mistake twice, once
+     in prose and again in a card, because the prompt asked for both. */
+  it("asks for each point once while keeping the check answerable from prose", () => {
+    const section = learnCardSection();
+    expect(section).toContain("Say each thing once");
+    expect(section).toContain("Everything the check asks about must still be in the prose");
+    expect(section).not.toContain("never put a fact only in a card");
   });
 });

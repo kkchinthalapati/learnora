@@ -31,7 +31,7 @@ export function CaptureView() {
     <div className={styles.page}>
       <h1 className={styles.heading}>What do you want to learn?</h1>
       <p className={styles.lede}>
-        Bring what you're studying. Learnora makes notes and cards from it, then remembers what you get wrong.
+        Bring what you're studying.
       </p>
       {shared ? (
         <CaptureBar
