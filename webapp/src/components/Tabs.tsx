@@ -59,16 +59,30 @@ export function Tabs<T extends string>({
   }, [items.length]);
   /* A page opened on a later tab (?tab=mistakes) shows it. */
   const selectedIndex = items.findIndex((item) => item.value === value);
+  /* Counts arrive after the first render and web fonts after that, and both
+     widen the tabs, so this runs again when the counts change and once the
+     fonts and the next frame are in. */
+  const shape = items.map((item) => `${item.label}:${item.count ?? ""}`).join("|");
   useEffect(() => {
+    let cancelled = false;
     /* Only the strip scrolls, sideways; scrollIntoView could move the page. */
-    const el = refs.current[selectedIndex];
-    const strip = stripRef.current;
-    if (!el || !strip) return;
-    const tab = el.getBoundingClientRect();
-    const box = strip.getBoundingClientRect();
-    if (tab.right > box.right) strip.scrollLeft += tab.right - box.right;
-    else if (tab.left < box.left) strip.scrollLeft -= box.left - tab.left;
-  }, [selectedIndex]);
+    const reveal = () => {
+      const el = refs.current[selectedIndex];
+      const strip = stripRef.current;
+      if (cancelled || !el || !strip) return;
+      const tab = el.getBoundingClientRect();
+      const box = strip.getBoundingClientRect();
+      if (tab.right > box.right) strip.scrollLeft += tab.right - box.right;
+      else if (tab.left < box.left) strip.scrollLeft -= box.left - tab.left;
+    };
+    reveal();
+    const frame = typeof requestAnimationFrame === "function" ? requestAnimationFrame(reveal) : 0;
+    void document.fonts?.ready.then(reveal);
+    return () => {
+      cancelled = true;
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [selectedIndex, shape]);
   const move = (index: number) => {
     const next = items[(index + items.length) % items.length];
     onChange(next.value);
