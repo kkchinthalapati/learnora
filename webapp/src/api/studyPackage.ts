@@ -302,6 +302,10 @@ export async function generateNotes({
   const dropped = inlineText && !attachment && parts.join("\n\n").length < inlineText.length - 2;
   if (dropped) parts[parts.length - 1] += `\n\n${LONG_SOURCE_NOTE}`;
 
+  /* Every part and the drawing carry one key, so the edge function bills the
+     whole note as one notes generation (SESSION_CALL_CAPS.notes in
+     supabase/functions/_shared/sessionBilling.js), not one per request. */
+  const sessionKey = notesSessionKey();
   const written: string[] = [];
   for (const [index, part] of parts.entries()) {
     onPart?.(index + 1, parts.length);
@@ -317,6 +321,7 @@ export async function generateNotes({
         file: attachment,
         mode: "notes",
         tool: "notes",
+        sessionKey,
         settings,
         ...(cards ? { context: cards } : {}),
       });
@@ -349,7 +354,7 @@ export async function generateNotes({
      the photo, and a picture of the topic is not a picture of the page. */
   const markdown = attachment?.mimeType.startsWith("image/")
     ? joined
-    : await addDrawingIfNone(joined, settings, onDrawing);
+    : await addDrawingIfNone(joined, settings, onDrawing, sessionKey);
   if (persist) await notesApi.add(material.id, markdown);
   return markdown;
 }
@@ -361,6 +366,8 @@ export async function addDrawingIfNone(
   markdown: string,
   settings: Settings,
   onDrawing?: (heading: string) => void,
+  /** The note's own key, so the drawing is part of that note's allowance. */
+  sessionKey?: string,
 ): Promise<string> {
   const section = pickDrawableSection(markdown);
   if (!section) return markdown;
@@ -378,8 +385,10 @@ ${fenceUntrusted(section.body.slice(0, MAX_DRAWING_SOURCE_CHARS))}
 """`,
         },
       ],
-      // The same request and allowance as "Draw this section".
-      tool: "notebookStudio",
+      /* The request "Draw this section" makes, billed as part of the note it
+         belongs to rather than to the student's Studio allowance. */
+      tool: "notes",
+      ...(sessionKey ? { sessionKey } : {}),
       settings,
     });
     const svg = refused ? null : extractSvgSource(text);
@@ -388,6 +397,12 @@ ${fenceUntrusted(section.body.slice(0, MAX_DRAWING_SOURCE_CHARS))}
     console.warn("[studyPackage] no drawing added to the notes", err);
     return markdown;
   }
+}
+
+/** One key per note written; the edge function accepts 6-80 of [A-Za-z0-9_-]. */
+export function notesSessionKey(): string {
+  const random = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `notes-${random}`;
 }
 
 /** Enough of a section for the drawing to follow it, not the whole note. */

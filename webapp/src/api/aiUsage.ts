@@ -56,13 +56,44 @@ export function nextUtcDayStart(now: Date = new Date()): Date {
   return next;
 }
 
+/** Today's spend per tool, in the same units the edge function bills in
+ *  (`billingDecision` in supabase/functions/_shared/sessionBilling.js): every
+ *  call that carries a session key counts once per distinct key, so a whole
+ *  Learn lesson — its overview, each part and the recap — is one unit; a call
+ *  with no key is one unit of its own. Counting rows instead made a three-part
+ *  lesson read as "3 of 3 used" while the server had spent one. Kept by hand
+ *  in step with that function, the same way entitlements.ts mirrors QUOTAS. */
+export function unitsByTool(
+  rows: { tool: string | null; session_key: string | null }[],
+): Partial<Record<AiToolId, number>> {
+  const keysByTool = new Map<AiToolId, Set<string>>();
+  const unkeyedByTool = new Map<AiToolId, number>();
+  for (const row of rows) {
+    /* A row logged before the `tool` column existed, or by a caller not yet
+       migrated to send one, is billed to "chat" (DEFAULT_TOOL). */
+    const tool = (row.tool as AiToolId | null) ?? "chat";
+    if (row.session_key) {
+      const keys = keysByTool.get(tool) ?? new Set<string>();
+      keys.add(row.session_key);
+      keysByTool.set(tool, keys);
+    } else {
+      unkeyedByTool.set(tool, (unkeyedByTool.get(tool) ?? 0) + 1);
+    }
+  }
+  const usedByTool: Partial<Record<AiToolId, number>> = {};
+  for (const tool of new Set([...keysByTool.keys(), ...unkeyedByTool.keys()])) {
+    usedByTool[tool] = (keysByTool.get(tool)?.size ?? 0) + (unkeyedByTool.get(tool) ?? 0);
+  }
+  return usedByTool;
+}
+
 export async function fetchDailyAiUsage(): Promise<DailyAiUsage> {
   const userId = await requireUserId();
   const now = new Date();
 
   const { data, error } = await supabase
     .from("ai_request_log")
-    .select("tool")
+    .select("tool, session_key")
     .eq("user_id", userId)
     /* A request no provider answered is kept but marked refunded, and the
        limiter skips it; so must the meter. */
@@ -75,11 +106,7 @@ export async function fetchDailyAiUsage(): Promise<DailyAiUsage> {
      migrated to send one, has `tool: null` — billed to "chat" server-side
      (see DEFAULT_TOOL in the edge function), so it is counted the same way
      here rather than silently dropped from every meter. */
-  const usedByTool: Partial<Record<AiToolId, number>> = {};
-  for (const row of data ?? []) {
-    const tool = (row.tool as AiToolId | null) ?? "chat";
-    usedByTool[tool] = (usedByTool[tool] ?? 0) + 1;
-  }
+  const usedByTool = unitsByTool(data ?? []);
 
   return {
     usedByTool,

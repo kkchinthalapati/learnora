@@ -7,6 +7,7 @@ import { LearnoraMark } from "../../components/LearnoraMark";
 import { AiErrorCard } from "../../components/learning/AiErrorCard";
 import { MasteryLadder } from "../../components/learning/MasteryLadder";
 import { TutorTurn } from "../../components/learning/TutorTurn";
+import { ReminderOffer } from "../../components/learning/ReminderOffer";
 import { generateFirstLesson, type FirstLesson } from "../../api/firstLesson";
 import { learningEventsApi } from "../../api/learningEvents";
 import { decksApi } from "../../api/decks";
@@ -37,6 +38,7 @@ import {
   ONBOARDING_VERSION,
   type OnboardingAnswers,
 } from "../../lib/onboarding";
+import { createTrailWriter, readTrail, type TrailStep } from "../../lib/onboardingTrail";
 import { useAiTask } from "../session/useAiTask";
 import { newSessionHref } from "../../lib/sessionModes";
 import type { BoardOption } from "./boards";
@@ -144,6 +146,27 @@ export function FirstRunView() {
     headingRef.current?.focus();
   }, [step, phase]);
 
+  /* Which screen they are on, recorded so a drop-off can be placed
+     (lib/onboardingTrail). The lesson is split into its wait, failure and
+     three phases: a slow or failed AI call is a likely place to leave. */
+  const trail = useRef<ReturnType<typeof createTrailWriter> | null>(null);
+  trail.current ??= createTrailWriter(readTrail(user?.user_metadata));
+  const trailStep: TrailStep =
+    step !== "lesson"
+      ? step
+      : task.error
+        ? "lesson_error"
+        : task.pending || !lesson
+          ? "lesson_wait"
+          : phase === "hook"
+            ? "lesson_hook"
+            : phase === "teach"
+              ? "lesson_teach"
+              : "lesson_check";
+  useEffect(() => {
+    void trail.current?.reach(trailStep);
+  }, [trailStep]);
+
   const firstName = useMemo(() => {
     const full = (user?.user_metadata as Record<string, unknown> | undefined)?.full_name;
     return typeof full === "string" ? full.trim().split(/\s+/)[0] || null : null;
@@ -215,6 +238,7 @@ export function FirstRunView() {
      takes the student straight to what it built — so they are counted as set
      up first, or the gate would send them back here. */
   const dropNotes = () => {
+    void trail.current?.exit("notes");
     if (user) markOnboardedLocally(user.id);
     void markDone(false);
     openCreateModal({ type: "material", outputs: { flashcards: true, notes: true } });
@@ -311,6 +335,7 @@ export function FirstRunView() {
     e.preventDefault();
     if (saving) return;
     setSaving(true);
+    void trail.current?.exit("plan");
     const chosen = SESSION_LENGTHS.find((l) => l.id === length);
     if (chosen) {
       updateLifeContext({
@@ -337,6 +362,7 @@ export function FirstRunView() {
   };
 
   const skip = async () => {
+    void trail.current?.exit("skip");
     /* "Your topic is kept" is what the error card says, so keep it: Study
        opens with it filled in. */
     if (topic.trim() && !lesson && user) savePendingTopic(user.id, topic.trim());
@@ -348,6 +374,7 @@ export function FirstRunView() {
   const stepIndex = steps.indexOf(step);
 
   const pickBoard = (b: BoardOption) => {
+    void trail.current?.board(b.id);
     setBoard(b);
     if (b.spec) setStep("check");
     else setStep("start");
@@ -372,6 +399,7 @@ export function FirstRunView() {
   const startPractice = async (choice: StartChoice) => {
     if (saving) return;
     setSaving(true);
+    void trail.current?.exit("practice");
     const spec = board?.spec ?? null;
     updateLifeContext(BLOCKS[choice.minutes]);
     if (spec && choice.examDate && choice.examDate >= localDateStr()) {
@@ -637,6 +665,7 @@ export function FirstRunView() {
               We saved the lesson as flashcards. Recall will bring it back
               before it starts to fade.
             </p>
+            <ReminderOffer lead={`Your ${topic} cards come back tomorrow.`} />
           </div>
           <form className={styles.planCard} onSubmit={(e) => void savePlan(e)}>
             <h2 className={styles.planTitle}>Two questions so we can plan with you</h2>
@@ -695,6 +724,7 @@ export function FirstRunView() {
               type="button"
               className={styles.skipLink}
               onClick={() => {
+                void trail.current?.exit("profile");
                 void markDone(false).then(() => navigate("/setup/profile"));
               }}
             >

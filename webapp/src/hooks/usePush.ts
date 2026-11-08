@@ -21,7 +21,9 @@ import type { PushSubscriptionRow } from "../api/types";
 export type PushStatus =
   "unsupported" | "checking" | "subscribed" | "unsubscribed";
 
-export function usePush() {
+/** `listDevices: false` skips the account-wide device list (and its error
+ *  toast), for a prompt that only needs this device's state. */
+export function usePush({ listDevices = true }: { listDevices?: boolean } = {}) {
   const { showToast } = useToast();
   const [status, setStatus] = useState<PushStatus>(
     isPushSupported() ? "checking" : "unsupported",
@@ -34,6 +36,7 @@ export function usePush() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
+    if (!listDevices) return;
     try {
       const list = await pushApi.fetchAll();
       setAllSubscriptions(list);
@@ -41,7 +44,7 @@ export function usePush() {
       console.error("Failed to fetch all subscriptions", err);
       showToast("Couldn't load your registered devices.", { error: true });
     }
-  }, [showToast]);
+  }, [showToast, listDevices]);
 
   useEffect(() => {
     if (!isPushSupported()) return;

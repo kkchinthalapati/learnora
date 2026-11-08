@@ -127,6 +127,17 @@ describe("NotebooksHubView", () => {
     ).toBeInTheDocument();
   });
 
+  it("offers the upgrade instead of the form once the free plan's three notebooks are used", async () => {
+    serveNotebooks([1, 2, 3].map((n) => notebookRow({ id: `nb-${n}`, title: `Notebook ${n}` })));
+    const user = userEvent.setup();
+    renderHub();
+    expect(await screen.findByText(/free plan keeps 3 notebooks, and you have 3/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /New notebook/i }));
+    expect(await screen.findByRole("heading", { name: "Choose a plan" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /New notebook/i })).not.toBeInTheDocument();
+  });
+
   it("files a new notebook under the selected subject folder", async () => {
     const user = userEvent.setup();
     const inserts: unknown[] = [];
