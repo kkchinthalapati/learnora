@@ -5,6 +5,10 @@ import { Modal } from "../Modal";
 import { useToast } from "../../context/toast";
 import { useFolders } from "../../hooks/useFolders";
 import { useMoveMaterial } from "../../hooks/useMaterials";
+import { useQueryClient } from "@tanstack/react-query";
+import { misconceptionsApi } from "../../api/misconceptions";
+import { misconceptionsKeys } from "../../hooks/useMisconceptions";
+import { UNFILED_SUBJECT } from "../../lib/lessons";
 import { useLibraryActions } from "../../views/library/useLibraryActions";
 import type { Material } from "../../api/types";
 import styles from "./lessonActions.module.css";
@@ -93,6 +97,7 @@ function MoveLessonDialog({
   const folders = useFolders();
   const move = useMoveMaterial();
   const { showToast } = useToast();
+  const qc = useQueryClient();
   const selectId = useId();
   const [choice, setChoice] = useState<string>(lesson.folder_id ?? NONE);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +111,14 @@ function MoveLessonDialog({
     try {
       await move.mutateAsync({ id: lesson.id, folderId });
       const name = subjects.find((f) => f.id === folderId)?.name;
+      const oldName = subjects.find((f) => f.id === lesson.folder_id)?.name;
+      /* Best effort: the lesson has moved either way. */
+      void misconceptionsApi
+        .refileLesson(lesson.id, oldName ?? UNFILED_SUBJECT, name ?? UNFILED_SUBJECT)
+        .then((moved) => {
+          if (moved > 0) void qc.invalidateQueries({ queryKey: misconceptionsKeys.all });
+        })
+        .catch(() => {});
       showToast(name ? `Moved to ${name}.` : "Taken out of its subject.");
       onClose();
     } catch {
@@ -162,8 +175,7 @@ function MoveLessonDialog({
             ))}
           </select>
           <p className={styles.hint}>
-            Its quizzes and card sets go with it, and its mistakes show
-            under the subject from now on. Card sets made before lessons
+            Its quizzes, card sets and mistakes go with it. Card sets made before lessons
             kept track of them stay where they are.
           </p>
         </div>

@@ -35,7 +35,10 @@ function RepairRow({ m }: { m: Misconception }) {
   return (
     <li className={styles.row}>
       <span className={styles.dot} data-kind="repair" aria-hidden="true" />
-      <span className={styles.rowLabel}>{mistakeTitle(m)}</span>
+      <span className={styles.rowLabel}>
+        <SubjectTag subject={m.subject} />
+        {mistakeTitle(m)}
+      </span>
       {canArguePastYou(m) ? (
         <ButtonLink size="sm" variant="ghost" className={styles.argue} to={pastYouHref(m.id)}>
           Argue with past you
@@ -136,7 +139,10 @@ function RetestRow({ m }: { m: Misconception }) {
   return (
     <li className={styles.row}>
       <span className={styles.dot} data-kind="retest" aria-hidden="true" />
-      <span className={styles.rowLabel}>Check: {mistakeTitle(m)}</span>
+      <span className={styles.rowLabel}>
+        <SubjectTag subject={m.subject} />
+        Check: {mistakeTitle(m)}
+      </span>
       <Button size="sm" variant="secondary" onClick={toggle} aria-expanded={open}>
         {open ? "Hide" : "Retest"}
       </Button>
@@ -206,6 +212,14 @@ function RetestRow({ m }: { m: Misconception }) {
       ) : null}
     </li>
   );
+}
+
+/* Rows come from every subject at once, so each names its own (audit
+   2026-11-07 §5: "Gap in the idea: Lee v Lee's Air Farming Ltd" with no
+   way to tell it was Law). */
+function SubjectTag({ subject }: { subject: string }) {
+  if (!subject.trim()) return null;
+  return <span className={styles.rowSubject}>{subject}</span>;
 }
 
 export function MistakeLoopSection({

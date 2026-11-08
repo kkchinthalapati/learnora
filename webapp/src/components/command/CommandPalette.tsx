@@ -46,11 +46,15 @@ export interface CommandPaletteProps {
   onClose?: () => void;
 }
 
+/* Stable, so the commands memo below does not rebuild on every render when
+   nothing supplies a close handler. */
+const NOOP = () => {};
+
 export function CommandPalette(props: CommandPaletteProps) {
   const context = useOptionalCommandPalette();
   const isOpen =
     props.isOpen !== undefined ? props.isOpen : (context?.isOpen ?? false);
-  const handleClose = props.onClose || context?.close || (() => {});
+  const handleClose = props.onClose || context?.close || NOOP;
 
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -143,7 +147,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                 });
                 showToast(`Task created: "${prefixMatch.text}"`);
                 handleClose();
-              } catch (_err) {
+              } catch {
                 showToast("Failed to create task", { error: true });
               }
             },
