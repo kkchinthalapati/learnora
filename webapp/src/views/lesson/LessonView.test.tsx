@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router";
 import { server } from "../../test/mocks/server";
@@ -124,5 +125,51 @@ describe("LessonView mistakes tab", () => {
     expect(
       screen.getByRole("button", { name: "Move to another subject" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("LessonView delete", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+  });
+
+  /* Audit 2026-11-08: deleting the open lesson refetched it before the page
+     left, which flashed "This lesson isn't here". */
+  it("leaves without refetching the deleted lesson", async () => {
+    const user = userEvent.setup();
+    let reads = 0;
+    let deleted = false;
+    server.use(
+      http.get(rest("materials"), () => {
+        reads += 1;
+        return deleted
+          ? HttpResponse.json({ message: "not found" }, { status: 406 })
+          : HttpResponse.json(lesson());
+      }),
+      http.get(rest("folders"), () => HttpResponse.json([biology])),
+      http.get(rest("misconceptions"), () => HttpResponse.json([])),
+      http.get(rest("misconception_observations"), () => HttpResponse.json([])),
+      http.delete(rest("materials"), () => {
+        deleted = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    renderWithAuth(
+      <Routes>
+        <Route path="/lessons/:materialId" element={<LessonView />} />
+        <Route path="/" element={<h1>Home page</h1>} />
+      </Routes>,
+      { session: fakeSession() },
+      { initialEntries: ["/lessons/mat-1?tab=mistakes"] },
+    );
+    await screen.findByRole("button", { name: "Delete lesson" });
+    const before = reads;
+
+    await user.click(screen.getByRole("button", { name: "Delete lesson" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(await screen.findByRole("heading", { name: "Home page" })).toBeInTheDocument();
+    expect(screen.queryByText("This lesson isn't here")).not.toBeInTheDocument();
+    expect(reads).toBe(before);
   });
 });

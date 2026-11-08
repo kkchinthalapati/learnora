@@ -181,10 +181,23 @@ function isFlashcardArray(value: unknown): value is FlashcardDraft[] {
   );
 }
 
+/* Cards are asked for TeX in $…$, and models often write it with single
+   backslashes inside a JSON string. "\frac", "\times", "\beta", "\nabla" and
+   "\rho" all start with a valid JSON escape, so JSON.parse would succeed and
+   quietly turn them into control characters. Inside a $…$ span (which never
+   holds a deliberate \n or \t), a lone backslash is doubled; an already
+   doubled one and an escaped quote are left alone. */
+function escapeTexInJson(text: string): string {
+  return text.replace(/\$[^$"\n]*\$/g, (span) =>
+    span.replace(/\\\\|\\"|\\/g, (m) => (m === "\\" ? "\\\\" : m)),
+  );
+}
+
 export function extractFlashcardJSON(
-  text: string | null | undefined,
+  rawText: string | null | undefined,
 ): FlashcardDraft[] {
-  if (!text) return [];
+  if (!rawText) return [];
+  const text = escapeTexInJson(rawText);
 
   const candidates = [
     text.trim(),
@@ -201,14 +214,28 @@ export function extractFlashcardJSON(
 
   /* Last resort: pull individual card objects out with a regex, for a reply
    * whose surrounding structure is unsalvageable but whose cards are intact. */
+  /* Each value may hold escapes, an escaped quote among them. */
   const regex =
-    /\{\s*"front"\s*:\s*"([^"]+)"\s*,\s*"back"\s*:\s*"([^"]+)"\s*\}/g;
+    /\{\s*"front"\s*:\s*"((?:[^"\\]|\\.)+)"\s*,\s*"back"\s*:\s*"((?:[^"\\]|\\.)+)"\s*\}/g;
   const cards: FlashcardDraft[] = [];
   let match: RegExpExecArray | null;
-  while ((match = regex.exec(text)) !== null) {
-    cards.push({ front: match[1], back: match[2] });
+  while ((match = regex.exec(rawText)) !== null) {
+    cards.push({ front: decodeJsonString(match[1]), back: decodeJsonString(match[2]) });
   }
   return cards;
+}
+
+/* A capture from the regex above is still JSON source: "\\dfrac" there is
+   one backslash in the card. Kept raw, it reached production as two, which
+   KaTeX draws as a line break and the word "dfrac" (2026-11-08). The TeX
+   repair runs first so a lone "\frac" decodes to \frac, not a form feed. */
+function decodeJsonString(captured: string): string {
+  try {
+    const value: unknown = JSON.parse(`"${escapeTexInJson(captured)}"`);
+    return typeof value === "string" ? value : captured;
+  } catch {
+    return captured;
+  }
 }
 
 export function extractPlanJSON(

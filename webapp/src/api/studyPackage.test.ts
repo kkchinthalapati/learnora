@@ -211,7 +211,10 @@ describe("buildDeckPrompt", () => {
   /* Audit F-11: a card read "c = sqrt(a^2 + b^2)" because nothing asked for
      TeX, though review typesets $…$ (ReviewView cardFace). */
   it("asks for maths in TeX so review can typeset it", () => {
-    expect(buildDeckPrompt("Some notes", 7)).toContain(String.raw`$c = \sqrt{a^2 + b^2}$`);
+    const prompt = buildDeckPrompt("Some notes", 7);
+    /* Doubled: the reply is JSON, and \f, \t, \b, \n, \r are JSON escapes. */
+    expect(prompt).toContain(String.raw`"$c = \\sqrt{a^2 + b^2}$"`);
+    expect(prompt).toContain("every TeX backslash must be doubled");
   });
 });
 
