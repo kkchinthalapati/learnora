@@ -26,11 +26,15 @@
  * not-configured while Pro keeps working. */
 
 import Stripe from "npm:stripe@17.5.0";
+import { safeReturnUrl as safeReturnUrlFrom } from "../_shared/returnUrl.js";
 
 /* Mirrors PLAN_PRICING_BY_CURRENCY in webapp/src/lib/entitlements.ts. */
 const ALLOWED_CURRENCIES = new Set(["GBP", "USD", "INR", "EUR", "AUD", "CAD"]);
 
 const DEFAULT_ALLOWED_ORIGINS = [
+  /* First: it is the fallback return URL, and learnora.app is not attached
+     yet (WAITINGONLEDGER), so a fallback there would land on nothing. */
+  "https://learnora-app.vercel.app",
   "https://learnora.app",
   "https://www.learnora.app",
   "http://localhost:5173",
@@ -70,22 +74,9 @@ function json(
   });
 }
 
-/* A return URL is reflected into Stripe and then into the student's browser,
-   so it has to be one of ours. An open redirect here would let someone send a
-   phishing link that genuinely originates from a Stripe checkout page. */
+/* Exact origins only; see _shared/returnUrl.js for why. */
 function safeReturnUrl(raw: unknown): string {
-  const fallback = `${allowedOrigins()[0]}/app/settings`;
-  if (typeof raw !== "string") return fallback;
-  try {
-    const url = new URL(raw);
-    const ok =
-      allowedOrigins().includes(url.origin) ||
-      /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(url.origin) ||
-      /^http:\/\/localhost:\d+$/.test(url.origin);
-    return ok ? url.toString() : fallback;
-  } catch {
-    return fallback;
-  }
+  return safeReturnUrlFrom(raw, allowedOrigins());
 }
 
 Deno.serve(async (req: Request) => {
