@@ -11,8 +11,6 @@ import {
 } from "../_shared/contentSafety.js";
 
 const DEFAULT_ALLOWED_ORIGINS = [
-  "https://learnora-app.com",
-  "https://www.learnora-app.com",
   "https://learnora.app",
   "https://www.learnora.app",
   "http://localhost:5173",
