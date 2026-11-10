@@ -69,7 +69,8 @@ describe("route skeleton", () => {
 
   /* Today 1c's h1 is the greeting ("Morning, Maya."); the step is the
      card's h2 below it. */
-  const HOME_TITLE = "What do you want to learn?";
+  /* Home greets by time of day (lib/greeting homeGreeting). */
+  const HOME_TITLE = /^(Good (morning|afternoon|evening)|Still up)/;
 
   it.each([
     ["/", HOME_TITLE],

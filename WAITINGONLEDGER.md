@@ -75,6 +75,19 @@ not the filename. If you want `supabase migration list` to match, run
 | `send-push-reminders` | v6 | **A deploy from `main` (2026-11-05)**: the daily review push leads with a due check-back ("Did your fix on … stick?") and opens `/app/check-back/:id`; same `flashcards_due` kind and toggle. Checked 2026-11-05: the cron job runs daily and answers `no subscriptions`, since no student had turned push on; the app now asks at the end of a first lesson and of a Study session. After deploying, **UNVERIFIED**: a push on a real subscribed device. Rollback: Edge Functions > send-push-reminders > versions (v6). |
 | `web-research` | v8 | Nothing. |
 
+**Read-only production check, 2026-11-10** (SQL and the functions list; nothing
+changed). Reminders are as the rows above say: the 2026-11-09 13:05 UTC run of
+`send-email-reminders` (still v16) answered 500 "No email provider configured",
+`email_notification_log` has 0 rows, and `send-push-reminders` (still v6)
+answered 200 "no subscriptions" with 0 rows in `push_subscriptions`. Both cron
+jobs are active and report "succeeded", which only means the request was sent,
+not that mail went out. Five accounts have email preferences, all opted in.
+The functions list showed newer versions than this table for `learnora-ai`
+(v84), `web-research` (v10) and `delete-account` (v16); those rows are stale
+and nobody has recorded what the newer versions contain. No account has an
+`onboarding_trail` yet and none was created on or after 2026-11-05, so 6.13
+has nothing to read. Detail: `docs/LEARNORA_EXECUTION_LEDGER.md`, Phase 3.
+
 The 2026-10-06 review recorded each non-AI function two versions lower, but
 none of them has been updated since September (the API's updated-at dates run
 2026-09-02 to 09-28), so those numbers were stale rather than redeployed.

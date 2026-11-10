@@ -226,7 +226,7 @@ export function SubjectView() {
 
       {mistakes.length + habits.length > 0 ? (
         <section className={styles.section} aria-labelledby="subject-mistakes">
-          <SectionHeader id="subject-mistakes" title="Mistakes" />
+          <SectionHeader id="subject-mistakes" title="Things to revisit" />
           <ListRows label={`Mistakes in ${folder.name}`}>
             {mistakes.slice(0, 5).map((m) => (
               <ListRow

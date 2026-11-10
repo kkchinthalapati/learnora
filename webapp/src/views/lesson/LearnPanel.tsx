@@ -26,6 +26,7 @@ import { useEntitlements } from "../../hooks/useSubscription";
 import { learningEventsApi } from "../../api/learningEvents";
 import { learnSections, type LearnSection } from "../../lib/learnSections";
 import { normaliseTopicKey } from "../../lib/topicKey";
+import { learnStorageKey } from "../../lib/learnPosition";
 import type { QuizQuestion } from "../../lib/aiJson";
 import type { MisconceptionCandidate } from "../../lib/misconceptions";
 import styles from "./learn.module.css";
@@ -87,7 +88,8 @@ function questionHash(text: string): string {
   }
   return (h >>> 0).toString(36);
 }
-const storageKey = (materialId: string) => `learnora:learn:v1:${materialId}`;
+/* Shared with Home, which reads how far along a lesson is (lib/learnPosition). */
+const storageKey = learnStorageKey;
 
 function freshState(outline: string[]): LearnState {
   return { outline, current: -1, sections: {} };
