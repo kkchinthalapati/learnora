@@ -20,13 +20,15 @@ const HELP_BY_ROUTE: ReadonlyArray<{
 }> = [
   {
     matches: (path) => path === "/",
-    title: "Today",
+    /* This still described Today — a top card with Start and "Why…?" —
+       after Home became the capture box and the lesson list. */
+    title: "Home",
     summary:
-      "Today shows the one thing most worth studying next, plus what's due and your next exam.",
+      "Home is where you bring something to study — a topic, your notes, a link or a file — and where your lessons are kept.",
     suggestions: [
-      "Press Start on the top card to begin a focus block",
-      "Open \"Why…?\" to see why that topic was picked",
-      "Add an exam if the top card asks for one",
+      "Type a topic or paste your notes, then press Start",
+      "Open a lesson to learn it, review its cards or take its quiz",
+      "Cards due for review show up here when it's time",
     ],
   },
   {
@@ -48,11 +50,11 @@ const HELP_BY_ROUTE: ReadonlyArray<{
       ),
     title: "Planning",
     summary:
-      "Availability is when you're free (school, clubs, days off). Study plan fills those hours with what's due.",
+      "Free time is when you're free (around school, clubs, days off). The week plan fills those hours with what's due.",
     suggestions: [
-      "Add your school hours under Availability first",
+      "Add your school hours under Free time first",
       "Add exam dates before generating a plan",
-      "Generate your week from Study plan",
+      "See your week under Week plan",
     ],
   },
   {

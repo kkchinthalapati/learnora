@@ -36,10 +36,10 @@ export function NotFoundView() {
               <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
-            {/* Goes to "/", which is Today — and "Dashboard" is a word
-                that appears nowhere in the sidebar, so the escape hatch
-                was named after a place the student cannot find. */}
-            Today
+            {/* Named as the nav names it. This said "Dashboard", then
+                "Today", each after the place had been renamed — an escape
+                hatch labelled with somewhere the student cannot find. */}
+            Home
           </Link>
 
           <Link to="/library" className={styles.secondaryBtn}>

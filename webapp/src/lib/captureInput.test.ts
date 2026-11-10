@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { guessCapture, topicTitle } from "./captureInput";
+import { guessCapture, notesTitle, topicTitle } from "./captureInput";
 
 describe("guessCapture", () => {
   it("treats blank input as empty", () => {
@@ -61,5 +61,33 @@ describe("topicTitle", () => {
 
   it("keeps the words when the lead-in is all there is", () => {
     expect(topicTitle("learn")).toBe("Learn");
+  });
+});
+
+describe("notesTitle", () => {
+  it("uses a short first line, without its heading marker", () => {
+    expect(notesTitle("# Cell division\n\nMitosis has four phases.")).toBe("Cell division");
+    expect(notesTitle("\n\n- newton's laws\n- inertia")).toBe("Newton's laws");
+  });
+
+  it("cuts a long opening paragraph at its first sentence", () => {
+    expect(
+      notesTitle(
+        "Mitosis is how a cell divides. It has four phases: prophase, metaphase, anaphase and telophase.",
+      ),
+    ).toBe("Mitosis is how a cell divides");
+  });
+
+  it("cuts at a word when there is no sentence to stop at", () => {
+    const title = notesTitle(
+      "Mitosis is the process where a cell divides into two identical daughter cells and it has four phases",
+    );
+    expect(title.length).toBeLessThanOrEqual(61);
+    expect(title.endsWith("…")).toBe(true);
+    expect(title).toMatch(/^Mitosis is the process where a cell divides/);
+  });
+
+  it("never comes back empty", () => {
+    expect(notesTitle("***\n---")).toBe("Pasted notes");
   });
 });

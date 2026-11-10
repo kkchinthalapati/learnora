@@ -14,6 +14,8 @@
 }
 
 .summaryCard {
+  /* Clear of the tab strip's rule, which has no margin of its own. */
+  margin-top: var(--s-5);
   display: flex;
   align-items: center;
   justify-content: space-between;

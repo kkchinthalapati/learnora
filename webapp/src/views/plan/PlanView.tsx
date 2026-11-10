@@ -1097,9 +1097,9 @@ export function PlanView() {
                 The worked-out week is the plan; the AI is an option on top. */}
             <h2>Your week, from your availability</h2>
             <p className={styles.emptyMessage}>
-              Worked out from your open tasks, upcoming exams and the free time
+              Worked out from your open tasks, upcoming exams and the hours
               you set in{" "}
-              <Link to="/my-week" className={styles.emptyLink}>Availability</Link>.
+              <Link to="/my-week" className={styles.emptyLink}>Free time</Link>.
               It updates as those change.
             </p>
             <ScheduleWeek />

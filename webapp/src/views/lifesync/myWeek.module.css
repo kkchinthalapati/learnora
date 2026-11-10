@@ -3,12 +3,22 @@
  * answers matter to the scheduler. */
 
 .view {
-  max-width: 940px;
+  /* As wide as Tasks and Exams, so the shared "Plan" title and tab strip
+     stay where they are when the tab changes; at 940px they jumped 120px
+     to the right on the way into Free time and back on the way out. */
+  max-width: 1320px;
   margin: 0 auto;
   padding-bottom: var(--s-8);
   display: flex;
   flex-direction: column;
   gap: var(--s-5);
+}
+
+/* The readable column is the content's, not the header's: everything after
+   the Plan title and its tab strip (PlanSectionNav's two elements). */
+.view > :nth-child(n + 3) {
+  width: 100%;
+  max-width: 940px;
 }
 
 .section {

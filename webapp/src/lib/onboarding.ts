@@ -833,7 +833,7 @@ const NEXT_STEP_BY_FOCUS: Record<FocusAreaId, Omit<NextStep, "id">> = {
     icon: "flame",
   },
   planning: {
-    label: "Availability",
+    label: "Free time",
     blurb:
       "Tell Learnora when your lectures, shifts and commitments are, and it schedules study around them.",
     to: "/my-week",

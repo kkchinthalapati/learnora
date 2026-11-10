@@ -60,6 +60,8 @@ function serve(material: Material) {
       HttpResponse.json([
         mistake("m-1", "General", "Light as food"),
         mistake("m-2", "Biology", "Osmosis direction"),
+        // What a quiz with no folder files a miss under (useQuizzes).
+        mistake("m-3", "", "Chloroplast location"),
       ]),
     ),
     http.get(rest("misconception_observations"), () => HttpResponse.json([])),
@@ -98,6 +100,11 @@ describe("LessonView mistakes tab", () => {
     expect(
       screen.queryByText("Osmosis direction", { exact: false }),
     ).not.toBeInTheDocument();
+    /* A wrong answer in the lesson's own quiz is filed under "", not
+       "General"; the tab said "Nothing to fix yet" beside it. */
+    expect(
+      screen.getByText("Chloroplast location", { exact: false }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/Open mistakes in lessons without a subject/),
     ).toBeInTheDocument();

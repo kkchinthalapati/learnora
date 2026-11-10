@@ -75,6 +75,12 @@
   padding: 0;
   border: none;
   border-radius: var(--r-2xl);
+  /* A <button> takes none of these from the page: left to the browser it
+     painted its own grey face behind the glass and set the card in black
+     system sans, which on the dark theme read as a disabled control. */
+  background: transparent;
+  color: var(--text);
+  font: inherit;
   transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
   cursor: pointer;

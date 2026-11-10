@@ -687,7 +687,7 @@ export function SetupWizard() {
                 </div>
               </fieldset>
               <p className={styles.footnote}>
-                Rough is fine. Plan ▸ Availability lets you refine this against your real
+                Rough is fine. Plan ▸ Free time lets you refine this against your real
                 lectures and shifts whenever you like.
               </p>
             </section>
@@ -870,7 +870,7 @@ export function SetupWizard() {
                           ? `Scheduling around a ${formatMins(answers.weekdayCapacityMins)} weekday`
                           : "Scheduling around when you're sharpest"
                       }
-                      where="Plan ▸ Availability"
+                      where="Plan ▸ Free time"
                     />
                   )}
                   {createdSubject && (

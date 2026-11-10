@@ -207,6 +207,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
+/* Buttons do not inherit the page's typeface: a <button> is set in the
+ * browser's own UI font unless something says otherwise, and the modules that
+ * forgot to (the Progress range picker, Free time's choices and day toggles,
+ * Exam traps' tabs, the notebook filter, the study room's controls) showed
+ * Arial labels in the middle of a Literata page. Zero specificity, so any
+ * module that names its own font still wins. */
+:where(button) {
+  font-family: inherit;
+}
+
 /* ------------------------------------------------------------------------ *
  * Headings carry the display face.
  *

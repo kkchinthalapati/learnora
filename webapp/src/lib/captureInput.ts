@@ -59,3 +59,30 @@ export function topicTitle(topic: string): string {
   const title = core || typed;
   return title.charAt(0).toUpperCase() + title.slice(1);
 }
+
+const NOTES_TITLE_MAX = 60;
+
+/** A lesson title for pasted notes that came with none: their first line,
+ *  heading and list markers dropped, cut at the first sentence or, failing
+ *  that, at a word. Pasted notes were filed as "Web Link" (the link
+ *  source's default) and so was every card set made from them. */
+export function notesTitle(text: string): string {
+  const firstLine =
+    text
+      .split("\n")
+      .map((line) => line.replace(/^[\s#>*\-–•\d.)]+/, "").trim())
+      .find((line) => /[\p{L}\p{N}]/u.test(line)) ?? "";
+  let title = firstLine.replace(/\s+/g, " ").replace(/[*_`]+/g, "");
+  if (title.length > NOTES_TITLE_MAX) {
+    const sentence = title.slice(0, NOTES_TITLE_MAX + 1).match(/^(.{12,}?)[.?!:](?:\s|$)/);
+    if (sentence) title = sentence[1];
+    else {
+      const cut = title.slice(0, NOTES_TITLE_MAX);
+      const lastSpace = cut.lastIndexOf(" ");
+      title = `${(lastSpace > 20 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:–-]+$/, "")}…`;
+    }
+  }
+  title = title.replace(/[\s.,;:]+$/, "").trim();
+  if (!title) return "Pasted notes";
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}

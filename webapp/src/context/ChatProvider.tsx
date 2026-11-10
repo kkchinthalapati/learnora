@@ -985,7 +985,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const deckId = await saveImageAsFlashcard(image);
         await Promise.all([
           qc.invalidateQueries({ queryKey: decksKeys.all }),
-          qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount }),
+          qc.invalidateQueries({ queryKey: flashcardsKeys.all }),
         ]);
         patchImage({ saving: false, savedDeckId: deckId });
         showToast("Saved as a card.");
@@ -1019,7 +1019,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         await flashcardsApi.addBatch(deck.id, message.cards);
         await Promise.all([
           qc.invalidateQueries({ queryKey: decksKeys.all }),
-          qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount }),
+          qc.invalidateQueries({ queryKey: flashcardsKeys.all }),
         ]);
         setMessages((prev) =>
           prev.map((m) =>
