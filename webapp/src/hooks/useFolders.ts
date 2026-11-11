@@ -42,7 +42,7 @@ export function useDeleteFolder() {
       qc.invalidateQueries({ queryKey: quizzesKeys.all });
       qc.invalidateQueries({ queryKey: notesKeys.all });
       qc.invalidateQueries({ queryKey: notebooksKeys.all });
-      qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
     },
   });
 }

@@ -12,6 +12,12 @@
   padding-bottom: var(--s-8);
 }
 
+/* The Plan tab strip ends in a rule and has no margin of its own; without
+   this the "Add task" heading sat directly on that line. */
+.view > section:first-of-type {
+  margin-top: var(--s-5);
+}
+
 /* Sans, like every section heading (webapp/DESIGN.md 0.3). */
 .regionTitle {
   margin: 0 0 var(--s-3);

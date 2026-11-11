@@ -120,10 +120,17 @@ export function LessonView() {
   }, [attempts.data]);
   /* Mistakes are keyed by subject name. A lesson with no subject records its
      misses under UNFILED_SUBJECT (LearnPanel's `subject || "General"`), so
-     that is where its tab looks. */
+     that is where its tab looks — and under "" too, which is what a quiz
+     with no folder files them as (useQuizzes' recordQuizMisconceptions).
+     Reading only "General" left this tab on "Nothing to fix yet" straight
+     after a wrong answer in the lesson's own quiz. */
   const subjectMistakes = useMemo(() => {
-    const wanted = (subject?.name ?? UNFILED_SUBJECT).trim().toLowerCase();
-    return misconceptions.filter((x) => x.status !== "resolved" && x.subject.trim().toLowerCase() === wanted);
+    const wanted = subject
+      ? [subject.name.trim().toLowerCase()]
+      : [UNFILED_SUBJECT.toLowerCase(), ""];
+    return misconceptions.filter(
+      (x) => x.status !== "resolved" && wanted.includes(x.subject.trim().toLowerCase()),
+    );
   }, [misconceptions, subject]);
   const dueTotal = lessonDecks.reduce((n, d) => n + d.due, 0);
 

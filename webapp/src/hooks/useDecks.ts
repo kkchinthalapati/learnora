@@ -20,7 +20,7 @@ export function useDeleteDeck() {
     mutationFn: (id: string) => decksApi.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: decksKeys.all });
-      qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
     },
   });
 }

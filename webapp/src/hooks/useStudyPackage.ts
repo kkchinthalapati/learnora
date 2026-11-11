@@ -127,9 +127,12 @@ export function useCreateStudyPackage() {
             queryKey: decksKeys.byFolder(result.deck.folder_id),
           });
         }
-        // Brand-new cards have a NULL next_review_date, so they are due now —
-        // the dashboard and Library both show that count.
-        qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
+        // Every flashcard query, not only the due count: the lesson page
+        // finds its card sets by filtering the full card list, so a cached
+        // list from before this run left its Cards tab on "No cards yet"
+        // beside a set that exists — and "Make cards" there made a second
+        // one. The key is a prefix of the due count's and each deck's.
+        qc.invalidateQueries({ queryKey: flashcardsKeys.all });
       }
       if (result.quiz) qc.invalidateQueries({ queryKey: quizzesKeys.all });
       // Subject cards count the materials, decks and quizzes filed under them.
@@ -234,7 +237,7 @@ export function useRetryStudyPackage() {
             queryKey: decksKeys.byFolder(result.deck.folder_id),
           });
         }
-        qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
+        qc.invalidateQueries({ queryKey: flashcardsKeys.all });
       }
       if (result.quiz) qc.invalidateQueries({ queryKey: quizzesKeys.all });
       if (result.material || result.deck || result.quiz) {

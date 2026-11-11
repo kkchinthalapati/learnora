@@ -274,6 +274,19 @@
     font-size: var(--fs-lg);
   }
 
+  /* Under 400px the wordmark goes and the home link is the 30px mark alone;
+     the account button was 36px. Both sit beside 44px tools, and both were
+     the only targets on every screen a thumb could miss. */
+  .brand {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+  }
+
   .bottomBar {
     position: fixed;
     right: 0;

@@ -48,7 +48,7 @@ import { sectionExcerpt, splitIntoParts } from "../lib/sourceExcerpt";
 import { insertDrawing, pickDrawableSection } from "../lib/noteDrawing";
 import { buildDiagramTaskPrompt } from "../lib/diagramPrompt";
 import { extractSvgSource } from "../lib/diagramSvg";
-import { topicTitle } from "../lib/captureInput";
+import { notesTitle, topicTitle } from "../lib/captureInput";
 import {
   isPdf,
   MAX_NOTES_PARTS,
@@ -716,6 +716,9 @@ export async function createStudyPackage(
         sourceContent = `Source: ${extracted.url}\n\n${extracted.markdown}`;
         if (!baseTitle) baseTitle = extracted.title;
       }
+      /* Pasted notes have no page to take a title from, and addLink's
+         default for an untitled source is "Web Link". */
+      if (source.kind === "text" && !baseTitle) baseTitle = notesTitle(raw);
 
       result.material = await materialsApi.addLink(
         raw,
