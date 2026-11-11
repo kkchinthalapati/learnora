@@ -27,6 +27,9 @@ import { learningEventsApi } from "../../api/learningEvents";
 import { learnSections, type LearnSection } from "../../lib/learnSections";
 import { normaliseTopicKey } from "../../lib/topicKey";
 import { learnStorageKey } from "../../lib/learnPosition";
+import { explainParts } from "../../api/explainBack";
+import { ReminderOffer } from "../../components/learning/ReminderOffer";
+import { ExplainBack, type ExplainBackProgress } from "./ExplainBack";
 import type { QuizQuestion } from "../../lib/aiJson";
 import type { MisconceptionCandidate } from "../../lib/misconceptions";
 import styles from "./learn.module.css";
@@ -75,6 +78,8 @@ interface LearnState {
   frame?: LessonFrame;
   /** The student has moved on from the overview. */
   introDone?: boolean;
+  /** The lesson said back in the student's own words, and what came across. */
+  explainBack?: ExplainBackProgress;
 }
 
 const KEYS = ["A", "B", "C", "D", "E"];
@@ -412,6 +417,22 @@ function LearnFlow({
             <p>Writing how it all fits together…</p>
           </TutorTurn>
         ) : null}
+        {/* Only once at least one part was actually worked through: a lesson
+            skipped end to end has nothing to explain back. */}
+        {skipped.length < sections.length ? (
+          <ExplainBack
+            materialId={materialId}
+            lesson={lesson}
+            subject={subject}
+            parts={explainParts(
+              sections,
+              Object.fromEntries(sections.map((s) => [s.key, state.sections[s.key]?.step?.concept])),
+            )}
+            saved={state.explainBack}
+            onSave={(explainBack) => setState((s) => ({ ...s, explainBack }))}
+            onRevisit={learnAgain}
+          />
+        ) : null}
         <Outline sections={sections} state={state} onPick={goTo} />
         {revisit.length ? (
           <div className={styles.actions}>
@@ -433,6 +454,10 @@ function LearnFlow({
             Back to the outline
           </button>
         </div>
+        {/* The lesson's cards and anything missed come back on a schedule;
+            this is the moment a reminder is plainly useful. The offer hides
+            itself when reminders are on or were declined recently. */}
+        <ReminderOffer lead="This lesson comes back on a schedule: its cards when they're due, and a check on anything you missed a couple of days later." />
       </div>
     );
   }

@@ -230,6 +230,25 @@ function install(supabaseUrl: string) {
         await new Promise((r) => setTimeout(r, 900));
         return json({ text: JSON.stringify(line) });
       }
+      /* Explain-back at the end of a lesson: the first part comes across, on
+         the opening words the student really typed (anything else would be
+         thrown out by the app's quote check), and the second is left out. */
+      if (/explained it in their own words/.test(prompt)) {
+        const said = /THE STUDENT'S EXPLANATION:\\n\\"\\"\\"\\n(.*?)\\n\\"\\"\\"/.exec(prompt)?.[1] ?? "";
+        const opening = said.split(/\s+/).slice(0, 8).join(" ").replace(/[.,;:]+$/, "");
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            legible: true,
+            unreadable: "",
+            points: [
+              { index: 0, awarded: true, evidence: opening, note: "" },
+              { index: 1, awarded: false, evidence: "", note: "How you'd work the rate out from a result" },
+            ],
+            beliefs: [],
+          }),
+        });
+      }
       /* Mark my answer: a scripted marking of the first two scheme points,
          one earned with the student's words, one missed, and a belief. */
       if (/Mark my answer/.test(prompt)) {

@@ -95,9 +95,32 @@ export const NOTES_CONTEXT_CHARS = 3000;
 export function activeContextForPath(
   pathname: string,
   notesMarkdown?: string | null,
+  /** What the page is, when it is known: the lesson's title and its
+   *  subject, and where the student is in it. A lesson is /lessons/:id now
+   *  (webapp/DESIGN.md 0.1); before this the tutor opened on a lesson page
+   *  was told the student was "on the general dashboard". */
+  page: { lessonTitle?: string | null; subject?: string | null; position?: string | null } = {},
 ): string {
-  if (pathname.startsWith("/folders/")) {
-    return "User is viewing a course folder. They may ask questions about that subject.";
+  const lessonTitle = page.lessonTitle?.trim();
+  const subject = page.subject?.trim();
+  if (pathname.startsWith("/folders/") || pathname.startsWith("/subjects/")) {
+    return subject
+      ? `User is on the page for their subject "${fenceUntrusted(subject)}". They may ask questions about that subject.`
+      : "User is viewing a course folder. They may ask questions about that subject.";
+  }
+  if (pathname.startsWith("/lessons/")) {
+    const where = [
+      lessonTitle ? `the lesson "${fenceUntrusted(lessonTitle)}"` : "one of their lessons",
+      subject ? `in ${fenceUntrusted(subject)}` : "",
+      page.position ? `(${fenceUntrusted(page.position)})` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    if (!notesMarkdown) {
+      return `User is on ${where}. Its notes are not available to you right now, so say so rather than guess what they contain.`;
+    }
+    const truncated = fenceUntrusted(sectionExcerpt(notesMarkdown, NOTES_CONTEXT_CHARS));
+    return `User is on ${where}. Here are the lesson's notes:\n"""\n${truncated}\n"""\nAct as a tutor for this specific lesson. Answer questions about it from these notes, and say when something is not covered by them.`;
   }
   if (pathname.startsWith("/notes/")) {
     if (!notesMarkdown) return DEFAULT_ACTIVE_CONTEXT;

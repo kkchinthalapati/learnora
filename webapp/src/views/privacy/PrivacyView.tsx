@@ -44,7 +44,7 @@ export function PrivacyView() {
           <div>
             <h1 className={styles.title}>Privacy Policy</h1>
             <p className={styles.meta}>
-              Effective Date: September 4, 2026 &bull; Last Updated: October 3,
+              Effective Date: September 4, 2026 &bull; Last Updated: November 11,
               2026
             </p>
           </div>
@@ -90,6 +90,19 @@ export function PrivacyView() {
               technical data (IP address, browser type, device) needed to keep
               the service secure and working.
             </p>
+            <p>
+              <strong>Learning records:</strong> what Learnora works out from
+              your study, so it can teach you better. This is: the answers you
+              give to checks and quizzes; the explanations you write in your
+              own words at the end of a lesson; the ideas you got wrong and
+              whether you later got them right (shown to you as things to
+              revisit); which topics your answers show you know, are still
+              learning or are starting to forget (shown to you under Progress
+              → What you know); the order you put a subject&apos;s lessons in;
+              and any ratings you give a lesson. These are kept with your
+              account, are visible to you in the app, and are included when
+              you export your data.
+            </p>
           </section>
 
           <section id="section-2" className={styles.section}>
@@ -121,6 +134,25 @@ export function PrivacyView() {
               only ever sends requests to the providers listed here.
             </p>
             <p>
+              So the tutor can connect a new question to something you have
+              worked on, Learnora keeps a list of <strong>which lessons you
+              have asked the tutor about, and when</strong>. The titles of up
+              to six of those lessons are sent with a tutor chat request. It
+              does not keep what you typed or what the tutor replied. You can
+              see the list, remove any lesson from it, clear it, or switch it
+              off in Settings → Privacy and AI.
+            </p>
+            <p>
+              When you explain a lesson in your own words, your explanation
+              and that lesson&apos;s notes are sent to an AI provider, which
+              tells you what came across and what you left out. When you ask
+              the tutor a question on a lesson&apos;s page, that lesson&apos;s
+              title, its subject and an extract of its notes are sent with
+              your question, along with a short summary of the topics and
+              ideas your answers show you are still learning, so the reply
+              fits you.
+            </p>
+            <p>
               <strong>
                 Learnora does not use your data to train AI models and does not
                 sell it.
@@ -145,6 +177,15 @@ export function PrivacyView() {
               <li>
                 Provide the features you ask for — saving your tasks and
                 exams, generating study aids, and showing your progress.
+              </li>
+              <li>
+                Work out, from your answers, what you know and what is worth
+                revisiting, so that lessons, practice, reminders and the tutor
+                adapt to you. This is done automatically and is only ever an
+                estimate from the questions you have answered: it is not a
+                grade, it is not shared with anyone else, and it is never used
+                for advertising. You can see it under Progress, and deleting
+                your account deletes it.
               </li>
               <li>Respond to support requests you send us.</li>
               <li>

@@ -21,6 +21,13 @@ import { decksApi } from "../api/decks";
 import { examsApi } from "../api/exams";
 import { flashcardsApi } from "../api/flashcards";
 import { notesApi } from "../api/notes";
+import { materialsApi } from "../api/materials";
+import { foldersApi } from "../api/folders";
+import { tutorMemoryApi, tutorMemoryKey } from "../api/tutorMemory";
+import { formatTutorMemoryForPrompt } from "../lib/tutorMemory";
+import { learnPositionLabel, readLearnPosition } from "../lib/learnPosition";
+import { lessonTitle } from "../lib/lessons";
+import { queryClient } from "../lib/queryClient";
 import { generateDeckFromTopic, DeckShapeError } from "../api/studyPackage";
 import { generateImage as drawImage, saveImageAsFlashcard } from "../api/aiImage";
 import { tasksApi } from "../api/tasks";
@@ -710,13 +717,46 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         const pathname = pathnameRef.current;
         let notesMarkdown: string | null = null;
-        const notesMatch = /^\/notes\/([^/]+)/.exec(pathname);
-        if (notesMatch) {
+        /* A lesson's page and its notes editor are the same lesson. */
+        const notesMatch = /^\/(?:notes|lessons)\/([^/]+)/.exec(pathname);
+        const lessonId = notesMatch ? decodeURIComponent(notesMatch[1]) : null;
+        if (lessonId) {
           try {
-            const notes = await notesApi.fetchByMaterial(notesMatch[1]);
+            const notes = await notesApi.fetchByMaterial(lessonId);
             notesMarkdown = notes[0]?.markdown_content ?? null;
           } catch {
             /* No notes context is a smaller loss than no reply. */
+          }
+        }
+        /* Which lesson or subject the page is, so the tutor is told. Each
+           read is best-effort: a tutor that knows less still answers. */
+        const page: { lessonTitle?: string | null; subject?: string | null; position?: string | null } = {};
+        const subjectMatch = /^\/subjects\/([^/]+)/.exec(pathname);
+        if (lessonId || subjectMatch) {
+          try {
+            const material = lessonId ? await materialsApi.fetchById(lessonId) : null;
+            const folderId = material?.folder_id ?? (subjectMatch ? decodeURIComponent(subjectMatch[1]) : null);
+            if (material) {
+              page.lessonTitle = lessonTitle(material);
+              page.position = learnPositionLabel(readLearnPosition(material.id)) || null;
+            }
+            if (folderId) {
+              page.subject = (await foldersApi.fetch()).find((f) => f.id === folderId)?.name ?? null;
+            }
+          } catch {
+            /* as above */
+          }
+        }
+        /* What the tutor remembers (lib/tutorMemory.ts): read for this reply,
+           and this lesson noted for the next. Only while the student allows
+           it, and only the lesson's title and subject, never what was said. */
+        let tutorMemoryBlock = "";
+        if (settings.tutorMemory) {
+          tutorMemoryBlock = formatTutorMemoryForPrompt(await tutorMemoryApi.list().catch(() => []), lessonId);
+          if (lessonId && page.lessonTitle) {
+            void tutorMemoryApi
+              .remember({ materialId: lessonId, lessonTitle: page.lessonTitle, subject: page.subject })
+              .then(() => queryClient.invalidateQueries({ queryKey: tutorMemoryKey }));
           }
         }
 
@@ -745,7 +785,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           studentLevel: level,
           pendingTasks,
           upcomingExams,
-          activeContext: activeContextForPath(pathname, notesMarkdown),
+          activeContext: [activeContextForPath(pathname, notesMarkdown, page), tutorMemoryBlock]
+            .filter(Boolean)
+            .join("\n\n"),
           appendedFileContext,
           query,
           /* The nudge's own persona/conciseness, not just its sentence.

@@ -23,8 +23,11 @@ Learnora is three nested things, and every screen belongs to one of them.
 
 Two more pages sit beside those three and follow the same rules:
 
-- **Progress** (`/analytics`): one page with History, Mistakes and Exam
-  forecast tabs. `/trajectory` redirects to `?tab=forecast`.
+- **Progress** (`/analytics`): one page with What you know, Mistakes,
+  History and Exam forecast tabs. It opens on What you know (2026-11-11):
+  each subject's topics in words, from answered questions only
+  (`lib/understanding.ts`), never a percentage. History's charts are one tab
+  along. `/trajectory` redirects to `?tab=forecast`.
 - **Settings** (`/settings`): five sections — Account (profile, security,
   danger zone), Appearance, Study (preferences, reminders), Privacy and AI,
   Plan and billing. Old `?tab=` names open the section that holds them now.

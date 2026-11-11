@@ -45,7 +45,7 @@ export function TermsView() {
           <div>
             <h1 className={styles.title}>Terms of Service</h1>
             <p className={styles.meta}>
-              Effective Date: July 25, 2026 &bull; Last Updated: July 2026
+              Effective Date: July 25, 2026 &bull; Last Updated: November 11, 2026
             </p>
           </div>
         </header>
@@ -101,6 +101,16 @@ export function TermsView() {
               </li>
               <li>
                 AI study assistant tutoring and educational query resolution.
+              </li>
+              <li>
+                Lessons taught from your own notes one part at a time, with
+                checks, and an invitation to explain each lesson back in your
+                own words.
+              </li>
+              <li>
+                A record of what your answers show you know and what is worth
+                revisiting, which the Service uses to choose what to teach,
+                practise and remind you of next.
               </li>
             </ul>
             <p>
@@ -178,6 +188,24 @@ export function TermsView() {
               and supplemental learning. Learnora does not guarantee academic
               performance or exam results. You are encouraged to verify critical
               information against authoritative textbooks and course materials.
+            </p>
+            <p>
+              <strong>Feedback and Progress Are Estimates:</strong> the
+              Service&apos;s feedback on your answers and written explanations,
+              the &quot;What you know&quot; view, readiness descriptions and
+              any forecast are automated estimates based only on the questions
+              you have answered in Learnora. They are not grades, are not an
+              assessment by a teacher or examiner, and are not a prediction of
+              any exam result. If you think the Service has recorded something
+              about your understanding wrongly, you can flag it in the app or
+              contact us.
+            </p>
+            <p>
+              <strong>What the Tutor Remembers:</strong> to give you
+              continuity, the tutor may keep a list of which of your lessons
+              you have asked it about. You can view, remove or clear that
+              list, or switch it off, at any time in Settings → Privacy and
+              AI. See the Privacy Policy for what is and is not kept.
             </p>
           </section>
 

@@ -680,3 +680,28 @@
     transition: none;
   }
 }
+
+/* What your tutor remembers (TutorMemoryCard): a plain list, one lesson a
+   row, each with its own Remove. */
+.memoryList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memoryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.memoryText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}

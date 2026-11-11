@@ -9,6 +9,7 @@
 import type { Exam, Folder, Material } from "../api/types";
 import { daysUntil } from "./quizForecast";
 import { lessonPath, lessonTitle, type LessonProgress } from "./lessons";
+import { orderLessons } from "./lessonOrder";
 
 export interface TodayInput {
   /** Cards the scheduler says are due now. */
@@ -99,7 +100,7 @@ export function todayView(input: TodayInput): TodayView {
 
 /* ---------------------------------------------------------------- lessons */
 
-type LessonRow = Pick<Material, "id" | "title" | "folder_id" | "created_at">;
+type LessonRow = Pick<Material, "id" | "title" | "folder_id" | "created_at" | "position">;
 
 /** Practised through: it has cards and every one has been reviewed. A lesson
  *  with no cards yet is not done, it is not started. */
@@ -107,15 +108,14 @@ function isPractisedThrough(p: LessonProgress | undefined): boolean {
   return Boolean(p && p.total > 0 && p.practised >= p.total);
 }
 
-/** The lesson to suggest next: the earliest-added one not practised through,
- *  on the reading that lessons are added in the order a course is taught. */
-export function nextLessonOf(
-  lessons: readonly LessonRow[],
+/** The lesson to suggest next: the first one, in the order the student gave
+ *  the subject (lib/lessonOrder.ts; oldest first until they move one), that
+ *  is not practised through. */
+export function nextLessonOf<T extends LessonRow>(
+  lessons: readonly T[],
   progress: ReadonlyMap<string, LessonProgress>,
-): LessonRow | null {
-  const waiting = lessons.filter((m) => !isPractisedThrough(progress.get(m.id)));
-  if (waiting.length === 0) return null;
-  return [...waiting].sort((a, b) => a.created_at.localeCompare(b.created_at))[0] ?? null;
+): T | null {
+  return orderLessons(lessons).find((m) => !isPractisedThrough(progress.get(m.id))) ?? null;
 }
 
 export function nextLessonLink(

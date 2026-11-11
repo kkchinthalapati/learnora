@@ -141,4 +141,49 @@ export const materialsApi = {
     if (error) throw new Error(error.message);
     return data;
   },
+
+  /* A subject's lessons, placed (lib/lessonOrder.ts). Only the rows whose
+   * place changed are written. Until the `position` migration is applied the
+   * first write fails on the missing column: that is remembered, so the move
+   * buttons go away instead of failing on every press. */
+  async setOrder(changes: ReadonlyArray<{ id: string; position: number }>): Promise<void> {
+    if (changes.length === 0) return;
+    const userId = await requireUserId();
+    for (const { id, position } of changes) {
+      const { error } = await supabase
+        .from("materials")
+        .update({ position })
+        .eq("id", id)
+        .eq("user_id", userId);
+      if (error) {
+        if (isMissingColumn(error)) {
+          orderSupported = false;
+          throw new Error("Lessons can't be reordered yet.");
+        }
+        throw new Error(error.message);
+      }
+    }
+    orderSupported = true;
+  },
 };
+
+let orderSupported: boolean | null = null;
+
+/** False once a write has shown the `position` column isn't there. */
+export function isOrderSupported(): boolean {
+  return orderSupported !== false;
+}
+
+/** For tests. */
+export function resetOrderSupport(): void {
+  orderSupported = null;
+}
+
+function isMissingColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    /column .* does not exist|could not find the .* column/i.test(error.message ?? "")
+  );
+}

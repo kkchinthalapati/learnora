@@ -13,6 +13,7 @@ import {
 } from "../../hooks/useFriends";
 import { buildDataExport, downloadDataExport } from "../../lib/dataExport";
 import { hasAiConsent, setAiConsent } from "../../lib/aiConsent";
+import { TutorMemoryCard } from "./TutorMemoryCard";
 import styles from "./settings.module.css";
 
 /* Privacy — what other people can see, and getting your own data out.
@@ -120,6 +121,8 @@ export function PrivacyTab() {
           </div>
         </div>
       </Card>
+
+      <TutorMemoryCard />
 
       <Card
         as="section"

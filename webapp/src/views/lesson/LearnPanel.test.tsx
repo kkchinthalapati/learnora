@@ -178,6 +178,9 @@ describe("LearnPanel", () => {
     await user.click(screen.getByRole("button", { name: "Finish the lesson" }));
 
     expect(screen.getByRole("heading", { name: "You've learned this lesson." })).toBeInTheDocument();
+    /* The last step: say it back (views/lesson/ExplainBack). Free, no gate. */
+    expect(screen.getByRole("heading", { name: "Can you explain this in your own words?" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Your explanation")).toBeInTheDocument();
     /* And how it fits together, from the same overview call. */
     expect(screen.getByText("Osmosis is diffusion of water.")).toBeInTheDocument();
     expect(frame).toHaveBeenCalledTimes(1);
