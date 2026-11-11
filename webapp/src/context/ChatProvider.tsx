@@ -1,3 +1,4 @@
+import { callSettingsPersona, spokenCallRules } from "../lib/callStyle";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { studentLevel } from "../lib/studentLevel";
 import type { ReactNode } from "react";
@@ -67,6 +68,7 @@ import { loadKnowledgeSummary, loadStudentEvidence } from "../api/studentEvidenc
 import { formatEvidenceForPrompt } from "../lib/studentEvidence";
 import { misconceptionsApi } from "../api/misconceptions";
 import { formatMisconceptionsForPrompt } from "../lib/misconceptions";
+import { loadLearnerProfileRule } from "../api/learnerStyle";
 import {
   clipWebQuery,
   MAX_WEB_QUERY_LENGTH,
@@ -618,7 +620,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
          phase starts there and moves to `thinking` once the model call
          begins. Naming the step is the difference between "it's stuck" and
          "it's looking things up". */
-      setSendPhase(options?.sourceMode === "notebook" ? "thinking" : "searching");
+      setSendPhase(
+        settings.webAccess && (options?.sourceMode === "web" || options?.sourceMode === "hybrid")
+          ? "searching"
+          : "thinking",
+      );
       const controller = new AbortController();
       abortRef.current = controller;
       /* Cleared on send, like the vanilla's `finally { this.setFile(null) }` —
@@ -660,23 +666,36 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            the same way: a failure resolves to an empty ledger, which renders
            as an explicit "no diagnoses on record — do not invent any" rather
            than as silence the model would fill in. */
+        /* What the tutor remembers, read alongside the rest rather than after
+           it, so it adds no wait to a reply. */
+        const memoryPromise = settings.tutorMemory
+          ? tutorMemoryApi.list().catch(() => [])
+          : Promise.resolve([]);
         const ledgerPromise = misconceptionsApi.fetchAll().catch((err) => {
           console.warn("[chat] Failed to read misconception ledger:", err);
           return [];
         });
-        const sourceMode =
-          options?.sourceMode ?? (settings.webAccess ? "hybrid" : "notebook");
-        const wantsWeb =
-          sourceMode !== "notebook" &&
-          shouldSearchWeb(query, sourceMode === "web");
-        const wantsVideo =
-          sourceMode !== "notebook" && requestsLearningVideo(query);
+        /* The web only when the caller asked for it (the Ask panel's sources)
+           and Settings › Live web intelligence allows it. */
+        const askedMode = options?.sourceMode ?? "notebook";
+        const sourceMode = settings.webAccess
+          ? askedMode
+          : askedMode === "hybrid"
+            ? "notebook"
+            : askedMode === "web"
+              ? "none"
+              : askedMode;
+        const webOn = sourceMode === "web" || sourceMode === "hybrid";
+        const wantsWeb = webOn && shouldSearchWeb(query, sourceMode === "web");
+        const wantsVideo = webOn && requestsLearningVideo(query);
         /* The student's own passages for this question, unless they asked
            for the web alone. "Notebook" mode used to mean only "no web
            search": the tutor never read the notes it was named after.
            Resolves to [] rather than throwing (api/grounding.ts). */
         const groundingPromise =
-          sourceMode === "web" ? Promise.resolve([]) : withinBudget(loadGroundingPassages(query, 4));
+          sourceMode === "web" || sourceMode === "none"
+            ? Promise.resolve([])
+            : withinBudget(loadGroundingPassages(query, 4, options?.scope));
         const webPromise =
           wantsWeb || wantsVideo
             ? searchWebSources(
@@ -720,39 +739,29 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         /* A lesson's page and its notes editor are the same lesson. */
         const notesMatch = /^\/(?:notes|lessons)\/([^/]+)/.exec(pathname);
         const lessonId = notesMatch ? decodeURIComponent(notesMatch[1]) : null;
-        if (lessonId) {
-          try {
-            const notes = await notesApi.fetchByMaterial(lessonId);
-            notesMarkdown = notes[0]?.markdown_content ?? null;
-          } catch {
-            /* No notes context is a smaller loss than no reply. */
-          }
-        }
-        /* Which lesson or subject the page is, so the tutor is told. Each
-           read is best-effort: a tutor that knows less still answers. */
-        const page: { lessonTitle?: string | null; subject?: string | null; position?: string | null } = {};
+        /* Which lesson or subject the page is, so the tutor is told, read in
+           parallel. Each read is best-effort: a tutor that knows less still
+           answers, and no notes context is a smaller loss than no reply. */
         const subjectMatch = /^\/subjects\/([^/]+)/.exec(pathname);
-        if (lessonId || subjectMatch) {
-          try {
-            const material = lessonId ? await materialsApi.fetchById(lessonId) : null;
-            const folderId = material?.folder_id ?? (subjectMatch ? decodeURIComponent(subjectMatch[1]) : null);
-            if (material) {
-              page.lessonTitle = lessonTitle(material);
-              page.position = learnPositionLabel(readLearnPosition(material.id)) || null;
-            }
-            if (folderId) {
-              page.subject = (await foldersApi.fetch()).find((f) => f.id === folderId)?.name ?? null;
-            }
-          } catch {
-            /* as above */
-          }
+        const [lessonNotes, material, folders] = await Promise.all([
+          lessonId ? notesApi.fetchByMaterial(lessonId).catch(() => []) : Promise.resolve([]),
+          lessonId ? materialsApi.fetchById(lessonId).catch(() => null) : Promise.resolve(null),
+          lessonId || subjectMatch ? foldersApi.fetch().catch(() => []) : Promise.resolve([]),
+        ]);
+        notesMarkdown = lessonNotes[0]?.markdown_content ?? null;
+        const page: { lessonTitle?: string | null; subject?: string | null; position?: string | null } = {};
+        if (material) {
+          page.lessonTitle = lessonTitle(material);
+          page.position = learnPositionLabel(readLearnPosition(material.id)) || null;
         }
+        const folderId = material?.folder_id ?? (subjectMatch ? decodeURIComponent(subjectMatch[1]) : null);
+        if (folderId) page.subject = folders.find((f) => f.id === folderId)?.name ?? null;
         /* What the tutor remembers (lib/tutorMemory.ts): read for this reply,
            and this lesson noted for the next. Only while the student allows
            it, and only the lesson's title and subject, never what was said. */
         let tutorMemoryBlock = "";
         if (settings.tutorMemory) {
-          tutorMemoryBlock = formatTutorMemoryForPrompt(await tutorMemoryApi.list().catch(() => []), lessonId);
+          tutorMemoryBlock = formatTutorMemoryForPrompt(await memoryPromise, lessonId);
           if (lessonId && page.lessonTitle) {
             void tutorMemoryApi
               .remember({ materialId: lessonId, lessonTitle: page.lessonTitle, subject: page.subject })
@@ -780,6 +789,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        const callPersona = options?.spoken ? callSettingsPersona(options.spoken.persona) : null;
         const level = await studentLevel().catch(() => "");
         const systemContext = buildSystemContext({
           studentLevel: level,
@@ -800,13 +810,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
              which is what the Auto-Adapt toggle promises ("adjust its next
              reply when your follow-up shows confusion") and why the whole
              block is already behind `settings.aiAutoAdapt`. */
-          persona: adaptiveNudge?.persona ?? settings.aiPersona,
+          persona: callPersona ?? adaptiveNudge?.persona ?? settings.aiPersona,
           conciseness: adaptiveNudge?.conciseness ?? settings.aiConciseness,
           adaptiveNudge: adaptiveNudge?.instruction,
           guessFirst: options?.guessFirst === true,
           openUiSection: await loadOpenUiSection(),
           performanceEvidence,
           misconceptionLedger,
+          learnerProfile: await loadLearnerProfileRule().catch(() => ""),
           webEvidence: webResponse
             ? formatWebEvidence(webResponse.results)
             : "",
@@ -831,10 +842,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                and workspace data go in `context`, which the edge function
                places in the system instruction. */
             history: [...priorHistory, { role: "user", content: query }],
-            context: systemContext,
+            /* A tutor call reads every reply aloud, in the personality and
+               call type the student picked (lib/callStyle.ts). */
+            context: options?.spoken
+              ? `${systemContext}\n\n${spokenCallRules(options.spoken)}`
+              : systemContext,
             file: filePayload,
             tool: "chat",
-            settings,
+            settings: callPersona ? { ...settings, aiPersona: callPersona } : settings,
           },
           {
             onDelta: (piece) => {

@@ -10,6 +10,9 @@ import {
   getStoredRadarHistory,
   saveRadarRecord,
   sprintFromBank,
+  openCatalogueIds,
+  preferStudentMisconceptions,
+  type SprintQuestion,
 } from "./aiExamDeconstructor";
 import { callEdge } from "./ai";
 import { fetchMisconceptionMappedQuestions } from "./questionBank";
@@ -17,6 +20,7 @@ import type { BankQuestion } from "../lib/questionBank";
 import type { Settings } from "../lib/settings";
 
 vi.mock("./ai", () => ({ callEdge: vi.fn() }));
+vi.mock("./misconceptions", () => ({ misconceptionsApi: { fetchAll: vi.fn(async () => []) } }));
 vi.mock("./questionBank", () => ({
   fetchMisconceptionMappedQuestions: vi.fn(async () => []),
   bankTopicTitle: () => "Acids, Bases and Salts",
@@ -118,6 +122,19 @@ describe("aiExamDeconstructor", () => {
 
       expect(sprintFromBank([PH_ROW], "Biology")).toEqual([]);
       expect(sprintFromBank([PH_ROW], "Science")).toHaveLength(1);
+    });
+
+    it("leads with bank questions built on a belief the student still holds", () => {
+      const q = (id: string, misconceptionId?: string) => ({ id, misconceptionId }) as SprintQuestion;
+      const open = openCatalogueIds([
+        { status: "open", catalogueId: "theirs" },
+        { status: "resolved", catalogueId: "fixed" },
+        { status: "open", catalogueId: null },
+      ] as never);
+      expect([...open]).toEqual(["theirs"]);
+      const ordered = preferStudentMisconceptions([q("a", "fixed"), q("b"), q("c", "theirs")], open, () => 0);
+      expect(ordered[0].id).toBe("c");
+      expect(ordered.map((x) => x.id).sort()).toEqual(["a", "b", "c"]);
     });
 
     it("asks the AI only when the subject's sources are short, and drops questions it can't mark", async () => {

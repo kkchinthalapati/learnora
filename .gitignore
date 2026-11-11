@@ -46,3 +46,6 @@ test-results/
 
 # Eval runs (evals/run.mjs) — local only
 evals/results/
+
+# Agent working notes: scratch, and they have held live keys
+.agents/teamwork/

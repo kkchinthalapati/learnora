@@ -32,6 +32,15 @@ vi.mock("../../hooks/useSubscription", async (orig) => {
     }),
   };
 });
+/* What the student said under "How you learn" (onboarding, Settings). The
+   start screen only shows it; it never asks. */
+let savedStyle: string | null = "visual";
+const saveStyle = vi.fn(async (_patch: unknown) => undefined);
+vi.mock("../../api/learnerStyle", () => ({
+  loadLearnerProfile: async () => ({ style: savedStyle, prefs: [], notes: "", interests: "" }),
+  saveLearnerProfile: (patch: unknown) => saveStyle(patch),
+}));
+
 vi.mock("../../api/learningEvents", () => ({
   learningEventsApi: { record: (...a: unknown[]) => recordEvent(...(a as [])) },
 }));
@@ -64,6 +73,7 @@ function renderPanel(onOpenTab = vi.fn()) {
   renderWithProviders(
     <LearnPanel
       materialId="lesson-1"
+      title="Cells and transport"
       lesson="Cells"
       subject="Biology"
       markdown={notes}
@@ -78,7 +88,7 @@ function renderPanel(onOpenTab = vi.fn()) {
 
 /* Start learning, read the big picture, then on to part 1. */
 async function start(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "Start learning" }));
+  await user.click(await screen.findByRole("button", { name: "Start learning" }));
   await screen.findByText("Cells move things in and out without spending energy.");
   await user.click(screen.getByRole("button", { name: "Start part 1: Osmosis" }));
 }
@@ -86,6 +96,8 @@ async function start(user: ReturnType<typeof userEvent.setup>) {
 describe("LearnPanel", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    savedStyle = "visual";
+    saveStyle.mockClear();
     plan = "free";
     restyle.mockReset();
     writeExam.mockReset();
@@ -115,6 +127,31 @@ describe("LearnPanel", () => {
     });
     recordEvent.mockClear();
     generate.mockImplementation(async ({ section }: { section: { title: string } }) => step(section.title));
+  });
+
+  it("shows what lessons are shaped for, and points to Settings to change it", async () => {
+    renderPanel();
+    expect(await screen.findByText(/Shaped for/)).toHaveTextContent("Shaped for pictures and diagrams");
+    expect(screen.getByRole("link", { name: "Change in Settings" })).toHaveAttribute(
+      "href",
+      "/settings?tab=study#how-you-learn",
+    );
+    expect(screen.getByRole("button", { name: "Start learning" })).toBeInTheDocument();
+  });
+
+  it("never asks how they learn inside a lesson, even when nothing is set", async () => {
+    savedStyle = null;
+    renderPanel();
+    expect(await screen.findByRole("button", { name: "Start learning" })).toBeInTheDocument();
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.getByRole("link", { name: "How you learn" })).toHaveAttribute("href", "/settings?tab=study#how-you-learn");
+    expect(saveStyle).not.toHaveBeenCalled();
+  });
+
+  it("offers the podcast and the tutor call from the start screen", async () => {
+    renderPanel();
+    expect(await screen.findByRole("button", { name: /Listen/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Talk it through/ })).toBeInTheDocument();
   });
 
   it("teaches each part from the notes: guess, idea, check, and another way after a miss", async () => {
@@ -204,7 +241,7 @@ describe("LearnPanel", () => {
 
     renderPanel();
     expect(screen.getByText("Guess about Diffusion?")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Outline/ }));
+    await user.click(screen.getByRole("button", { name: "Leave and go back to the lesson" }));
     expect(screen.getByText("Got it first time")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Carry on: Diffusion" })).toBeInTheDocument();
     /* Nothing already written is asked for again. */
@@ -251,7 +288,11 @@ describe("LearnPanel", () => {
     await user.click(await screen.findByRole("button", { name: /Hook answer/ }));
     await user.click(screen.getByRole("button", { name: "Show me why" }));
 
-    expect(await screen.findByText("A cell is put in pure water. Which way does water move?")).toBeInTheDocument();
+    /* The card library is loaded on demand, and its first load in a test run
+       can take more than findBy's default second. */
+    expect(
+      await screen.findByText("A cell is put in pure water. Which way does water move?", undefined, { timeout: 5000 }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Pure water is the more dilute side.")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Show the first step" }));
     expect(screen.getByText("Pure water is the more dilute side.")).toBeInTheDocument();
@@ -346,7 +387,7 @@ describe("LearnPanel", () => {
 
   it("explains that Learn needs notes when there are none", () => {
     renderWithProviders(
-      <LearnPanel materialId="m" lesson="Cells" subject={null} markdown="" loading={false} onOpenTab={vi.fn()} />,
+      <LearnPanel materialId="m" title="Cells" lesson="Cells" subject={null} markdown="" loading={false} onOpenTab={vi.fn()} />,
       undefined,
       { withRouter: true },
     );

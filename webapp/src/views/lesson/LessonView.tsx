@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RelatedMaterials } from "../notes/RelatedMaterials";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "../../components/Button";
@@ -57,6 +57,17 @@ export function LessonView() {
   const tab: LessonTab = tabParam && TAB_VALUES.includes(tabParam) ? tabParam : "learn";
   const setTab = (next: LessonTab) =>
     setSearchParams(next === "learn" ? {} : { tab: next }, { replace: true });
+  /* ?start=1: just made by the generation screen, so go straight into Learn.
+     Read once; the param is dropped so a reload lands on the start screen. */
+  const [autoStart] = useState(() => searchParams.get("start") === "1");
+  useEffect(() => {
+    if (searchParams.get("start") === "1") setSearchParams({}, { replace: true });
+    // Once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* Learn fills the page while a step, the podcast or a call is open. */
+  const [focused, setFocused] = useState(false);
+  const onFocusChange = useCallback((next: boolean) => setFocused(next), []);
   const idBase = useTabIds();
   const navigate = useNavigate();
 
@@ -160,52 +171,63 @@ export function LessonView() {
     { value: "mistakes", label: "Mistakes", count: subjectMistakes.length || undefined },
   ];
 
+  const learnFocus = focused && tab === "learn";
   return (
-    <div className={styles.page}>
-      <PageHeader
-        as="h1"
-        title={title}
-        sub={
-          <span className={styles.meta}>
-            {subject ? (
-              <Link to={`/subjects/${encodeURIComponent(subject.id)}`} className={styles.subjectLink}>
-                {subject.name}
-              </Link>
-            ) : (
-              "No subject"
-            )}
-            <span aria-hidden="true"> · </span>
-            added {formatRelativeTime(m.created_at)}
-          </span>
-        }
-        actions={
-          <div className={styles.headerActions}>
-            <ProgressRing value={progressValue(progress)} label={progressLabel(progress)} center={progress.total ? String(progress.practised) : undefined} />
-            <Button
-              variant="primary"
-              onClick={() =>
-                void navigate(
-                  `/study?topic=${encodeURIComponent(lessonTopic(m, notes.data?.[0]?.markdown_content))}`,
-                )
-              }
-            >
-              Start session
-            </Button>
-          </div>
-        }
-      />
+    <div className={styles.page} data-focus={learnFocus || undefined}>
+      {learnFocus ? (
+        <h1 className={styles.srOnly}>{title}</h1>
+      ) : (
+        <PageHeader
+          as="h1"
+          title={title}
+          sub={
+            <span className={styles.meta}>
+              {subject ? (
+                <Link to={`/subjects/${encodeURIComponent(subject.id)}`} className={styles.subjectLink}>
+                  {subject.name}
+                </Link>
+              ) : (
+                "No subject"
+              )}
+              <span aria-hidden="true"> · </span>
+              added {formatRelativeTime(m.created_at)}
+            </span>
+          }
+          actions={
+            <div className={styles.headerActions}>
+              <ProgressRing value={progressValue(progress)} label={progressLabel(progress)} center={progress.total ? String(progress.practised) : undefined} />
+              <Button
+                variant="primary"
+                onClick={() =>
+                  void navigate(
+                    `/study?topic=${encodeURIComponent(lessonTopic(m, notes.data?.[0]?.markdown_content))}`,
+                  )
+                }
+              >
+                Start session
+              </Button>
+            </div>
+          }
+        />
+      )}
 
-      <Tabs items={tabs} value={tab} onChange={setTab} label="Parts of this lesson" idBase={idBase} />
+      {/* Kept mounted while hidden, so the panel below keeps its tab label. */}
+      <div hidden={learnFocus}>
+        <Tabs items={tabs} value={tab} onChange={setTab} label="Parts of this lesson" idBase={idBase} />
+      </div>
 
       <TabPanel idBase={idBase} value={tab}>
         {tab === "learn" ? (
           <LearnPanel
             materialId={m.id}
+            title={title}
             lesson={lessonTopic(m, notes.data?.[0]?.markdown_content)}
             subject={subject?.name ?? null}
             markdown={notes.data?.[0]?.markdown_content ?? ""}
             loading={notes.isPending}
+            autoStart={autoStart}
             onOpenTab={setTab}
+            onFocusChange={onFocusChange}
           />
         ) : tab === "notes" ? (
           <NotesPanel

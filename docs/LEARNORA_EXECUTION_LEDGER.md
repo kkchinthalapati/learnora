@@ -21,7 +21,7 @@ committed, pushed or deployed.
 | 5 | Subjects as learning journeys | COMPLETED 2026-11-11 in the working tree; migration written, NOT APPLIED |
 | 6 | Contextual tutor and personalisation | COMPLETED 2026-11-11 in the working tree; migration written, NOT APPLIED |
 | 7 | Review, knowledge and progress | COMPLETED 2026-11-11 in the working tree |
-| 8 | Consolidation and polish | NOT STARTED |
+| 8 | Consolidation and polish | NOT STARTED (audio consolidation done separately, see the last section) |
 
 ### Phase 0: safety, baseline and understanding
 
@@ -567,3 +567,94 @@ the owner's instruction. Phase 8 is not started.
    (`views/dashboard/*`, `lib/nextStep.ts`); founder tools out of the
    student app. Each is a remove, hide or merge decision, so it should
    start from a short list the owner approves, not from code.
+
+---
+
+## Audio: calls, podcasts and voices (2026-11-11, fourth session)
+
+Asked for by the owner: consolidate the call and podcast features, make
+everything customisable, and learn from Turbo AI without copying it.
+
+**What Turbo AI does** (looked at on the owner's signed-in Premium account,
+read only; nothing generated, answered or changed there):
+- **Podcast tab:** language, two speaker slots chosen from named voices
+  with a portrait, a one-line character and a sample, length Short (3 to 5
+  min) or Long (8 to 10 min), and free-text instructions.
+- **Lesson pages:** each page has "Read this page out loud" and "Ask
+  Turbo". Its voice mode ("Talk to Turbo") lives inside the same lesson
+  tutor panel as typed chat.
+- **Lesson settings:** only "Reset progress".
+- **Their home:** a "What do you want to learn?" box with Record, Upload and
+  YouTube, then "Jump back in". That is the shape Learnora's old Home had;
+  Phase 2's greeting-first Home already moved away from it.
+
+**What Learnora now does, and where it goes further:**
+- **One set of voices everywhere** (`lib/voicePrefs.ts`): the tutor's voice
+  and speed, and the podcast's two voices, chosen once (on the call
+  screen, in the podcast setup, or in Settings → Study → Voice and
+  listening) and used by the call, spoken replies in Ask and podcasts.
+  They are the device's real voices, with a "Hear it" preview, and they
+  fall back to the best match on a device that lacks the chosen one.
+- **Podcasts made the student's way** (`lib/podcastStyle.ts`):
+  - **Format:** Conversation, Solo lesson, or Debate. In a debate a
+    challenger defends the most common wrong idea, using this student's own
+    recorded mistake when there is one, and the host settles it with an
+    example.
+  - **Length:** Quick, Standard or Deep dive.
+  - **Focus:** the whole lesson, only the parts missed in Learn, or a
+    custom instruction. The instruction is quoted to the model as the
+    student's words, never as rules.
+  - **Recall breaks:** the episode asks the listener a question, shows a
+    countdown of 6 seconds, then gives the answer, with "Show it now" to
+    skip the wait. The answer stays hidden in the transcript until it has
+    been given.
+- **Nothing is written until the student asks.** The player used to write
+  an episode as soon as it opened, which spent part of the lesson's
+  allowance. Each episode is kept per set of choices.
+- **Calls:** they keep their five personalities and four kinds of call, and
+  gain the voice choice.
+- **Settings → Study → Voice and listening:** every audio choice in one
+  card.
+
+**Fixed along the way:** in Phase 6 the tutor waited for its memory read
+before building every reply, and on a lesson page it read the notes, the
+lesson and the subject one after another. All of these now run in
+parallel. This is what had pushed `TutorChat.test.tsx` past its time limit.
+
+**Decisions:**
+- Voices and audio choices stay on the device, because the voices are the
+  device's own.
+- Language is not a podcast option, because it follows the app's language
+  setting, as before.
+- No portraits or invented names for voices: the device's voices are
+  listed by their real names.
+
+**Tests:** `lib/voicePrefs.test.ts` (7), `lib/podcastStyle.test.ts` (13),
+`api/podcast.test.ts` (+5), `views/lesson/PodcastPlayer.test.tsx` (9). One
+real bug was caught: a backslash lost in an edit made the recall answer's
+whitespace regex remove every letter "s".
+
+**Browser check (harness):**
+- The setup listed this machine's voices.
+- "Only the parts I missed" showed the missed part.
+- The episode showed "Conversation · about 6 min · 1 recall break", with
+  its answer hidden.
+- A voice chosen in Settings was the one shown on the call screen.
+- At 375 px there was no horizontal scroll.
+- Not heard: the audio itself was never played aloud in the harness.
+
+**Ownership:** `api/podcast.ts`, `lib/callStyle.ts`, `PodcastPlayer.tsx`,
+`TutorCall.tsx` and their tests were already uncommitted earlier work
+before this session. Committing this work means committing them too.
+
+**Full suite after this work:**
+- `npx vitest run`: 407 files, 5,468 tests, **14 failed, 5,454 passed**.
+  - 11 are the Phase 0 baseline failures.
+  - `DashboardView`'s "What next?" is the known flaky one.
+  - The other three are `TutorChat` (two) and `ChatMessage` (one). They
+    pass when their files run on their own, but under the full suite's load
+    they miss their one-second waits. They passed in the full run after
+    Phase 7, so this work may have made them slower. Unresolved.
+- `tsc -b`: clean. `npm run build`: succeeded.
+
+**Phase 8** is still not started.

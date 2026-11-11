@@ -159,3 +159,24 @@
   color: var(--text-muted);
   font-size: var(--fs-sm);
 }
+
+.cookieButton {
+  min-height: var(--touch-target-min);
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cookieButton:hover {
+  background: var(--surface-hover);
+}
+
+.cookieButton:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}

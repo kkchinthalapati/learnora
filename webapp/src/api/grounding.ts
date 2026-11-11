@@ -18,6 +18,7 @@ import { materialsApi } from "./materials";
 import { notesApi } from "./notes";
 import { materialsKeys } from "../hooks/useMaterials";
 import { notesKeys } from "../hooks/useNotes";
+import type { GroundingScope } from "../lib/chatSources";
 
 const STALE_MS = 5 * 60_000;
 
@@ -47,10 +48,27 @@ function loadLibrary() {
   ]);
 }
 
-export async function loadGroundingPassages(query: string, limit = 3): Promise<RetrievedPassage[]> {
+/** `scope` narrows the search to some lessons or subjects (the Ask panel's
+ *  sources, lib/chatSources.ts); without it every note is searched. */
+export async function loadGroundingPassages(
+  query: string,
+  limit = 3,
+  scope?: GroundingScope,
+): Promise<RetrievedPassage[]> {
   if (!query.trim()) return [];
   try {
-    const [materials, notes] = await loadLibrary();
+    const [allMaterials, allNotes] = await loadLibrary();
+    const materials = scope
+      ? allMaterials.filter(
+          (m) =>
+            (scope.materialIds?.includes(m.id) ?? false) ||
+            (m.folder_id !== null && (scope.folderIds?.includes(m.folder_id) ?? false)),
+        )
+      : allMaterials;
+    /* Notes carry their own material id and are read even when the material
+       row is missing, so the scope has to apply to them directly. */
+    const allowed = scope ? new Set(materials.map((m) => m.id)) : null;
+    const notes = allowed ? allNotes.filter((n) => n.material_id !== null && allowed.has(n.material_id)) : allNotes;
     return retrievePassages(buildCorpus(groundingDocs(materials, notes)), query, limit);
   } catch (err) {
     console.warn("[grounding] Could not read your materials:", err);

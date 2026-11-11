@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { AI_PROVIDERS, PRIMARY_PROVIDERS_TEXT } from "../../lib/aiProviders";
 import { LOGO_URL as logoUrl } from "../../lib/logoUrl";
+import { reopenCookieChoice } from "../../lib/cookieConsent";
 import styles from "./privacy.module.css";
 
 /* Privacy Policy — ports privacy.html, expanded to actually cover what the
@@ -134,6 +135,13 @@ export function PrivacyView() {
               only ever sends requests to the providers listed here.
             </p>
             <p>
+              If you fill in <strong>How you learn</strong> (the way you learn
+              best, your preferences, your own description and your interests),
+              it is sent with lesson, notes, podcast, explanation and tutor chat
+              requests so the AI can teach the way you learn. It is optional, and
+              you can change or clear it at any time in Settings → Study.
+            </p>
+            <p>
               So the tutor can connect a new question to something you have
               worked on, Learnora keeps a list of <strong>which lessons you
               have asked the tutor about, and when</strong>. The titles of up
@@ -249,8 +257,24 @@ export function PrivacyView() {
             <h2>6. Cookies &amp; Local Storage</h2>
             <p>
               Learnora uses your browser's local storage to keep you signed in
-              and to remember preferences like your theme. We don't use
-              third-party advertising cookies or cross-site tracking.
+              and to remember preferences like your theme, and one cookie
+              (<code>learnora_cookie_consent</code>) to remember the choice you
+              made in the cookie banner. These are needed for the app to work.
+            </p>
+            <p>
+              If you choose &ldquo;Accept all&rdquo;, we also send crash reports to
+              our error-monitoring provider (Sentry) so we can find and fix bugs.
+              Reports describe what went wrong in the app; sign-in tokens are
+              removed before they are sent, and we don't attach your name or
+              email. With &ldquo;Essential only&rdquo;, no crash reports are sent.
+            </p>
+            <p>
+              We don't use advertising cookies or cross-site tracking.
+            </p>
+            <p>
+              <button type="button" className={styles.cookieButton} onClick={reopenCookieChoice}>
+                Change your cookie choice
+              </button>
             </p>
           </section>
 

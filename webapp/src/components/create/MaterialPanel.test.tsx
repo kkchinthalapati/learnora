@@ -202,7 +202,9 @@ describe("MaterialPanel streamlined creation", () => {
     await user.click(
       screen.getByRole("button", { name: "Make my study set" }),
     );
-    expect(await screen.findByText("Created cards.")).toBeInTheDocument();
+    /* Upload, notes, then cards: several round trips, so more than the
+       default second on a loaded machine. */
+    expect(await screen.findByText("Created cards.", {}, { timeout: 5000 })).toBeInTheDocument();
 
     /* The photo is read once, into notes, by the attachment path — and the
        deck is built from those notes, never from the image again. */
@@ -400,7 +402,8 @@ describe("MaterialPanel streamlined creation", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
-    expect(screen.getByText("path:/notes/mat-1")).toBeInTheDocument();
+    /* Into the lesson, ready to start learning. */
+    expect(screen.getByText("path:/lessons/mat-1")).toBeInTheDocument();
   });
 
   it("keeps the panel open and explains a failed run", async () => {

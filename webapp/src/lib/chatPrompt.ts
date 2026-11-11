@@ -64,6 +64,9 @@ export interface ChatContext {
    *  revise; this tells it what to actually correct. Omitted on a failed read,
    *  same best-effort treatment as everything else here. */
   misconceptionLedger?: string;
+  /** How this student learns ("How you learn", set in onboarding and
+   *  Settings), rendered by lib/learnerProfile.ts learnerProfileRule. */
+  learnerProfile?: string;
   /** Provider-returned web snippets. Already labelled and fenced by the
    * caller; this function only places them beside the grounding rules. */
   webEvidence?: string;
@@ -221,6 +224,7 @@ export function buildSystemContext({
   openUiSection = "",
   performanceEvidence = "",
   misconceptionLedger = "",
+  learnerProfile = "",
   webEvidence = "",
   notesEvidence = "",
   notesOnly = false,
@@ -246,6 +250,7 @@ APP LAYOUT (describe it accurately if the student asks where something is):
 - The sidebar has five places: Today, Library, Study, Plan and Progress. Study opens a session in one of five modes: Explain, Socratic, Practice, Teach or Recall.
 - Anything new — notes, flashcards, or a quiz, from a file, pasted text, a link, a saved material, or just a topic — is made with the "Add your notes" button in the Library, or "New…" in the search palette (Ctrl/⌘ K). There is no separate upload page; do not tell students to "go to the Upload tab" or "the Quizzes tab" to generate something.
 
+${learnerProfile ? `\nHOW THIS STUDENT LEARNS (shape how you explain to fit it; your voice and length settings above still apply):\n${learnerProfile}\n` : ""}
 TODAY IS: ${today}
 
 WORKSPACE STATE:

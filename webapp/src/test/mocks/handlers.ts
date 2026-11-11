@@ -144,6 +144,10 @@ export const handlers = [
   http.post(rest("learning_events"), () =>
     HttpResponse.json(null, { status: 201 }),
   ),
+  /* What the student did with earlier output (api/learnerSignals): none yet,
+     and writes accepted. */
+  http.get(rest("learner_signals"), () => HttpResponse.json([])),
+  http.post(rest("learner_signals"), () => new HttpResponse(null, { status: 201 })),
   /* What the tutor remembers (api/tutorMemory): nothing yet, writes and
      deletes accepted. */
   http.get(rest("tutor_memory"), () => HttpResponse.json([])),

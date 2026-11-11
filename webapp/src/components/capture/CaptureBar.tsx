@@ -7,8 +7,7 @@ import {
   type DragEvent,
   type FormEvent,
 } from "react";
-import { useNavigate } from "react-router";
-import { useCreateStudyPackage } from "../../hooks/useStudyPackage";
+import { useGeneration } from "../../context/generation";
 import {
   useLectureRecorder,
   type FinishedRecording,
@@ -18,12 +17,10 @@ import { useToast } from "../../context/toast";
 import {
   isStudyFile,
   MAX_UPLOAD_BYTES,
-  studyPackageDestination,
   unsupportedFileMessage,
   summarizeStudyPackage,
   type StudySource,
 } from "../../api/studyPackage";
-import { lessonPath } from "../../lib/lessons";
 import { guessCapture } from "../../lib/captureInput";
 import {
   isImageFile,
@@ -37,8 +34,9 @@ import { Icon } from "../Icon";
 import styles from "./CaptureBar.module.css";
 
 /* One way in. A file, a photo, a link, pasted notes, a topic or a lecture
- * recorded right here all go down the same path: notes plus flashcards, then
- * straight to the result. The full Create panel is still one click away
+ * recorded right here all go down the same path: notes plus flashcards, made
+ * behind the full-screen progress view (context/GenerationProvider), which
+ * then opens the lesson. The full Create panel is still one click away
  * ("More options") for a quiz, a subject or card counts. */
 
 const FILE_ACCEPT = `.pdf,.docx,.pptx,.xlsx,.epub,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg,.webm,${STUDY_IMAGE_ACCEPT}`;
@@ -90,8 +88,7 @@ export function CaptureBar({
 }: CaptureBarProps) {
   const { settings } = useSettings();
   const { showToast } = useToast();
-  const navigate = useNavigate();
-  const create = useCreateStudyPackage();
+  const generation = useGeneration();
 
   const [text, setText] = useState(initialText);
   const [file, setFile] = useState<File | null>(initialFile);
@@ -99,7 +96,7 @@ export function CaptureBar({
   const [preparing, setPreparing] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
   const pickSeq = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -109,50 +106,44 @@ export function CaptureBar({
     flashcards: outputs?.flashcards ?? true,
     quiz: outputs?.quiz ?? false,
   };
-  const busy = create.isPending;
+  const busy = running || (generation.job !== null && generation.job.stage !== "done" && generation.job.stage !== "failed");
 
+  /* The progress, any failure and the trip to the lesson are all the
+     generation screen's; here only the box is cleared once something was
+     made. On failure the text stays so it can be edited and tried again. */
   const run = async (source: StudySource, title?: string) => {
     if (busy) return;
     setError(null);
-    setProgress("Getting started…");
+    setRunning(true);
     try {
-      const result = await create.mutateAsync({
-        source,
-        folderId: source.kind === "topic" ? null : folderId,
-        title,
-        /* A topic only files notes when they're asked for explicitly. */
-        outputs: wanted,
-        options: { personality: AI_PERSONA_QUIZ_HOST[settings.aiPersona] },
-        onProgress: setProgress,
-      });
-      const summary = summarizeStudyPackage(result);
-      if (!summary) {
-        setError(
-          result.failures[0]?.message ??
-            "Nothing could be made this time. Please try again in a moment.",
-        );
-        return;
-      }
-      showToast(summary);
-      const refusal = result.failures.find((failure) => failure.refused);
-      if (refusal) showToast(refusal.message, { error: true });
-      setText("");
-      setFile(null);
-      setFileTitle(null);
-      onDone?.();
-      /* What was made lives on its lesson page (DESIGN.md rule 0.1). */
-      const destination = result.material
-        ? lessonPath(result.material.id)
-        : studyPackageDestination(result);
-      if (destination) void navigate(destination);
-    } catch (caught) {
-      setError(
-        caught instanceof Error && caught.message
-          ? caught.message
-          : "Something went wrong. Please try again.",
+      const label =
+        title ??
+        (source.kind === "topic"
+          ? source.topic
+          : source.kind === "file"
+            ? (source.file?.name ?? "Your file")
+            : source.kind === "link"
+              ? source.url
+              : "Your notes");
+      const result = await generation.start(
+        {
+          source,
+          folderId: source.kind === "topic" ? null : folderId,
+          title,
+          /* A topic only files notes when they're asked for explicitly. */
+          outputs: wanted,
+          options: { personality: AI_PERSONA_QUIZ_HOST[settings.aiPersona] },
+        },
+        { label: label.trim().slice(0, 80) || "Your lesson" },
       );
+      if (result && summarizeStudyPackage(result)) {
+        setText("");
+        setFile(null);
+        setFileTitle(null);
+        onDone?.();
+      }
     } finally {
-      setProgress(null);
+      setRunning(false);
     }
   };
 
@@ -395,7 +386,7 @@ export function CaptureBar({
       </div>
 
       <p className={styles.hint} aria-live="polite">
-        {progress ?? hint}
+        {hint}
       </p>
       {error || recorder.error ? (
         <p className={styles.error} role="alert">
