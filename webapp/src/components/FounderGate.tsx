@@ -48,11 +48,11 @@ export function FounderGate({
     );
   }
 
-  // 2. Unauthenticated user — allow instant founder preview in dev, redirect in prod
+  // 2. Unauthenticated user — always to sign-in, dev builds included. There
+  //    used to be a dev-only bypass here; it let anyone signed out into the
+  //    founder tools on a dev server, and it is what the gate's own tests
+  //    caught. Founders sign in like everyone else.
   if (!session || !user) {
-    if (typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV)) {
-      return children ? <>{children}</> : <Outlet />;
-    }
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 

@@ -44,7 +44,7 @@ const insert = "insert into public.learner_signals (kind, surface, value, score,
 
 describe("learner_signals migration", () => {
   it("stamps the row with the student and shows it only to them", async () => {
-    await as(A, insert, ["steer", "learn", "shorter", 1, "a-1"]);
+    await as(A, insert, ["rating", "learn", "too_long", -1, "a-1"]);
     const mine = await as<{ user_id: string }>(A, "select user_id from public.learner_signals");
     expect(mine).toEqual([{ user_id: A }]);
     expect(await as(B, "select * from public.learner_signals")).toEqual([]);
@@ -64,8 +64,8 @@ describe("learner_signals migration", () => {
   });
 
   it("keeps one row per client id per student", async () => {
-    await expect(as(A, insert, ["steer", "learn", "shorter", 0, "a-1"])).rejects.toThrow(/duplicate/);
-    await as(B, insert, ["steer", "learn", "shorter", 1, "a-1"]);
+    await expect(as(A, insert, ["rating", "learn", "too_long", 1, "a-1"])).rejects.toThrow(/duplicate/);
+    await as(B, insert, ["rating", "learn", "too_long", -1, "a-1"]);
   });
 
   it("lets a student delete only their own rows", async () => {

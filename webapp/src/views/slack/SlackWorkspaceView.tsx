@@ -18,6 +18,7 @@ import { SlackSidebar } from "./components/SlackSidebar";
 import { MessageFeed } from "./components/MessageFeed";
 import { ThreadPanel } from "./components/ThreadPanel";
 import { useSlackAiDispatcher } from "../../lib/slack/aiDispatcher";
+import "../../styles/founderWorkspace.css";
 import styles from "./slackWorkspace.module.css";
 
 export function SlackWorkspaceView() {

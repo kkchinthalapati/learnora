@@ -1,0 +1,64 @@
+/* The founder workspace's palette (views/slack, /slack, founders only).
+ *
+ * It has its own dark look, separate from the student app's themes, so its
+ * colours live here as --fw-* properties instead of as raw values in its
+ * module stylesheet (styles/drift.test.ts keeps module files free of raw
+ * colours). Imported by views/slack/SlackWorkspaceView.tsx. */
+
+:root {
+  --fw-005a42: #005a42;
+  --fw-007a5a: #007a5a;
+  --fw-0b4c6e: #0b4c6e;
+  --fw-0f766e: #0f766e;
+  --fw-1164a3: #1164a3;
+  --fw-148567: #148567;
+  --fw-19171d: #19171d;
+  --fw-1a1d21: #1a1d21;
+  --fw-1d1c1d: #1d1c1d;
+  --fw-1d9bd1: #1d9bd1;
+  --fw-222529: #222529;
+  --fw-282b30: #282b30;
+  --fw-2bac76: #2bac76;
+  --fw-2c3136: #2c3136;
+  --fw-2dd4bf: #2dd4bf;
+  --fw-3f0e40: #3f0e40;
+  --fw-4a154b: #4a154b;
+  --fw-611f69: #611f69;
+  --fw-616061: #616061;
+  --fw-6b21a8: #6b21a8;
+  --fw-797c80: #797c80;
+  --fw-7ad1f5: #7ad1f5;
+  --fw-868686: #868686;
+  --fw-abadaf: #abadaf;
+  --fw-be123c: #be123c;
+  --fw-c084fc: #c084fc;
+  --fw-e2e8f0: #e2e8f0;
+  --fw-f0f1f4: #f0f1f4;
+  --fw-f8f8f8: #f8f8f8;
+  --fw-f8f8fa: #f8f8fa;
+  --fw-fca5a5: #fca5a5;
+  --fw-white: #ffffff;
+
+  /* Type sizes, shadows and blurs, as the workspace had them. */
+  --fw-fs-9px: 9px;
+  --fw-fs-10px: 10px;
+  --fw-fs-11_5px: 11.5px;
+  --fw-fs-11px: 11px;
+  --fw-fs-12_5px: 12.5px;
+  --fw-fs-12px: 12px;
+  --fw-fs-13px: 13px;
+  --fw-fs-14_5px: 14.5px;
+  --fw-fs-14px: 14px;
+  --fw-fs-15px: 15px;
+  --fw-fs-16px: 16px;
+  --fw-fs-17px: 17px;
+  --fw-fs-18px: 18px;
+  --fw-fs-20px: 20px;
+  --fw-fs-22px: 22px;
+  --fw-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --fw-shadow-2: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --fw-shadow-3: 0 2px 6px rgba(0, 0, 0, 0.25);
+  --fw-shadow-4: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --fw-shadow-5: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --fw-shadow-6: -4px 0 20px rgba(0, 0, 0, 0.4);
+}

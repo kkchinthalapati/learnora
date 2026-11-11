@@ -10,6 +10,8 @@
 -- the student: `value` is always one of the client's fixed ids. Owner-only, like
 -- learning_events. The client degrades to "no signals" while this table is
 -- missing, so applying it is safe at any time.
+--
+-- Revert: drop table if exists public.learner_signals;
 
 create table if not exists public.learner_signals (
   id          uuid primary key default gen_random_uuid(),
