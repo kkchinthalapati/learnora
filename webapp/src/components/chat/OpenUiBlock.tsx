@@ -1,3 +1,5 @@
+/* First: must run before @openuidev/react-lang loads. */
+import "../../lib/openui/zodJitless";
 import { useState } from "react";
 import { Renderer, type Library, type OpenUIError } from "@openuidev/react-lang";
 import { AskContext } from "../../lib/openui/askContext";

@@ -23,11 +23,13 @@ import { summarizeStudyPackage } from "../../api/studyPackage";
 import { formatRelativeTime } from "../../lib/date";
 import {
   isPractised,
+  deckLessonMap,
   lessonIdOfCard,
   lessonTitle,
   lessonTopic,
   progressLabel,
   progressValue,
+  UNFILED_SUBJECT,
 } from "../../lib/lessons";
 import { AiReply } from "../../components/chat/AiReply";
 import { LearnPanel } from "./LearnPanel";
@@ -36,6 +38,8 @@ import { mistakeTitle } from "../../lib/mistakeLoop";
 import text from "../../styles/text.module.css";
 import { isFlagOn } from "../../lib/flags";
 import { cardifyNotes } from "../../lib/openui/cardify";
+import { LessonActions, PutInSubjectButton } from "../../components/learning/LessonActions";
+import type { Material } from "../../api/types";
 import styles from "./lesson.module.css";
 
 /* A lesson (DESIGN.md rule 0.1): one thing you're learning, and everything
@@ -93,10 +97,10 @@ export function LessonView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [m?.id]);
 
-  const lessonCards = useMemo(
-    () => (cards.data ?? []).filter((c) => lessonIdOfCard(c) === materialId),
-    [cards.data, materialId],
-  );
+  const lessonCards = useMemo(() => {
+    const deckLessons = deckLessonMap(decks.data ?? []);
+    return (cards.data ?? []).filter((c) => lessonIdOfCard(c, deckLessons) === materialId);
+  }, [cards.data, decks.data, materialId]);
   const progress = {
     total: lessonCards.length,
     practised: lessonCards.filter(isPractised).length,
@@ -125,15 +129,13 @@ export function LessonView() {
     for (const a of sorted) out.set(a.quiz_id, { score: a.score, total: a.total });
     return out;
   }, [attempts.data]);
-  const subjectMistakes = useMemo(
-    () =>
-      subject
-        ? misconceptions.filter(
-            (x) => x.status !== "resolved" && x.subject.trim().toLowerCase() === subject.name.trim().toLowerCase(),
-          )
-        : [],
-    [misconceptions, subject],
-  );
+  /* Mistakes are keyed by subject name. A lesson with no subject records its
+     misses under UNFILED_SUBJECT (LearnPanel's `subject || "General"`), so
+     that is where its tab looks. */
+  const subjectMistakes = useMemo(() => {
+    const wanted = (subject?.name ?? UNFILED_SUBJECT).trim().toLowerCase();
+    return misconceptions.filter((x) => x.status !== "resolved" && x.subject.trim().toLowerCase() === wanted);
+  }, [misconceptions, subject]);
   const dueTotal = lessonDecks.reduce((n, d) => n + d.due, 0);
 
   if (material.isPending) {
@@ -248,9 +250,11 @@ export function LessonView() {
         ) : tab === "tutor" ? (
           <TutorPanel title={title} />
         ) : (
-          <MistakesPanel subjectName={subject?.name ?? null} rows={subjectMistakes} />
+          <MistakesPanel subjectName={subject?.name ?? null} rows={subjectMistakes} lesson={m} />
         )}
       </TabPanel>
+
+      <LessonActions lesson={m} className={styles.manage} onDeleted={() => void navigate("/", { replace: true })} />
     </div>
   );
 }
@@ -426,11 +430,20 @@ function TutorPanel({ title }: { title: string }) {
   }
   return (
     <div className={styles.tutor}>
-      <p className={styles.tutorLead}>Ask the tutor about this lesson. Pick a start, or write your own.</p>
+      <p className={styles.tutorLead}>Ask the tutor about this lesson. Pick a question to ask it now, or write your own.</p>
       <ul className={styles.prompts}>
         {prompts.map((p) => (
           <li key={p}>
-            <button type="button" className={styles.prompt} onClick={() => chat.compose(p)}>
+            {/* Sends straight away: filling the composer without sending
+                looked like nothing had happened (audit F-09). */}
+            <button
+              type="button"
+              className={styles.prompt}
+              onClick={() => {
+                chat.open();
+                void chat.send(p);
+              }}
+            >
               {p}
             </button>
           </li>
@@ -446,32 +459,39 @@ function TutorPanel({ title }: { title: string }) {
 function MistakesPanel({
   subjectName,
   rows,
+  lesson,
 }: {
   subjectName: string | null;
   rows: Array<{ id: string; concept: string; summary: string; timesObserved: number } & Parameters<typeof mistakeTitle>[0]>;
+  lesson: Material;
 }) {
-  if (!subjectName) {
-    return (
-      <EmptyState
-        icon="target"
-        title="No subject for this lesson"
-        message="Mistakes are tracked by subject. Put this lesson in a subject to see them here."
-      />
-    );
-  }
+  /* No subject: show what was recorded for lessons without one, and offer
+     the filing the message used to ask for without any way to do it. */
+  const scope = subjectName ?? "lessons without a subject";
   if (rows.length === 0) {
     return (
       <EmptyState
-        icon="check-circle"
-        title={`Nothing to fix in ${subjectName}`}
-        message="Mistakes from your quizzes and sessions in this subject will show up here."
-      />
+        icon={subjectName ? "check-circle" : "target"}
+        title={subjectName ? `Nothing to fix in ${subjectName}` : "Nothing to fix yet"}
+        message={
+          subjectName
+            ? "Mistakes from your quizzes and sessions in this subject will show up here."
+            : "Mistakes from this lesson's checks show up here. Put it in a subject to see them alongside that subject's others."
+        }
+      >
+        {subjectName ? null : <PutInSubjectButton lesson={lesson} />}
+      </EmptyState>
     );
   }
   return (
     <>
-      <p className={styles.scopeNote}>Open mistakes in {subjectName}, most important first.</p>
-      <ListRows label={`Mistakes in ${subjectName}`}>
+      <p className={styles.scopeNote}>Open mistakes in {scope}, most important first.</p>
+      {subjectName ? null : (
+        <div className={styles.panelBar}>
+          <PutInSubjectButton lesson={lesson} />
+        </div>
+      )}
+      <ListRows label={`Mistakes in ${scope}`}>
         {rows.slice(0, 10).map((x) => (
           <ListRow
             key={x.id}

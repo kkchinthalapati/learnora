@@ -17,6 +17,7 @@ import { useCreateModal } from "../../context/createModal";
 import { decksKeys } from "../../hooks/useDecks";
 import { flashcardsKeys } from "../../hooks/useFlashcards";
 import { useLifeContext } from "../../hooks/useLifeContext";
+import { asSentence } from "../../lib/sentence";
 import { SYLLABUS_SPECS, defaultTier, getSpec, specLabel, suggestSpecs, type Qualification } from "../../lib/syllabus";
 import { useSaveExam } from "../../hooks/useExams";
 import { useUpdateProfile } from "../../hooks/useAuthActions";
@@ -623,7 +624,7 @@ export function FirstRunView() {
                 ) : (
                   <div className={styles.results}>
                     <p className={styles.result} data-result={passed ? "right" : "wrong"}>
-                      {passed ? "✓ Right." : `✕ Not this time. The answer is ${q2.choices[q2.correctIndex]}.`}
+                      {passed ? "✓ Right." : `✕ Not this time. The answer is ${asSentence(q2.choices[q2.correctIndex])}`}
                     </p>
                     {q2.feedback ? <p className={styles.explain}>{q2.feedback}</p> : null}
                     <Button variant="primary" onClick={toWin}>

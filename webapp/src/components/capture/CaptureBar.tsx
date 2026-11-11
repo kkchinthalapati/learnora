@@ -107,12 +107,16 @@ export function CaptureBar({
     quiz: outputs?.quiz ?? false,
   };
   const busy = running || (generation.job !== null && generation.job.stage !== "done" && generation.job.stage !== "failed");
+  /* `busy` is state, so two submits in one tick both read it as false and
+     make two lessons (audit F-06). The ref flips synchronously. */
+  const inFlight = useRef(false);
 
   /* The progress, any failure and the trip to the lesson are all the
      generation screen's; here only the box is cleared once something was
      made. On failure the text stays so it can be edited and tried again. */
   const run = async (source: StudySource, title?: string) => {
-    if (busy) return;
+    if (busy || inFlight.current) return;
+    inFlight.current = true;
     setError(null);
     setRunning(true);
     try {
@@ -143,6 +147,7 @@ export function CaptureBar({
         onDone?.();
       }
     } finally {
+      inFlight.current = false;
       setRunning(false);
     }
   };

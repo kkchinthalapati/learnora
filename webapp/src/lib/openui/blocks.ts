@@ -62,7 +62,7 @@ export function learnCardSection(): string {
 - Pick the card that fits each idea: Callout "definition" for a term the student must be able to define, Callout "key" for the one thing to remember, Callout "mistake" for a trap students fall into; WorkedExample for any calculation or method with numbers (in a lesson its steps are uncovered one at a time so the student can try each step first, so give every step with its reason); Steps for a process; Timeline for a sequence of events; CompareTable for ideas that are easily confused; BarChart only for numbers the notes themselves give; KeyTerms for a set of new words; Accordion for optional extra depth.
 - Put each block straight after the prose it belongs to, not all at the end. One block may hold several cards in its Stack.
 - ${DIAGRAM_RULE} At most one diagram per reply, and only where a picture shows how something works.
-- The prose must stand on its own: never put a fact only in a card. Teach only what the notes support.
+- Say each thing once. A card replaces the sentence it would repeat: when a Callout gives a definition, key point or common mistake, the prose leads into it and does not state it again, and a Steps, Timeline or CompareTable card organises what the prose introduced rather than restating it line by line. Everything the check asks about must still be in the prose. Teach only what the notes support.
 - No quiz questions, flashcards or follow-up chips: the lesson asks its own questions.
 - Never mention the block, cards or the word "openui" to the student.
 

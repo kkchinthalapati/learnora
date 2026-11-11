@@ -16,6 +16,13 @@ describe("titleForPath", () => {
     expect(titleForPath("/welcome-pro")).toBe("Welcome to Pro · Learnora");
   });
 
+  /* Audit F-10: every page a student can open gets its own name. */
+  it("names pages that used to be titled just Learnora", () => {
+    expect(titleForPath("/capture")).toBe("New lesson · Learnora");
+    expect(titleForPath("/exam-detective")).toBe("Exam traps · Learnora");
+    expect(titleForPath("/setup")).toBe("Study profile · Learnora");
+  });
+
   it("falls back to the app name for unknown paths", () => {
     expect(titleForPath("/nope")).toBe("Learnora");
   });

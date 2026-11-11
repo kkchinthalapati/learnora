@@ -849,6 +849,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               : systemContext,
             file: filePayload,
             tool: "chat",
+            /* The tutor is billed per message even when opened from inside a
+               Study session; only the session's own follow-ups share its key. */
+            sessionKey: null,
             settings: callPersona ? { ...settings, aiPersona: callPersona } : settings,
           },
           {

@@ -2,10 +2,10 @@ import { useCallback } from "react";
 import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
 import { useDeleteFolder, useRenameFolder } from "../../hooks/useFolders";
-import { useDeleteMaterial } from "../../hooks/useMaterials";
+import { useDeleteMaterial, useRenameMaterial } from "../../hooks/useMaterials";
 import { useDeleteDeck } from "../../hooks/useDecks";
 import { useDeleteQuiz } from "../../hooks/useQuizzes";
-import { SUBJECT_MAX } from "../../lib/fieldLimits";
+import { LESSON_TITLE_MAX, SUBJECT_MAX } from "../../lib/fieldLimits";
 
 export function useLibraryActions() {
   const { confirm, promptText } = useDialog();
@@ -13,6 +13,7 @@ export function useLibraryActions() {
   const deleteFolder = useDeleteFolder();
   const renameFolder = useRenameFolder();
   const deleteMaterial = useDeleteMaterial();
+  const renameMaterialMutation = useRenameMaterial();
   const deleteDeck = useDeleteDeck();
   const deleteQuiz = useDeleteQuiz();
 
@@ -65,25 +66,48 @@ export function useLibraryActions() {
     [confirm, deleteFolder, showToast],
   );
 
+  /* Resolves true once the lesson is gone, so a page showing it can leave. */
   const removeMaterial = useCallback(
-    async (id: string, title: string, storagePath: string | null) => {
-      // Decks belong to folders, not materials, so deleting a material keeps
-      // its flashcard decks. Notes and quizzes are deleted with the material.
+    async (id: string, title: string, storagePath: string | null): Promise<boolean> => {
+      // Card sets belong to subjects, not lessons, so deleting a lesson keeps
+      // them. Its notes and quizzes are deleted with it (FK cascade).
       const ok = await confirm(
-        `"${title}" will be permanently deleted, along with the notes and quizzes generated from it.`,
-        { title: "Delete file?", confirmText: "Delete", danger: true },
+        `"${title}" will be permanently deleted, along with its notes and quizzes. Card sets made from it stay in your Library.`,
+        { title: "Delete lesson?", confirmText: "Delete", danger: true },
       );
-      if (!ok) return;
+      if (!ok) return false;
       try {
         await deleteMaterial.mutateAsync({ id, storagePath });
         showToast(`Deleted "${title}".`);
+        return true;
       } catch {
-        showToast("Couldn't delete that file. Please try again.", {
+        showToast("Couldn't delete that lesson. Please try again.", {
+          error: true,
+        });
+        return false;
+      }
+    },
+    [confirm, deleteMaterial, showToast],
+  );
+
+  const renameMaterial = useCallback(
+    async (id: string, currentTitle: string) => {
+      const title = await promptText("Give this lesson a new name.", {
+        title: "Rename lesson",
+        defaultValue: currentTitle,
+        confirmText: "Save",
+        maxLength: LESSON_TITLE_MAX,
+      });
+      if (!title?.trim() || title.trim() === currentTitle) return;
+      try {
+        await renameMaterialMutation.mutateAsync({ id, title });
+      } catch {
+        showToast("Couldn't rename that lesson. Please try again.", {
           error: true,
         });
       }
     },
-    [confirm, deleteMaterial, showToast],
+    [promptText, renameMaterialMutation, showToast],
   );
 
   const removeDeck = useCallback(
@@ -124,5 +148,5 @@ export function useLibraryActions() {
     [confirm, deleteQuiz, showToast],
   );
 
-  return { rename, removeFolder, removeMaterial, removeDeck, removeQuiz };
+  return { rename, removeFolder, removeMaterial, renameMaterial, removeDeck, removeQuiz };
 }

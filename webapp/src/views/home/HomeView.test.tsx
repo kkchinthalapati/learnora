@@ -24,6 +24,8 @@ vi.mock("../../hooks/useFlashcards", () => ({
   useFlashcardsDueCount: () => dueCount(),
 }));
 vi.mock("../../hooks/useContinuity", () => ({ useContinuity: () => continuity() }));
+/* Card sets tie cards to their lesson (lib/lessons deckLessonMap). */
+vi.mock("../../hooks/useDecks", () => ({ useAllDecks: () => ({ data: [], isPending: false }) }));
 vi.mock("../../context/auth", () => ({ useOptionalAuth: () => auth() }));
 vi.mock("../../context/timer", () => ({
   useTimer: () => ({ completedFocus: null, dismissCompletedFocus: () => {} }),

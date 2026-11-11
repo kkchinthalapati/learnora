@@ -14,6 +14,7 @@ import { useTimer } from "../../context/timer";
 import { useContinuity } from "../../hooks/useContinuity";
 import { useExams } from "../../hooks/useExams";
 import { useFlashcards, useFlashcardsDueCount } from "../../hooks/useFlashcards";
+import { useAllDecks } from "../../hooks/useDecks";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
@@ -30,7 +31,7 @@ import { localDateStr } from "../../lib/date";
 import { homeGreeting } from "../../lib/greeting";
 import { homeSubjects, nextLessonLink, todayView } from "../../lib/homeToday";
 import { learnPositionLabel, readLearnPosition } from "../../lib/learnPosition";
-import { progressByLesson } from "../../lib/lessons";
+import { deckLessonMap, progressByLesson } from "../../lib/lessons";
 import { needsRepair, retestsDue } from "../../lib/mistakeLoop";
 import { daysUntil } from "../../lib/quizForecast";
 import { MistakeLoopSection } from "../today/MistakeLoopSection";
@@ -63,7 +64,11 @@ export function HomeView() {
   const { ranked: misconceptions, all: ledger, isPending: ledgerPending } = useMisconceptions();
   const exams = useExams();
 
-  const progress = useMemo(() => progressByLesson(cards.data ?? []), [cards.data]);
+  const decks = useAllDecks();
+  const progress = useMemo(
+    () => progressByLesson(cards.data ?? [], deckLessonMap(decks.data ?? [])),
+    [cards.data, decks.data],
+  );
   const today = localDateStr(now);
 
   /* An email's local part is not a name: with none saved, greet without one. */

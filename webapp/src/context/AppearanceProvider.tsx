@@ -37,7 +37,7 @@ import {
  * style the whole app, not only the Settings route. */
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { can, isPending: entitlementsPending } = useEntitlements();
   const [appearance, setAppearanceState] = useState<AppearanceState>(() =>
     readStoredAppearance(),
@@ -94,6 +94,10 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   /* Reset appearance when user logs out or switches accounts — don't carry
      device-local appearance across different user sessions. */
   useEffect(() => {
+    /* While the session is still being read, user is null but nobody has
+       signed out. Counting that as an account switch wiped the saved
+       appearance on every page load (production, 2026-11-08). */
+    if (authLoading) return;
     const currentUserId = user?.id ?? null;
     if (
       lastUserId.current !== undefined &&
@@ -105,7 +109,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       setSavedAt((n) => n + 1);
     }
     lastUserId.current = currentUserId;
-  }, [user?.id]);
+  }, [user?.id, authLoading]);
 
   /* Only "system" mode cares about the OS switching underneath us. Re-running
      applyAppearanceToDom is enough — the state itself hasn't changed, just

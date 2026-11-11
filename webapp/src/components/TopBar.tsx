@@ -165,7 +165,10 @@ export function TopBar() {
               key={item.to}
               to={item.to}
               className={`${styles.bottomTab} ${active ? styles.bottomActive : ""}`}
-              aria-current={active && pathname === item.to ? "page" : undefined}
+              /* Same rule as the top bar: "page" on the destination itself,
+                 "true" on a page inside it (audit 2026-11-07 §5: the phone
+                 tabs marked nothing on, say, a lesson). */
+              aria-current={active ? (pathname === item.to ? "page" : "true") : undefined}
             >
               <Icon name={item.icon} size={20} />
               <span>{item.label}</span>
@@ -238,6 +241,17 @@ function ProfileMenu({
             <span className={styles.menuName}>{name || "Your account"}</span>
             {email ? <span className={styles.menuEmail}>{email}</span> : null}
           </div>
+          {/* Plan holds the exams /study plans around, and Library every
+              card set, quiz and notebook; neither was reachable from the
+              nav before (audit F-07). */}
+          <Link role="menuitem" to="/plan" className={styles.menuItem}>
+            <Icon name="calendar" size={16} />
+            Plan and exams
+          </Link>
+          <Link role="menuitem" to="/library" className={styles.menuItem}>
+            <Icon name="book-open" size={16} />
+            Library
+          </Link>
           <Link role="menuitem" to="/settings" className={styles.menuItem}>
             <Icon name="settings" size={16} />
             Settings

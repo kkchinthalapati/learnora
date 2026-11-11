@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { guessCapture } from "./captureInput";
+import { guessCapture, topicTitle } from "./captureInput";
 
 describe("guessCapture", () => {
   it("treats blank input as empty", () => {
@@ -47,5 +47,19 @@ describe("guessCapture", () => {
       kind: "topic",
       topic: "Cell biology",
     });
+  });
+});
+
+describe("topicTitle", () => {
+  it("drops the request's lead-in so the title names the topic", () => {
+    expect(topicTitle("i want to learn photosynthesis")).toBe("Photosynthesis");
+    expect(topicTitle("Teach me about the French Revolution?")).toBe("The French Revolution");
+    expect(topicTitle("can you explain how osmosis works")).toBe("How osmosis works");
+    expect(topicTitle("please help me understand quadratic equations.")).toBe("Quadratic equations");
+    expect(topicTitle("mitochondria")).toBe("Mitochondria");
+  });
+
+  it("keeps the words when the lead-in is all there is", () => {
+    expect(topicTitle("learn")).toBe("Learn");
   });
 });

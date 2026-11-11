@@ -11,9 +11,12 @@
  * through AskContext — they are the student's own next message, sent for
  * them. */
 
+/* First: must run before @openuidev/react-lang loads (see the file). */
+import "./zodJitless";
 import { useState, type ReactNode } from "react";
 import { createLibrary, defineComponent } from "@openuidev/react-lang";
 import { z } from "zod/v4";
+
 import { renderMathText } from "../markdownToReact";
 import { useAsk } from "./askContext";
 import { useRevealSteps } from "./revealContext";

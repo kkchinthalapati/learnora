@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { materialsApi } from "../api/materials";
 import { notesKeys } from "./useNotes";
 import { quizzesKeys } from "./useQuizzes";
+import { decksKeys } from "./useDecks";
 
 export const materialsKeys = {
   all: ["materials"] as const,
@@ -45,8 +46,17 @@ export function useDeleteMaterial() {
       id: string;
       storagePath?: string | null;
     }) => materialsApi.delete(id, storagePath),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: materialsKeys.all });
+    onSuccess: (_data, { id }) => {
+      /* Every list refetches, but not the deleted lesson's own query: its
+         page is about to leave, and refetching it first flashed "This
+         lesson isn't here" on the way out (audit 2026-11-08). */
+      const gone = materialsKeys.byId(id);
+      qc.invalidateQueries({
+        queryKey: materialsKeys.all,
+        predicate: (query) =>
+          query.queryKey.length !== gone.length ||
+          query.queryKey.some((part, i) => part !== gone[i]),
+      });
       qc.invalidateQueries({ queryKey: notesKeys.all });
       qc.invalidateQueries({ queryKey: quizzesKeys.all });
     },
@@ -72,6 +82,29 @@ export function useSetLessonOrder() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: materialsKeys.all });
+    },
+  });
+}
+
+export function useRenameMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => materialsApi.rename(id, title),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: materialsKeys.all });
+    },
+  });
+}
+
+export function useMoveMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, folderId }: { id: string; folderId: string | null }) =>
+      materialsApi.moveToFolder(id, folderId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: materialsKeys.all });
+      qc.invalidateQueries({ queryKey: quizzesKeys.all });
+      qc.invalidateQueries({ queryKey: decksKeys.all });
     },
   });
 }

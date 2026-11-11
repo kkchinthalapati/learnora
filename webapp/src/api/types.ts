@@ -81,6 +81,9 @@ export interface FlashcardDeck {
   user_id: string;
   folder_id: string | null;
   notebook_id?: string | null;
+  /** The lesson the set was made from (migration 20261108000000). Absent on
+   *  older sets and before that migration is applied. */
+  material_id?: string | null;
   title: string;
   created_at: string;
 }

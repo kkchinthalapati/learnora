@@ -13,6 +13,7 @@ import {
 import { formatCreatedShort } from "./libraryMeta";
 import styles from "./library.module.css";
 import { Badge } from "../../components/Badge";
+import { LessonActions } from "../../components/learning/LessonActions";
 
 export function MaterialsPanel() {
   const { data: materials, isPending, isError, error } = useMaterials();
@@ -172,6 +173,7 @@ export function MaterialsPanel() {
                 </Button>
               )}
             </div>
+            <LessonActions lesson={material} />
           </li>
         );
       })}

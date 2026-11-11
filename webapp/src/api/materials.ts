@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { requireUserId } from "./session";
+import { decksApi } from "./decks";
 import type { Material, MaterialType } from "./types";
 
 /* Direct port of js/api.js's `Materials` object (:436-589). */
@@ -128,6 +129,41 @@ export const materialsApi = {
       .eq("id", materialId)
       .eq("user_id", userId);
     if (error) throw new Error(error.message);
+  },
+
+  async rename(materialId: string, title: string): Promise<void> {
+    const userId = await requireUserId();
+    const clean = title.trim();
+    if (!clean) throw new Error("A lesson needs a name.");
+    const { error } = await supabase
+      .from("materials")
+      .update({ title: clean })
+      .eq("id", materialId)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+  },
+
+  /* Files the lesson under a subject (or takes it out of one with null).
+   * Its quizzes carry `material_id`, so they go with it; card sets have no
+   * link back to a lesson and stay where they are. The RLS owner guard
+   * refuses a folder that belongs to someone else. */
+  async moveToFolder(materialId: string, folderId: string | null): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from("materials")
+      .update({ folder_id: folderId })
+      .eq("id", materialId)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    const { error: quizError } = await supabase
+      .from("quizzes")
+      .update({ folder_id: folderId })
+      .eq("material_id", materialId)
+      .eq("user_id", userId);
+    if (quizError) throw new Error(quizError.message);
+    /* Card sets linked to the lesson go with it (audit F-16). Older sets
+       record no lesson and stay where they are. */
+    await decksApi.moveForMaterial(materialId, folderId);
   },
 
   async fetchById(id: string): Promise<Material | null> {

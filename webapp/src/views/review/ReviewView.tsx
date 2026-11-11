@@ -25,6 +25,7 @@ import { useAddTask } from "../../hooks/useTasks";
 import {
   useFlashcardsByDeck,
   useAllDueFlashcards,
+  useFlashcardsDueCount,
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
@@ -53,6 +54,7 @@ import {
 } from "./srs";
 import { recordCardReviewedToday } from "../../lib/achievements";
 import { useOnlineStatus } from "../../lib/offlineSync";
+import { DAILY_DRILL_SIZE } from "../../lib/offlineCards";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import styles from "./review.module.css";
 
@@ -84,7 +86,10 @@ export function ReviewView() {
 
   const decks = useAllDecks();
   const deckCardsQuery = useFlashcardsByDeck(deckId);
-  const allDueCardsQuery = useAllDueFlashcards(20);
+  const allDueCardsQuery = useAllDueFlashcards(DAILY_DRILL_SIZE);
+  /* The drill holds at most DAILY_DRILL_SIZE cards; Home counts every due
+     card. The intro states both so the two numbers agree (audit F-05). */
+  const { data: totalDue } = useFlashcardsDueCount({ enabled: isDailyDrill });
   /* Not in the pending gate: a slow ledger read must not hold up a review
      session, and an empty one just leaves the queue in its normal order. */
   const { all: ledger } = useMisconceptions();
@@ -242,6 +247,7 @@ export function ReviewView() {
       deckTitle={deck.title}
       folderId={deck.folder_id ?? null}
       dueCards={due}
+      totalDue={isDailyDrill ? totalDue : undefined}
       practising={practiseAll}
       onSessionStart={() => {
         sessionActiveRef.current = true;
@@ -255,6 +261,7 @@ function ReviewLauncher({
   deckTitle,
   folderId,
   dueCards,
+  totalDue,
   practising = false,
   onSessionStart,
 }: {
@@ -262,6 +269,8 @@ function ReviewLauncher({
   deckTitle: string;
   folderId?: string | null;
   dueCards: Flashcard[];
+  /** Every due card, when `dueCards` is a capped slice of them. */
+  totalDue?: number;
   practising?: boolean;
   onSessionStart: () => void;
 }) {
@@ -286,6 +295,7 @@ function ReviewLauncher({
     <ReviewSetup
       deckTitle={deckTitle}
       dueCards={dueCards}
+      totalDue={totalDue}
       practising={practising}
       hasQuizEvidence={(weakTopics.data ?? []).length > 0}
       onStart={(length, order) => {
@@ -326,12 +336,14 @@ function OptionalFold({
 function ReviewSetup({
   deckTitle,
   dueCards,
+  totalDue,
   practising = false,
   hasQuizEvidence,
   onStart,
 }: {
   deckTitle: string;
   dueCards: Flashcard[];
+  totalDue?: number;
   practising?: boolean;
   hasQuizEvidence: boolean;
   onStart: (length: ReviewLength, order: ReviewOrder) => void;
@@ -357,7 +369,9 @@ function ReviewSetup({
         <p className={styles.setupIntro}>
           {practising
             ? `Practising all ${dueCards.length} ${dueCards.length === 1 ? "card" : "cards"} — none are due yet, so this is extra practice.`
-            : `${dueCards.length} ${dueCards.length === 1 ? "card is" : "cards are"} due.`}
+            : totalDue !== undefined && totalDue > dueCards.length
+              ? `${totalDue} cards are due. This drill takes the ${dueCards.length} that most need it.`
+              : `${dueCards.length} ${dueCards.length === 1 ? "card is" : "cards are"} due.`}
           {small ? "" : " Choose a focused session that fits the time you have."}
         </p>
 
