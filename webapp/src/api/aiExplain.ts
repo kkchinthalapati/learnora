@@ -25,6 +25,7 @@ import { loadGroundingPassages } from "./grounding";
 import { formatGroundingForPrompt, passageLabel, passageText } from "../lib/grounding";
 import { sourceSnippet } from "../lib/sourceSnippet";
 import { isLimitOrRefusal } from "./aiLimit";
+import { loadPresentationLines } from "./learnerContext";
 
 export function buildExplainPlanPrompt(
   subject: string,
@@ -33,6 +34,8 @@ export function buildExplainPlanPrompt(
   watchingFor?: string,
   specLine = "",
   grounding = "",
+  /** api/learnerContext loadPresentationLines: their style and requests. */
+  presentation = "",
 ): string {
   return `You are planning a short step-by-step explanation for a student who wants to understand something.
 
@@ -40,7 +43,7 @@ SUBJECT: ${fenceUntrusted(subject)}
 WHAT THEY WANT TO UNDERSTAND (their own words): """${fenceUntrusted(objective)}"""
 ${watchingFor ? `A BELIEF THEY HAVE HELD BEFORE (from their own past work): """${fenceUntrusted(watchingFor)}"""\n` : ""}
 ${levelRules(level, specLine)}
-${grounding ? `\n${grounding}\n` : ""}
+${grounding ? `\n${grounding}\n` : ""}${presentation ? `\n${presentation}\n` : ""}
 Plan exactly 3 steps that build the idea from its foundation up: step 1 is the idea underneath everything else, step 3 is the thing they asked about. Each step is one idea a student can hold in their head.
 
 Rules:
@@ -72,9 +75,10 @@ export async function planExplanation(
     timestamp: new Date().toISOString(),
   };
   try {
-    const [{ level, specLine }, passages] = await Promise.all([
+    const [{ level, specLine }, passages, presentation] = await Promise.all([
       studentStandard(`${subject} ${objective}`),
       loadGroundingPassages(objective),
+      loadPresentationLines().catch(() => ""),
     ]);
     const { text } = await callEdge({
       history: [
@@ -87,6 +91,7 @@ export async function planExplanation(
             watchingFor,
             specLine,
             formatGroundingForPrompt(passages, fenceUntrusted),
+            presentation,
           ),
         },
       ],

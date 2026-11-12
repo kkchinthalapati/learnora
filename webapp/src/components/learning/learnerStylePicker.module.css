@@ -1,0 +1,94 @@
+.grid {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.compact {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: var(--touch-target-min);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
+}
+
+.card:hover {
+  border-color: var(--hairline-strong);
+  background: var(--surface-hover);
+}
+
+.card[data-checked] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.card:has(.input:focus-visible) {
+  box-shadow: var(--shadow-focus);
+}
+
+.card:has(.input:disabled) {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* The radio itself is visually replaced by the card but stays in the
+   accessibility tree and takes keyboard focus. */
+.input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--accent-text);
+}
+
+.card[data-checked] .icon {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.label {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.description {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+
+.tick {
+  display: grid;
+  place-items: center;
+  color: var(--accent-text);
+}

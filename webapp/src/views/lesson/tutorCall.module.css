@@ -1,0 +1,286 @@
+/* Talk it through (TutorCall.tsx). */
+
+.call {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+  max-width: 620px;
+  margin: 0 auto;
+  padding: var(--s-10) var(--s-6);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-2xl);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+
+.avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.avatar[data-state="listening"] {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.avatar[data-state="paused"],
+.avatar[data-state="ended"] {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+/* Two rings that breathe while someone is talking, so the state reads at a
+   glance from across a desk. Decorative: the status line says it in words. */
+.ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--accent);
+  border-radius: var(--r-pill);
+  opacity: 0;
+}
+
+.avatar[data-state="listening"] .ring,
+.avatar[data-state="speaking"] .ring,
+.avatar[data-state="greeting"] .ring {
+  animation: breathe 2s var(--ease-out) infinite;
+}
+
+.avatar .ring + .ring {
+  animation-delay: 1s;
+}
+
+.avatar[data-state="thinking"] .ring:first-of-type {
+  opacity: 1;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes breathe {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none !important;
+  }
+}
+
+.eyebrow {
+  margin: var(--s-2) 0 0;
+  color: var(--accent-text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  line-height: 1.2;
+}
+
+.status {
+  margin: 0;
+  color: var(--text);
+  font-weight: 650;
+}
+
+.note {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.captions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  width: 100%;
+  text-align: left;
+}
+
+.caption {
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  font-family: var(--font-read);
+  line-height: 1.5;
+}
+
+.caption[data-who="you"] {
+  background: var(--accent-soft);
+}
+
+.who {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.problem {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: var(--fs-sm);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-4);
+  margin-top: var(--s-2);
+}
+
+.roundButton,
+.hangUp {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: 0;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.roundButton {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.roundButton:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.roundButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.hangUp {
+  background: var(--danger);
+  color: var(--danger-on);
+}
+
+.hangUp:hover {
+  background: var(--danger-2);
+}
+
+.roundButton:focus-visible,
+.hangUp:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.styleLine {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* The two choices before a call. */
+.pickers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  width: 100%;
+  text-align: left;
+}
+
+.picker {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pickerLegend {
+  margin-bottom: var(--s-2);
+  padding: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--s-2);
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: var(--touch-target-min);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--hairline-strong);
+  background: var(--surface-hover);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.chip:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.chipLabel {
+  font-size: var(--fs-sm);
+  font-weight: 650;
+}
+
+.chipHint {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+}
+
+/* The tutor's voice, under the style choices (lib/voicePrefs.ts). */
+.voiceRow {
+  width: min(100%, 520px);
+  text-align: left;
+}

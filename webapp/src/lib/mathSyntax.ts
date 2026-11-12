@@ -148,6 +148,39 @@ function greekSubscriptAt(text: string, index: number): { tex: string; length: n
   return { tex: `\\${match[1]}_{${match[2]}}`, length: match[0].length };
 }
 
+/* ---------- doubled backslashes on a command, a third safety net ----------
+ *
+ * Text that was JSON-escaped twice reaches us as `\\dfrac{12}{4}` and
+ * `\\Omega`: cards saved before the flashcard decoder was fixed, and now and
+ * then a model that escapes its own reply once too often. In TeX `\\` is a
+ * line break, so KaTeX drew a break and then the letters "dfrac".
+ *
+ * A real line break is never followed straight away by a command's name
+ * spelled out as letters, so exactly two backslashes before a known command
+ * are read as one. Narrow on purpose: names of four letters or more only
+ * (`a\\pi` could be a row break before a p·i product), and `\\\frac` (a break,
+ * then a command) is left alone. */
+const DOUBLED_COMMANDS = [
+  ...BARE_TEX_COMMANDS,
+  ...GREEK_NAMES,
+  "dfrac",
+  "tfrac",
+  "mathrm",
+  "mathbf",
+  "left",
+  "right",
+].filter((name, i, all) => name.length >= 4 && all.indexOf(name) === i);
+
+const DOUBLED_COMMAND = new RegExp(
+  `(^|[^\\\\])\\\\\\\\(?=(?:${DOUBLED_COMMANDS.join("|")})(?![A-Za-z]))`,
+  "g",
+);
+
+/** `\\dfrac` → `\dfrac` inside a maths body; see DOUBLED_COMMANDS. */
+export function repairDoubledCommands(tex: string): string {
+  return tex.includes("\\\\") ? tex.replace(DOUBLED_COMMAND, "$1\\") : tex;
+}
+
 export function splitMath(text: string): MathPart[] {
   const parts: MathPart[] = [];
   let buffer = "";
@@ -159,7 +192,7 @@ export function splitMath(text: string): MathPart[] {
 
   const pushMath = (value: string, display: boolean) => {
     flush();
-    parts.push({ kind: "math", value: value.trim(), display });
+    parts.push({ kind: "math", value: repairDoubledCommands(value.trim()), display });
   };
 
   let i = 0;

@@ -83,3 +83,43 @@
 .danger {
   color: var(--danger-text);
 }
+
+/* Move a lesson up or down its subject's path (lib/lessonOrder.ts). Two
+   quiet buttons beside the ring; each is a full touch target. */
+.reorder {
+  display: inline-flex;
+  align-items: center;
+}
+
+.moveButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.moveButton:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.moveButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.moveButton:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.moveUp {
+  transform: rotate(180deg);
+}

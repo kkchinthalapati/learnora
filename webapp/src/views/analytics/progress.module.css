@@ -13,3 +13,42 @@
   flex-direction: column;
   gap: var(--s-6);
 }
+
+/* What you know (UnderstandingPanel): a subject, one sentence, its topics. */
+.knowSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.knowSummary {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+}
+
+.knowNote {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.quietLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.quietLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

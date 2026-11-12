@@ -19,11 +19,34 @@ import { habitHref, habitSentence, habitsForStudent, habitsForSubject } from "..
 import { mistakeTitle } from "../../lib/mistakeLoop";
 import { useDocumentTitle } from "../../lib/routeTitle";
 import { blocksForSubject, examCountdown, examsForSubject, examWhen } from "../../lib/subjects";
+import { Icon } from "../../components/Icon";
+import type { Exam } from "../../api/types";
+import { useExamReadiness } from "../../hooks/useExamReadiness";
+import { isOrderSupported } from "../../api/materials";
+import { useSetLessonOrder } from "../../hooks/useMaterials";
+import { nextLessonOf } from "../../lib/homeToday";
+import { moveLesson, orderLessons, positionChanges } from "../../lib/lessonOrder";
+import { lessonTitle } from "../../lib/lessons";
 import { LessonRows } from "../lesson/LessonRows";
 import { useLibraryActions } from "../library/useLibraryActions";
 import { useSubjectsData } from "./useSubjectsData";
 import { WeekBlocks } from "./WeekBlocks";
 import styles from "./subjects.module.css";
+
+/* How ready the student is for one exam, as a word (lib/examReadiness.ts):
+ * "Getting there", "Exam ready", "Needs work". Never the number behind it,
+ * and when there are too few answered questions or reviewed cards to say,
+ * it says that instead of guessing. */
+function ReadinessWord({ exam }: { exam: Exam }) {
+  const { readiness, isPending } = useExamReadiness(exam);
+  if (isPending || !readiness) return null;
+  return (
+    <>
+      {" · "}
+      {readiness.tier === "Not enough data" ? "too little answered yet to say how ready" : readiness.tier}
+    </>
+  );
+}
 
 /* One subject (webapp/DESIGN.md 0.1): its next exam, its share of this
  * week's plan, its lessons, and the mistakes recorded in it. Replaces the
@@ -47,7 +70,22 @@ export function SubjectView() {
   const folder = folders.find((f) => f.id === folderId) ?? null;
   useDocumentTitle(folder?.name ?? null);
 
-  const lessons = useMemo(() => allLessons.filter((m) => m.folder_id === folderId), [allLessons, folderId]);
+  /* The subject as a path: its lessons in the student's order (oldest first
+     until they move one), with the next one to do marked. */
+  const lessons = useMemo(
+    () => orderLessons(allLessons.filter((m) => m.folder_id === folderId)),
+    [allLessons, folderId],
+  );
+  const nextLesson = useMemo(() => nextLessonOf(lessons, progress), [lessons, progress]);
+  const setOrder = useSetLessonOrder();
+  const move = (id: string, by: -1 | 1) => {
+    const changes = positionChanges(moveLesson(lessons, id, by));
+    if (changes.length === 0) return;
+    setOrder.mutate(changes, {
+      onError: (err) => showToast(err instanceof Error ? err.message : "That lesson couldn't be moved."),
+    });
+  };
+  const canReorder = lessons.length > 1 && isOrderSupported();
   const nextExams = useMemo(
     () => (folder ? examsForSubject(exams, folder, folders, today) : []),
     [exams, folder, folders, today],
@@ -156,7 +194,12 @@ export function SubjectView() {
                 key={e.id}
                 icon="calendar"
                 title={e.exam_name}
-                meta={`${formatMonthDay(parseLocalDate(e.exam_date))} · ${examWhen(e, today)}`}
+                meta={
+                  <>
+                    {formatMonthDay(parseLocalDate(e.exam_date))} · {examWhen(e, today)}
+                    <ReadinessWord exam={e} />
+                  </>
+                }
                 to={`/exams/${encodeURIComponent(String(e.id))}`}
               />
             ))}
@@ -210,7 +253,38 @@ export function SubjectView() {
           </div>
         ) : null}
         {lessons.length > 0 ? (
-          <LessonRows lessons={lessons} progress={progress} folders={folders} showSubject={false} label={`Lessons in ${folder.name}`} />
+          <LessonRows
+            lessons={lessons}
+            progress={progress}
+            folders={folders}
+            showSubject={false}
+            label={`Lessons in ${folder.name}`}
+            rowExtras={(m, index) => ({
+              note: m.id === nextLesson?.id ? "Next up" : undefined,
+              controls: canReorder ? (
+                <span className={styles.reorder}>
+                  <button
+                    type="button"
+                    className={styles.moveButton}
+                    aria-label={`Move ${lessonTitle(m)} up`}
+                    disabled={index === 0 || setOrder.isPending}
+                    onClick={() => move(m.id, -1)}
+                  >
+                    <Icon name="chevron-down" size={16} className={styles.moveUp} />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.moveButton}
+                    aria-label={`Move ${lessonTitle(m)} down`}
+                    disabled={index === lessons.length - 1 || setOrder.isPending}
+                    onClick={() => move(m.id, 1)}
+                  >
+                    <Icon name="chevron-down" size={16} />
+                  </button>
+                </span>
+              ) : undefined,
+            })}
+          />
         ) : (
           <EmptyState
             icon="book-open"
@@ -226,7 +300,7 @@ export function SubjectView() {
 
       {mistakes.length + habits.length > 0 ? (
         <section className={styles.section} aria-labelledby="subject-mistakes">
-          <SectionHeader id="subject-mistakes" title="Mistakes" />
+          <SectionHeader id="subject-mistakes" title="Things to revisit" />
           <ListRows label={`Mistakes in ${folder.name}`}>
             {mistakes.slice(0, 5).map((m) => (
               <ListRow

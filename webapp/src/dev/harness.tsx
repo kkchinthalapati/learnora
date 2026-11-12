@@ -97,6 +97,14 @@ const TABLES: Record<string, unknown[]> = {
   flashcards: fx.flashcards,
   study_sessions: fx.sessions,
   learning_events: [],
+  /* What the student did with earlier lessons (lib/learnerSignals.ts): three
+     step-by-step picks, enough for Settings > Study > How you learn to
+     suggest worked examples. */
+  learner_signals: [
+    { kind: "reteach_pick", surface: "learn", style: null, value: "steps", score: null, topic_key: null, ref: null, created_at: new Date(Date.now() - 86_400_000).toISOString() },
+    { kind: "reteach_pick", surface: "learn", style: null, value: "steps", score: null, topic_key: null, ref: null, created_at: new Date(Date.now() - 2 * 86_400_000).toISOString() },
+    { kind: "reteach_pick", surface: "learn", style: null, value: "steps", score: null, topic_key: null, ref: null, created_at: new Date(Date.now() - 3 * 86_400_000).toISOString() },
+  ],
   quizzes: fx.quizzes,
   quiz_attempts: fx.quizAttempts,
   weekly_plans: fx.plans,
@@ -116,7 +124,7 @@ const TABLES: Record<string, unknown[]> = {
       id: fx.USER_ID,
       life_context: null,
       life_context_updated_at: null,
-      full_name: "Harness Student",
+      full_name: "Karthik",
       friend_code: "HARNESS1",
       /* ?plan=plus or ?plan=pro to look at a paid account. */
       plan: HARNESS_PLAN,
@@ -124,9 +132,284 @@ const TABLES: Record<string, unknown[]> = {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     },
   ],
+  /* Boardroom tables */
+  boardroom_workspaces: [
+    {
+      id: "ws-1",
+      name: "Learnora Executive Boardroom",
+      created_at: "2026-11-09T00:00:00Z",
+      governance_restricted: false,
+    },
+  ],
+  boardroom_members: [
+    {
+      workspace_id: "ws-1",
+      user_id: fx.USER_ID,
+      display_name: "Karthik",
+      role: "founder",
+      muted_kinds: [],
+    },
+    {
+      workspace_id: "ws-1",
+      user_id: "00000000-0000-4000-8000-000000000002",
+      display_name: "Nirav",
+      role: "founder",
+      muted_kinds: [],
+    },
+  ],
+  boardroom_agents: [
+    {
+      id: "agent-k",
+      workspace_id: "ws-1",
+      provider: "claude",
+      display_name: "K AI",
+      owner_id: fx.USER_ID,
+      native_url: "https://generativelanguage.googleapis.com",
+      role: "Karthik's AI Strategy Advisor",
+      instructions: "Be sharp, growth-oriented, and direct. Help Karthik analyze strategy, pricing, and product roadmap.",
+      enabled: true,
+      context_format: "markdown",
+      allowed_modes: ["independent", "cross_examination"],
+      may_review_proposals: true,
+      allow_proxy_submit: false,
+    },
+    {
+      id: "agent-n",
+      workspace_id: "ws-1",
+      provider: "chatgpt",
+      display_name: "N AI",
+      owner_id: "00000000-0000-4000-8000-000000000002",
+      native_url: "https://api.groq.com",
+      role: "Nirav's AI Operations & Risk Advisor",
+      instructions: "Be critical, evaluate technical scalability, operational risks, and execution edge cases.",
+      enabled: true,
+      context_format: "markdown",
+      allowed_modes: ["independent", "cross_examination"],
+      may_review_proposals: true,
+      allow_proxy_submit: false,
+    },
+  ],
+  boardroom_threads: [
+    {
+      id: "t-pricing",
+      workspace_id: "ws-1",
+      title: "Pricing & Monetization Strategy",
+      problem: "Reviewing our tier structure and pricing for Learnora v2.",
+      category: "business",
+      status: "open",
+      pinned: true,
+      created_by: fx.USER_ID,
+      created_at: "2026-11-09T08:00:00Z",
+      last_message_at: "2026-11-09T08:30:00Z",
+    },
+    {
+      id: "t-launch",
+      workspace_id: "ws-1",
+      title: "Product Hunt & Launch Plan",
+      problem: "Aligning on go-to-market schedule and initial outreach.",
+      category: "strategy",
+      status: "open",
+      pinned: false,
+      created_by: "00000000-0000-4000-8000-000000000002",
+      created_at: "2026-11-09T07:00:00Z",
+      last_message_at: "2026-11-09T07:45:00Z",
+    },
+  ],
+  boardroom_messages: [
+    {
+      id: "m-1",
+      workspace_id: "ws-1",
+      thread_id: "t-pricing",
+      author_type: "human",
+      author_id: fx.USER_ID,
+      agent_id: null,
+      submitted_by: null,
+      content: "Hey Nirav, let's lock in our pricing approach before the investor call. Should we launch with a free tier or a 14-day trial?",
+      reply_to: null,
+      attachments: [],
+      status: "posted",
+      source_task_id: null,
+      created_at: "2026-11-09T08:10:00Z",
+      edited_at: null,
+      superseded_by: null,
+    },
+    {
+      id: "m-2",
+      workspace_id: "ws-1",
+      thread_id: "t-pricing",
+      author_type: "human",
+      author_id: "00000000-0000-4000-8000-000000000002",
+      agent_id: null,
+      submitted_by: null,
+      content: "I think a generous free tier with a usage cap converts better for students. Let's see what the AIs suggest. @K AI what do you think?",
+      reply_to: null,
+      attachments: [],
+      status: "posted",
+      source_task_id: null,
+      created_at: "2026-11-09T08:15:00Z",
+      edited_at: null,
+      superseded_by: null,
+    },
+    {
+      id: "m-3",
+      workspace_id: "ws-1",
+      thread_id: "t-pricing",
+      author_type: "ai",
+      author_id: fx.USER_ID,
+      agent_id: "agent-k",
+      submitted_by: fx.USER_ID,
+      content: "A freemium model with a hard daily cap on AI tutoring turns gives you fast viral loop growth among GCSE/A-Level students while protecting your API costs. Combine that with an un-gated 7-day trial of 'Plus' features.",
+      reply_to: "m-2",
+      attachments: [],
+      status: "posted",
+      source_task_id: null,
+      created_at: "2026-11-09T08:16:00Z",
+      edited_at: null,
+      superseded_by: null,
+    },
+  ],
+  boardroom_documents: [
+    {
+      id: "doc-1",
+      workspace_id: "ws-1",
+      slug: "monetization-prd",
+      title: "Learnora Monetization & Pricing PRD",
+      category: "business",
+      owner_id: fx.USER_ID,
+      archived: false,
+      current_version: 1,
+      created_at: "2026-11-09T00:00:00Z",
+      updated_at: "2026-11-09T00:00:00Z",
+    },
+    {
+      id: "doc-2",
+      workspace_id: "ws-1",
+      slug: "product-roadmap-q4",
+      title: "Q4 2026 Product Roadmap & Milestones",
+      category: "product",
+      owner_id: "00000000-0000-4000-8000-000000000002",
+      archived: false,
+      current_version: 1,
+      created_at: "2026-11-09T00:00:00Z",
+      updated_at: "2026-11-09T00:00:00Z",
+    },
+  ],
+  boardroom_agent_tasks: [],
+  boardroom_context_snapshots: [],
+  boardroom_thread_documents: [],
+  boardroom_proposals: [],
+  boardroom_decisions: [],
+  boardroom_notifications: [],
+  boardroom_reactions: [],
+  boardroom_audit_log: [],
+  boardroom_message_edits: [],
 };
 
+/* Local-only keys for the harness's real-model calls, from a gitignored
+   .env.local (VITE_GEMINI_API_KEY, VITE_GROQ_API_KEY). Never in the source:
+   this repo is public. */
+const GEMINI_API_KEY = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? "";
+const GROQ_API_KEY = (import.meta.env.VITE_GROQ_API_KEY as string | undefined) ?? "";
+
+async function runGeminiChat(prompt: string, sysPrompt: string): Promise<string> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: `${sysPrompt}\n\nUSER PROMPT / CONTEXT:\n${prompt}` }] }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Gemini status ${res.status}`);
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+}
+
+async function runGroqChat(prompt: string, sysPrompt: string): Promise<string> {
+  const url = "https://api.groq.com/openai/v1/chat/completions";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-oss-120b",
+      messages: [
+        { role: "system", content: sysPrompt },
+        { role: "user", content: prompt },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`Groq status ${res.status}`);
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
+async function runBoardroomAI(agentId: string, prompt: string, context?: string): Promise<string> {
+  const isK = agentId === "agent-k";
+  const fullPrompt = context ? `RELEVANT WORKSPACE CONTEXT:\n${context}\n\nUSER MESSAGE:\n${prompt}` : prompt;
+  const sysPrompt = isK
+    ? "You are K AI, Karthik's AI co-founder and strategic advisor in the Learnora Boardroom. Provide direct, sharp, growth-minded strategic recommendations for Learnora."
+    : "You are N AI, Nirav's AI co-founder and operations/risk advisor in the Learnora Boardroom. Provide rigorous, risk-evaluated, execution-focused recommendations for Learnora.";
+
+  const chain = isK ? [runGeminiChat, runGroqChat] : [runGroqChat, runGeminiChat];
+  for (const fn of chain) {
+    try {
+      const reply = await fn(fullPrompt, sysPrompt);
+      if (reply?.trim()) return reply.trim();
+    } catch (e) {
+      console.warn("AI fallback triggered in Boardroom harness:", e);
+    }
+  }
+  return "Both AI providers are temporarily unavailable. Please verify API quotas.";
+}
+
 const RPCS: Record<string, unknown> = {
+  boardroom_my_workspaces: [
+    {
+      id: "ws-1",
+      name: "Learnora Executive Boardroom",
+      created_at: "2026-11-09T00:00:00Z",
+      governance_restricted: false,
+    },
+  ],
+  boardroom_get_workspace: {
+    id: "ws-1",
+    name: "Learnora Executive Boardroom",
+    created_at: "2026-11-09T00:00:00Z",
+    governance_restricted: false,
+  },
+  boardroom_documents_current: [
+    {
+      id: "doc-1",
+      workspace_id: "ws-1",
+      slug: "monetization-prd",
+      title: "Learnora Monetization & Pricing PRD",
+      category: "business",
+      owner_id: fx.USER_ID,
+      archived: false,
+      current_version: 1,
+      created_at: "2026-11-09T00:00:00Z",
+      updated_at: "2026-11-09T00:00:00Z",
+      content:
+        "Learnora v2 Pricing Model:\n- Free Tier: 20 AI tutoring sessions/month, basic study planner.\n- Plus Tier (£9.99/mo): Unlimited AI sessions, custom misconception detection, voice viva sparring.\n- Pro Tier (£19.99/mo): Full exam mark scheme grading, peer benchmarking, parental dashboard.",
+    },
+    {
+      id: "doc-2",
+      workspace_id: "ws-1",
+      slug: "product-roadmap-q4",
+      title: "Q4 2026 Product Roadmap & Milestones",
+      category: "product",
+      owner_id: "00000000-0000-4000-8000-000000000002",
+      archived: false,
+      current_version: 1,
+      created_at: "2026-11-09T00:00:00Z",
+      updated_at: "2026-11-09T00:00:00Z",
+      content:
+        "Q4 2026 Roadmap:\n- Milestone 1: Fix Core Boardroom & Performance.\n- Milestone 2: Voice Viva audio integration.\n- Milestone 3: Public Beta launch on Product Hunt.",
+    },
+  ],
   class_member_counts: [{ joined: 24, sharing: 7 }],
   class_misconception_map: [
     { catalogue_id: "phys-heavier-falls-faster", students: 4 },
@@ -230,6 +513,25 @@ function install(supabaseUrl: string) {
         await new Promise((r) => setTimeout(r, 900));
         return json({ text: JSON.stringify(line) });
       }
+      /* Explain-back at the end of a lesson: the first part comes across, on
+         the opening words the student really typed (anything else would be
+         thrown out by the app's quote check), and the second is left out. */
+      if (/explained it in their own words/.test(prompt)) {
+        const said = /THE STUDENT'S EXPLANATION:\\n\\"\\"\\"\\n(.*?)\\n\\"\\"\\"/.exec(prompt)?.[1] ?? "";
+        const opening = said.split(/\s+/).slice(0, 8).join(" ").replace(/[.,;:]+$/, "");
+        await new Promise((r) => setTimeout(r, 900));
+        return json({
+          text: JSON.stringify({
+            legible: true,
+            unreadable: "",
+            points: [
+              { index: 0, awarded: true, evidence: opening, note: "" },
+              { index: 1, awarded: false, evidence: "", note: "How you'd work the rate out from a result" },
+            ],
+            beliefs: [],
+          }),
+        });
+      }
       /* Mark my answer: a scripted marking of the first two scheme points,
          one earned with the student's words, one missed, and a belief. */
       if (/Mark my answer/.test(prompt)) {
@@ -277,6 +579,30 @@ function install(supabaseUrl: string) {
             beliefs: [],
           }),
         });
+      }
+      /* Listen: a short scripted podcast episode. */
+      if (/Write a short educational podcast episode/.test(prompt)) {
+        await new Promise((r) => setTimeout(r, 900));
+        const lines = [
+          ["host", "Why does milk go off faster on a hot day? That's what rates of reaction explain."],
+          ["student", "So it's about how fast things react?"],
+          ["host", "Exactly. A reaction only happens when particles collide with enough energy."],
+          ["student", "So more collisions means a faster reaction?"],
+          ["host", "More useful collisions, yes. Raising the temperature makes particles move faster and hit harder."],
+          ["student", "And a catalyst gets used up, right?"],
+          ["host", "Close, but no: a catalyst gives a lower-energy route and is still there at the end."],
+          ["student", "Got it. Temperature, concentration, surface area and catalysts all speed it up."],
+          ["host", "That's the whole idea. Remember: collisions, energy, and a catalyst is never used up."],
+        ].map(([speaker, text]) => ({ speaker, text }));
+        /* A recall break, when the student asked for them. */
+        const withBreak = /RECALL BREAKS/.test(prompt)
+          ? [
+              ...lines.slice(0, 5),
+              { speaker: "check", text: "What happens to particles when you heat them?", answer: "They move faster and hit each other harder, so more collisions work." },
+              ...lines.slice(5),
+            ]
+          : lines;
+        return json({ text: JSON.stringify({ title: "Why reactions speed up", lines: withBreak }) });
       }
       /* Learn, Explain it your way (Plus). */
       if (/Re-explain one idea from a student/.test(prompt)) {
@@ -371,6 +697,124 @@ function install(supabaseUrl: string) {
     /* rpc */
     if (path.startsWith("/rest/v1/rpc/")) {
       const name = path.slice("/rest/v1/rpc/".length);
+
+      if (name.startsWith("boardroom_")) {
+        let payload: Record<string, any> = {};
+        try {
+          const raw =
+            init?.body ??
+            (input instanceof Request ? await input.clone().text() : null);
+          payload = typeof raw === "string" ? JSON.parse(raw) : (raw ?? {});
+        } catch {
+          /* fallback */
+        }
+
+        if (name === "boardroom_my_workspaces") {
+          return json(TABLES.boardroom_workspaces);
+        }
+        if (name === "boardroom_get_workspace") {
+          return json(TABLES.boardroom_workspaces[0]);
+        }
+        if (name === "boardroom_documents_current") {
+          return json(RPCS.boardroom_documents_current);
+        }
+        if (name === "boardroom_attach_document") {
+          return json(null);
+        }
+        if (
+          name === "boardroom_post_with_tasks" ||
+          name === "boardroom_post_message"
+        ) {
+          const threadId = payload.p_thread ?? "t-pricing";
+          const content = payload.p_content ?? "";
+          const agents: string[] = payload.p_agents ?? [];
+          const msgId = `m-${Date.now()}`;
+
+          (TABLES.boardroom_messages as any[]).push({
+            id: msgId,
+            workspace_id: "ws-1",
+            thread_id: threadId,
+            author_type: "human",
+            author_id: fx.USER_ID,
+            agent_id: null,
+            submitted_by: null,
+            content,
+            reply_to: payload.p_reply_to ?? null,
+            attachments: payload.p_attachments ?? [],
+            status: "posted",
+            source_task_id: null,
+            created_at: new Date().toISOString(),
+            edited_at: null,
+            superseded_by: null,
+          });
+
+          const taskIds: string[] = [];
+          if (agents.length > 0) {
+            for (const agId of agents) {
+              const taskId = `task-${Date.now()}-${agId}`;
+              taskIds.push(taskId);
+
+              // Trigger AI response in background
+              setTimeout(async () => {
+                try {
+                  const aiReply = await runBoardroomAI(
+                    agId,
+                    content,
+                    payload.p_context,
+                  );
+                  (TABLES.boardroom_messages as any[]).push({
+                    id: `m-ai-${Date.now()}-${agId}`,
+                    workspace_id: "ws-1",
+                    thread_id: threadId,
+                    author_type: "ai",
+                    author_id:
+                      agId === "agent-k"
+                        ? fx.USER_ID
+                        : "00000000-0000-4000-8000-000000000002",
+                    agent_id: agId,
+                    submitted_by: fx.USER_ID,
+                    content: aiReply,
+                    reply_to: msgId,
+                    attachments: [],
+                    status: "posted",
+                    source_task_id: taskId,
+                    created_at: new Date().toISOString(),
+                    edited_at: null,
+                    superseded_by: null,
+                  });
+                } catch (err) {
+                  console.error("AI response error:", err);
+                }
+              }, 400);
+            }
+          }
+          return json({ message_id: msgId, task_ids: taskIds });
+        }
+        if (name === "boardroom_submit_response") {
+          const taskId = payload.p_task;
+          const respContent = payload.p_content;
+          const newMsgId = `m-ai-${Date.now()}`;
+          (TABLES.boardroom_messages as any[]).push({
+            id: newMsgId,
+            workspace_id: "ws-1",
+            thread_id: "t-pricing",
+            author_type: "ai",
+            author_id: fx.USER_ID,
+            agent_id: "agent-k",
+            submitted_by: fx.USER_ID,
+            content: respContent,
+            reply_to: null,
+            attachments: [],
+            status: "posted",
+            source_task_id: taskId,
+            created_at: new Date().toISOString(),
+            edited_at: null,
+            superseded_by: null,
+          });
+          return json(newMsgId);
+        }
+      }
+
       return json(RPCS[name] ?? null);
     }
 

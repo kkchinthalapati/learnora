@@ -46,6 +46,35 @@ beforeEach(() => {
 });
 
 describe("StudyProfileWizard", () => {
+  it("asks how they learn once, in its own step, and says where to change it", async () => {
+    start({
+      ...ANSWERED,
+      country: "GB",
+      system: "gcse",
+      board: "AQA",
+      subjects: [{ name: "Biology", specId: "aqa-gcse-biology-8461", examDate: null, confidence: 2 }],
+    });
+    expect(await screen.findByRole("heading", { name: /How you learn/ })).toBeInTheDocument();
+    expect(screen.getByText(/change any of it later in Settings → Study → How you learn/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("radio", { name: /Worked examples/ }));
+    await userEvent.click(screen.getByRole("button", { name: "More examples" }));
+    await userEvent.click(screen.getByRole("button", { name: /I need to know why something works/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Describe how you learn" }), " Diagrams too.");
+    await userEvent.type(screen.getByRole("textbox", { name: "What you're into" }), "football, chess");
+    await waitFor(() =>
+      expect(studyProfileApi.save).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          learningStyle: "examples",
+          learningPrefs: ["more_examples"],
+          learningNotes: "I need to know why something works before I can remember how. Diagrams too.",
+          interests: "football, chess",
+        }),
+      ),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByRole("heading", { name: /Go deeper/ })).toBeInTheDocument();
+  });
+
   it("resumes at the first unanswered step", () => {
     expect(resumeStep(EMPTY_PROFILE)).toBe("age");
     expect(resumeStep({ ...EMPTY_PROFILE, ageBand: "13-15", country: "GB" })).toBe("system");
@@ -57,6 +86,18 @@ describe("StudyProfileWizard", () => {
         system: "gcse",
         board: "AQA",
         subjects: [{ name: "Biology", specId: "aqa-gcse-biology-8461", examDate: null, confidence: 2 }],
+        deeperSkipped: true,
+      }),
+    ).toBe("learning");
+    expect(
+      resumeStep({
+        ...EMPTY_PROFILE,
+        ...ANSWERED,
+        country: "GB",
+        system: "gcse",
+        board: "AQA",
+        subjects: [{ name: "Biology", specId: "aqa-gcse-biology-8461", examDate: null, confidence: 2 }],
+        learningNotes: "I need the why first.",
         deeperSkipped: true,
       }),
     ).toBe("plan");
@@ -110,6 +151,7 @@ describe("StudyProfileWizard", () => {
       board: "WAEC",
       level: "SS3",
       subjects: [{ name: "Literature", specId: null, examDate: null, confidence: 1 }],
+      learningSkipped: true,
     });
     await userEvent.click(await screen.findByRole("button", { name: "Skip for now" }));
     await waitFor(() =>
@@ -138,6 +180,7 @@ describe("editing a draft outline", () => {
       board: "WAEC",
       subjects: [{ name: "Literature", specId: null, examDate: null, confidence: 2 }],
       deeperSkipped: true,
+      learningSkipped: true,
     });
     expect(await screen.findByText(/Couldn't draft topics right now/)).toBeInTheDocument();
     const box = screen.getByRole("textbox", { name: "One topic per line" });
@@ -165,11 +208,12 @@ describe("returning to change one answer", () => {
       board: "AQA",
       subjects: [{ name: "Biology", specId: "aqa-gcse-biology-8461", examDate: null, confidence: 2 }],
       deeperSkipped: true,
+      learningSkipped: true,
     });
     expect(await screen.findByRole("heading", { name: "Your first week" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Go to step 5: time" }));
     expect(screen.getByRole("heading", { name: "How much time do you have?" })).toBeInTheDocument();
     /* Nothing past the furthest answered step is offered. */
-    expect(screen.queryByRole("button", { name: /Go to step 10/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Go to step 11/ })).toBeNull();
   });
 });

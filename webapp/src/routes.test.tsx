@@ -6,6 +6,7 @@ import { server } from "./test/mocks/server";
 import { SUPABASE_URL } from "./lib/supabase";
 import { AppRoutes } from "./routes";
 import { ChatProvider } from "./context/ChatProvider";
+import { GenerationProvider } from "./context/GenerationProvider";
 import { fakeSession, renderWithAuth } from "./test/auth";
 
 /* Lazy routes compile the first time they render, and that used to happen
@@ -36,6 +37,7 @@ beforeAll(async () => {
     import("./views/review/ReviewView"),
     import("./views/room/StudyRoomView"),
     import("./views/settings/SettingsView"),
+    import("./views/slack/SlackWorkspaceView"),
   ]);
 }, 120_000);
 import { mockAuthSession } from "./test/mockSession";
@@ -47,9 +49,11 @@ function renderAt(path: string) {
     <MemoryRouter initialEntries={[path]}>
       {/* The dashboard's command bar and AI card read the chat context, which
           App.tsx provides inside the router. */}
-      <ChatProvider>
-        <AppRoutes />
-      </ChatProvider>
+      <GenerationProvider>
+        <ChatProvider>
+          <AppRoutes />
+        </ChatProvider>
+      </GenerationProvider>
     </MemoryRouter>,
     { session: fakeSession() },
     /* /timer renders TimerView, which reads the timer context. */
@@ -69,7 +73,8 @@ describe("route skeleton", () => {
 
   /* Today 1c's h1 is the greeting ("Morning, Maya."); the step is the
      card's h2 below it. */
-  const HOME_TITLE = "What do you want to learn?";
+  /* Home greets by time of day (lib/greeting homeGreeting). */
+  const HOME_TITLE = /^(Good (morning|afternoon|evening)|Still up)/;
 
   it.each([
     ["/", HOME_TITLE],
@@ -287,7 +292,9 @@ describe("public routes", () => {
   function renderSignedOutAt(path: string) {
     return renderWithAuth(
       <MemoryRouter initialEntries={[path]}>
-        <AppRoutes />
+        <GenerationProvider>
+          <AppRoutes />
+        </GenerationProvider>
       </MemoryRouter>,
       { session: null },
     );
@@ -361,3 +368,78 @@ describe("public routes", () => {
     expect(labels.length, `competing primaries: ${labels.join(" | ")}`).toBeLessThanOrEqual(1);
   });
 });
+
+describe("founder slack routing and access gating", () => {
+  /* Home greets by time of day (lib/greeting homeGreeting). */
+  const HOME_TITLE = /^(Good (morning|afternoon|evening)|Still up)/;
+
+  function renderSignedOutAt(path: string) {
+    return renderWithAuth(
+      <MemoryRouter initialEntries={[path]}>
+        <GenerationProvider>
+          <AppRoutes />
+        </GenerationProvider>
+      </MemoryRouter>,
+      { session: null },
+    );
+  }
+
+  function renderFounderAt(path: string, email: string) {
+    return renderWithAuth(
+      <MemoryRouter initialEntries={[path]}>
+        <GenerationProvider>
+          <ChatProvider>
+            <AppRoutes />
+          </ChatProvider>
+        </GenerationProvider>
+      </MemoryRouter>,
+      { session: fakeSession({ email }) },
+      { withTimer: true },
+    );
+  }
+
+  it("redirects signed-out users to /login", () => {
+    renderSignedOutAt("/slack");
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Welcome back" }),
+    ).toBeInTheDocument();
+  });
+
+  it("redirects non-founder student accounts to /", async () => {
+    renderAt("/slack"); // Uses default fakeSession({ email: "student@example.com" })
+    expect(
+      await screen.findByRole(
+        "heading",
+        { level: 1, name: HOME_TITLE },
+        { timeout: 10000 },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("permits authenticated founder Karthik and renders standalone workspace", async () => {
+    renderFounderAt("/slack", "kk.chinthalapati@gmail.com");
+
+    expect(
+      await screen.findByRole(
+        "main",
+        { name: "Founders Slack Workspace" },
+        { timeout: 10000 },
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "#general" })).toBeInTheDocument();
+  });
+
+  it("permits authenticated founder Nirav and routes to specific channel /slack/strategy", async () => {
+    renderFounderAt("/slack/strategy", "nirav@learnora.dev");
+
+    expect(
+      await screen.findByRole(
+        "main",
+        { name: "Founders Slack Workspace" },
+        { timeout: 10000 },
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "#strategy" })).toBeInTheDocument();
+  });
+});
+

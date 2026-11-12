@@ -11,3 +11,16 @@ export function getGreeting(name: string, now = new Date()): string {
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   return `${period}, ${name}! 👋`;
 }
+
+/** Home's heading: the same time-of-day rule, said plainly. No emoji and no
+ *  exclamation mark, and it still reads right when the account has no name
+ *  ("Good evening."). Only the first name is used; an email's local part is
+ *  not a name, so the caller passes "" rather than "priya.s2009". */
+export function homeGreeting(name: string, now = new Date()): string {
+  const first = name.trim().split(/\s+/)[0] ?? "";
+  const hour = now.getHours();
+  if (hour < 5) return first ? `Still up, ${first}?` : "Still up?";
+  const period =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  return first ? `${period}, ${first}.` : `${period}.`;
+}

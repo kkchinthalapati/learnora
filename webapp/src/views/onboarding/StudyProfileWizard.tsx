@@ -1,3 +1,5 @@
+import { HowYouLearn } from "../../components/learning/HowYouLearn";
+import { learnerFromStudyProfile } from "../../lib/learnerProfile";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { BrandLogo } from "../../components/BrandLogo";
@@ -58,6 +60,7 @@ const STEP_NAMES: Record<StepId, string> = {
   week: "time",
   habits: "best times",
   goals: "confidence and goals",
+  learning: "how you learn",
   deeper: "go deeper",
   plan: "your plan",
 };
@@ -81,7 +84,6 @@ const CONFIDENCE: { id: Confidence; label: string }[] = [
 ];
 const DEVICES = ["Phone", "Laptop", "Tablet", "Shared computer"];
 const METHODS = ["Re-reading notes", "Cards", "Past papers", "Practice questions", "Videos", "Making notes"];
-const STYLES = ["Worked examples", "Diagrams", "Talking it through", "Practice first"];
 
 function Chip({ on, onClick, label, hint }: { on: boolean; onClick: () => void; label: string; hint?: string }) {
   return (
@@ -593,6 +595,32 @@ export function StudyProfileWizard() {
             </section>
           )}
 
+          {step === "learning" && (
+            <section className={styles.question}>
+              <h1 className={styles.title} tabIndex={-1} ref={headingRef}>
+                How you learn <span className={styles.optional}>optional</span>
+              </h1>
+              <p className={styles.sub}>
+                Everything Learnora writes for you (lessons, notes, podcasts, explanations) is shaped around this. Tell us
+                in your own words, and add any quick picks that fit.
+              </p>
+              <HowYouLearn
+                where="onboarding"
+                value={learnerFromStudyProfile(p, { draft: true })}
+                onChange={(l) =>
+                  patch({
+                    learningStyle: l.style,
+                    learningPrefs: l.prefs,
+                    /* Kept as typed (trimmed when read), so a space at the end
+                       of a word isn't eaten mid-sentence. */
+                    learningNotes: l.notes || null,
+                    interests: l.interests || null,
+                  })
+                }
+              />
+            </section>
+          )}
+
           {step === "deeper" && (
             <section className={styles.question}>
               <h1 className={styles.title} tabIndex={-1} ref={headingRef}>
@@ -612,14 +640,6 @@ export function StudyProfileWizard() {
                 <div className={styles.chipRow}>
                   {METHODS.map((m) => (
                     <Chip key={m} on={p.methods.includes(m)} label={m} onClick={() => patch({ methods: toggle(p.methods, m) })} />
-                  ))}
-                </div>
-              </fieldset>
-              <fieldset className={styles.inlineChoice}>
-                <legend className={styles.inlineLegend}>What helps you learn</legend>
-                <div className={styles.chipRow}>
-                  {STYLES.map((s) => (
-                    <Chip key={s} on={p.learningStyle === s} label={s} onClick={() => patch({ learningStyle: p.learningStyle === s ? null : s })} />
                   ))}
                 </div>
               </fieldset>
@@ -726,6 +746,17 @@ export function StudyProfileWizard() {
           <Button variant="ghost" onClick={() => setStep(STEPS[Math.max(0, index - 1)])} disabled={index === 0}>
             Back
           </Button>
+          {step === "learning" ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                patch({ learningSkipped: true });
+                setStep("deeper");
+              }}
+            >
+              Skip for now
+            </Button>
+          ) : null}
           {step === "deeper" ? (
             <Button
               variant="secondary"

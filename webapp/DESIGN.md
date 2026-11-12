@@ -23,8 +23,11 @@ Learnora is three nested things, and every screen belongs to one of them.
 
 Two more pages sit beside those three and follow the same rules:
 
-- **Progress** (`/analytics`): one page with History, Mistakes and Exam
-  forecast tabs. `/trajectory` redirects to `?tab=forecast`.
+- **Progress** (`/analytics`): one page with What you know, Mistakes,
+  History and Exam forecast tabs. It opens on What you know (2026-11-11):
+  each subject's topics in words, from answered questions only
+  (`lib/understanding.ts`), never a percentage. History's charts are one tab
+  along. `/trajectory` redirects to `?tab=forecast`.
 - **Settings** (`/settings`): five sections — Account (profile, security,
   danger zone), Appearance, Study (preferences, reminders), Privacy and AI,
   Plan and billing. Old `?tab=` names open the section that holds them now.
@@ -67,7 +70,13 @@ an implementation detail); **mistakes**, not misconceptions.
   plain sentence under it, and actions on the right. It renders the page's
   one `<h1>`.
 - No eyebrow or kicker above a page title. Home is the only page that greets
-  you, and only Home asks "What do you want to learn?".
+  you: its `<h1>` is a static greeting by first name and time of day
+  ("Good evening, Priya.", `lib/greeting.ts` `homeGreeting`), with the next
+  exam as the one sentence under it. (2026-11-10: this replaced the typed,
+  looping "What do you want to learn?" heading, which read as a landing page
+  rather than the student's own space.) Home then reads Continue, Today (the
+  way into the adaptive session, `lib/homeToday.ts`), Learn something new,
+  Your subjects, Recent lessons.
 - Sections inside a page use `SectionHeader`: a sans `--fs-lg` heading and at
   most one quiet action on the right ("New subject").
 
@@ -145,7 +154,8 @@ mistakes ledger is. Keep these, and don't drift back to the generic look:
 - **Corrections in the margin**: a mistake to fix is marked in red pen
   (`--danger`), one due a retest in ochre (`--recall`).
 - **One highlighter stroke** on Home, under "learn", in `--highlight`
-  yellow. Nowhere else in the app.
+  yellow. Nowhere else in the app. (Retired 2026-11-10 with the typed
+  heading it sat in; Home's greeting carries no stroke.)
 - **One face**: Literata for everything (`--font`, `--font-head`,
   `--font-read`), so the app reads as a printed workbook rather than a
   SaaS dashboard with a serif on top. Caveat (`--font-hand`) is the red

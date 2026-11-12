@@ -41,6 +41,12 @@ export const EXPORTED_TABLES = [
   "learning_events",
   "study_session_state",
   "past_paper_attempts",
+  /* Added 2026-11: how they responded to what was written for them
+     (standing requests, ratings, how each Learn part went). */
+  "learner_signals",
+  /* Added 2026-11: which lessons they have asked the tutor about
+     (lib/tutorMemory.ts). */
+  "tutor_memory",
 ] as const;
 
 /** `profiles` keys its row on `id`, not `user_id`, like everything else. */

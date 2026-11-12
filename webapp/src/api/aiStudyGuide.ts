@@ -9,6 +9,7 @@
  * themselves in the project notes). */
 
 import { callEdge } from "./ai";
+import { loadPresentationLines } from "./learnerContext";
 import { fenceUntrusted } from "../lib/actionTags";
 import { sectionExcerpt } from "../lib/sourceExcerpt";
 import { splitOpenUiBlocks } from "../lib/openui/fence";
@@ -64,7 +65,9 @@ export async function generateStudyGuide({
   const { studyGuideReference } = await import("../lib/openui/blocks");
   const { text, refused } = await callEdge({
     history: [{ role: "user", content: buildStudyGuidePrompt(title, noteText) }],
-    context: `${STUDY_GUIDE_INSTRUCTIONS}\n\n${studyGuideReference()}`,
+    context: [STUDY_GUIDE_INSTRUCTIONS, await loadPresentationLines().catch(() => ""), studyGuideReference()]
+      .filter(Boolean)
+      .join("\n\n"),
     /* A derived view of a note, not a new note: it counts against the chat
        allowance rather than the much smaller notes-generation one. */
     tool: "chat",

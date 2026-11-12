@@ -27,6 +27,9 @@
  *     the hole `lib/actionTags.ts` exists to close.
  */
 
+import { loadLearnerProfileRule } from "./learnerStyle";
+import { loadLearnerContext } from "./learnerContext";
+import { lessonPath } from "../lib/lessons";
 import { isFlagOn } from "../lib/flags";
 import { AiError, callEdge, type FilePayload } from "./ai";
 import { extractWebContent } from "./aiWebSearch";
@@ -201,18 +204,21 @@ export const PHOTO_NOTES_INSTRUCTIONS = `The study material is the attached phot
 /** `inlineText` is the source folded into the prompt rather than attached —
  *  see `generateNotes`. Fenced here, not by the caller, so no path into this
  *  prompt can forget to. */
-export function buildNotesPrompt(inlineText?: string | null): string {
-  if (!inlineText) return NOTES_INSTRUCTIONS;
+export function buildNotesPrompt(inlineText?: string | null, styleLine = ""): string {
+  /* How this student learns best (lib/learnerStyle) and their record
+     (api/learnerContext), when there is one. */
+  const instructions = styleLine ? `${NOTES_INSTRUCTIONS}\n\n${styleLine}` : NOTES_INSTRUCTIONS;
+  if (!inlineText) return instructions;
 
   const safe = fenceUntrusted(inlineText);
   if (YOUTUBE_LINK.test(inlineText)) {
-    return `${NOTES_INSTRUCTIONS}
+    return `${instructions}
 
 The student provided a YouTube video link: ${safe}
 You cannot watch the video, but based on the URL and any context in the title, generate useful study notes about the likely topic. Be transparent that these notes are based on the video's topic, not its exact transcript. If you can identify the topic from the URL, focus your notes on that subject.`;
   }
 
-  return `${NOTES_INSTRUCTIONS}
+  return `${instructions}
 
 Study Material Content:
 """
@@ -302,6 +308,10 @@ export async function generateNotes({
   const dropped = inlineText && !attachment && parts.join("\n\n").length < inlineText.length - 2;
   if (dropped) parts[parts.length - 1] += `\n\n${LONG_SOURCE_NOTE}`;
 
+  /* Shaped for this student: how they learn, their level, and the mistakes
+     they keep making (answered head-on where the material covers them). */
+  const [profileLine, studentContext] = await Promise.all([loadLearnerProfileRule(), loadLearnerContext()]);
+  const styleLine = [profileLine, studentContext].filter(Boolean).join("\n\n");
   /* Every part and the drawing carry one key, so the edge function bills the
      whole note as one notes generation (SESSION_CALL_CAPS.notes in
      supabase/functions/_shared/sessionBilling.js), not one per request. */
@@ -309,7 +319,7 @@ export async function generateNotes({
   const written: string[] = [];
   for (const [index, part] of parts.entries()) {
     onPart?.(index + 1, parts.length);
-    const base = buildNotesPrompt(part) + notesPartInstruction(index + 1, parts.length);
+    const base = buildNotesPrompt(part, styleLine) + notesPartInstruction(index + 1, parts.length);
     const prompt = attachment?.mimeType.startsWith("image/")
       ? `${base}\n\n${PHOTO_NOTES_INSTRUCTIONS}`
       : base;
@@ -967,4 +977,12 @@ export function studyPackageDestination(
   if (result.material)
     return `/notes/${encodeURIComponent(result.material.id)}`;
   return null;
+}
+
+/** Where a finished study set takes the student: into its lesson, ready to
+ *  start learning, whenever there is one (DESIGN.md rule 0.1); otherwise the
+ *  most specific thing made. */
+export function studySetLanding(result: StudyPackageResult): string | null {
+  if (result.material) return `${lessonPath(result.material.id)}?start=1`;
+  return studyPackageDestination(result);
 }

@@ -1412,6 +1412,11 @@ describe("TutorChat", () => {
       ),
     );
 
+    /* The web is off until the student turns it on in the sources. */
+    window.localStorage.setItem(
+      "learnora:chat-sources:v1",
+      JSON.stringify({ notes: "context", subjectIds: [], web: true }),
+    );
     renderChat();
     await openChat();
     await ask("explain transformers");

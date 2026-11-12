@@ -26,6 +26,12 @@ export const FLAGS = {
    *  to share with it (lib/classMap.ts). Off in production until the privacy
    *  review in WAITINGONLEDGER.md 6.11; its migration isn't applied yet. */
   classMap: "classMap",
+  /** The Boardroom (/boardroom): the founders' private AI-relay workspace. Not
+   *  for students, so it is off in production; a founder switches it on in
+   *  their own browser with
+   *  localStorage.setItem("learnora:flag:boardroom", "true"). Its migration is
+   *  applied by hand (WAITINGONLEDGER.md). */
+  boardroom: "boardroom",
 } as const;
 
 export type FlagName = keyof typeof FLAGS;

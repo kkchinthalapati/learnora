@@ -1,3 +1,5 @@
+import type { GroundingScope } from "../lib/chatSources";
+import type { CallStyle } from "../lib/callStyle";
 import { createContext, useContext } from "react";
 import type { IconName } from "../components/icons";
 import type { FlashcardDraft } from "../lib/aiJson";
@@ -100,10 +102,17 @@ export interface AttachedFile {
   inlineText?: string;
 }
 
-export type ChatSourceMode = "web" | "notebook" | "hybrid";
+/** "none": neither notes nor the web; the tutor answers from general
+ *  knowledge (lib/chatSources.ts). */
+export type ChatSourceMode = "web" | "notebook" | "hybrid" | "none";
 
 export interface ChatSendOptions {
   sourceMode?: ChatSourceMode;
+  /** Which notes grounding may read from; every note when absent. */
+  scope?: GroundingScope;
+  /** The reply will be read aloud on a tutor call (views/lesson/TutorCall),
+   *  in the personality and call type the student picked (lib/callStyle). */
+  spoken?: CallStyle;
   /** Ask for a guess before explaining (experimental; lib/flags). */
   guessFirst?: boolean;
 }

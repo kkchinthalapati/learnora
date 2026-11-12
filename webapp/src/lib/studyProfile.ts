@@ -69,7 +69,18 @@ export interface StudyProfile {
   devices: string[];
   methods: string[];
   pastProblems: string | null;
+  /* "How you learn" (its own step, and Settings > Study). Sent with every
+     lesson, notes and podcast request so the AI can shape how it teaches;
+     lib/learnerStyle.ts learnerProfileRule says how. */
+  /** The main way they learn best: a lib/learnerStyle id (or a legacy label). */
   learningStyle: string | null;
+  /** Standing preferences: lib/learnerSignals.ts STEERS ids. */
+  learningPrefs: string[];
+  /** How they learn, in their own words. */
+  learningNotes: string | null;
+  /** What they are into, for examples. */
+  interests: string | null;
+  learningSkipped: boolean;
   deeperSkipped: boolean;
   updatedAt: string | null;
 }
@@ -94,6 +105,10 @@ export const EMPTY_PROFILE: StudyProfile = Object.freeze({
   methods: [],
   pastProblems: null,
   learningStyle: null,
+  learningPrefs: [],
+  learningNotes: null,
+  interests: null,
+  learningSkipped: false,
   deeperSkipped: false,
   updatedAt: null,
 }) as StudyProfile;
@@ -462,7 +477,7 @@ export function aiContext(p: StudyProfile, subject: string): { subject: string; 
 
 /* ── Where a returning student resumes ─────────────────────────────────── */
 
-export const PROFILE_STEPS = ["age", "country", "system", "subjects", "week", "habits", "goals", "deeper", "plan"] as const;
+export const PROFILE_STEPS = ["age", "country", "system", "subjects", "week", "habits", "goals", "learning", "deeper", "plan"] as const;
 export type ProfileStep = (typeof PROFILE_STEPS)[number];
 
 /** The first step still missing an answer: where a returning student resumes. */
@@ -475,10 +490,22 @@ export function resumeStep(p: StudyProfile): ProfileStep {
   if (missing.includes("availability")) return "week";
   if (missing.includes("bestTime") || missing.includes("sessionLength")) return "habits";
   if (missing.includes("confidence") || missing.includes("target")) return "goals";
-  const deeperAnswered = p.devices.length || p.methods.length || p.pastProblems || p.learningStyle;
+  if (!p.learningSkipped && !hasLearningProfile(p)) return "learning";
+  const deeperAnswered = p.devices.length || p.methods.length || p.pastProblems;
   if (!p.deeperSkipped && !deeperAnswered) return "deeper";
   return "plan";
 }
+
+/** Whether they have said anything about how they learn. */
+export function hasLearningProfile(
+  p: Pick<StudyProfile, "learningStyle" | "learningPrefs" | "learningNotes" | "interests">,
+): boolean {
+  return !!(p.learningStyle || p.learningPrefs?.length || p.learningNotes?.trim() || p.interests?.trim());
+}
+
+/** The longest a student's own description, and their interests, may be. */
+export const LEARNING_NOTES_MAX = 1500;
+export const INTERESTS_MAX = 200;
 
 /* ── Small helpers for the wizard ──────────────────────────────────────── */
 

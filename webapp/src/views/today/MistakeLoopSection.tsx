@@ -234,7 +234,7 @@ export function MistakeLoopSection({
   now: Date;
   /** The check-back Today's card already leads with; not repeated here. */
   leadId?: string;
-  /** Home calls it "Fix these"; Today kept "Mistakes to fix". */
+  /** Home lists these rows under its own "Today" heading; Today kept "Mistakes to fix". */
   title?: string;
   headingId?: string;
   /** Rows only, for a caller that supplies its own section and heading. */

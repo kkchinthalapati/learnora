@@ -7,11 +7,13 @@ import {
   initMonitoring,
   installGlobalErrorHandlers,
 } from "./lib/monitoring.ts";
+import { readCookieConsent } from "./lib/cookieConsent.ts";
 
-/* Before the first render, so a crash during initial mount is still reported.
- * No-ops entirely when VITE_SENTRY_DSN is unset, which is the case in
- * development and in tests. */
-void initMonitoring();
+/* Before the first render, so a crash during initial mount is still reported,
+ * but only once the student has accepted all cookies (lib/cookieConsent.ts);
+ * the banner starts it on "Accept all". No-ops entirely when VITE_SENTRY_DSN
+ * is unset, which is the case in development and in tests. */
+if (readCookieConsent() === "all") void initMonitoring();
 installGlobalErrorHandlers();
 
 /* The web-font stylesheet loads as media="print" so it never blocks the
