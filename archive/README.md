@@ -1,14 +1,14 @@
 # Archive
 
-Everything under this directory is a **historical planning or audit document**,
-not current status. Each one describes a body of work that has since been
-completed and merged:
+Everything under this directory is a **historical planning, audit, or dated
+operational snapshot**, not current status. Do not use archived status tables
+or runbooks to decide what is currently pending:
 
 - **`REACT_MIGRATION.md`** — the Vanilla JS → React migration ledger. Its own
   "resume here" section still points at step 23 as the next unfinished step —
   that's stale. The migration finished in full (all 9 route cutovers + 4
-  loose-end fixes) on 2026-08-02, commit `6a2c87f`. `js/` is now a thin
-  redirect shell in front of `webapp/`, not a parallel app.
+  loose-end fixes) on 2026-08-02, commit `6a2c87f`. The remaining vanilla shell
+  was deleted on 2026-09-16; routes now live in `webapp/`.
 - **`redesign/`** (`DESIGN_MOVES.md`, `PRIMITIVES.md`, `audit/*.md`,
   `screenshots/`) — the visual/UX redesign audit and the moves it approved
   (Card/PageHeader/IconButton primitives, landmark fixes, spacing
@@ -40,3 +40,9 @@ digging up; git history alone makes that harder to search.
 - **`screenshots/`** — early feature screenshots, unreferenced.
 - **`sql/`** — the original hand-written `supabase_*.sql` setup scripts, superseded by `supabase/migrations/`.
 - **`migrations-unapplied/`** — the reconstructed baseline migration. It was never recorded in production and must not be applied there; see `WAITINGONLEDGER.md` 2 and 6.3.
+
+**Added 2026-11-12 (documentation cleanup):**
+
+- **`archive/supabase/`** — the October 2026 migration-status record and rollback runbook. They contain production-specific instructions and state that have not been reverified; current outstanding work belongs in `WAITINGONLEDGER.md`.
+- **`plans/PRODUCTION_DEC_2026_STATUS.md`** — the October 2 production-plan snapshot, retained as history rather than an active plan.
+- **`docs/LEARNORA_STUDENT_WORKSPACE_RESEARCH_2026-09-08.md`** — a dated research/implementation brief for a September PR.

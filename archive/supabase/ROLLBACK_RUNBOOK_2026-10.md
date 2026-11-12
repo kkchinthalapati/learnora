@@ -1,8 +1,11 @@
-# Migration rollback notes and production checklist
+# Historical migration rollback notes — 2026-10
 
-Migrations in this repo are applied by hand (see `unmergedsupabase.md` for the
-running status). Nothing here has been run by an agent. Each note says what
-the migration changes, whether reverting loses data, and the exact revert SQL.
+> **Historical snapshot only.** This runbook reflects production and migrations through 2026-10-06; do not use its checklist or status as current. Check [`WAITINGONLEDGER.md`](../../WAITINGONLEDGER.md) and verify production before taking action.
+
+Migrations in this repo were applied by hand (see
+[`MIGRATION_STATUS_2026-10.md`](MIGRATION_STATUS_2026-10.md) for the recorded
+snapshot). Each note says what the migration changed, whether reverting loses
+data, and the revert SQL recorded at that time.
 
 `webapp/src/migrations.test.ts` checks every migration from A1 on without a
 database: `if not exists` creates, dropped or guarded policies, RLS on new
@@ -140,7 +143,7 @@ alter table public.question_bank drop column if exists review_status,
   drop column if exists report_count;
 ```
 
-Reviewing what it collects: `docs/question_review.sql`.
+Reviewing what it collects: `supabase/queries/question_review.sql`.
 
 ### `20260901000000_add_diagram_artifact_type.sql`
 **Applied to production 2026-10-06.** Widens `notebook_artifacts_type_check` to
@@ -165,8 +168,9 @@ back without verdicts and the webapp serves them as before.
 ## How to apply to production safely
 
 Run these yourself, in order. Do not use `supabase db push`: production's
-recorded versions differ from the filenames (see `unmergedsupabase.md`), so
-the CLI may try to re-run old files.
+recorded versions differ from the filenames (see
+[`MIGRATION_STATUS_2026-10.md`](MIGRATION_STATUS_2026-10.md)), so the CLI may
+try to re-run old files.
 
 1. Merge the branch to `main` only after `npm --prefix webapp test` and
    `node --test tests/*.test.js` pass. Vercel deploys the webapp on merge; the
@@ -197,4 +201,5 @@ the CLI may try to re-run old files.
 7. Remove the dead Cerebras key: `supabase secrets unset CEREBRAS_API_KEY`.
 8. Smoke test: one Explain session, then
    `select provider, model, latency_ms from ai_request_log order by created_at desc limit 5;`
-9. Update the status table in `unmergedsupabase.md` with the date.
+9. Do not update this archived status snapshot. Record current blockers in
+   `WAITINGONLEDGER.md` and verify production before changing status.

@@ -92,7 +92,8 @@ These are current repo realities and should guide work:
 
 - The live React app is in `webapp/`.
 - The current app is intentionally organized around the product destinations such as Dashboard, Library, Plan, Focus, and Progress.
-- The front-end shell and routes live in the React app; the old vanilla shell is not the active app.
+- The front-end shell and routes live in the React app; the old vanilla shell
+  was deleted on 2026-09-16.
 - Supabase changes are intentionally conservative; prefer small, well-scoped migrations and clear ownership rules.
 - Production build flow is via `scripts/build.sh` and the Vite app in `webapp/`.
 

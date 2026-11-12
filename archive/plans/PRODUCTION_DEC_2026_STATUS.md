@@ -1,4 +1,6 @@
-# Production by December 2026 — status
+# Historical production plan status — December 2026
+
+> **Archived snapshot, last updated 2026-10-02.** Branch names, deployment state, and open items below are historical; use `WAITINGONLEDGER.md` and verify production for current status.
 
 Tracks the "Learnora production by December 2026" plan against the code. Branch:
 `ccr-21911d53-k2odo3`. Production project: `mlvgqwqiynpwpwzqufdf`. Last updated
@@ -8,7 +10,7 @@ Tracks the "Learnora production by December 2026" plan against the code. Branch:
 
 | Item | State |
 |------|-------|
-| A1–A3 migrations | ✅ Applied 2026-10-02 (see `unmergedsupabase.md`) |
+| A1–A3 migrations | ✅ Applied 2026-10-02 (see [`MIGRATION_STATUS_2026-10.md`](../supabase/MIGRATION_STATUS_2026-10.md)) |
 | B1a, B1b, B2a migrations (already on `main`) | ✅ Applied 2026-10-02 |
 | `learnora-ai` v65 | ✅ Deployed 2026-10-02, byte-identical to `main` |
 | Remove `CEREBRAS_API_KEY` secret | ❌ Needs CLI or dashboard: `supabase secrets unset CEREBRAS_API_KEY` |

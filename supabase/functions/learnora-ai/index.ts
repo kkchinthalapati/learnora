@@ -1586,7 +1586,8 @@ function logVerification(userId: string): void {
 }
 
 /* A seeded-subject question the checker rejected, for a human to look at
-   (docs/question_review.sql). No student id: the question is what matters. */
+   (supabase/queries/question_review.sql). No student id: the question is what
+   matters. */
 function logRejectedQuestion(
   q: { question: string; choices: string[]; correctIndex: number },
   reason: string,

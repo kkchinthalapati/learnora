@@ -92,6 +92,6 @@ Accessed 2026-10-09 unless noted. IDs are cited across `research/` as `[C#]` (co
 | R8 | `webapp/src/lib/syllabus/catalogue.ts`, `lib/questionBank/seed/*.json`, `docs/QUESTION_SOURCES.md` | AQA, GCSE Maths and IB only. 228 seeded MCQs (Bio 48, Chem 64, Maths 56, Phys 60). |
 | R9 | `webapp/src/lib/onboarding.ts` | CBSE Class 9 and 10 presets exist in onboarding. |
 | R10 | `evals/` | 100 fixtures with graders. `evals/results/` is git-ignored, so whether runs happened is unknown. |
-| R11 | `WAITINGONLEDGER.md`, `plans/PRODUCTION_DEC_2026_STATUS.md` | Quiz verification is not yet deployed (prod `learnora-ai` v66). Provider health as of 2026-09-24. |
+| R11 | `WAITINGONLEDGER.md`, `archive/plans/PRODUCTION_DEC_2026_STATUS.md` | Quiz verification was not yet deployed (prod `learnora-ai` v66) at the time checked. Provider health as of 2026-09-24. |
 | R12 | **Production DB, read-only aggregate queries, 2026-10-09** | 36 users, 8 signed in during the last 30 days, 13 `learning_events`, 3 `quiz_attempts`, 99 flashcards (16 with FSRS state), 33 misconceptions (0 resolved), 228 bank questions, 159 AI requests in 30 days (last on 2026-10-05). |
 | R13 | **Production `ai_request_log`, last 60 days** | Quiz via OpenRouter: n=9, mean 24.1 s, p90 34.0 s. Feynman via OpenRouter: mean 12.1 s. Every row with a provider recorded also recorded a failover. Most rows have a null provider (older logging), and there are no token or cost columns. |

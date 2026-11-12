@@ -14,7 +14,8 @@
 --    alone).
 -- 4. question_review_log: rejected-by-the-checker questions in seeded
 --    subjects (written by learnora-ai with the service role) and pulled
---    questions, for a human to review with docs/question_review.sql. No
+--    questions, for a human to review with
+--    supabase/queries/question_review.sql. No
 --    student can read or write it.
 -- 5. An index for the daily verification caps (ai_request_log rows with
 --    mode 'verify').

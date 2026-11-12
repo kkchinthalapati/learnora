@@ -1,6 +1,6 @@
-# Unapplied Supabase migrations — status and runbook
+# Historical Supabase migration status — 2026-10
 
-> **Open work of every kind (deploys, secrets, domain, decisions) lives in [`WAITINGONLEDGER.md`](WAITINGONLEDGER.md).** This file is the migration-by-migration history and SQL.
+> **Historical snapshot only; do not use this as current production status or a runbook.** It records checks made on 2026-10-01 and updates through 2026-10-06. Current outstanding work is tracked in [`WAITINGONLEDGER.md`](../../WAITINGONLEDGER.md).
 
 Checked against production project `mlvgqwqiynpwpwzqufdf` on **2026-10-01**.
 

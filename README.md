@@ -13,10 +13,10 @@ project notes that are intentionally separated from active product work.
 
 - `webapp/` — active Vite + React + TypeScript app
 - `api/` — public edge/server handlers and API endpoints
-- `supabase/` — database migrations, edge functions, and SQL schema
+- `supabase/` — database migrations, edge functions, and human-review SQL queries
 - `scripts/` — deploy and build scripts
-- `docs/` — research, audits, and supporting product documentation
-- `plans/` — active planning notes and product strategy docs
+- `docs/` — audits and supporting product documentation
+- `research/` — competitor, learning-science, and product research snapshots
 - `archive/` — historical migration/design/audit work that is no longer active
 - `evals/` — tutor eval harness (100 fixtures, graders, key-from-env runner)
 - `WAITINGONLEDGER.md` — everything waiting on a person: migrations, deploys, secrets, domain, decisions
@@ -30,7 +30,8 @@ The live React app is the canonical implementation. Historical artifacts in
 
 The app is organized around product destinations such as Dashboard, Library,
 Plan, Focus, and Progress. The front-end shell and routes live in `webapp/`.
-The old vanilla shell is no longer the active implementation.
+The old vanilla shell was deleted on 2026-09-16; `/terms`, `/verify` and
+`/reset-password` are routes in `webapp/`.
 
 ## Documentation organization
 
@@ -38,9 +39,9 @@ We keep docs in the most useful place without forcing unnecessary churn:
 
 - `README.md` — top-level overview for contributors and agents
 - `AGENTS.md` — repo-specific instructions for AI agents
-- `docs/` — research notes, audits, and supporting analysis
-- `plans/` — active planning and design memos
+- `docs/` — audits and supporting product documentation
 - `archive/` — historical docs and completed migration records
+- `research/` — dated research snapshots, not a source of current implementation status
 - root-level operation files like `AI_PROVIDERS.md`, `EMAIL_NOTIFICATIONS.md`,
   `PUSH_NOTIFICATIONS.md`, `STRIPE_SETUP.md`, and `SUPABASE_SETUP.md` stay at the
   top level because they are directly referenced by runtime code and operational
@@ -111,5 +112,7 @@ These are the most common active references:
 
 This repo intentionally keeps operational docs close to the code they support,
 while placing more historical or analysis-heavy content under `archive/` and
-`docs/`. That keeps the project easier to navigate without creating unnecessary
-file churn or brittle links.
+`docs/`. Current production blockers live in `WAITINGONLEDGER.md`; archived
+migration status and rollback notes are historical snapshots, not current
+runbooks. This keeps the project easier to navigate without creating
+unnecessary file churn or brittle links.

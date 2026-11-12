@@ -1,6 +1,6 @@
-# Learnora should feel like one study workspace
+# Historical research and implementation brief — 2026-09-08
 
-Research and implementation brief — 8 September 2026
+> **Archived snapshot.** This brief records research and changes proposed for a September 2026 PR; it is not a description of the current app.
 
 ## The student problem
 

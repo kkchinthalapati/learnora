@@ -3,10 +3,11 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /* Static checks on the SQL migrations. Nothing here runs SQL: migrations are
- * applied by hand (see docs/ROLLBACK.md), so the only review they get before
- * production is this file plus a human. The rules are the ones a re-run or a
- * partial apply needs to be safe — every statement can run twice, every new
- * table is behind RLS, and nothing silently destroys data.
+ * applied by hand (see
+ * archive/supabase/ROLLBACK_RUNBOOK_2026-10.md), so the only review they get
+ * before production is this file plus a human. The rules are the ones a re-run
+ * or a partial apply needs to be safe — every statement can run twice, every
+ * new table is behind RLS, and nothing silently destroys data.
  *
  * Files before REVIEWED_FROM predate the rules and are already live; several
  * create policies without a matching drop. They are left alone rather than
