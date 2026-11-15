@@ -96,12 +96,17 @@ export function LessonView() {
   };
   const lessonDecks = useMemo(() => {
     const byDeck = new Map<string, { total: number; due: number }>();
-    const today = new Date().toISOString().slice(0, 10);
+    /* Same test the review session uses (srs.ts getDueCards). This compared
+       the first ten characters of the timestamp with today's UTC date, and a
+       review is scheduled for local midnight: east of Greenwich that instant
+       is still "yesterday" in UTC, so a card due tomorrow was counted as due
+       today and the tab offered a review that had nothing in it. */
+    const now = Date.now();
     for (const c of lessonCards) {
       if (!c.deck_id) continue;
       const entry = byDeck.get(c.deck_id) ?? { total: 0, due: 0 };
       entry.total += 1;
-      if (!c.next_review_date || c.next_review_date.slice(0, 10) <= today) entry.due += 1;
+      if (!c.next_review_date || new Date(c.next_review_date).getTime() <= now) entry.due += 1;
       byDeck.set(c.deck_id, entry);
     }
     return (decks.data ?? [])

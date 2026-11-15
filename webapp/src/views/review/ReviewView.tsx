@@ -377,7 +377,7 @@ function ReviewSetup({
 
         <OptionalFold
           fold={small}
-          summary={`${length === "all" ? `All ${dueCards.length} cards` : `${length} cards`} · ${orderName}`}
+          summary={`${length === "all" ? (dueCards.length === 1 ? "1 card" : `All ${dueCards.length} cards`) : `${length} cards`} · ${orderName}`}
         >
         <fieldset className={styles.optionGroup}>
           <legend>Session length</legend>
@@ -1337,6 +1337,12 @@ function ReviewSession({
     }
   };
 
+  /* A phone has nothing to click. */
+  const flipHint =
+    typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches
+      ? "Tap to flip"
+      : "Click to flip";
+
   return (
     <div className={styles.view}>
       <ExitLink />
@@ -1372,7 +1378,7 @@ function ReviewSession({
               alt="Image on the front of this card"
               className={styles.cardImage}
             />
-            {!flipped ? <p className={styles.hint}>Click to flip</p> : null}
+            {!flipped ? <p className={styles.hint}>{flipHint}</p> : null}
           </div>
           <div
             className={`${styles.face} ${styles.back}`}
@@ -1709,7 +1715,7 @@ function ReviewRecap({
           <span>of cards recalled</span>
         </div>
         <p className={styles.recapMessage}>
-          {recap.confident} of {results.length} cards were recalled confidently
+          {recap.confident} of {results.length} {results.length === 1 ? "card was" : "cards were"} recalled confidently
           with a Good or Easy grade.
         </p>
 

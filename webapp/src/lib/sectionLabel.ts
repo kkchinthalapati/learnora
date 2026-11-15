@@ -188,6 +188,9 @@ const HERO_ROUTES = [
   "/my-week",
   "/tasks",
   "/exams",
+  /* "What do you want to learn?" is the capture page's own h1; the shell
+     printed a second one above it, and that one just said "Learnora". */
+  "/capture",
 ];
 
 export function viewOwnsPageTitle(pathname: string): boolean {
