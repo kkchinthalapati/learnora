@@ -39,6 +39,10 @@
   font-family: var(--font-head);
   font-size: var(--fs-lg);
   color: var(--text);
+  /* Also an h1 on a not-found page: keep the paragraph's look. */
+  margin-top: 0;
+  font-weight: inherit;
+  line-height: inherit;
   margin-bottom: var(--s-2);
 }
 
