@@ -20,6 +20,18 @@ export interface CardFields {
   backImagePath?: string | null;
 }
 
+/** A card's scheduling columns as they stood before a review — everything
+ *  `updateReview` writes, so `restoreReview` can put all of it back. */
+export interface ReviewScheduleSnapshot {
+  nextReviewDate: string | null;
+  interval: number;
+  ease: number;
+  stability: number | null;
+  difficulty: number | null;
+  /** `undefined` when the card was read before the column existed. */
+  lastReviewedAt?: string | null;
+}
+
 /* Set once the database says `flashcards.last_reviewed_at` does not exist (a
  * build shipped ahead of supabase/migrations/20260929020000_…), so later
  * reviews go straight to the old unconditional write. Same pattern as
@@ -204,6 +216,49 @@ export const flashcardsApi = {
         .eq("id", cardId)
         .eq("user_id", userId)
         .or(`last_reviewed_at.is.null,last_reviewed_at.lt.${reviewedAt}`);
+      if (!error) return;
+      if (!isMissingLastReviewedColumn(error)) throw new Error(error.message);
+      lastReviewedColumnMissing = true;
+    }
+
+    const { error } = await supabase
+      .from("flashcards")
+      .update(update)
+      .eq("id", cardId)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+  },
+
+  /* Undo of one review: puts back the scheduling columns `updateReview`
+   * overwrote. `updateReview` only ever moves `last_reviewed_at` forward, so
+   * it cannot carry a card back to an older state; this write goes the other
+   * way and is guarded the other way — it only lands while the card still
+   * holds the exact review being undone (`undoneReviewedAt`). A review that
+   * never reached the server, or one a second device has already replaced
+   * with a newer review, matches no row and is left alone. Until the column
+   * is deployed there is nothing to match on, and this degrades to an
+   * unconditional restore, as `updateReview` does. */
+  async restoreReview(
+    cardId: string,
+    previous: ReviewScheduleSnapshot,
+    undoneReviewedAt: string,
+  ): Promise<void> {
+    const userId = await requireUserId();
+    const update: Record<string, unknown> = {
+      next_review_date: previous.nextReviewDate,
+      srs_interval: previous.interval,
+      ease_factor: previous.ease,
+      stability: previous.stability,
+      difficulty: previous.difficulty,
+    };
+
+    if (!lastReviewedColumnMissing) {
+      const { error } = await supabase
+        .from("flashcards")
+        .update({ ...update, last_reviewed_at: previous.lastReviewedAt ?? null })
+        .eq("id", cardId)
+        .eq("user_id", userId)
+        .eq("last_reviewed_at", undoneReviewedAt);
       if (!error) return;
       if (!isMissingLastReviewedColumn(error)) throw new Error(error.message);
       lastReviewedColumnMissing = true;

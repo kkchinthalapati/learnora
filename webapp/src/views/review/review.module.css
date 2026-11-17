@@ -313,6 +313,19 @@
   font-weight: 600;
 }
 
+/* Undo of the last grade: a quiet line under the progress count, so it is
+   findable without crowding the card or the grade buttons. */
+.undoRow {
+  display: flex;
+  margin: var(--s-2) 0 0;
+}
+
+.undoNotice {
+  margin: var(--s-2) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
 .recapTitle {
   margin: var(--s-4) 0 var(--s-5);
   font-family: var(--font-head);
