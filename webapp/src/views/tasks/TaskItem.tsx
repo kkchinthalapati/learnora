@@ -3,15 +3,14 @@ import { useNavigate } from "react-router";
 import { Icon } from "../../components/Icon";
 import { useOptionalTimer } from "../../context/timer";
 import type { Task } from "../../api/types";
+import { dateInDays, formatDueDate, localDateStr } from "../../lib/date";
 import {
-  createRecurringWeeklyText,
-  dateInDays,
-  formatDueDate,
   formatRecurrenceCleanText,
-  isRecurringWeekly,
-  localDateStr,
-} from "../../lib/date";
+  parseTaskRepeat,
+  setTaskRepeat,
+} from "../../lib/taskRepeat";
 import { TASK_MAX } from "../../lib/fieldLimits";
+import { RepeatPicker } from "./RepeatPicker";
 import styles from "./tasks.module.css";
 
 /* One row of the task list — ports js/main.js:1348-1570.
@@ -43,7 +42,7 @@ export function TaskItem({
 }: TaskItemProps) {
   const timer = useOptionalTimer();
   const navigate = useNavigate();
-  const isRecurring = isRecurringWeekly(task.text);
+  const repeat = parseTaskRepeat(task.text)?.repeat ?? null;
   const displayText = formatRecurrenceCleanText(task.text) || task.text;
 
   const [editingText, setEditingText] = useState(false);
@@ -105,7 +104,7 @@ export function TaskItem({
         /* Clicks that landed on a nested control belong to that control —
            the vanilla checked tagName, which also caught the date input. */
         const target = e.target as HTMLElement;
-        if (target.closest("button, input")) return;
+        if (target.closest("button, input, select")) return;
         if (target.closest(`.${styles.text}`)) return; // handled by the span
         onToggle(task);
       }}
@@ -170,14 +169,14 @@ export function TaskItem({
       {/* The vanilla omitted the due badge entirely on completed tasks. */}
       {!task.is_done && (
         <div className={styles.itemControls}>
-          {isRecurring && (
-            <span
-              className={styles.recurringBadge}
-              aria-label="Recurring weekly"
-            >
-              🔁 Weekly
-            </span>
-          )}
+          {/* First in the row, so a repeating task says how it repeats at a
+              glance; the same chip changes or clears it. */}
+          <RepeatPicker
+            variant="chip"
+            aria-label="Repeat"
+            value={repeat}
+            onChange={(next) => onRename(task, setTaskRepeat(task.text, next))}
+          />
 
           {editingDue ? (
             <input
@@ -259,23 +258,6 @@ export function TaskItem({
               }}
             >
               Next week
-            </button>
-            <button
-              type="button"
-              className={`${styles.quickBtn}${isRecurring ? ` ${styles.quickBtnActive}` : ""}`}
-              aria-label={
-                isRecurring ? "Remove weekly repeat" : "Repeat weekly"
-              }
-              aria-pressed={isRecurring}
-              title={
-                isRecurring ? "Turn off weekly recurrence" : "Repeat weekly"
-              }
-              onClick={(e) => {
-                e.stopPropagation();
-                onRename(task, createRecurringWeeklyText(task.text));
-              }}
-            >
-              Repeat weekly
             </button>
           </div>
         </div>

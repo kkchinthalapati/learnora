@@ -13,7 +13,8 @@
 
 import type { Exam, Task, WeakTopic } from "../api/types";
 import type { StudyDemand } from "./autoSchedule";
-import { dateInDays, formatRecurrenceCleanText, localDateStr, parseLocalDate } from "./date";
+import { dateInDays, localDateStr, parseLocalDate } from "./date";
+import { formatRecurrenceCleanText } from "./taskRepeat";
 import { defaultTier, getSpec, isTier } from "./syllabus";
 import {
   nextSpecTopics,

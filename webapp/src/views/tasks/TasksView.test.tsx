@@ -11,8 +11,8 @@ import {
   formatDueDate,
   localDateStr,
   dateInDays,
-  createNextWeeklyDate,
 } from "../../lib/date";
+import { nextTaskOccurrence } from "../../lib/taskRepeat";
 import type { Task } from "../../api/types";
 import { TasksView } from "./TasksView";
 import { DOUBLE_CLICK_MS } from "./TaskItem";
@@ -506,7 +506,7 @@ describe("TasksView", () => {
       expect(dueInput).toHaveValue(dateInDays(7));
     });
 
-    it("adds a recurring weekly task when Repeat weekly pill is toggled", async () => {
+    it("adds a recurring weekly task picked from the Repeat chip", async () => {
       const user = userEvent.setup();
       let body: Record<string, unknown>[] | undefined;
       serveTasks([]);
@@ -523,8 +523,9 @@ describe("TasksView", () => {
         screen.getByRole("textbox", { name: "Task name" }),
         "Review biology",
       );
-      await user.click(
-        screen.getByRole("button", { name: "🔁 Repeat weekly" }),
+      await user.selectOptions(
+        screen.getByRole("combobox", { name: "Repeat" }),
+        "weekly",
       );
       await user.click(screen.getByRole("button", { name: "Add task" }));
 
@@ -535,12 +536,76 @@ describe("TasksView", () => {
       });
     });
 
-    it("displays 🔁 Weekly badge and clean title for recurring task", async () => {
-      serveTasks([task({ id: 1, text: "Chemistry practice [🔁 Weekly]" })]);
+    it("offers daily, weekdays, weekly, every 2 weeks and monthly", async () => {
+      serveTasks([]);
+      renderTasks();
+      await screen.findByText("No tasks yet. Add one above.");
+
+      const picker = screen.getByRole("combobox", { name: "Repeat" });
+      expect(
+        within(picker)
+          .getAllByRole("option")
+          .map((o) => o.textContent),
+      ).toEqual([
+        "🔁 Repeat",
+        "🔁 Daily",
+        "🔁 Weekdays",
+        "🔁 Weekly",
+        "🔁 Every 2 weeks",
+        "🔁 Monthly",
+      ]);
+    });
+
+    it("adds an every-two-weeks task and resets the picker", async () => {
+      const user = userEvent.setup();
+      let body: Record<string, unknown>[] | undefined;
+      serveTasks([]);
+      server.use(
+        http.post(REST, async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>[];
+          return HttpResponse.json(null, { status: 201 });
+        }),
+      );
+      renderTasks();
+      await screen.findByText("No tasks yet. Add one above.");
+
+      await user.type(
+        screen.getByRole("textbox", { name: "Task name" }),
+        "Laundry",
+      );
+      const picker = screen.getByRole("combobox", { name: "Repeat" });
+      await user.selectOptions(picker, "biweekly");
+      await user.click(screen.getByRole("button", { name: "Add task" }));
+
+      await waitFor(() => expect(body).toBeDefined());
+      expect(body![0]).toMatchObject({ text: "Laundry [🔁 Every 2 weeks]" });
+      expect(picker).toHaveValue("");
+    });
+
+    it("shows a repeating task's repeat on its row, with a clean title", async () => {
+      serveTasks([
+        task({ id: 1, text: "Chemistry practice [🔁 Weekly]" }),
+        task({ id: 2, text: "Gym [🔁 Every 2 weeks]" }),
+        task({ id: 3, text: "Essay" }),
+      ]);
       renderTasks();
 
       expect(await screen.findByText("Chemistry practice")).toBeInTheDocument();
-      expect(screen.getByLabelText("Recurring weekly")).toBeInTheDocument();
+      const row = (name: string) =>
+        screen.getByRole("checkbox", { name }).closest("li") as HTMLElement;
+      expect(
+        within(row("Chemistry practice [🔁 Weekly]")).getByRole("combobox", {
+          name: "Repeat",
+        }),
+      ).toHaveDisplayValue("🔁 Weekly");
+      expect(
+        within(row("Gym [🔁 Every 2 weeks]")).getByRole("combobox", {
+          name: "Repeat",
+        }),
+      ).toHaveDisplayValue("🔁 Every 2 weeks");
+      expect(
+        within(row("Essay")).getByRole("combobox", { name: "Repeat" }),
+      ).toHaveDisplayValue("🔁 Repeat");
     });
 
     it("snoozes a task to tomorrow from task item quick button", async () => {
@@ -593,7 +658,7 @@ describe("TasksView", () => {
       await waitFor(() => expect(patched).toEqual({ due_date: dateInDays(7) }));
     });
 
-    it("toggles weekly recurrence from task item Repeat weekly button", async () => {
+    it("sets a row's repeat from its Repeat chip without ticking it off", async () => {
       const user = userEvent.setup();
       let patched: Record<string, unknown> | undefined;
       serveTasks([task({ id: 1, text: "Physics lab" })]);
@@ -605,19 +670,48 @@ describe("TasksView", () => {
       );
       renderTasks();
 
-      const row = (
-        await screen.findByRole("checkbox", {
-          name: "Physics lab",
-        })
-      ).closest("li") as HTMLElement;
-      const repeatBtn = within(row).getByRole("button", {
-        name: "Repeat weekly",
+      const checkbox = await screen.findByRole("checkbox", {
+        name: "Physics lab",
       });
-      await user.click(repeatBtn);
+      const row = checkbox.closest("li") as HTMLElement;
+      const picker = within(row).getByRole("combobox", { name: "Repeat" });
+      await user.click(picker);
+      await user.selectOptions(picker, "weekdays");
 
       await waitFor(() =>
-        expect(patched).toEqual({ text: "Physics lab [🔁 Weekly]" }),
+        expect(patched).toEqual({ text: "Physics lab [🔁 Weekdays]" }),
       );
+      expect(checkbox).toHaveAttribute("aria-checked", "false");
+    });
+
+    it("changes and clears an existing repeat from the row", async () => {
+      const user = userEvent.setup();
+      const patches: Record<string, unknown>[] = [];
+      serveTasks([task({ id: 1, text: "Physics lab [🔁 Weekly]" })]);
+      server.use(
+        http.patch(REST, async ({ request }) => {
+          patches.push((await request.json()) as Record<string, unknown>);
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+      renderTasks();
+
+      const row = (
+        await screen.findByRole("checkbox", {
+          name: "Physics lab [🔁 Weekly]",
+        })
+      ).closest("li") as HTMLElement;
+      const picker = within(row).getByRole("combobox", { name: "Repeat" });
+      expect(
+        within(picker).getByRole("option", { name: "Don't repeat" }),
+      ).toBeInTheDocument();
+
+      await user.selectOptions(picker, "monthly");
+      await waitFor(() =>
+        expect(patches[0]).toEqual({ text: "Physics lab [🔁 Monthly]" }),
+      );
+      await user.selectOptions(picker, "");
+      await waitFor(() => expect(patches[1]).toEqual({ text: "Physics lab" }));
     });
 
     it("automatically creates the next occurrence when completing a recurring weekly task", async () => {
@@ -644,7 +738,10 @@ describe("TasksView", () => {
       });
       await user.click(row);
 
-      const nextDueDate = createNextWeeklyDate("2026-08-20");
+      const nextDueDate = nextTaskOccurrence(
+        "Weekly quiz [🔁 Weekly]",
+        "2026-08-20",
+      )!.dueDate;
       await waitFor(() => expect(postedBody).toBeDefined());
       expect(postedBody![0]).toMatchObject({
         text: "Weekly quiz [🔁 Weekly]",
@@ -654,6 +751,38 @@ describe("TasksView", () => {
       const formatted = formatDueDate(nextDueDate);
       expect(
         await screen.findByText(`Scheduled next weekly task for ${formatted}`),
+      ).toBeInTheDocument();
+    });
+
+    it("schedules a monthly task's next occurrence and says which kind", async () => {
+      const user = userEvent.setup();
+      let postedBody: Record<string, unknown>[] | undefined;
+      const today = localDateStr();
+      serveTasks([
+        task({ id: 1, text: "Pay rent [🔁 Monthly]", due_date: today }),
+      ]);
+      server.use(
+        http.post(REST, async ({ request }) => {
+          postedBody = (await request.json()) as Record<string, unknown>[];
+          return HttpResponse.json(null, { status: 201 });
+        }),
+      );
+      renderTasks();
+
+      await user.click(
+        await screen.findByRole("checkbox", { name: "Pay rent [🔁 Monthly]" }),
+      );
+
+      const expected = nextTaskOccurrence("Pay rent [🔁 Monthly]", today)!;
+      await waitFor(() => expect(postedBody).toBeDefined());
+      expect(postedBody![0]).toMatchObject({
+        text: expected.text,
+        due_date: expected.dueDate,
+      });
+      expect(
+        await screen.findByText(
+          `Scheduled next monthly task for ${formatDueDate(expected.dueDate)}`,
+        ),
       ).toBeInTheDocument();
     });
 

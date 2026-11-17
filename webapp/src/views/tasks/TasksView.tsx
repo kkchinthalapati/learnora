@@ -8,7 +8,13 @@ import { useToast } from "../../context/toast";
 import { TaskItem } from "./TaskItem";
 import { sortTasksByUrgency } from "./sortTasks";
 import { useTaskActions } from "./useTaskActions";
-import { dateInDays, isRecurringWeekly, localDateStr } from "../../lib/date";
+import { dateInDays, localDateStr } from "../../lib/date";
+import {
+  parseTaskRepeat,
+  setTaskRepeat,
+  type TaskRepeat,
+} from "../../lib/taskRepeat";
+import { RepeatPicker } from "./RepeatPicker";
 import type { Task } from "../../api/types";
 import { PlanSectionNav } from "../plan/PlanSectionNav";
 import { TASK_MAX } from "../../lib/fieldLimits";
@@ -45,7 +51,7 @@ export function TasksView() {
 
   const [text, setText] = useState("");
   const [dueDate, setDueDate_] = useState("");
-  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [repeat, setRepeat] = useState<TaskRepeat | null>(null);
   const [filter, setFilter] = useState<TaskFilter>("all");
   const [shake, setShake] = useState(false);
   const dueId = useId();
@@ -61,14 +67,15 @@ export function TasksView() {
       requestAnimationFrame(() => setShake(true));
       return;
     }
+    /* A tag typed into the name by hand wins over the picker. */
     const finalText =
-      repeatWeekly && !isRecurringWeekly(trimmed)
-        ? `${trimmed} [🔁 Weekly]`
+      repeat && !parseTaskRepeat(trimmed)
+        ? setTaskRepeat(trimmed, repeat)
         : trimmed;
 
     setText("");
     setDueDate_("");
-    setRepeatWeekly(false);
+    setRepeat(null);
     addTask.mutate(
       { text: finalText, dueDate: dueDate || null },
       {
@@ -193,14 +200,12 @@ export function TasksView() {
               >
                 Next week
               </button>
-              <button
-                type="button"
-                className={`${styles.pillBtn}${repeatWeekly ? ` ${styles.pillBtnActive}` : ""}`}
-                aria-pressed={repeatWeekly}
-                onClick={() => setRepeatWeekly((prev) => !prev)}
-              >
-                🔁 Repeat weekly
-              </button>
+              <RepeatPicker
+                variant="pill"
+                aria-label="Repeat"
+                value={repeat}
+                onChange={setRepeat}
+              />
             </div>
           </div>
         </form>

@@ -10,11 +10,11 @@ import {
 } from "../../hooks/useTasks";
 import { useDeferredDelete } from "../../hooks/useDeferredDelete";
 import { useToast } from "../../context/toast";
+import { formatDueDate } from "../../lib/date";
 import {
-  createNextWeeklyDate,
-  formatDueDate,
-  isRecurringWeekly,
-} from "../../lib/date";
+  nextTaskOccurrence,
+  taskRepeatAdjective,
+} from "../../lib/taskRepeat";
 
 /* The mutations shared by the Tasks view and the dashboard widget.
  *
@@ -39,21 +39,24 @@ export function useTaskActions() {
     (task: Task) => {
       const willComplete = !task.is_done;
       toggleTask.mutate({ id: task.id, currentStatus: task.is_done });
-      if (willComplete && isRecurringWeekly(task.text)) {
-        const nextDueDate = createNextWeeklyDate(task.due_date);
+      const next = willComplete
+        ? nextTaskOccurrence(task.text, task.due_date)
+        : null;
+      if (next) {
+        const kind = taskRepeatAdjective(next.repeat);
         addTask.mutate(
           {
-            text: task.text,
-            dueDate: nextDueDate,
+            text: next.text,
+            dueDate: next.dueDate,
           },
           {
             onSuccess: () => {
-              const formattedDate = formatDueDate(nextDueDate);
-              showToast(`Scheduled next weekly task for ${formattedDate}`);
+              const formattedDate = formatDueDate(next.dueDate);
+              showToast(`Scheduled next ${kind} task for ${formattedDate}`);
             },
             onError: (error) => {
               showToast(
-                `Couldn't schedule the next weekly task. ${error.message}`,
+                `Couldn't schedule the next ${kind} task. ${error.message}`,
                 { error: true },
               );
             },
