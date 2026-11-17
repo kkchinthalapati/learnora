@@ -8,13 +8,12 @@ import { useAddTask, useTasks } from "../../hooks/useTasks";
 import { useToast } from "../../context/toast";
 import { sortTasksByUrgency } from "./sortTasks";
 import { useTaskActions } from "./useTaskActions";
+import { dateInDays, localDateStr, formatDueDate } from "../../lib/date";
 import {
-  dateInDays,
-  localDateStr,
-  formatDueDate,
   formatRecurrenceCleanText,
-  isRecurringWeekly,
-} from "../../lib/date";
+  parseTaskRepeat,
+  taskRepeatLabel,
+} from "../../lib/taskRepeat";
 import { TASK_MAX } from "../../lib/fieldLimits";
 import styles from "./tasks.module.css";
 
@@ -128,7 +127,8 @@ export function DashboardTasksWidget({
             </li>
           ) : (
             pending.map((task) => {
-              const isRecurring = isRecurringWeekly(task.text);
+              const repeat = parseTaskRepeat(task.text)?.repeat;
+              const repeatLabel = repeat ? taskRepeatLabel(repeat) : null;
               const displayText =
                 formatRecurrenceCleanText(task.text) || task.text;
               /* A task left from days ago is not "due today" — it is late, and a
@@ -174,13 +174,13 @@ export function DashboardTasksWidget({
                   <div className={styles.dashContent}>
                     <span className={styles.dashLabel}>{displayText}</span>
                     <div className={styles.dashMeta}>
-                      {isRecurring && (
+                      {repeatLabel && (
                         <span
                           className={styles.dashRecurring}
-                          aria-label="Recurring weekly"
-                          title="Recurring weekly"
+                          aria-label={`Recurring ${repeatLabel.toLowerCase()}`}
+                          title={`Recurring ${repeatLabel.toLowerCase()}`}
                         >
-                          🔁 Weekly
+                          🔁 {repeatLabel}
                         </span>
                       )}
                       {dueLabel && (

@@ -313,18 +313,47 @@
   flex-wrap: wrap;
 }
 
-.recurringBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+/* RepeatPicker: a native select dressed as a chip. The global `select` rule
+   gives every select a full-width form-field look; these undo the width and
+   padding but keep its chevron, so the chip still reads as "pick one".
+   `background-color`, not `background`: the shorthand would drop the
+   chevron image. The right padding leaves room for the chevron, which the
+   global rules pin 14px from the edge. */
+.repeatSelect {
+  width: auto;
+  max-width: 100%;
+  flex: 0 0 auto;
   font-family: inherit;
   font-size: var(--fs-xs);
-  font-weight: 600;
-  padding: 4px 8px;
+  font-weight: 500;
+  line-height: 1.2;
+  background-color: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.repeatChip {
+  padding: 4px 32px 4px 8px;
   border-radius: var(--r-sm);
-  background: var(--accent-soft);
-  color: var(--accent-text);
   border: 1px solid var(--glass-border-subtle);
+}
+
+.repeatPill {
+  min-height: var(--touch-target-min);
+  padding: 8px 34px 8px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-border);
+}
+
+.repeatSelect:hover,
+.repeatOn {
+  background-color: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.repeatOn {
+  font-weight: 600;
 }
 
 .quickActions {
@@ -354,13 +383,6 @@
   background: var(--accent-soft);
   color: var(--accent-text);
   border-color: var(--accent);
-}
-
-.quickBtnActive {
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  border-color: var(--accent);
-  font-weight: 600;
 }
 
 .quickFocusBtn {
@@ -750,6 +772,7 @@
 @media (pointer: coarse) {
   .due,
   .quickBtn,
+  .repeatChip,
   .quickFocusBtn,
   .dashSnoozeBtn,
   .dashFocusBtn {

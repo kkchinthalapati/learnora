@@ -10,10 +10,6 @@ import {
   formatMonthDay,
   formatDueDate,
   dateInDays,
-  isRecurringWeekly,
-  formatRecurrenceCleanText,
-  createNextWeeklyDate,
-  createRecurringWeeklyText,
 } from "./date";
 
 describe("date utils", () => {
@@ -298,101 +294,6 @@ describe("date utils", () => {
     it("handles year boundaries correctly", () => {
       expect(dateInDays(1, "2026-12-31")).toBe("2027-01-01");
       expect(dateInDays(7, "2026-12-28")).toBe("2027-01-04");
-    });
-  });
-
-  describe("isRecurringWeekly", () => {
-    it("detects standard [🔁 Weekly] tag", () => {
-      expect(isRecurringWeekly("Math homework [🔁 Weekly]")).toBe(true);
-    });
-
-    it("detects [Weekly] tag", () => {
-      expect(isRecurringWeekly("Submit assignment [Weekly]")).toBe(true);
-    });
-
-    it("detects 🔁 Weekly tag without brackets", () => {
-      expect(isRecurringWeekly("Read chapter 4 🔁 Weekly")).toBe(true);
-    });
-
-    it("is case-insensitive", () => {
-      expect(isRecurringWeekly("Chemistry lab [🔁 weekly]")).toBe(true);
-      expect(isRecurringWeekly("Quiz prep [weekly]")).toBe(true);
-    });
-
-    it("returns false for non-recurring tasks", () => {
-      expect(isRecurringWeekly("Review physics notes")).toBe(false);
-      expect(isRecurringWeekly("")).toBe(false);
-      expect(isRecurringWeekly("Weekly meeting notes")).toBe(false);
-    });
-  });
-
-  describe("formatRecurrenceCleanText", () => {
-    it("strips [🔁 Weekly] tag from text", () => {
-      expect(formatRecurrenceCleanText("Math homework [🔁 Weekly]")).toBe(
-        "Math homework",
-      );
-    });
-
-    it("strips [Weekly] tag from text", () => {
-      expect(formatRecurrenceCleanText("Physics problem set [Weekly]")).toBe(
-        "Physics problem set",
-      );
-    });
-
-    it("strips 🔁 Weekly tag from text", () => {
-      expect(formatRecurrenceCleanText("Read literature 🔁 Weekly")).toBe(
-        "Read literature",
-      );
-    });
-
-    it("cleans multiple spaces and trims", () => {
-      expect(formatRecurrenceCleanText("  History essay  [🔁 Weekly]  ")).toBe(
-        "History essay",
-      );
-    });
-
-    it("leaves text unchanged when no recurrence tag exists", () => {
-      expect(formatRecurrenceCleanText("Review biology flashcards")).toBe(
-        "Review biology flashcards",
-      );
-    });
-  });
-
-  describe("createNextWeeklyDate", () => {
-    it("computes +7 days from an existing due date", () => {
-      expect(createNextWeeklyDate("2026-08-20")).toBe("2026-08-27");
-    });
-
-    it("computes +7 days from today when current due date is null or undefined", () => {
-      const today = new Date();
-      const expected = new Date(today);
-      expected.setDate(today.getDate() + 7);
-      expect(createNextWeeklyDate(null)).toBe(localDateStr(expected));
-      expect(createNextWeeklyDate(undefined)).toBe(localDateStr(expected));
-    });
-  });
-
-  describe("createRecurringWeeklyText", () => {
-    it("appends [🔁 Weekly] when task is not recurring", () => {
-      expect(createRecurringWeeklyText("Practice calculus")).toBe(
-        "Practice calculus [🔁 Weekly]",
-      );
-    });
-
-    it("toggles off recurrence by stripping tag when already recurring", () => {
-      expect(createRecurringWeeklyText("Practice calculus [🔁 Weekly]")).toBe(
-        "Practice calculus",
-      );
-      expect(createRecurringWeeklyText("Practice calculus [Weekly]")).toBe(
-        "Practice calculus",
-      );
-      expect(createRecurringWeeklyText("Practice calculus 🔁 Weekly")).toBe(
-        "Practice calculus",
-      );
-    });
-
-    it("handles empty strings", () => {
-      expect(createRecurringWeeklyText("")).toBe("[🔁 Weekly]");
     });
   });
 });
