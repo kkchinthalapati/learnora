@@ -68,7 +68,17 @@ import {
   type ResolvedBlockTarget,
 } from "./planTargets";
 import styles from "./plan.module.css";
-import { useStudySchedule } from "../../hooks/useStudySchedule";
+import {
+  useStudySchedule,
+  type StudySchedule,
+} from "../../hooks/useStudySchedule";
+import { useProAction } from "../../components/ProGate";
+import {
+  calendarPlanBlocks,
+  downloadICS,
+  generatePlanICS,
+  generateScheduleICS,
+} from "../../lib/ics";
 import { formatClock, formatDuration } from "../../lib/lifeContext";
 
 /* The Weekly Plan — ports index.html:942-955 + js/router.js's `loadPlanView`
@@ -542,6 +552,7 @@ export function PlanView() {
   };
   const { showToast } = useToast();
   const { confirm } = useDialog();
+  const calendarNoteId = useId();
   const { prepareFocus } = useTimer();
   const navigate = useNavigate();
   const { data: exams } = useExams();
@@ -576,6 +587,10 @@ export function PlanView() {
   const parsed = plan ? parseStoredPlan(plan.plan_json) : null;
   const hasPlan = !!parsed && parsed.days.length > 0;
   const isTriageActive = parsed?.isTriage === true;
+
+  /* The worked-out week, read here rather than inside `ScheduleWeek` so the
+     header's "Add to calendar" exports exactly the blocks that list shows. */
+  const schedule = useStudySchedule();
 
   /* "Did last week's plan actually happen?" — a quiet recap, not a new
      generation input the student has to act on (that part happens inside
@@ -845,6 +860,35 @@ export function PlanView() {
     }
   };
 
+  /* One action for whichever week is on the page. A saved plan goes out free,
+     like Settings → Export calendar. The worked-out week is the dashboard's
+     timed export with reminders, behind the same gate, so this page is not a
+     way around it. */
+  const exportGate = useProAction("scheduleExport");
+  const calendarReady =
+    !isPending &&
+    !generate.isPending &&
+    !isError &&
+    (hasPlan || !schedule.isPending);
+  const canAddToCalendar = hasPlan
+    ? calendarPlanBlocks(parsed.days).length > 0
+    : schedule.blocks.length > 0;
+
+  const addToCalendar = () => {
+    if (!canAddToCalendar) return;
+    if (hasPlan) {
+      downloadICS(generatePlanICS(parsed.days), "learnora_this_week.ics");
+    } else {
+      if (!exportGate.guard()) return;
+      downloadICS(generateScheduleICS(schedule.blocks), "learnora_this_week.ics");
+    }
+    /* Opening the file is enough for Apple Calendar and Outlook; Google
+       Calendar only takes it through its import page, which nobody guesses. */
+    showToast(
+      "Calendar file downloaded. Open it to add your week — in Google Calendar, use Settings → Import.",
+    );
+  };
+
   /* Regenerating overwrites this week's row (`Plans.upsert` is keyed on
      user + week_start), so it asks first — the vanilla did the same on both
      entry points (js/main.js:2446-2456, :2485-2491). Generating the first
@@ -937,6 +981,17 @@ export function PlanView() {
           )}
         </div>
         <div className={styles.summaryActions}>
+          {calendarReady && (
+            <Button
+              onClick={addToCalendar}
+              disabled={!canAddToCalendar}
+              aria-describedby={canAddToCalendar ? undefined : calendarNoteId}
+              title="Download this week for Google, Apple or Outlook Calendar"
+            >
+              <Icon name="download" size={15} />
+              Add to calendar
+            </Button>
+          )}
           {hasPlan && (
             <Button
               onClick={() => void runGenerate()}
@@ -957,6 +1012,12 @@ export function PlanView() {
             </Button>
           )}
         </div>
+        {/* A disabled button on its own does not say why. */}
+        {calendarReady && !canAddToCalendar ? (
+          <p id={calendarNoteId} className={styles.calendarNote}>
+            Nothing to add to your calendar yet.
+          </p>
+        ) : null}
       </Card>
 
       {isBehind && proposal ? (
@@ -1102,7 +1163,7 @@ export function PlanView() {
               <Link to="/my-week" className={styles.emptyLink}>Free time</Link>.
               It updates as those change.
             </p>
-            <ScheduleWeek />
+            <ScheduleWeek schedule={schedule} />
             <Button
               variant="secondary"
               className={styles.emptyCta}
@@ -1127,6 +1188,8 @@ export function PlanView() {
         />
       ) : null}
 
+      {exportGate.paywall}
+
       {editor ? (
         <BlockEditor
           key={`${editor.kind}-${editor.initial.date}-${editor.kind === "edit" ? `${editor.location.dayIndex}-${editor.location.blockIndex}` : "new"}`}
@@ -1145,8 +1208,7 @@ export function PlanView() {
 }
 
 /* The deterministic week (the same schedule Availability previews). */
-function ScheduleWeek() {
-  const schedule = useStudySchedule();
+function ScheduleWeek({ schedule }: { schedule: StudySchedule }) {
   const days = schedule.days.filter((d) =>
     schedule.blocks.some((b) => b.date === d.date),
   );
