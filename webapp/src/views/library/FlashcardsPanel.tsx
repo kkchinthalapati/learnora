@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
@@ -9,6 +10,7 @@ import {
   useFlashcards,
   useFlashcardsDueCount,
 } from "../../hooks/useFlashcards";
+import { ImportCardsModal } from "../decks/ImportCardsModal";
 import { dueCardsFrom } from "../review/srs";
 import { formatCreatedShort } from "./libraryMeta";
 import { useLibraryActions } from "./useLibraryActions";
@@ -37,6 +39,12 @@ export function FlashcardsPanel() {
   }
   const { removeDeck } = useLibraryActions();
   const { openCreateModal } = useCreateModal();
+  const [importing, setImporting] = useState(false);
+  /* Students arriving with decks made in Quizlet or Anki bring them in here,
+     next to the sets they will sit beside. */
+  const importModal = (
+    <ImportCardsModal open={importing} onClose={() => setImporting(false)} />
+  );
 
   const banner =
     !dueCountPending && dueCount && dueCount > 0 ? (
@@ -91,7 +99,9 @@ export function FlashcardsPanel() {
           >
             Create flashcards
           </Button>
+          <Button onClick={() => setImporting(true)}>Import cards</Button>
         </EmptyState>
+        {importModal}
       </>
     );
   }
@@ -99,6 +109,12 @@ export function FlashcardsPanel() {
   return (
     <>
       {banner}
+      <div className={styles.panelActions}>
+        <Button onClick={() => setImporting(true)}>
+          <Icon name="download" size={16} /> Import cards
+        </Button>
+      </div>
+      {importModal}
       <ul className={styles.grid}>
         {decks.map((deck) => {
           const counts = deckCounts.get(deck.id);

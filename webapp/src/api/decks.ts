@@ -1,6 +1,18 @@
 import { supabase } from "../lib/supabase";
 import { requireUserId } from "./session";
+import { flashcardsApi } from "./flashcards";
 import type { FlashcardDeck } from "./types";
+
+/** An import that failed part-way. `added` cards are in the set (always 0
+ *  for a new set, which is removed again). */
+export class CardImportError extends Error {
+  readonly added: number;
+  constructor(message: string, added: number) {
+    super(message);
+    this.name = "CardImportError";
+    this.added = added;
+  }
+}
 
 /* PostgREST's "column not in schema cache" (PGRST204) or Postgres's
    "undefined column" (42703): a column a pending migration adds. */
@@ -62,6 +74,48 @@ export const decksApi = {
       .eq("material_id", materialId)
       .eq("user_id", userId);
     if (error && !isMissingColumn(error)) throw new Error(error.message);
+  },
+
+  /* Imported cards (lib/cardImport.ts) go in as new: no schedule columns are
+   * written, so they are due straight away like any other new card.
+   *
+   * Into a new set, it is all or nothing: if any chunk fails the set is
+   * deleted again, and the cascade takes the chunks that did land with it —
+   * a half-made set the student didn't notice would be worse than none.
+   * Into an existing set nothing is deleted, since that would take the
+   * student's own cards too; the error says how many went in, and importing
+   * the same file again skips those (see cardImport's withoutExisting). */
+  async importCards(
+    target: { deckId: string } | { folderId: string | null; title: string },
+    cards: { front: string; back: string }[],
+    onProgress?: (added: number) => void,
+  ): Promise<{ deck: FlashcardDeck | null; added: number }> {
+    if ("deckId" in target) {
+      let added = 0;
+      try {
+        added = await flashcardsApi.addInChunks(target.deckId, cards, (n) => {
+          added = n;
+          onProgress?.(n);
+        });
+      } catch (error) {
+        throw new CardImportError((error as Error).message, added);
+      }
+      return { deck: null, added };
+    }
+
+    if (cards.length === 0) throw new CardImportError("There are no cards to import.", 0);
+    const deck = await decksApi.add(target.folderId, target.title);
+    try {
+      const added = await flashcardsApi.addInChunks(deck.id, cards, onProgress);
+      return { deck, added };
+    } catch (error) {
+      try {
+        await decksApi.delete(deck.id);
+      } catch (cleanup) {
+        console.error("[decksApi.importCards] couldn't remove the partial set", cleanup);
+      }
+      throw new CardImportError((error as Error).message, 0);
+    }
   },
 
   // flashcards.deck_id -> flashcard_decks.id is ON DELETE CASCADE, so the
