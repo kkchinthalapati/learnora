@@ -21,6 +21,7 @@ import {
   useFlashcardsByDeck,
   useUpdateFlashcard,
 } from "../../hooks/useFlashcards";
+import { ImportCardsModal } from "./ImportCardsModal";
 import styles from "./deck.module.css";
 
 /* Deck contents — the screen a deck never had.
@@ -403,6 +404,7 @@ export function DeckCardsView() {
   const addCard = useAddFlashcard();
   const { showToast } = useToast();
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   if (decks.isPending || cards.isPending) {
     return (
@@ -502,11 +504,19 @@ export function DeckCardsView() {
             }
           />
         ) : (
-          <Button variant="primary" onClick={() => setAdding(true)}>
-            Write a card
-          </Button>
+          <div className={styles.formActions}>
+            <Button variant="primary" onClick={() => setAdding(true)}>
+              Write a card
+            </Button>
+            <Button onClick={() => setImporting(true)}>Import into this set</Button>
+          </div>
         )}
       </div>
+      <ImportCardsModal
+        open={importing}
+        onClose={() => setImporting(false)}
+        deck={{ id: deck.id, title: deck.title }}
+      />
     </div>
   );
 }

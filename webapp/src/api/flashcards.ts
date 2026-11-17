@@ -11,6 +11,9 @@ export const ALLOWED_CARD_IMAGE_TYPES = [
   "image/gif",
 ];
 
+/** Cards per insert request when importing. */
+export const IMPORT_CHUNK_SIZE = 500;
+
 /** What a student can set on a card. Scheduling columns are deliberately not
  *  here — see `update`. */
 export interface CardFields {
@@ -79,6 +82,26 @@ export const flashcardsApi = {
       .select();
     if (error) throw new Error(error.message);
     return data ?? [];
+  },
+
+  /* An imported deck can be thousands of cards. One insert that size is a
+   * multi-megabyte request that can time out as a whole, so it goes in
+   * chunks, in order. Each chunk is one statement, so a failure never leaves
+   * a chunk half-written; `onProgress` gets the running total. */
+  async addInChunks(
+    deckId: string,
+    cards: { front: string; back: string }[],
+    onProgress?: (added: number) => void,
+    chunkSize = IMPORT_CHUNK_SIZE,
+  ): Promise<number> {
+    let added = 0;
+    for (let i = 0; i < cards.length; i += chunkSize) {
+      const chunk = cards.slice(i, i + chunkSize);
+      await flashcardsApi.addBatch(deckId, chunk);
+      added += chunk.length;
+      onProgress?.(added);
+    }
+    return added;
   },
 
   /* Card images live in the private `card-media` bucket, filed under the

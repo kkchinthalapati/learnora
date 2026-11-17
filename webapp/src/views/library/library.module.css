@@ -776,3 +776,12 @@
 .newSubject {
   align-self: flex-start;
 }
+
+/* Card sets tab: the import action above the grid. */
+.panelActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-4);
+}
