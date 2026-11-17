@@ -278,6 +278,29 @@ export async function recordOfflineGrade(
   });
 }
 
+/** Undo of `recordOfflineGrade`: put the card back as it was before the
+ *  grade, so it is due on this device again. Only while the copy still holds
+ *  that grade (`undoneReviewedAt`) — a copy refreshed from the server since
+ *  is already right, or carries a newer review that is not ours to remove. */
+export async function restoreOfflineCard(
+  userId: string,
+  previous: Flashcard,
+  undoneReviewedAt: string,
+): Promise<boolean> {
+  return withStore(false, async (store) => {
+    const snapshot = await store.get<OfflineSnapshot>("snapshots", userId);
+    if (!snapshot || snapshot.userId !== userId) return false;
+    let restored = false;
+    const cards = snapshot.cards.map((c) => {
+      if (c.id !== previous.id || c.last_reviewed_at !== undoneReviewedAt) return c;
+      restored = true;
+      return previous;
+    });
+    if (restored) await store.put("snapshots", userId, { ...snapshot, cards });
+    return restored;
+  });
+}
+
 /* ── Images ──────────────────────────────────────────────────────────────── */
 
 /**

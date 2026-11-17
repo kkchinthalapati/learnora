@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
-import { flashcardsApi } from "../api/flashcards";
+import { flashcardsApi, type ReviewScheduleSnapshot } from "../api/flashcards";
 import { sessionsApi, type LogSessionInput } from "../api/sessions";
 import { tasksApi } from "../api/tasks";
 import { queryClient } from "./queryClient";
@@ -469,6 +469,68 @@ export async function submitSrsReview(
     enqueueReviewDurably(stamped);
     return { queued: true };
   }
+}
+
+/** Thrown by `undoSrsReview` when the review already reached the server and
+ *  there is no connection to restore it with. Its own class so the caller
+ *  can tell the student exactly that, rather than matching on message text
+ *  (a server error can mention "offline" too). */
+export class OfflineUndoError extends Error {
+  constructor() {
+    super("You're offline, and this grade was already saved. Reconnect to undo it.");
+    this.name = "OfflineUndoError";
+  }
+}
+
+export interface UndoSrsReviewPayload {
+  cardId: string;
+  /** The `reviewedAt` the undone review was submitted with — what identifies
+   *  it in the queue and on the server. */
+  reviewedAt: string;
+  /** The card's schedule before that review. */
+  previous: ReviewScheduleSnapshot;
+}
+
+/**
+ * Take back one review submitted through `submitSrsReview`.
+ *
+ * A review still waiting in the queue is simply removed from it: it never
+ * reached the server, so there is nothing there to restore. One that has
+ * landed is reversed with `flashcardsApi.restoreReview`. Unlike a review, an
+ * undo is never queued — the student is about to grade the card again, and a
+ * restore replayed after that grade could do nothing useful — so with no
+ * connection and nothing to cancel this throws and the caller says so.
+ */
+export async function undoSrsReview(
+  payload: UndoSrsReviewPayload,
+): Promise<{ cancelledQueued: boolean }> {
+  /* A flush in flight may be sending this very review; let it finish so the
+     review is either still queued or definitely on the server, not both. */
+  if (flushPromise) await flushPromise.catch(() => undefined);
+
+  const queue = getOfflineQueue();
+  const queuedIdx = queue.findIndex(
+    (a) =>
+      a.type === "submitSrsReview" &&
+      (a.payload as SrsReviewPayload).cardId === payload.cardId &&
+      (a.payload as SrsReviewPayload).reviewedAt === payload.reviewedAt,
+  );
+  if (queuedIdx >= 0) {
+    queue.splice(queuedIdx, 1);
+    saveOfflineQueue(queue);
+    return { cancelledQueued: true };
+  }
+
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    throw new OfflineUndoError();
+  }
+  await flashcardsApi.restoreReview(
+    payload.cardId,
+    payload.previous,
+    payload.reviewedAt,
+  );
+  queryClient.invalidateQueries({ queryKey: ["flashcards"] });
+  return { cancelledQueued: false };
 }
 
 /**
