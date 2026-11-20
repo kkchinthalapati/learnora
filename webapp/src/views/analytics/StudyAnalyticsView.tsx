@@ -196,7 +196,7 @@ export function StudyAnalyticsView() {
             {totalHours}h {remainingMins}m
           </p>
           <div className={styles.statSub}>
-            <span>{sessions.length} completed sessions</span>
+            <span>{sessions.length} completed {sessions.length === 1 ? "session" : "sessions"}</span>
             <span className={styles.statBadge}>
               +{heatData.totalMinutes}m logged
             </span>

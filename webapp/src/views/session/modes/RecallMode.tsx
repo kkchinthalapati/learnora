@@ -201,7 +201,7 @@ export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
           {done ? (
             <EmptyState
               title="That's the set."
-              message={`${cards.length} cards reviewed. Each one is rescheduled for when it would start to slip.${
+              message={`${cards.length} ${cards.length === 1 ? "card" : "cards"} reviewed. Each one is rescheduled for when it would start to slip.${
                 typedCount
                   ? ` You typed ${typedCount} of ${cards.length} answers, so those ratings were checked against what you wrote.`
                   : " Next time, type each answer before revealing it, and your ratings are checked against what you wrote."

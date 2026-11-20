@@ -611,6 +611,17 @@ export function recordCardReviewedToday(): void {
   saveDailyProgress({ ...current, cardsReviewed: current.cardsReviewed + 1 });
 }
 
+/** Takes back one `recordCardReviewedToday` — a review the student undid is
+ *  not a card reviewed. Floored at zero: an undo just after midnight must not
+ *  push the new day's count negative. */
+export function unrecordCardReviewedToday(): void {
+  const current = loadDailyProgress();
+  saveDailyProgress({
+    ...current,
+    cardsReviewed: Math.max(0, current.cardsReviewed - 1),
+  });
+}
+
 export function recordTaskCompletedToday(): void {
   const current = loadDailyProgress();
   saveDailyProgress({

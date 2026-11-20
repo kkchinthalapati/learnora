@@ -344,4 +344,17 @@ describe("DeckCardsView", () => {
       expect(Storage.get(cardDraftKey("deck-1"))).toBeNull(),
     );
   });
+
+  it("offers an import into this set", async () => {
+    serve();
+    renderView();
+    await userEvent
+      .setup()
+      .click(await screen.findByRole("button", { name: "Import into this set" }));
+    expect(
+      await screen.findByRole("dialog", { name: "Import into this set" }),
+    ).toBeInTheDocument();
+    // An existing set keeps its own title; there is nothing to name.
+    expect(screen.queryByLabelText("Set title")).not.toBeInTheDocument();
+  });
 });

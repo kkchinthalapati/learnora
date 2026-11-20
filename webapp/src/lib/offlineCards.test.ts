@@ -11,6 +11,7 @@ import {
   loadOfflineImage,
   loadOfflineSnapshot,
   recordOfflineGrade,
+  restoreOfflineCard,
   saveOfflineSnapshot,
   selectOfflineCards,
   setOfflineKVForTests,
@@ -161,6 +162,21 @@ describe("offlineCards — storage", () => {
     expect(snapshot?.cards[0].next_review_date).toBe(REVIEW.nextReviewDate);
     expect(snapshot?.cards[1].next_review_date).toBeNull();
     expect(await recordOfflineGrade("nobody", REVIEW)).toBe(false);
+  });
+
+  it("undoes an offline grade, but never a newer review that replaced it", async () => {
+    const before = card({ srs_interval: 2, next_review_date: null });
+    await saveOfflineSnapshot("u1", [], [before, card({ id: "c2" })]);
+    await recordOfflineGrade("u1", REVIEW);
+
+    expect(await restoreOfflineCard("u1", before, REVIEW.reviewedAt!)).toBe(true);
+    const snapshot = await loadOfflineSnapshot("u1");
+    expect(snapshot?.cards[0]).toEqual(before);
+
+    // The copy no longer holds that grade, so a second undo changes nothing.
+    await recordOfflineGrade("u1", { ...REVIEW, reviewedAt: "2026-09-29T13:00:00.000Z" });
+    expect(await restoreOfflineCard("u1", before, REVIEW.reviewedAt!)).toBe(false);
+    expect((await loadOfflineSnapshot("u1"))?.cards[0].srs_interval).toBe(REVIEW.interval);
   });
 
   it("keeps images within the byte cap, reuses stored ones, and prunes the rest", async () => {

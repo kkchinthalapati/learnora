@@ -10,6 +10,16 @@ import { fakeSession, renderWithAuth } from "../../test/auth";
 import { localDateStr, mondayOfWeek, WEEKDAY_NAMES } from "../../lib/date";
 import { PlanView } from "./PlanView";
 import { TimerView } from "../timer/TimerView";
+import { downloadICS } from "../../lib/ics";
+import { resetLifeContextCache } from "../../hooks/useLifeContext";
+import { DEFAULT_LIFE_CONTEXT, LIFE_CONTEXT_KEY } from "../../lib/lifeContext";
+
+/* The real generators, with only the browser download stubbed — the tests
+   below assert on the file that would have been saved. */
+vi.mock("../../lib/ics", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../lib/ics")>()),
+  downloadICS: vi.fn(),
+}));
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
@@ -94,6 +104,8 @@ function serveWorkspace() {
     http.get(rest("study_sessions"), () => HttpResponse.json([])),
     http.get(rest("quiz_attempts"), () => HttpResponse.json([])),
     http.get(rest("folders"), () => HttpResponse.json([])),
+    /* No row is a free account. */
+    http.get(rest("profiles"), () => HttpResponse.json([])),
   );
 }
 
@@ -1141,5 +1153,138 @@ describe("PlanView — launching the block's content", () => {
     );
 
     expect(await screen.findByText("Timer view")).toBeInTheDocument();
+  });
+});
+
+describe("PlanView — Add to calendar", () => {
+  const download = vi.mocked(downloadICS);
+
+  beforeEach(() => {
+    localStorage.clear();
+    resetLifeContextCache();
+    mockAuthSession("user-1");
+    serveWorkspace();
+    download.mockClear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetLifeContextCache();
+  });
+
+  /** A free week with a task due in five days: the worked-out week always has
+   *  something to place, whatever time of day the suite runs. */
+  function serveWorkedOutWeek({ pro }: { pro: boolean }) {
+    localStorage.setItem(
+      LIFE_CONTEXT_KEY,
+      JSON.stringify({
+        ...DEFAULT_LIFE_CONTEXT,
+        wakeTime: "07:00",
+        sleepTime: "23:00",
+        weekdayCapacityMins: 300,
+        weekendCapacityMins: 300,
+      }),
+    );
+    resetLifeContextCache();
+    server.use(
+      http.get(rest("tasks"), () =>
+        HttpResponse.json([
+          {
+            id: 1,
+            user_id: "user-1",
+            text: "Finish the lab report ~2h",
+            is_done: false,
+            due_date: todayOffset(5),
+          },
+        ]),
+      ),
+      http.get(rest("profiles"), () =>
+        HttpResponse.json(
+          pro
+            ? [
+                {
+                  plan: "pro",
+                  plan_status: "active",
+                  plan_renews_at: "2099-01-01T00:00:00Z",
+                  plan_cancel_at_period_end: false,
+                },
+              ]
+            : [],
+        ),
+      ),
+    );
+  }
+
+  it("downloads the saved plan's blocks", async () => {
+    servePlan(planRow(SAMPLE_PLAN));
+    renderPlan();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /Add to calendar/ }),
+    );
+
+    expect(download).toHaveBeenCalledTimes(1);
+    const [ics, filename] = download.mock.calls[0];
+    expect(filename).toBe("learnora_this_week.ics");
+    expect(ics).toContain("SUMMARY:Study: Biology");
+    expect(ics).toContain("SUMMARY:Study: Maths");
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(2);
+    expect(await screen.findByText(/Calendar file downloaded/)).toBeVisible();
+  });
+
+  it("downloads the worked-out week when there is no saved plan", async () => {
+    servePlan(null);
+    serveWorkedOutWeek({ pro: true });
+    renderPlan();
+
+    expect(
+      await screen.findByRole("list", { name: "This week's study blocks" }),
+    ).toBeInTheDocument();
+    const button = await screen.findByRole("button", {
+      name: /Add to calendar/,
+    });
+    await waitFor(() => expect(button).toBeEnabled());
+    /* The subscription read can land after the list; until it does the gate
+       answers "not yet" with the paywall rather than a download. */
+    await waitFor(async () => {
+      await userEvent.click(button);
+      expect(download).toHaveBeenCalled();
+    });
+
+    const [ics] = download.mock.calls[0];
+    expect(ics).toContain("lab report");
+    expect(ics).toMatch(/DTSTART:\d{8}T\d{6}\r\n/);
+    expect(ics).toContain("BEGIN:VALARM");
+  });
+
+  it("asks a free account to upgrade instead of exporting the worked-out week", async () => {
+    servePlan(null);
+    serveWorkedOutWeek({ pro: false });
+    renderPlan();
+
+    await screen.findByRole("list", { name: "This week's study blocks" });
+    await userEvent.click(
+      await screen.findByRole("button", { name: /Add to calendar/ }),
+    );
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(download).not.toHaveBeenCalled();
+  });
+
+  it("is disabled, and says why, when the week has nothing to add", async () => {
+    servePlan(null);
+    renderPlan();
+
+    expect(
+      await screen.findByText(/Nothing needs scheduling yet/),
+    ).toBeInTheDocument();
+    const button = await screen.findByRole("button", {
+      name: /Add to calendar/,
+    });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAccessibleDescription(
+      "Nothing to add to your calendar yet.",
+    );
+    expect(download).not.toHaveBeenCalled();
   });
 });

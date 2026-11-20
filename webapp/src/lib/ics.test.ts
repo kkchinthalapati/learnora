@@ -1,8 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { escapeIcsText, generateICS, generateScheduleICS } from "./ics";
+import {
+  calendarPlanBlocks,
+  escapeIcsText,
+  generateICS,
+  generatePlanICS,
+  generateScheduleICS,
+  parseClockHint,
+} from "./ics";
 import type { ScheduledBlock } from "./autoSchedule";
 import type { Exam, WeeklyPlan } from "../api/types";
-import type { WeeklyPlanJson } from "./aiJson";
+import type { PlanDay, WeeklyPlanJson } from "./aiJson";
 
 describe("ics utils", () => {
   describe("generateICS", () => {
@@ -385,5 +392,150 @@ describe("generateScheduleICS", () => {
     const uids = [...ics.matchAll(/UID:(.+)/g)].map((m) => m[1]);
     expect(uids).toHaveLength(2);
     expect(uids[0]).not.toBe(uids[1]);
+  });
+});
+
+const uidsOf = (ics: string) => [...ics.matchAll(/UID:(.+)/g)].map((m) => m[1]);
+const eventsOf = (ics: string) => ics.split("BEGIN:VEVENT").slice(1);
+
+describe("generateScheduleICS — re-importing", () => {
+  it("gives the same block the same UID on every export", () => {
+    /* A student adds their week again next Sunday, or twice by accident. A
+       calendar keeps one event per UID, so a stable one updates the event
+       instead of doubling the week. */
+    const week = [block(), block({ id: "b2", date: "2026-09-02" })];
+    const first = uidsOf(generateScheduleICS(week));
+    const second = uidsOf(
+      generateScheduleICS(week.map((b) => ({ ...b, id: `${b.id}-rerun` }))),
+    );
+    expect(first).toHaveLength(2);
+    expect(second).toEqual(first);
+    expect(first[0]).not.toBe(first[1]);
+  });
+
+  it("keeps the UID when the scheduler moves a block, so it moves in the calendar too", () => {
+    const [before] = uidsOf(generateScheduleICS([block()]));
+    const [after] = uidsOf(
+      generateScheduleICS([block({ startMin: 900, endMin: 945 })]),
+    );
+    expect(after).toBe(before);
+  });
+
+  it("tells two same-named blocks on one day apart", () => {
+    const uids = uidsOf(
+      generateScheduleICS([
+        block(),
+        block({ id: "b2", startMin: 800, endMin: 845 }),
+      ]),
+    );
+    expect(new Set(uids).size).toBe(2);
+  });
+});
+
+describe("parseClockHint", () => {
+  it("reads the clock times a block's hint can carry", () => {
+    expect(parseClockHint("9:30 AM")).toBe(570);
+    expect(parseClockHint("14:00")).toBe(840);
+    expect(parseClockHint("7pm")).toBe(1140);
+    expect(parseClockHint("12 AM")).toBe(0);
+    expect(parseClockHint("9:30 p. m.")).toBe(1290);
+    expect(parseClockHint("9 AM – 11 AM (Peak Focus)")).toBe(540);
+  });
+
+  it("leaves a loose hint, or a bare number, untimed", () => {
+    expect(parseClockHint("morning")).toBeNull();
+    expect(parseClockHint("after dinner")).toBeNull();
+    expect(parseClockHint("2 past papers")).toBeNull();
+    expect(parseClockHint("25:00")).toBeNull();
+    expect(parseClockHint(undefined)).toBeNull();
+  });
+});
+
+describe("generatePlanICS", () => {
+  const WEEK: PlanDay[] = [
+    {
+      date: "2026-09-01",
+      blocks: [
+        {
+          subject: "Chemistry: kinetics, part 2",
+          durationMins: 45,
+          startHint: "9:30 AM",
+          reason: "Exam on Friday; rates first",
+        },
+        { subject: "Biology", durationMins: 30, startHint: "morning" },
+      ],
+    },
+    {
+      date: "2026-09-02",
+      blocks: [{ subject: "Maths", startHint: "18:00" }],
+    },
+    { date: "2026-09-03", blocks: [] },
+  ];
+
+  it("returns a valid empty calendar for an empty week", () => {
+    const ics = generatePlanICS([{ date: "2026-09-01", blocks: [] }]);
+    expect(ics).toMatch(/^BEGIN:VCALENDAR/);
+    expect(ics).toMatch(/END:VCALENDAR$/);
+    expect(ics).not.toContain("BEGIN:VEVENT");
+    expect(calendarPlanBlocks([{ date: "2026-09-01", blocks: [] }])).toEqual(
+      [],
+    );
+  });
+
+  it("times a block whose hint is a clock time, in floating local time", () => {
+    const [chem] = eventsOf(generatePlanICS(WEEK));
+    expect(chem).toContain("DTSTART:20260901T093000\r\n");
+    expect(chem).toContain("DTEND:20260901T101500\r\n");
+    expect(chem).not.toMatch(/DTSTART:\d{8}T\d{6}Z/);
+    expect(chem).toContain("TRANSP:OPAQUE");
+  });
+
+  it("falls back to the default block length when a block has none", () => {
+    const maths = eventsOf(generatePlanICS(WEEK))[2];
+    expect(maths).toContain("DTSTART:20260902T180000");
+    expect(maths).toContain("DTEND:20260902T182500");
+  });
+
+  it("puts a block with only a loose hint on its day, all-day, without booking the day", () => {
+    const bio = eventsOf(generatePlanICS(WEEK))[1];
+    expect(bio).toContain("DTSTART;VALUE=DATE:20260901");
+    expect(bio).not.toContain("DTEND");
+    expect(bio).toContain("TRANSP:TRANSPARENT");
+    expect(bio).toContain("When: morning.");
+  });
+
+  it("escapes the subject and reason", () => {
+    const [chem] = eventsOf(generatePlanICS(WEEK));
+    expect(chem).toContain("SUMMARY:Study: Chemistry: kinetics\\, part 2\r\n");
+    expect(chem).toContain("Exam on Friday\\; rates first");
+  });
+
+  it("uses CRLF line endings throughout", () => {
+    const ics = generatePlanICS(WEEK);
+    expect(ics.split("\r\n").every((line) => !line.includes("\n"))).toBe(
+      true,
+    );
+    expect(ics).toContain("DTSTAMP:");
+  });
+
+  it("gives each block a stable UID across exports, and distinct ones within", () => {
+    const first = uidsOf(generatePlanICS(WEEK));
+    const second = uidsOf(generatePlanICS(structuredClone(WEEK)));
+    expect(first).toHaveLength(3);
+    expect(second).toEqual(first);
+    expect(new Set(first).size).toBe(3);
+  });
+
+  it("leaves out a block a rebalance already let go", () => {
+    const ics = generatePlanICS([
+      {
+        date: "2026-09-01",
+        blocks: [
+          { subject: "Physics", durationMins: 30, rebalanced: true },
+          { subject: "Physics", durationMins: 30, catchUpFrom: "2026-08-31" },
+        ],
+      },
+    ]);
+    expect(eventsOf(ics)).toHaveLength(1);
   });
 });

@@ -472,7 +472,7 @@ function MockExamSession({
         <div className={runner.titleBlock}>
           <h1 className={runner.title}>{quizTitle}</h1>
           <span className={runner.sub}>
-            {questions.length} questions · closed book
+            {questions.length} {questions.length === 1 ? "question" : "questions"} · closed book
           </span>
         </div>
         <div className={runner.topRight}>

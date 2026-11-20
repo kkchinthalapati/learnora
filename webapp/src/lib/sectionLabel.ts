@@ -111,6 +111,10 @@ export function isCommunitySection(pathname: string): boolean {
   return pathname.startsWith("/room") || pathname.startsWith("/friends");
 }
 
+/** What a path in no section is called: an unknown URL, or a page that
+ *  titles itself and has no nav entry (/welcome-pro). */
+export const FALLBACK_SECTION_LABEL = "Learnora";
+
 export function sectionLabel(
   pathname: string,
   t: (key: TranslationKey) => string,
@@ -150,7 +154,7 @@ export function sectionLabel(
      does — the landing page has no nav entry of its own. */
   if (pathname.startsWith("/friends")) return "Friends";
   if (pathname.startsWith("/settings")) return t("nav_settings");
-  return "Learnora";
+  return FALLBACK_SECTION_LABEL;
 }
 
 /* Routes whose view renders its own page-level hero (eyebrow + title +
@@ -188,6 +192,9 @@ const HERO_ROUTES = [
   "/my-week",
   "/tasks",
   "/exams",
+  /* "What do you want to learn?" is the capture page's own h1; the shell
+     printed a second one above it, and that one just said "Learnora". */
+  "/capture",
 ];
 
 export function viewOwnsPageTitle(pathname: string): boolean {

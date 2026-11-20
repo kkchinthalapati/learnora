@@ -135,6 +135,52 @@ describe("LessonView mistakes tab", () => {
   });
 });
 
+describe("LessonView cards tab", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+  });
+
+  /* The count compared the timestamp's UTC date with today's, so a card
+     scheduled for later (local midnight is "today" in UTC east of Greenwich)
+     was shown as due and the review it offered was empty. */
+  it("counts a card as due only once its review time has passed", async () => {
+    const card = (id: string, next: string | null) => ({
+      id,
+      user_id: "user-1",
+      deck_id: "deck-1",
+      front: `front ${id}`,
+      back: "back",
+      next_review_date: next,
+      srs_interval: 1,
+      ease_factor: 2.5,
+      created_at: "2026-11-07T00:00:00.000Z",
+    });
+    serve(lesson());
+    server.use(
+      http.get(rest("flashcard_decks"), () =>
+        HttpResponse.json([
+          { id: "deck-1", user_id: "user-1", title: "Leaf cards", folder_id: null, material_id: "mat-1", created_at: "2026-11-07T00:00:00.000Z" },
+        ]),
+      ),
+      http.get(rest("flashcards"), () =>
+        HttpResponse.json([
+          card("c-1", new Date(Date.now() - 60_000).toISOString()),
+          card("c-2", new Date(Date.now() + 60 * 60_000).toISOString()),
+        ]),
+      ),
+    );
+    renderWithAuth(
+      <Routes>
+        <Route path="/lessons/:materialId" element={<LessonView />} />
+      </Routes>,
+      { session: fakeSession() },
+      { initialEntries: ["/lessons/mat-1?tab=cards"] },
+    );
+
+    expect(await screen.findByText(/2 cards · 1 due/)).toBeInTheDocument();
+  });
+});
+
 describe("LessonView delete", () => {
   beforeEach(() => {
     mockAuthSession("user-1");

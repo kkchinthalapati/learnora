@@ -118,6 +118,7 @@ export function ExamDetailView() {
       <div className={styles.page}>
         <EmptyState
           title="Exam not found"
+          titleAs="h1"
           message="It may have been removed. Your other exams are on the Exams page."
           icon="calendar"
         >

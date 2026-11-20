@@ -34,7 +34,7 @@ export function HabitView() {
   if (!habit) {
     return (
       <div className={styles.page}>
-        <EmptyState icon="alert-circle" title="We don’t have that habit" message="The link may be out of date.">
+        <EmptyState icon="alert-circle" title="We don’t have that habit" titleAs="h1" message="The link may be out of date.">
           <Link to="/analytics?tab=mistakes" className={styles.link}>
             Back to your mistakes
           </Link>

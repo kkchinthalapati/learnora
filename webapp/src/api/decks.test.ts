@@ -55,3 +55,68 @@ describe("decksApi.add (audit F-16)", () => {
     expect(bodies[1][0]).not.toHaveProperty("material_id");
   });
 });
+
+describe("decksApi.importCards", () => {
+  beforeEach(() => mockAuthSession("user-1"));
+  afterEach(() => vi.restoreAllMocks());
+
+  const cards = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ front: `q${i}`, back: `a${i}` }));
+
+  it("inserts a large import in ordered chunks and reports progress", async () => {
+    const sizes: number[] = [];
+    server.use(
+      http.post(rest("flashcard_decks"), () => HttpResponse.json(DECK, { status: 201 })),
+      http.post(rest("flashcards"), async ({ request }) => {
+        sizes.push(((await request.json()) as unknown[]).length);
+        return HttpResponse.json([], { status: 201 });
+      }),
+    );
+    const progress: number[] = [];
+    const result = await decksApi.importCards(
+      { folderId: null, title: "Big" },
+      cards(1200),
+      (n) => progress.push(n),
+    );
+    expect(sizes).toEqual([500, 500, 200]);
+    expect(progress).toEqual([500, 1000, 1200]);
+    expect(result).toEqual({ deck: DECK, added: 1200 });
+  });
+
+  it("deletes the new set when a chunk fails", async () => {
+    let calls = 0;
+    let deleted = false;
+    server.use(
+      http.post(rest("flashcard_decks"), () => HttpResponse.json(DECK, { status: 201 })),
+      http.post(rest("flashcards"), () => {
+        calls += 1;
+        return calls === 1
+          ? HttpResponse.json([], { status: 201 })
+          : HttpResponse.json({ message: "timeout" }, { status: 500 });
+      }),
+      http.delete(rest("flashcard_decks"), () => {
+        deleted = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    await expect(
+      decksApi.importCards({ folderId: null, title: "Big" }, cards(700)),
+    ).rejects.toMatchObject({ name: "CardImportError", added: 0 });
+    expect(deleted).toBe(true);
+  });
+
+  it("keeps an existing set and says how many cards went in", async () => {
+    let calls = 0;
+    server.use(
+      http.post(rest("flashcards"), () => {
+        calls += 1;
+        return calls === 1
+          ? HttpResponse.json([], { status: 201 })
+          : HttpResponse.json({ message: "timeout" }, { status: 500 });
+      }),
+    );
+    await expect(
+      decksApi.importCards({ deckId: "d-1" }, cards(700)),
+    ).rejects.toMatchObject({ added: 500 });
+  });
+});

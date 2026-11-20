@@ -186,8 +186,19 @@ export function NotebookStudioView() {
   // Auto-scroll chat
   const chatBottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (typeof chatBottomRef.current?.scrollIntoView === "function") {
-      chatBottomRef.current.scrollIntoView({ behavior: "smooth" });
+    /* Scroll the chat's own panes, not the page. scrollIntoView scrolls
+       every scrollable ancestor, so on a phone it also pushed the app's main
+       column down and opened the notebook with its header cut off under the
+       top bar. */
+    const canvas = chatBottomRef.current?.closest(`.${styles.canvasBody}`);
+    for (
+      let el = chatBottomRef.current?.parentElement;
+      el && canvas?.contains(el);
+      el = el.parentElement
+    ) {
+      if (el.scrollHeight > el.clientHeight && typeof el.scrollTo === "function") {
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      }
     }
   }, [notebook?.chatHistory]);
 

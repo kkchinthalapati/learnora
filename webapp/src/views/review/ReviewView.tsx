@@ -26,6 +26,7 @@ import {
   useFlashcardsByDeck,
   useAllDueFlashcards,
   useFlashcardsDueCount,
+  useUndoFlashcardReview,
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
@@ -52,8 +53,11 @@ import {
   nextReviewState,
   prioritiseByMisconceptions,
 } from "./srs";
-import { recordCardReviewedToday } from "../../lib/achievements";
-import { useOnlineStatus } from "../../lib/offlineSync";
+import {
+  recordCardReviewedToday,
+  unrecordCardReviewedToday,
+} from "../../lib/achievements";
+import { OfflineUndoError, useOnlineStatus } from "../../lib/offlineSync";
 import { DAILY_DRILL_SIZE } from "../../lib/offlineCards";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import styles from "./review.module.css";
@@ -377,7 +381,7 @@ function ReviewSetup({
 
         <OptionalFold
           fold={small}
-          summary={`${length === "all" ? `All ${dueCards.length} cards` : `${length} cards`} · ${orderName}`}
+          summary={`${length === "all" ? (dueCards.length === 1 ? "1 card" : `All ${dueCards.length} cards`) : `${length} cards`} · ${orderName}`}
         >
         <fieldset className={styles.optionGroup}>
           <legend>Session length</legend>
@@ -1018,6 +1022,23 @@ function gradeOnlyHandlers(scoreCard: (score: number) => void): ActionHandlers {
   };
 }
 
+/** The one grade a student can take back: enough to put the card, the
+ *  session and the server back the way they were before it. */
+interface UndoableGrade {
+  card: Flashcard;
+  quality: number;
+  /** Where the card sits in `cards`, so undo can return to it. */
+  index: number;
+  /** The entry this grade added to `results`; null in a practice round,
+   *  which records none. */
+  result: ReviewResult | null;
+  /** The review's timestamp, which identifies it to the queue and the
+   *  server. Null in a practice round, which writes nothing. */
+  reviewedAt: string | null;
+  /** Settles once the grade's write has landed (true) or failed (false). */
+  write: Promise<boolean> | null;
+}
+
 function ReviewSession({
   deckId,
   deckTitle,
@@ -1049,6 +1070,17 @@ function ReviewSession({
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
   const [socraticOpen, setSocraticOpen] = useState(false);
   const [socraticMode, setSocraticMode] = useState<SocraticMode>("why_missed");
+  /* One level of undo: only the most recent grade, and only until the next
+     one replaces it. A mis-tap is noticed on the very next card or not at
+     all; a deeper history would invite re-grading cards the student has
+     since had time to look up. */
+  const [lastGrade, setLastGrade] = useState<UndoableGrade | null>(null);
+  const [undoing, setUndoing] = useState(false);
+  /* Mirrors `undoing` for `scoreCard`, which must refuse a grade the moment
+     an undo starts — not one render later — or a fast key press could grade
+     the next card while the undo is about to step back off it. */
+  const undoingRef = useRef(false);
+  const [undoNotice, setUndoNotice] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   const openSocratic = (mode: SocraticMode = "why_missed") => {
@@ -1063,6 +1095,7 @@ function ReviewSession({
 
   const navigate = useNavigate();
   const updateReview = useUpdateFlashcardReview();
+  const undoReview = useUndoFlashcardReview();
   const { registerFlashcardGrader } = useChat();
   const { settings } = useSettings();
   const { showToast } = useToast();
@@ -1098,35 +1131,57 @@ function ReviewSession({
   const scoreCard = useCallback(
     (quality: number) => {
       const card = cards[index];
-      if (!card) return;
+      if (!card || undoingRef.current) return;
       if (!practiceRound) {
         const { interval, ease, nextReviewDate, stability, difficulty } =
           nextReviewState(card, quality);
-        updateReview.mutate(
-          {
+        /* Stamped at the grade, not at the write: a queued or retried write
+           then carries the moment the student actually answered, which is
+           what the server orders reviews by — and what an undo names to take
+           back exactly this review. */
+        const reviewedAt = new Date().toISOString();
+        /* Kept as a promise rather than fire-and-forget so an undo can wait
+           for the write to settle: restoring before it lands would be
+           overwritten by it a moment later. */
+        const write = updateReview
+          .mutateAsync({
             cardId: card.id,
             nextReviewDate,
             interval,
             ease,
             stability,
             difficulty,
-            /* Stamped at the grade, not at the write: a queued or retried
-               write then carries the moment the student actually answered,
-               which is what the server orders reviews by. */
-            reviewedAt: new Date().toISOString(),
-          },
-          {
-            onError: () =>
+            reviewedAt,
+          })
+          .then(
+            () => true,
+            () => {
               showToast(
                 "Couldn't save this card's review — it may come up again sooner than it should.",
                 { error: true },
-              ),
-          },
-        );
-        setResults((current) => [...current, { card, quality }]);
+              );
+              return false;
+            },
+          );
+        const result: ReviewResult = { card, quality };
+        setResults((current) => [...current, result]);
         recordCardReviewedToday();
         studyClock.mark();
+        setLastGrade({ card, quality, index, result, reviewedAt, write });
+      } else {
+        /* A practice grade changes no schedule, but stepping back to the card
+           is still worth offering: the mis-tap moved the student on all the
+           same. */
+        setLastGrade({
+          card,
+          quality,
+          index,
+          result: null,
+          reviewedAt: null,
+          write: null,
+        });
       }
+      setUndoNotice(null);
       aiGradeInFlight.current = false;
       setIndex((i) => i + 1);
       setFlipped(false);
@@ -1137,15 +1192,80 @@ function ReviewSession({
     [cards, index, practiceRound, updateReview, showToast, studyClock],
   );
 
+  /* Takes back `lastGrade`: the server's schedule first, then the session.
+     The session only steps back once the server has, so a failed restore
+     leaves the student where they were, with the grade still counted — what
+     the screen shows always matches what was saved. */
+  const undoLastGrade = useCallback(async () => {
+    const last = lastGrade;
+    if (!last || undoingRef.current || aiGradeInFlight.current) return;
+    undoingRef.current = true;
+    setUndoing(true);
+
+    if (last.write && last.reviewedAt) {
+      /* A write that failed never changed the server; there is nothing to
+         restore there, only the session's own record of it. */
+      const landed = await last.write;
+      if (landed) {
+        try {
+          await undoReview.mutateAsync({
+            card: last.card,
+            reviewedAt: last.reviewedAt,
+          });
+        } catch (err) {
+          undoingRef.current = false;
+          if (!mountedRef.current) return;
+          setUndoing(false);
+          showToast(
+            err instanceof OfflineUndoError
+              ? err.message
+              : "Couldn't undo that grade — it's still saved. Try again in a moment.",
+            { error: true },
+          );
+          return;
+        }
+      }
+      unrecordCardReviewedToday();
+    }
+
+    undoingRef.current = false;
+    if (!mountedRef.current) return;
+    if (last.result) {
+      setResults((current) => current.filter((r) => r !== last.result));
+    }
+    setIndex(last.index);
+    /* Back on the answer side: the student has already seen it, and the
+       point of undoing is to pick a different grade, so the grade buttons
+       are shown straight away. */
+    setFlipped(true);
+    setAnswer("");
+    setGrading(false);
+    setSourceDrawerOpen(false);
+    setLastGrade(null);
+    setUndoing(false);
+    setUndoNotice(
+      `${getGradeInfo(last.quality).label} taken back — grade this card again.`,
+    );
+  }, [lastGrade, undoReview, showToast]);
+
+  /* Its own listener rather than an entry in the map below, which is
+     switched off on the recap — and the recap is the only place the last
+     card's undo can live. A bare key, because the shortcut hook deliberately
+     never claims Ctrl/Cmd chords (Ctrl+Z belongs to the browser). */
+  useKeyboardShortcuts(
+    { u: () => void undoLastGrade() },
+    { enabled: !!lastGrade && !undoing && !grading },
+  );
+
   /* Keyboard shortcuts: Space to flip, 1-4 to grade (only when flipped and
      not grading) */
   useKeyboardShortcuts(
     {
       " ": () => !flipped && setFlipped(true),
-      "1": () => flipped && !grading && scoreCard(1),
-      "2": () => flipped && !grading && scoreCard(2),
-      "3": () => flipped && !grading && scoreCard(3),
-      "4": () => flipped && !grading && scoreCard(4),
+      "1": () => flipped && !grading && !undoing && scoreCard(1),
+      "2": () => flipped && !grading && !undoing && scoreCard(2),
+      "3": () => flipped && !grading && !undoing && scoreCard(3),
+      "4": () => flipped && !grading && !undoing && scoreCard(4),
     },
     { enabled: !finished },
   );
@@ -1245,9 +1365,22 @@ function ReviewSession({
         folderId={folderId}
         results={results}
         practiceComplete={practiceRound}
+        undo={
+          lastGrade
+            ? {
+                label: getGradeInfo(lastGrade.quality).label,
+                pending: undoing,
+                onUndo: () => void undoLastGrade(),
+              }
+            : undefined
+        }
         onRepeatDifficult={
           difficultCards.length && !practiceRound
             ? () => {
+                /* A new round over a new card list: the last grade's index
+                   no longer points at its card. */
+                setLastGrade(null);
+                setUndoNotice(null);
                 setCards(difficultCards);
                 setIndex(0);
                 setPracticeRound(true);
@@ -1337,6 +1470,12 @@ function ReviewSession({
     }
   };
 
+  /* A phone has nothing to click. */
+  const flipHint =
+    typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches
+      ? "Tap to flip"
+      : "Click to flip";
+
   return (
     <div className={styles.view}>
       <ExitLink />
@@ -1348,6 +1487,22 @@ function ReviewSession({
         {practiceRound ? (
           <p className={styles.practiceNotice} role="status">
             Practice round — these grades won&apos;t change your schedule.
+          </p>
+        ) : null}
+        {lastGrade ? (
+          <UndoGradeButton
+            label={getGradeInfo(lastGrade.quality).label}
+            pending={undoing}
+            disabled={grading}
+            onUndo={() => void undoLastGrade()}
+          />
+        ) : null}
+        {/* Rendered only once there is something to say, like the view's
+            other status lines. It confirms where the undo left the student,
+            since the card itself changes without a word. */}
+        {undoNotice ? (
+          <p className={styles.undoNotice} role="status">
+            {undoNotice}
           </p>
         ) : null}
       </div>
@@ -1372,7 +1527,7 @@ function ReviewSession({
               alt="Image on the front of this card"
               className={styles.cardImage}
             />
-            {!flipped ? <p className={styles.hint}>Click to flip</p> : null}
+            {!flipped ? <p className={styles.hint}>{flipHint}</p> : null}
           </div>
           <div
             className={`${styles.face} ${styles.back}`}
@@ -1502,28 +1657,28 @@ function ReviewSession({
             <Button
               variant="danger"
               onClick={() => scoreCard(1)}
-              disabled={grading}
+              disabled={grading || undoing}
             >
               Again (1)
             </Button>
             <Button
               variant="warning"
               onClick={() => scoreCard(2)}
-              disabled={grading}
+              disabled={grading || undoing}
             >
               Hard (2)
             </Button>
             <Button
               variant="primary"
               onClick={() => scoreCard(3)}
-              disabled={grading}
+              disabled={grading || undoing}
             >
               Good (3)
             </Button>
             <Button
               variant="success"
               onClick={() => scoreCard(4)}
-              disabled={grading}
+              disabled={grading || undoing}
             >
               Easy (4)
             </Button>
@@ -1537,6 +1692,37 @@ function ReviewSession({
         onClose={() => setSocraticOpen(false)}
         initialMode={socraticMode}
       />
+    </div>
+  );
+}
+
+/** The "take back the last grade" control, on the card after it and on the
+ *  recap. Small and quiet on purpose: it is for the occasional mis-tap, and
+ *  must not compete with the grade buttons for attention. The grade is named
+ *  so the student can see what they are undoing before they press. */
+function UndoGradeButton({
+  label,
+  pending,
+  disabled = false,
+  onUndo,
+}: {
+  label: string;
+  pending: boolean;
+  disabled?: boolean;
+  onUndo: () => void;
+}) {
+  return (
+    <div className={styles.undoRow}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onUndo}
+        disabled={pending || disabled}
+        aria-keyshortcuts="U"
+      >
+        <Icon name="refresh-cw" size={14} />
+        <span>{pending ? "Undoing…" : `Undo ${label} (U)`}</span>
+      </Button>
     </div>
   );
 }
@@ -1570,6 +1756,7 @@ function ReviewRecap({
   folderId,
   results,
   practiceComplete,
+  undo,
   onRepeatDifficult,
 }: {
   deckId: string;
@@ -1577,6 +1764,8 @@ function ReviewRecap({
   folderId?: string | null;
   results: ReviewResult[];
   practiceComplete: boolean;
+  /** Present while the session's last grade can still be taken back. */
+  undo?: { label: string; pending: boolean; onUndo: () => void };
   onRepeatDifficult?: () => void;
 }) {
   const navigate = useNavigate();
@@ -1659,6 +1848,14 @@ function ReviewRecap({
           {isDrill ? "Drill complete" : "Review complete"}
         </h2>
 
+        {undo ? (
+          <UndoGradeButton
+            label={undo.label}
+            pending={undo.pending}
+            onUndo={undo.onUndo}
+          />
+        ) : null}
+
         {practiceComplete ? (
           <p className={styles.practiceComplete} role="status">
             Practice round complete. Your original review schedule was
@@ -1709,7 +1906,7 @@ function ReviewRecap({
           <span>of cards recalled</span>
         </div>
         <p className={styles.recapMessage}>
-          {recap.confident} of {results.length} cards were recalled confidently
+          {recap.confident} of {results.length} {results.length === 1 ? "card was" : "cards were"} recalled confidently
           with a Good or Easy grade.
         </p>
 

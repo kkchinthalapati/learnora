@@ -1,8 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { flashcardsApi, type CardFields } from "../api/flashcards";
 import { useOptionalAuth } from "../context/auth";
-import { recordOfflineGrade } from "../lib/offlineCards";
-import { submitSrsReview, type SrsReviewPayload } from "../lib/offlineSync";
+import type { Flashcard } from "../api/types";
+import { recordOfflineGrade, restoreOfflineCard } from "../lib/offlineCards";
+import {
+  submitSrsReview,
+  undoSrsReview,
+  type SrsReviewPayload,
+} from "../lib/offlineSync";
 
 export const flashcardsKeys = {
   all: ["flashcards"] as const,
@@ -84,6 +89,19 @@ export function useDeleteFlashcard() {
   });
 }
 
+/* Writes to the device's offline copy are read-modify-write on one stored
+ * snapshot, and a grade's write is fire-and-forget. An undo pressed straight
+ * after the grade could otherwise read the copy before the grade's write
+ * finished and have its restore overwritten by it. Running them one after
+ * another keeps the copy in the order the student acted. */
+let offlineCopyWrites: Promise<unknown> = Promise.resolve();
+
+function afterOfflineCopyWrites<T>(write: () => Promise<T>): Promise<T> {
+  const next = offlineCopyWrites.then(write, write);
+  offlineCopyWrites = next.catch(() => undefined);
+  return next;
+}
+
 /* The write goes through the offline queue's helper (online-first, enqueue on
  * failure), so a review graded with no connection is replayed on reconnect
  * instead of lost — the queue re-invalidates these same keys after each
@@ -104,9 +122,9 @@ export function useUpdateFlashcardReview() {
       /* The device's offline copy learns the grade too, online or not, so a
          card graded now never reappears as due in an offline session later. */
       if (userId) {
-        void recordOfflineGrade(userId, payload).then(() =>
-          qc.invalidateQueries({ queryKey: ["offline-review"] }),
-        );
+        void afterOfflineCopyWrites(() =>
+          recordOfflineGrade(userId, payload),
+        ).then(() => qc.invalidateQueries({ queryKey: ["offline-review"] }));
       }
       if (queued) return;
       /* The whole family, including the unscoped all-cards list: Today's
@@ -114,6 +132,43 @@ export function useUpdateFlashcardReview() {
          and invalidating only the due/deck keys left them showing the
          pre-review mastery for up to a minute after the session ended. The
          offline replay already did this; the online path now matches it. */
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
+    },
+  });
+}
+
+/* Undo of a review written by `useUpdateFlashcardReview`, for the one grade
+ * the review screen lets a student take back. `card` is the card as it was
+ * before that grade: its scheduling columns are what the server is restored
+ * to, and the whole card is what goes back into the device's offline copy. */
+export function useUndoFlashcardReview() {
+  const qc = useQueryClient();
+  const userId = useOptionalAuth()?.user?.id;
+  return useMutation({
+    /* A review still sitting in the offline queue is undone by removing it,
+       which needs no network and must not wait for one. */
+    networkMode: "always",
+    mutationFn: ({ card, reviewedAt }: { card: Flashcard; reviewedAt: string }) =>
+      undoSrsReview({
+        cardId: card.id,
+        reviewedAt,
+        previous: {
+          nextReviewDate: card.next_review_date,
+          interval: card.srs_interval,
+          ease: card.ease_factor,
+          stability: card.stability ?? null,
+          difficulty: card.difficulty ?? null,
+          lastReviewedAt: card.last_reviewed_at,
+        },
+      }),
+    onSuccess: ({ cancelledQueued }, { card, reviewedAt }) => {
+      if (userId) {
+        void afterOfflineCopyWrites(() =>
+          restoreOfflineCard(userId, card, reviewedAt),
+        ).then(() => qc.invalidateQueries({ queryKey: ["offline-review"] }));
+      }
+      /* Nothing reached the server, so its lists never changed. */
+      if (cancelledQueued) return;
       qc.invalidateQueries({ queryKey: flashcardsKeys.all });
     },
   });

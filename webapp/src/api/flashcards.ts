@@ -11,6 +11,9 @@ export const ALLOWED_CARD_IMAGE_TYPES = [
   "image/gif",
 ];
 
+/** Cards per insert request when importing. */
+export const IMPORT_CHUNK_SIZE = 500;
+
 /** What a student can set on a card. Scheduling columns are deliberately not
  *  here — see `update`. */
 export interface CardFields {
@@ -18,6 +21,18 @@ export interface CardFields {
   back: string;
   frontImagePath?: string | null;
   backImagePath?: string | null;
+}
+
+/** A card's scheduling columns as they stood before a review — everything
+ *  `updateReview` writes, so `restoreReview` can put all of it back. */
+export interface ReviewScheduleSnapshot {
+  nextReviewDate: string | null;
+  interval: number;
+  ease: number;
+  stability: number | null;
+  difficulty: number | null;
+  /** `undefined` when the card was read before the column existed. */
+  lastReviewedAt?: string | null;
 }
 
 /* Set once the database says `flashcards.last_reviewed_at` does not exist (a
@@ -67,6 +82,26 @@ export const flashcardsApi = {
       .select();
     if (error) throw new Error(error.message);
     return data ?? [];
+  },
+
+  /* An imported deck can be thousands of cards. One insert that size is a
+   * multi-megabyte request that can time out as a whole, so it goes in
+   * chunks, in order. Each chunk is one statement, so a failure never leaves
+   * a chunk half-written; `onProgress` gets the running total. */
+  async addInChunks(
+    deckId: string,
+    cards: { front: string; back: string }[],
+    onProgress?: (added: number) => void,
+    chunkSize = IMPORT_CHUNK_SIZE,
+  ): Promise<number> {
+    let added = 0;
+    for (let i = 0; i < cards.length; i += chunkSize) {
+      const chunk = cards.slice(i, i + chunkSize);
+      await flashcardsApi.addBatch(deckId, chunk);
+      added += chunk.length;
+      onProgress?.(added);
+    }
+    return added;
   },
 
   /* Card images live in the private `card-media` bucket, filed under the
@@ -204,6 +239,49 @@ export const flashcardsApi = {
         .eq("id", cardId)
         .eq("user_id", userId)
         .or(`last_reviewed_at.is.null,last_reviewed_at.lt.${reviewedAt}`);
+      if (!error) return;
+      if (!isMissingLastReviewedColumn(error)) throw new Error(error.message);
+      lastReviewedColumnMissing = true;
+    }
+
+    const { error } = await supabase
+      .from("flashcards")
+      .update(update)
+      .eq("id", cardId)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+  },
+
+  /* Undo of one review: puts back the scheduling columns `updateReview`
+   * overwrote. `updateReview` only ever moves `last_reviewed_at` forward, so
+   * it cannot carry a card back to an older state; this write goes the other
+   * way and is guarded the other way — it only lands while the card still
+   * holds the exact review being undone (`undoneReviewedAt`). A review that
+   * never reached the server, or one a second device has already replaced
+   * with a newer review, matches no row and is left alone. Until the column
+   * is deployed there is nothing to match on, and this degrades to an
+   * unconditional restore, as `updateReview` does. */
+  async restoreReview(
+    cardId: string,
+    previous: ReviewScheduleSnapshot,
+    undoneReviewedAt: string,
+  ): Promise<void> {
+    const userId = await requireUserId();
+    const update: Record<string, unknown> = {
+      next_review_date: previous.nextReviewDate,
+      srs_interval: previous.interval,
+      ease_factor: previous.ease,
+      stability: previous.stability,
+      difficulty: previous.difficulty,
+    };
+
+    if (!lastReviewedColumnMissing) {
+      const { error } = await supabase
+        .from("flashcards")
+        .update({ ...update, last_reviewed_at: previous.lastReviewedAt ?? null })
+        .eq("id", cardId)
+        .eq("user_id", userId)
+        .eq("last_reviewed_at", undoneReviewedAt);
       if (!error) return;
       if (!isMissingLastReviewedColumn(error)) throw new Error(error.message);
       lastReviewedColumnMissing = true;
