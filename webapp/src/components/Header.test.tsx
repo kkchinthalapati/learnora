@@ -36,6 +36,13 @@ describe("Header", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Focus timer");
   });
 
+  it("prints no title on a path in no section, where the page names itself", () => {
+    renderHeader("/definitely-not-a-route");
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+    renderHeader("/capture");
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+  });
+
   it("carries no navigation, search or sign-out of its own", () => {
     renderHeader("/timer");
     expect(screen.queryByRole("button", { name: /search/i })).toBeNull();

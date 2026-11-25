@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router";
 import { useAuth } from "../context/auth";
 import { useLiveClock } from "../hooks/useLiveClock";
 import { useTranslation } from "../hooks/useTranslation";
-import { sectionLabel, viewOwnsPageTitle } from "../lib/sectionLabel";
+import { FALLBACK_SECTION_LABEL, sectionLabel, viewOwnsPageTitle } from "../lib/sectionLabel";
 import styles from "./Header.module.css";
 
 /* The page's title row (DESIGN.md rule 0.3). Navigation, search, Ask and the
@@ -14,7 +14,11 @@ export function Header() {
   const time = useLiveClock();
   const t = useTranslation();
 
-  const ownsTitle = !viewOwnsPageTitle(pathname);
+  /* A path in no section has nothing to be titled with but the app's name,
+     and the pages that land there title themselves: the 404 read "Learnora"
+     in large type above "Page not found", and /welcome-pro had two h1s. */
+  const label = sectionLabel(pathname, t);
+  const ownsTitle = !viewOwnsPageTitle(pathname) && label !== FALLBACK_SECTION_LABEL;
   const showClock = pathname.startsWith("/timer");
   if (!ownsTitle && !showClock && user) return null;
 
@@ -23,7 +27,7 @@ export function Header() {
       <div className={styles.headerLeft}>
         <div className={styles.pageIdentity}>
           {ownsTitle ? (
-            <h1 className={styles.title}>{sectionLabel(pathname, t)}</h1>
+            <h1 className={styles.title}>{label}</h1>
           ) : null}
         </div>
       </div>

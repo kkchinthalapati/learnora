@@ -14,7 +14,7 @@ export function NotFoundView() {
           <span className={styles.badge}>404</span>
         </div>
 
-        <h2 className={styles.title}>Page not found</h2>
+        <h1 className={styles.title}>Page not found</h1>
 
         <p className={styles.description}>
           The page or workspace item you are looking for could not be found or has been moved.

@@ -755,6 +755,224 @@ describe("ReviewView", () => {
      no reason a single-tag grading request needed (see ReviewView's own
      comment on `handleAiGrade`) — and a reply containing <GRADE_FLASHCARD>
      must click through to the same `scoreCard` the manual buttons use. */
+  describe("undo the last grade", () => {
+    /* A card with a real history, so "restored" is checked against values a
+       fresh card's defaults could not pass by accident. */
+    const seasoned = {
+      id: "c-1",
+      front: "Q1",
+      back: "A1",
+      next_review_date: "2026-01-05T00:00:00.000Z",
+      srs_interval: 5,
+      ease_factor: 2.3,
+      stability: 4.2,
+      difficulty: 6.1,
+      last_reviewed_at: "2025-12-31T09:00:00.000+00:00",
+    };
+
+    function capturePatches() {
+      const patches: { body: Record<string, unknown>; url: URL }[] = [];
+      server.use(
+        http.patch(rest("flashcards"), async ({ request }) => {
+          patches.push({
+            body: (await request.json()) as Record<string, unknown>,
+            url: new URL(request.url),
+          });
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+      return patches;
+    }
+
+    async function flipAndGrade(
+      user: ReturnType<typeof userEvent.setup>,
+      grade: string,
+    ) {
+      await user.click(
+        await screen.findByRole("button", { name: "Flip card to see the answer" }),
+      );
+      await user.click(screen.getByRole("button", { name: grade }));
+    }
+
+    it("returns to the previous card and restores its schedule on the server", async () => {
+      serve({
+        cards: [
+          card(seasoned),
+          // Due after Q1, so the session meets Q1 first.
+          card({ id: "c-2", front: "Q2", back: "A2", next_review_date: "2026-01-06T00:00:00.000Z" }),
+        ],
+      });
+      const patches = capturePatches();
+      renderReview();
+      await screen.findByText("Q1");
+      const user = userEvent.setup();
+
+      // No grade yet, nothing to undo.
+      expect(screen.queryByRole("button", { name: /^Undo/ })).not.toBeInTheDocument();
+
+      await flipAndGrade(user, "Good (3)");
+      expect(await screen.findByText("Card 2 of 2")).toBeInTheDocument();
+      await waitFor(() => expect(patches).toHaveLength(1));
+      const gradedAt = patches[0].body.last_reviewed_at as string;
+
+      await user.click(screen.getByRole("button", { name: "Undo Good (U)" }));
+
+      expect(await screen.findByText("Card 1 of 2")).toBeInTheDocument();
+      /* Back on the answer side, with the grade buttons ready. */
+      expect(
+        screen.getByRole("button", { name: "Flip card to see the answer" }),
+      ).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "Good (3)" })).toBeEnabled();
+      expect(
+        screen.getByText("Good taken back — grade this card again."),
+      ).toHaveAttribute("role", "status");
+      expect(screen.queryByRole("button", { name: /^Undo/ })).not.toBeInTheDocument();
+
+      await waitFor(() => expect(patches).toHaveLength(2));
+      expect(patches[1].body).toEqual({
+        next_review_date: seasoned.next_review_date,
+        srs_interval: seasoned.srs_interval,
+        ease_factor: seasoned.ease_factor,
+        stability: seasoned.stability,
+        difficulty: seasoned.difficulty,
+        last_reviewed_at: seasoned.last_reviewed_at,
+      });
+      /* Only over the very review being undone — never over a newer one. */
+      expect(patches[1].url.searchParams.get("last_reviewed_at")).toBe(
+        `eq.${gradedAt}`,
+      );
+    });
+
+    it("corrects the recap when the undone card was the last one", async () => {
+      serve({
+        cards: [
+          card({ id: "c-1", front: "Q1", back: "A1" }),
+          card({ id: "c-2", front: "Q2", back: "A2" }),
+        ],
+      });
+      capturePatches();
+      renderReview();
+      await screen.findByText("Q1");
+      const user = userEvent.setup();
+
+      await flipAndGrade(user, "Again (1)");
+      await screen.findByText("Q2");
+      await flipAndGrade(user, "Good (3)");
+
+      expect(await screen.findByText("Review complete")).toBeInTheDocument();
+      expect(screen.getByLabelText("Good count")).toHaveTextContent("1");
+      expect(screen.getByRole("tab", { name: "All (2)" })).toBeInTheDocument();
+
+      /* The keyboard shortcut works from the recap too. */
+      await user.keyboard("u");
+
+      expect(await screen.findByText("Card 2 of 2")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Easy (4)" }));
+
+      expect(await screen.findByText("Review complete")).toBeInTheDocument();
+      expect(screen.getByLabelText("Good count")).toHaveTextContent("0");
+      expect(screen.getByLabelText("Easy count")).toHaveTextContent("1");
+      expect(screen.getByLabelText("Again count")).toHaveTextContent("1");
+      expect(screen.getByRole("tab", { name: "All (2)" })).toBeInTheDocument();
+    });
+
+    it("offers only the latest grade, and is gone once that is taken back", async () => {
+      serve({
+        cards: [
+          card({ id: "c-1", front: "Q1", back: "A1" }),
+          card({ id: "c-2", front: "Q2", back: "A2" }),
+          card({ id: "c-3", front: "Q3", back: "A3" }),
+        ],
+      });
+      capturePatches();
+      renderReview();
+      await screen.findByText("Q1");
+      const user = userEvent.setup();
+
+      await flipAndGrade(user, "Good (3)");
+      expect(
+        await screen.findByRole("button", { name: "Undo Good (U)" }),
+      ).toBeInTheDocument();
+
+      await flipAndGrade(user, "Easy (4)");
+      expect(await screen.findByText("Card 3 of 3")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Undo Good (U)" }),
+      ).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Undo Easy (U)" }));
+      expect(await screen.findByText("Card 2 of 3")).toBeInTheDocument();
+      /* One level only: card 1's grade is not offered next. */
+      expect(screen.queryByRole("button", { name: /^Undo/ })).not.toBeInTheDocument();
+    });
+
+    it("keeps the session usable when the restore fails", async () => {
+      serve({
+        cards: [
+          card(seasoned),
+          // Due after Q1, so the session meets Q1 first.
+          card({ id: "c-2", front: "Q2", back: "A2", next_review_date: "2026-01-06T00:00:00.000Z" }),
+        ],
+      });
+      let calls = 0;
+      server.use(
+        http.patch(rest("flashcards"), () => {
+          calls += 1;
+          return calls === 1
+            ? new HttpResponse(null, { status: 204 })
+            : HttpResponse.json({ message: "db offline" }, { status: 500 });
+        }),
+      );
+      renderReview();
+      await screen.findByText("Q1");
+      const user = userEvent.setup();
+
+      await flipAndGrade(user, "Hard (2)");
+      await screen.findByText("Card 2 of 2");
+      await user.click(screen.getByRole("button", { name: "Undo Hard (U)" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Couldn't undo that grade",
+      );
+      /* Still on the next card, with the grade still counted — and the undo
+         still there to try again. */
+      expect(screen.getByText("Card 2 of 2")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Undo Hard (U)" })).toBeEnabled();
+      await flipAndGrade(user, "Good (3)");
+      expect(await screen.findByText("Review complete")).toBeInTheDocument();
+    });
+
+    it("undoes a practice-round grade without writing anything", async () => {
+      serve({
+        cards: [
+          card({ id: "c-1", front: "Q1", back: "A1" }),
+          card({ id: "c-2", front: "Q2", back: "A2" }),
+        ],
+      });
+      const patches = capturePatches();
+      renderReview();
+      await screen.findByText("Q1");
+      const user = userEvent.setup();
+
+      await flipAndGrade(user, "Again (1)");
+      await screen.findByText("Q2");
+      await flipAndGrade(user, "Again (1)");
+      await user.click(
+        await screen.findByRole("button", { name: "Go through the hard ones again" }),
+      );
+      await screen.findByText(/Practice round/);
+      /* Starting a new round drops the undo for the last scheduled grade. */
+      expect(screen.queryByRole("button", { name: /^Undo/ })).not.toBeInTheDocument();
+      await waitFor(() => expect(patches).toHaveLength(2));
+
+      await flipAndGrade(user, "Easy (4)");
+      expect(await screen.findByText("Card 2 of 2")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Undo Easy (U)" }));
+      expect(await screen.findByText("Card 1 of 2")).toBeInTheDocument();
+      expect(patches).toHaveLength(2);
+    });
+  });
+
   describe("AI grading", () => {
     it("grades the card from the model's reply and clears the loading status", async () => {
       serve({

@@ -10,6 +10,8 @@ import {
   toggleTask,
   countQueuedReviews,
   OfflineStorageError,
+  OfflineUndoError,
+  undoSrsReview,
   type SrsReviewPayload,
 } from "./offlineSync";
 import { flashcardsApi } from "../api/flashcards";
@@ -19,6 +21,7 @@ import { tasksApi } from "../api/tasks";
 vi.mock("../api/flashcards", () => ({
   flashcardsApi: {
     updateReview: vi.fn().mockResolvedValue(undefined),
+    restoreReview: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -52,6 +55,52 @@ describe("offlineSync", () => {
       value: true,
       writable: true,
       configurable: true,
+    });
+  });
+
+  describe("undoSrsReview", () => {
+    const previous = {
+      nextReviewDate: "2026-11-01T00:00:00.000Z",
+      interval: 5,
+      ease: 2.3,
+      stability: 4,
+      difficulty: 6,
+      lastReviewedAt: "2026-10-27T09:00:00.000Z",
+    };
+    const reviewedAt = "2026-11-17T10:00:00.000Z";
+
+    it("cancels a review still in the queue without touching the server", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false, configurable: true });
+      await submitSrsReview({
+        cardId: "c1",
+        nextReviewDate: "2026-11-20T00:00:00.000Z",
+        interval: 3,
+        ease: 2.45,
+        reviewedAt,
+      });
+      expect(getOfflineQueueSize()).toBe(1);
+
+      const result = await undoSrsReview({ cardId: "c1", reviewedAt, previous });
+
+      expect(result).toEqual({ cancelledQueued: true });
+      expect(getOfflineQueueSize()).toBe(0);
+      expect(flashcardsApi.restoreReview).not.toHaveBeenCalled();
+    });
+
+    it("restores a review that already landed", async () => {
+      const result = await undoSrsReview({ cardId: "c1", reviewedAt, previous });
+
+      expect(result).toEqual({ cancelledQueued: false });
+      expect(flashcardsApi.restoreReview).toHaveBeenCalledWith("c1", previous, reviewedAt);
+    });
+
+    it("refuses, rather than queues, an undo of a saved review while offline", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false, configurable: true });
+      await expect(undoSrsReview({ cardId: "c1", reviewedAt, previous })).rejects.toThrow(
+        OfflineUndoError,
+      );
+      expect(flashcardsApi.restoreReview).not.toHaveBeenCalled();
+      expect(getOfflineQueueSize()).toBe(0);
     });
   });
 

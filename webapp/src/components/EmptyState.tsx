@@ -5,6 +5,9 @@ import styles from "./EmptyState.module.css";
 
 interface EmptyStateProps {
   title?: string;
+  /* Set when this stands in for a whole page ("Exam not found"), which
+     otherwise has no heading at all. */
+  titleAs?: "h1" | "h2";
   message: string;
   icon?: IconName;
   size?: "md" | "sm";
@@ -16,6 +19,7 @@ interface EmptyStateProps {
 
 export function EmptyState({
   title,
+  titleAs: TitleTag,
   message,
   icon,
   size = "md",
@@ -31,7 +35,13 @@ export function EmptyState({
   return (
     <div className={classes}>
       {icon ? <Icon name={icon} size={32} className={styles.icon} /> : null}
-      {title ? <p className={styles.title}>{title}</p> : null}
+      {title ? (
+        TitleTag ? (
+          <TitleTag className={styles.title}>{title}</TitleTag>
+        ) : (
+          <p className={styles.title}>{title}</p>
+        )
+      ) : null}
       <p>{message}</p>
       {children ? <div className={styles.actions}>{children}</div> : null}
     </div>

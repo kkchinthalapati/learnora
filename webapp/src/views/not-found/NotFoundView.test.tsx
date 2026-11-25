@@ -16,7 +16,7 @@ describe("NotFoundView", () => {
     renderNotFound();
 
     expect(
-      screen.getByRole("heading", { level: 2, name: "Page not found" }),
+      screen.getByRole("heading", { level: 1, name: "Page not found" }),
     ).toBeInTheDocument();
     expect(screen.getByText("404")).toBeInTheDocument();
   });

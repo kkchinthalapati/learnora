@@ -8,11 +8,11 @@ import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import {
-  createNextWeeklyDate,
   dateInDays,
   formatDueDate,
   localDateStr,
 } from "../../lib/date";
+import { nextTaskOccurrence } from "../../lib/taskRepeat";
 import type { Task } from "../../api/types";
 import { DashboardTasksWidget } from "./DashboardTasksWidget";
 import { TasksView } from "./TasksView";
@@ -53,6 +53,22 @@ describe("DashboardTasksWidget", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("says how a repeating task repeats, with the tag out of its title", async () => {
+    serveTasks([
+      task(1, "Standup notes [🔁 Weekdays]", { due_date: localDateStr() }),
+    ]);
+    renderWithAuth(
+      <DashboardTasksWidget />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+
+    expect(await screen.findByText("Standup notes")).toBeInTheDocument();
+    expect(screen.getByLabelText("Recurring weekdays")).toHaveTextContent(
+      "🔁 Weekdays",
+    );
   });
 
   /* A student back after a few days sees late work called late, not a bare
@@ -300,7 +316,10 @@ describe("DashboardTasksWidget", () => {
     });
     await user.click(checkbox);
 
-    const nextDueDate = createNextWeeklyDate("2026-08-20");
+    const nextDueDate = nextTaskOccurrence(
+      "Weekly problem set [🔁 Weekly]",
+      "2026-08-20",
+    )!.dueDate;
     await waitFor(() => expect(postedBody).toBeDefined());
     expect(postedBody![0]).toMatchObject({
       text: "Weekly problem set [🔁 Weekly]",

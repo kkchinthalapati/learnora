@@ -55,6 +55,15 @@
   gap: var(--s-2);
 }
 
+/* Why "Add to calendar" is disabled, on its own row under the actions. */
+.calendarNote {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  text-align: right;
+}
+
 .triageSummary {
   border-color: color-mix(in srgb, var(--danger) 45%, transparent);
 }
@@ -463,8 +472,17 @@
     width: 100%;
   }
 
+  /* Up to three actions do not fit one row of a phone; wrap, never overflow. */
+  .summaryActions {
+    flex-wrap: wrap;
+  }
+
   .summaryActions > button {
     flex: 1;
+  }
+
+  .calendarNote {
+    text-align: left;
   }
 
   .weekGrid {
