@@ -102,8 +102,9 @@ describe("PrivacyTab", () => {
 
     expect(screen.getByText("Study rooms")).toBeInTheDocument();
     expect(screen.getByText(/Always invite-only/)).toBeInTheDocument();
-    /* Two real switches: AI consent and the leaderboard. Rooms has none. */
-    expect(screen.getAllByRole("switch")).toHaveLength(2);
+    /* Three real switches: AI consent, the tutor's memory and the
+       leaderboard. Rooms has none. */
+    expect(screen.getAllByRole("switch")).toHaveLength(3);
   });
 
   it("offers a data download and says what it does not include", async () => {

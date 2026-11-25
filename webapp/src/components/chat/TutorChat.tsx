@@ -13,7 +13,16 @@ import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "../../hooks/useSpeechSynthesis";
 import { MAX_IMAGE_DESCRIPTION } from "../../api/aiImage";
 import { toSpeakableText } from "../../lib/speechText";
-import type { SourceMode } from "../ai/PersonaOffsetToolbar";
+import { ChatSourcesPanel } from "./ChatSourcesPanel";
+import {
+  loadChatSources,
+  pageContext,
+  resolveChatSources,
+  saveChatSources,
+  type ChatSources,
+} from "../../lib/chatSources";
+import { useMaterials } from "../../hooks/useMaterials";
+import { useFolders } from "../../hooks/useFolders";
 import { useExams } from "../../hooks/useExams";
 import { useTranslation } from "../../hooks/useTranslation";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
@@ -22,6 +31,7 @@ import { localDateStr } from "../../lib/date";
 import { isFlagOn } from "../../lib/flags";
 import { sectionLabel } from "../../lib/sectionLabel";
 import { newSessionHref } from "../../lib/sessionModes";
+import { pickVoice, useVoicePrefs } from "../../lib/voicePrefs";
 import styles from "./chat.module.css";
 
 /* The workspace chat panel — ports index.html:2314-2455 and its wiring in
@@ -118,9 +128,15 @@ export function TutorChat() {
   } = useChat();
   const { showToast } = useToast();
   const { settings, updateAndSave } = useSettings();
-  const [sourceMode, setSourceMode] = useState<SourceMode>(
-    settings.webAccess ? "hybrid" : "notebook",
-  );
+  /* What the tutor may draw on (lib/chatSources.ts). Resolved against the
+     page below, once the pathname is known. */
+  const [sources, setSourcesState] = useState<ChatSources>(loadChatSources);
+  const setSources = (next: ChatSources) => {
+    setSourcesState(next);
+    saveChatSources(next);
+  };
+  const materialsQuery = useMaterials();
+  const foldersQuery = useFolders();
 
   const handleAddToNotebook = useCallback(
     async (citation: { title: string; url?: string; snippet?: string }) => {
@@ -155,6 +171,14 @@ export function TutorChat() {
 
   const [input, setInput] = useState("");
   const { pathname } = useLocation();
+  const context = pageContext(pathname);
+  const resolvedSources = resolveChatSources(sources, {
+    context,
+    materials: materialsQuery.data ?? null,
+    folders: foldersQuery.data ?? [],
+    webAllowed: settings.webAccess,
+  });
+  const sendOptions = { sourceMode: resolvedSources.sourceMode, scope: resolvedSources.scope };
   const navigate = useNavigate();
   const t = useTranslation();
   const exams = useExams();
@@ -192,7 +216,10 @@ export function TutorChat() {
     cancel: cancelSpeech,
     isSpeaking,
     isSupported: canSpeak,
+    voices,
   } = useSpeechSynthesis();
+  /* Spoken replies use the tutor's voice and speed (lib/voicePrefs.ts). */
+  const voicePrefs = useVoicePrefs();
   /* Hands-free: after a spoken turn, the reply is read out and the mic
      reopens, until the student presses Stop. Only while spoken replies are
      on — without them there is no cue for when to talk again. */
@@ -236,7 +263,7 @@ export function TutorChat() {
         resetTranscript();
         const awaitingGuessNow = messages[messages.length - 1]?.guessPrompt === true;
         void send(said, {
-          sourceMode,
+          ...sendOptions,
           guessFirst: !awaitingGuessNow && guessFirstOn && looksConceptual(said),
         });
       } else if (!said || micError) {
@@ -277,6 +304,8 @@ export function TutorChat() {
         : toSpeakableText(last.text);
     if (!words) return;
     speak(words, {
+      voice: pickVoice(voices, voicePrefs.tutorVoice),
+      rate: voicePrefs.tutorRate,
       onEnd: () => {
         if (handsFreeRef.current) {
           resetTranscript();
@@ -284,7 +313,7 @@ export function TutorChat() {
         }
       },
     });
-  }, [messages, spokenReplies, speak, resetTranscript, startListening]);
+  }, [messages, spokenReplies, speak, resetTranscript, startListening, voices, voicePrefs.tutorVoice, voicePrefs.tutorRate]);
 
   /* Closing the panel ends any listening or speaking. */
   useEffect(() => {
@@ -348,7 +377,7 @@ export function TutorChat() {
     setInput("");
     const guessFirst =
       !explain && !awaitingGuess && guessFirstOn && looksConceptual(value);
-    void send(value || "Analyse this.", { sourceMode, guessFirst });
+    void send(value || "Analyse this.", { ...sendOptions, guessFirst });
   };
 
   const imageUsage = usageFor("image");
@@ -522,7 +551,7 @@ export function TutorChat() {
               sendPhase={sendPhase}
               onCancel={cancel}
               onAsk={(question) => {
-                if (!isSending) void send(question);
+                if (!isSending) void send(question, sendOptions);
               }}
               /* Only the latest failure can be retried: once a retry has
                  been answered, an older "Try again" would ask twice. */
@@ -665,13 +694,19 @@ export function TutorChat() {
         <PersonaOffsetToolbar
           depth={settings.aiDepth}
           style={settings.aiStyle}
-          sourceMode={sourceMode}
+          sourceLabel={resolvedSources.label}
+          sourcesPanel={
+            <ChatSourcesPanel
+              sources={sources}
+              onChange={setSources}
+              context={context}
+              folders={foldersQuery.data ?? []}
+              hasNotes={materialsQuery.data ? materialsQuery.data.length > 0 : true}
+              webAllowed={settings.webAccess}
+            />
+          }
           onDepthChange={(aiDepth) => updateAndSave({ aiDepth })}
           onStyleChange={(aiStyle) => updateAndSave({ aiStyle })}
-          onSourceModeChange={(nextMode) => {
-            setSourceMode(nextMode);
-            updateAndSave({ webAccess: nextMode !== "notebook" });
-          }}
         />
       </div>
 

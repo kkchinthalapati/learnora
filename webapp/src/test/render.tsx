@@ -6,6 +6,7 @@ import { OverlayStackProvider } from "../context/OverlayStackProvider";
 import { ToastProvider } from "../context/ToastProvider";
 import { DialogProvider } from "../context/DialogProvider";
 import { CreateModalProvider } from "../context/CreateModalProvider";
+import { GenerationProvider } from "../context/GenerationProvider";
 import { AppearanceProvider } from "../context/AppearanceProvider";
 import { SettingsProvider } from "../context/SettingsProvider";
 import { TimerProvider } from "../context/TimerProvider";
@@ -83,7 +84,9 @@ export function AppProviders({
   const created = <CreateModalProvider>{inner}</CreateModalProvider>;
   const routed =
     withRouter || initialEntries ? (
-      <MemoryRouter initialEntries={initialEntries}>{created}</MemoryRouter>
+      <MemoryRouter initialEntries={initialEntries}>
+        <GenerationProvider>{created}</GenerationProvider>
+      </MemoryRouter>
     ) : (
       created
     );

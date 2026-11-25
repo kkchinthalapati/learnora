@@ -64,6 +64,9 @@ export interface ChatContext {
    *  revise; this tells it what to actually correct. Omitted on a failed read,
    *  same best-effort treatment as everything else here. */
   misconceptionLedger?: string;
+  /** How this student learns ("How you learn", set in onboarding and
+   *  Settings), rendered by lib/learnerProfile.ts learnerProfileRule. */
+  learnerProfile?: string;
   /** Provider-returned web snippets. Already labelled and fenced by the
    * caller; this function only places them beside the grounding rules. */
   webEvidence?: string;
@@ -95,9 +98,32 @@ export const NOTES_CONTEXT_CHARS = 3000;
 export function activeContextForPath(
   pathname: string,
   notesMarkdown?: string | null,
+  /** What the page is, when it is known: the lesson's title and its
+   *  subject, and where the student is in it. A lesson is /lessons/:id now
+   *  (webapp/DESIGN.md 0.1); before this the tutor opened on a lesson page
+   *  was told the student was "on the general dashboard". */
+  page: { lessonTitle?: string | null; subject?: string | null; position?: string | null } = {},
 ): string {
-  if (pathname.startsWith("/folders/")) {
-    return "User is viewing a course folder. They may ask questions about that subject.";
+  const lessonTitle = page.lessonTitle?.trim();
+  const subject = page.subject?.trim();
+  if (pathname.startsWith("/folders/") || pathname.startsWith("/subjects/")) {
+    return subject
+      ? `User is on the page for their subject "${fenceUntrusted(subject)}". They may ask questions about that subject.`
+      : "User is viewing a course folder. They may ask questions about that subject.";
+  }
+  if (pathname.startsWith("/lessons/")) {
+    const where = [
+      lessonTitle ? `the lesson "${fenceUntrusted(lessonTitle)}"` : "one of their lessons",
+      subject ? `in ${fenceUntrusted(subject)}` : "",
+      page.position ? `(${fenceUntrusted(page.position)})` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    if (!notesMarkdown) {
+      return `User is on ${where}. Its notes are not available to you right now, so say so rather than guess what they contain.`;
+    }
+    const truncated = fenceUntrusted(sectionExcerpt(notesMarkdown, NOTES_CONTEXT_CHARS));
+    return `User is on ${where}. Here are the lesson's notes:\n"""\n${truncated}\n"""\nAct as a tutor for this specific lesson. Answer questions about it from these notes, and say when something is not covered by them.`;
   }
   if (pathname.startsWith("/notes/")) {
     if (!notesMarkdown) return DEFAULT_ACTIVE_CONTEXT;
@@ -198,6 +224,7 @@ export function buildSystemContext({
   openUiSection = "",
   performanceEvidence = "",
   misconceptionLedger = "",
+  learnerProfile = "",
   webEvidence = "",
   notesEvidence = "",
   notesOnly = false,
@@ -223,6 +250,7 @@ APP LAYOUT (describe it accurately if the student asks where something is):
 - The sidebar has five places: Today, Library, Study, Plan and Progress. Study opens a session in one of five modes: Explain, Socratic, Practice, Teach or Recall.
 - Anything new — notes, flashcards, or a quiz, from a file, pasted text, a link, a saved material, or just a topic — is made with the "Add your notes" button in the Library, or "New…" in the search palette (Ctrl/⌘ K). There is no separate upload page; do not tell students to "go to the Upload tab" or "the Quizzes tab" to generate something.
 
+${learnerProfile ? `\nHOW THIS STUDENT LEARNS (shape how you explain to fit it; your voice and length settings above still apply):\n${learnerProfile}\n` : ""}
 TODAY IS: ${today}
 
 WORKSPACE STATE:

@@ -5,7 +5,9 @@ import { AccountTab } from "./AccountTab";
 import { AppearanceTab } from "./AppearanceTab";
 import { SecurityTab } from "./SecurityTab";
 import { PreferencesTab } from "./PreferencesTab";
+import { HowYouLearnCard } from "./HowYouLearnCard";
 import { NotificationsTab } from "./NotificationsTab";
+import { VoiceListeningCard } from "./VoiceListeningCard";
 import { BillingTab } from "./BillingTab";
 import { PrivacyTab } from "./PrivacyTab";
 import { DangerTab } from "./DangerTab";
@@ -48,7 +50,9 @@ const PANELS: Record<SettingsTabId, () => React.ReactElement> = {
   appearance: AppearanceTab,
   study: () => (
     <>
+      <HowYouLearnCard />
       <PreferencesTab />
+      <VoiceListeningCard />
       <NotificationsTab />
     </>
   ),

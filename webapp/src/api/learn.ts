@@ -14,6 +14,8 @@ import { AiError, callEdge } from "./ai";
 import { extractJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { levelRules, studentStandard } from "../lib/studentLevel";
+import { loadLearnerProfileRule } from "./learnerStyle";
+import { learnerSettings, loadLearnerContext } from "./learnerContext";
 import { readMarking, type Marking, type RawMarking, type SchemePoint } from "../lib/photoMarking";
 import { isFlagOn } from "../lib/flags";
 import { splitOpenUiBlocks } from "../lib/openui/fence";
@@ -55,6 +57,8 @@ export function buildLearnStepPrompt({
   level,
   specLine = "",
   cards = "",
+  styleLine = "",
+  studentContext = "",
 }: {
   lesson: string;
   section: LearnSection;
@@ -62,6 +66,10 @@ export function buildLearnStepPrompt({
   level: string;
   specLine?: string;
   cards?: string;
+  /** lib/learnerProfile learnerProfileRule: how this student learns. */
+  styleLine?: string;
+  /** api/learnerContext: their recurring mistakes and what they know. */
+  studentContext?: string;
 }): string {
   return `Teach one section of a student's lesson, all of it. Teach it so they understand what it is, how it works and why it matters, not just so they can repeat it.
 
@@ -72,7 +80,7 @@ THE STUDENT'S NOTES FOR THIS SECTION (teach from these; do not contradict them, 
 ${fenceUntrusted(section.body)}
 """
 ${otherSections.length ? `Other sections of the lesson, taught separately (do not teach them here): ${otherSections.map((t) => fenceUntrusted(t)).join("; ")}.` : ""}
-${levelRules(level, specLine)}
+${levelRules(level, specLine)}${styleLine ? `\n${styleLine}` : ""}${studentContext ? `\n\n${studentContext}` : ""}
 
 Write:
 1. "concept": what this section is about, in a few words.
@@ -131,7 +139,7 @@ export function parseLearnStep(
  *  a runaway). The Plus extras each get their own key for the lesson: one
  *  more unit of the allowance each, and their own cap, so using them never
  *  stops the lesson itself partway through. */
-export function learnSessionKey(materialId: string, extra?: "style" | "exam"): string {
+export function learnSessionKey(materialId: string, extra?: "style" | "exam" | "podcast"): string {
   return `learn-${extra ? `${extra}-` : ""}${materialId.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 60)}`;
 }
 
@@ -140,11 +148,14 @@ export async function generateLearnStep({
   lesson,
   section,
   otherSections,
+  subject = null,
 }: {
   materialId: string;
   lesson: string;
   section: LearnSection;
   otherSections: string[];
+  /** The lesson's subject, to narrow the student's mistakes to it. */
+  subject?: string | null;
 }): Promise<LearnStep> {
   const { level, specLine } = await studentStandard(`${lesson} ${section.title}`).catch(() => ({
     level: "",
@@ -161,6 +172,8 @@ export async function generateLearnStep({
           level: level || "the student's own course",
           specLine,
           cards: await learnCards(),
+          styleLine: await loadLearnerProfileRule(),
+          studentContext: await loadLearnerContext(subject),
         }),
       },
     ],
@@ -168,6 +181,8 @@ export async function generateLearnStep({
     mode: "solver",
     tool: "learn",
     sessionKey: learnSessionKey(materialId),
+    /* Their language and tutor persona. */
+    settings: learnerSettings(),
   });
   const step = parseLearnStep(text, section.title);
   if (!step) throw new Error("I couldn't write this part of the lesson just now.");
@@ -204,12 +219,16 @@ export function buildLessonFramePrompt({
   level,
   specLine = "",
   cards = "",
+  styleLine = "",
+  studentContext = "",
 }: {
   lesson: string;
   sections: LearnSection[];
   level: string;
   specLine?: string;
   cards?: string;
+  styleLine?: string;
+  studentContext?: string;
 }): string {
   const parts = sections
     .map((s, i) => `PART ${i + 1}: ${fenceUntrusted(s.title)}\n${fenceUntrusted(s.body.slice(0, FRAME_BODY_CHARS))}`)
@@ -221,7 +240,7 @@ THE PARTS, IN ORDER, WITH THE STUDENT'S NOTES FOR EACH (cut short where long):
 """
 ${parts}
 """
-${levelRules(level, specLine)}
+${levelRules(level, specLine)}${styleLine ? `\n${styleLine}` : ""}${studentContext ? `\n\n${studentContext}` : ""}
 
 Write:
 1. "overview": read before part 1. Open with what this topic is, in two or three plain sentences a beginner follows. Then why it matters: where it turns up, what it explains, why it is worth knowing. Then the parts in order as a numbered list, one line each on what the student will find out (not the answers). Then the new words they will meet, each with a plain-English meaning. At most 220 words of prose.
@@ -248,10 +267,12 @@ export async function writeLessonFrame({
   materialId,
   lesson,
   sections,
+  subject = null,
 }: {
   materialId: string;
   lesson: string;
   sections: LearnSection[];
+  subject?: string | null;
 }): Promise<LessonFrame> {
   const { level, specLine } = await studentStandard(lesson).catch(() => ({ level: "", specLine: "" }));
   const { text } = await callEdge({
@@ -264,12 +285,16 @@ export async function writeLessonFrame({
           level: level || "the student's own course",
           specLine,
           cards: await learnCards(),
+          styleLine: await loadLearnerProfileRule(),
+          studentContext: await loadLearnerContext(subject),
         }),
       },
     ],
     mode: "solver",
     tool: "learn",
     sessionKey: learnSessionKey(materialId),
+    /* Their language and tutor persona. */
+    settings: learnerSettings(),
   });
   const frame = parseLessonFrame(text);
   if (!frame) throw new Error("I couldn't write the overview just now.");
@@ -374,6 +399,7 @@ export async function explainAnotherWay({
     ],
     tool: "learn",
     sessionKey: learnSessionKey(materialId, "style"),
+    settings: learnerSettings(),
   });
   const answer = text.trim();
   if (refused || answer.length < 40) throw new Error("I couldn't explain it that way just now.");
@@ -482,6 +508,7 @@ export async function writeExamQuestion({
     mode: "solver",
     tool: "learn",
     sessionKey: learnSessionKey(materialId, "exam"),
+    settings: learnerSettings(),
   });
   const exam = parseExamQuestion(text);
   if (!exam) throw new Error("I couldn't write an exam question for this part just now.");

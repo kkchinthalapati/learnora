@@ -8,6 +8,7 @@ import { MisconceptionLedgerCard } from "../dashboard/MisconceptionLedgerCard";
 import { TrajectoryBody } from "../trajectory/TrajectoryView";
 import { FadingTopicsCard } from "./FadingTopicsCard";
 import { StudyAnalyticsView } from "./StudyAnalyticsView";
+import { UnderstandingPanel } from "./UnderstandingPanel";
 import styles from "./progress.module.css";
 
 /* Progress (webapp/DESIGN.md 0.1): one page for what you've done, what you
@@ -19,17 +20,22 @@ import styles from "./progress.module.css";
  * History opens first: the forecast is a Pro feature, and a free account
  * shouldn't land on a paywall when it asks how it's doing. */
 
-type ProgressTab = "history" | "mistakes" | "forecast";
+/* 2026-11: "What you know" opens first. Progress used to open on History,
+   which is time spent; the question a student brings here is what they have
+   actually learned. History's charts are one tab along, unchanged, for
+   anyone who wants them. */
+type ProgressTab = "know" | "mistakes" | "history" | "forecast";
 const TABS: ReadonlyArray<TabItem<ProgressTab>> = [
-  { value: "history", label: "History" },
+  { value: "know", label: "What you know" },
   { value: "mistakes", label: "Mistakes" },
+  { value: "history", label: "History" },
   { value: "forecast", label: "Exam forecast" },
 ];
 
 export function ProgressView() {
   const [params, setParams] = useSearchParams();
   const wanted = params.get("tab");
-  const tab: ProgressTab = TABS.some((t) => t.value === wanted) ? (wanted as ProgressTab) : "history";
+  const tab: ProgressTab = TABS.some((t) => t.value === wanted) ? (wanted as ProgressTab) : "know";
   const idBase = useTabIds();
 
   return (
@@ -37,7 +43,7 @@ export function ProgressView() {
       <PageHeader
         as="h1"
         title="Progress"
-        sub="What you've done, what you keep getting wrong, and where you're heading."
+        sub="What you know, what to revisit, and what you've done."
         actions={
           isFlagOn("classMap") ? (
             <ButtonLink variant="ghost" to="/classes">
@@ -49,12 +55,14 @@ export function ProgressView() {
       <Tabs
         items={TABS}
         value={tab}
-        onChange={(next) => setParams(next === "history" ? {} : { tab: next }, { replace: true })}
+        onChange={(next) => setParams(next === "know" ? {} : { tab: next }, { replace: true })}
         label="Parts of Progress"
         idBase={idBase}
       />
       <TabPanel idBase={idBase} value={tab}>
-        {tab === "history" ? (
+        {tab === "know" ? (
+          <UnderstandingPanel />
+        ) : tab === "history" ? (
           <StudyAnalyticsView />
         ) : tab === "mistakes" ? (
           <div className={styles.stack}>

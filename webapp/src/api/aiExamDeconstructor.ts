@@ -6,6 +6,8 @@ import { fenceUntrusted } from "../lib/actionTags";
 import { getKnownMisconception, type KnownMisconception } from "../lib/misconceptionCatalogue";
 import type { BankQuestion } from "../lib/questionBank";
 import { bankTopicTitle, fetchMisconceptionMappedQuestions } from "./questionBank";
+import { misconceptionsApi } from "./misconceptions";
+import type { Misconception } from "../lib/misconceptions";
 
 export interface TrapArchetype {
   id: string;
@@ -763,13 +765,32 @@ function shuffled<T>(items: readonly T[], random: () => number): T[] {
   return out;
 }
 
+/** The catalogue ids of the student's mistakes that are still open. */
+export function openCatalogueIds(rows: readonly Misconception[]): Set<string> {
+  return new Set(rows.flatMap((m) => (m.status !== "resolved" && m.catalogueId ? [m.catalogueId] : [])));
+}
+
+/** Bank questions whose bait is a belief this student has held (still open
+ *  in their ledger) first, so a sprint tests what they actually get wrong;
+ *  each group shuffled. */
+export function preferStudentMisconceptions(
+  bank: readonly SprintQuestion[],
+  open: ReadonlySet<string>,
+  random: () => number = Math.random,
+): SprintQuestion[] {
+  const theirs = bank.filter((q) => q.misconceptionId && open.has(q.misconceptionId));
+  const rest = bank.filter((q) => !theirs.includes(q));
+  return [...shuffled(theirs, random), ...shuffled(rest, random)];
+}
+
 /**
  * A challenge sprint: tricky questions whose wrong options are built around
  * named traps, each with the belief that makes the bait look right.
  *
  * Sources, best first, never mixing in another subject:
  *   1. the practice bank's questions with a wrong option mapped to a
- *      catalogue misconception (written and checked by people);
+ *      catalogue misconception (written and checked by people), the ones
+ *      mapped to a mistake still open in the student's ledger first;
  *   2. the built-in pool for the subject;
  *   3. AI-written questions, checked for shape before use, when 1 and 2 are
  *      short.
@@ -796,7 +817,11 @@ export async function generateChallengeSprint(
   } catch (err) {
     console.warn("[detective] practice bank unavailable:", err);
   }
-  shuffled(bank, random).forEach(add);
+  const open = await misconceptionsApi
+    .fetchAll()
+    .then((rows) => openCatalogueIds(rows))
+    .catch(() => new Set<string>());
+  preferStudentMisconceptions(bank, open, random).forEach(add);
   (builtinPoolFor(label) ?? []).forEach((q) => add({ ...q, source: "builtin" }));
 
   if (settings && picked.length < count) {

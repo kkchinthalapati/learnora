@@ -22,7 +22,33 @@ const BASE = "/app/";
 
 export default defineConfig({
   base: BASE,
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: "dev-route-redirects",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const rawUrl = req.url || "";
+          const path = rawUrl.split("?")[0];
+          const query = rawUrl.includes("?") ? rawUrl.slice(rawUrl.indexOf("?")) : "";
+
+          // Redirect /slack and /slack/* to /app/slack*
+          if (path === "/slack" || path.startsWith("/slack/")) {
+            res.writeHead(302, { Location: `/app${path}${query}` });
+            res.end();
+            return;
+          }
+          // Redirect root / to /app/ in dev
+          if (path === "/" || path === "") {
+            res.writeHead(302, { Location: `/app/${query}` });
+            res.end();
+            return;
+          }
+          next();
+        });
+      },
+    },
+  ],
   build: {
     /* "hidden" emits the .map files but omits the `//# sourceMappingURL`
        comment that points at them, so browsers never fetch them and the

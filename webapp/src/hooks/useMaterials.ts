@@ -63,6 +63,29 @@ export function useDeleteMaterial() {
   });
 }
 
+/* Saves a subject's lesson order (lib/lessonOrder.ts). The list is refetched
+ * either way: on success to show the stored order, on failure to put the
+ * lessons back where they were. */
+export function useSetLessonOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (changes: ReadonlyArray<{ id: string; position: number }>) =>
+      materialsApi.setOrder(changes),
+    /* Show the move at once; the refetch below confirms or undoes it. */
+    onMutate: (changes) => {
+      const placed = new Map(changes.map((c) => [c.id, c.position]));
+      qc.setQueriesData<unknown>({ queryKey: materialsKeys.all }, (old: unknown) =>
+        Array.isArray(old)
+          ? old.map((m: { id: string }) => (placed.has(m.id) ? { ...m, position: placed.get(m.id) } : m))
+          : old,
+      );
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: materialsKeys.all });
+    },
+  });
+}
+
 export function useRenameMaterial() {
   const qc = useQueryClient();
   return useMutation({

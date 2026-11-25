@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router";
 import { LegacyToolRedirect } from "./views/session/LegacyToolRedirect";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { FounderGate } from "./components/FounderGate";
 import { FINISH_ACCOUNT_PATH } from "./lib/accountDetails";
 import {
   OnboardingGate,
@@ -152,6 +153,12 @@ const LazyFriendInviteLanding = lazy(async () => ({
 const LazyProgressView = lazy(async () => ({
   default: (await import("./views/analytics/ProgressView")).ProgressView,
 }));
+const LazyBoardroomView = lazy(async () => ({
+  default: (await import("./views/boardroom/BoardroomView")).BoardroomView,
+}));
+const LazySlackWorkspaceView = lazy(async () => ({
+  default: (await import("./views/slack/SlackWorkspaceView")).SlackWorkspaceView,
+}));
 const LazyClassesView = lazy(async () => ({
   default: (await import("./views/classes/ClassesView")).ClassesView,
 }));
@@ -261,7 +268,33 @@ export function AppRoutes() {
                 <LazyDevelopersView />
               </DeferredView>
             } />
+      {/* Founder Slack/Discord Replica Workspace ("Slack 2.0 just personal")
+          Deliberately outside ProtectedRoute, OnboardingGate, and AppShell:
+          - Zero student navigation chrome (no TopBar, no student menus)
+          - No onboarding blockage (founders bypass student curriculum onboarding)
+          - Gated exclusively to Karthik and Nirav via FounderGate */}
+      <Route
+        path="/slack"
+        element={
+          <FounderGate>
+            <DeferredView>
+              <LazySlackWorkspaceView />
+            </DeferredView>
+          </FounderGate>
+        }
+      />
+      <Route
+        path="/slack/:channelId"
+        element={
+          <FounderGate>
+            <DeferredView>
+              <LazySlackWorkspaceView />
+            </DeferredView>
+          </FounderGate>
+        }
+      />
       <Route element={<ProtectedRoute />}>
+
         {/* Deliberately outside both OnboardingGate and AppShell: a guard
             can't redirect into the screen that satisfies it, and the sidebar
             full of twenty destinations is the very thing this screen exists
@@ -375,6 +408,22 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
+            {/* The founders' private AI-relay workspace (flagged: lib/flags.ts). */}
+            <Route path="/boardroom" element={
+              <DeferredView>
+                <LazyBoardroomView />
+              </DeferredView>
+            } />
+            <Route path="/boardroom/:section" element={
+              <DeferredView>
+                <LazyBoardroomView />
+              </DeferredView>
+            } />
+            <Route path="/boardroom/discussions/:threadId" element={
+              <DeferredView>
+                <LazyBoardroomView />
+              </DeferredView>
+            } />
             <Route path="/tasks" element={
               <DeferredView>
                 <LazyTasksView />

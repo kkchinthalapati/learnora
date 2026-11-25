@@ -7,6 +7,8 @@ import { DialogProvider } from "./context/DialogProvider";
 import { AiConsentBridge } from "./components/AiConsentBridge";
 import { AuthProvider } from "./context/AuthProvider";
 import { CreateModalProvider } from "./context/CreateModalProvider";
+import { GenerationProvider } from "./context/GenerationProvider";
+import { CookieBanner } from "./components/CookieBanner";
 import { AppearanceProvider } from "./context/AppearanceProvider";
 import { SettingsProvider } from "./context/SettingsProvider";
 import { TimerProvider } from "./context/TimerProvider";
@@ -77,6 +79,8 @@ export default function App() {
                     <BrowserRouter
                       basename={import.meta.env.BASE_URL.replace(/\/$/, "")}
                     >
+                      <CookieBanner />
+                      <GenerationProvider>
                       <CreateModalProvider>
                         <ChatProvider>
                           <CommandPaletteProvider>
@@ -97,6 +101,7 @@ export default function App() {
                           </CommandPaletteProvider>
                         </ChatProvider>
                       </CreateModalProvider>
+                      </GenerationProvider>
                     </BrowserRouter>
                   </TimerProvider>
                 </DialogProvider>

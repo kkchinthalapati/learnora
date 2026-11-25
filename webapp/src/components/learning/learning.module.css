@@ -125,6 +125,41 @@
   min-width: 0;
 }
 
+/* Learn's focus mode: the same turn as a card, so each step reads as one
+   thing to do rather than a long column of text. */
+.tutorTurnCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+  padding: var(--s-8) var(--s-8) var(--s-6);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-2xl);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 640px) {
+  .tutorTurnCard {
+    padding: var(--s-5) var(--s-4);
+    border-radius: var(--r-xl);
+  }
+}
+
+.metaChip {
+  align-self: flex-start;
+  margin: 0;
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
 .claim {
   margin: 0;
   font-family: var(--font-head);

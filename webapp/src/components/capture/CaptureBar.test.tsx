@@ -2,14 +2,17 @@ import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen } from "@testing-library/react";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 
-const mutateAsync = vi.fn(
+/* A lesson is started through the generation screen (context/generation);
+   this one never finishes, so the first lesson is still being made. */
+const start = vi.fn(
   () => new Promise<never>(() => {
     /* Never settles: the first lesson is still being made. */
   }),
 );
 
-vi.mock("../../hooks/useStudyPackage", () => ({
-  useCreateStudyPackage: () => ({ mutateAsync, isPending: false }),
+vi.mock("../../context/generation", async (orig) => ({
+  ...(await orig<typeof import("../../context/generation")>()),
+  useGeneration: () => ({ job: null, start }),
 }));
 
 import { CaptureBar } from "./CaptureBar";
@@ -31,6 +34,6 @@ describe("CaptureBar", () => {
       fireEvent.submit(form!);
     });
 
-    expect(mutateAsync).toHaveBeenCalledTimes(1);
+    expect(start).toHaveBeenCalledTimes(1);
   });
 });

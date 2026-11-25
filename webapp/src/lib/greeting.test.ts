@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getGreeting } from "./greeting";
+import { getGreeting, homeGreeting } from "./greeting";
 
 describe("getGreeting", () => {
   it("doesn't say good morning in the small hours", () => {
@@ -33,5 +33,22 @@ describe("getGreeting", () => {
     expect(getGreeting("Ada", new Date("2026-01-01T23:30:00"))).toBe(
       "Good evening, Ada! 👋",
     );
+  });
+});
+
+describe("homeGreeting", () => {
+  it("greets by first name, with no emoji", () => {
+    expect(homeGreeting("Priya Sharma", new Date("2026-01-01T09:00:00"))).toBe("Good morning, Priya.");
+    expect(homeGreeting("Karthik", new Date("2026-01-01T19:00:00"))).toBe("Good evening, Karthik.");
+    expect(homeGreeting("Ada", new Date("2026-01-01T13:00:00"))).toBe("Good afternoon, Ada.");
+  });
+
+  it("still reads right without a name", () => {
+    expect(homeGreeting("", new Date("2026-01-01T09:00:00"))).toBe("Good morning.");
+    expect(homeGreeting("  ", new Date("2026-01-01T02:00:00"))).toBe("Still up?");
+  });
+
+  it("keeps the small-hours line", () => {
+    expect(homeGreeting("Ada", new Date("2026-01-01T02:34:00"))).toBe("Still up, Ada?");
   });
 });

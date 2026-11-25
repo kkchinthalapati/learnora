@@ -415,6 +415,18 @@ export function CommandPalette(props: CommandPaletteProps) {
     });
 
     // --- Navigation ---
+    items.push({
+      id: "nav-slack",
+      category: "Founders",
+      title: "Founders Slack",
+      subtitle: "Private Slack 2.0 workspace for Karthik & Nirav with @K AI and @N AI",
+      icon: "message-square",
+      keywords: ["slack", "discord", "founder", "founders", "karthik", "nirav", "chat"],
+      onSelect: () => {
+        navigate("/slack");
+        handleClose();
+      },
+    });
     items.push({ id: "nav-today", category: "Navigation", title: "Today", subtitle: "Your next study step", icon: "zap", keywords: ["home", "today"], onSelect: () => { navigate("/"); handleClose(); } });
     items.push({
       id: "nav-tasks",

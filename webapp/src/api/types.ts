@@ -57,6 +57,9 @@ export interface Material {
   processing_status?: MaterialProcessingDbStatus | null;
   processing_error?: string | null;
   processing_updated_at?: string | null;
+  /** Place in its subject, from 0; null or missing when never placed
+   *  (lib/lessonOrder.ts). Missing until the position migration is applied. */
+  position?: number | null;
 }
 
 export type MaterialProcessingDbStatus = "pending" | "done" | "partial" | "failed" | "skipped";

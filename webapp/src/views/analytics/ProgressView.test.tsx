@@ -6,6 +6,7 @@ import { renderWithProviders } from "../../test/render";
 /* Progress (webapp/DESIGN.md 0.1): History, Mistakes and the exam forecast
  * as three tabs of one page. The panels' own content has its own tests. */
 vi.mock("./StudyAnalyticsView", () => ({ StudyAnalyticsView: () => <p>History panel</p> }));
+vi.mock("./UnderstandingPanel", () => ({ UnderstandingPanel: () => <p>Understanding panel</p> }));
 vi.mock("./FadingTopicsCard", () => ({ FadingTopicsCard: () => <p>Fading panel</p> }));
 vi.mock("../dashboard/MisconceptionLedgerCard", () => ({ MisconceptionLedgerCard: () => <p>Ledger panel</p> }));
 vi.mock("../trajectory/TrajectoryView", () => ({ TrajectoryBody: () => <p>Forecast panel</p> }));
@@ -17,10 +18,16 @@ const renderAt = (path: string) =>
   renderWithProviders(<ProgressView />, undefined, { withRouter: true, initialEntries: [path] });
 
 describe("ProgressView", () => {
-  it("is one page titled Progress that opens on History", () => {
+  it("is one page titled Progress that opens on what the student knows", () => {
     renderAt("/analytics");
     expect(screen.getByRole("heading", { level: 1, name: "Progress" })).toBeInTheDocument();
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["History", "Mistakes", "Exam forecast"]);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["What you know", "Mistakes", "History", "Exam forecast"]);
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("Understanding panel");
+  });
+
+  it("keeps the history charts one tab along", async () => {
+    renderAt("/analytics");
+    await userEvent.setup().click(screen.getByRole("tab", { name: "History" }));
     expect(screen.getByRole("tabpanel")).toHaveTextContent("History panel");
   });
 

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button } from "../../components/Button";
 import { ListRow, ListRows } from "../../components/ListRow";
 import { ProgressRing } from "../../components/ProgressRing";
@@ -25,12 +26,16 @@ export function LessonRows({
   folders,
   showSubject = true,
   label = "Lessons",
+  rowExtras,
 }: {
   lessons: Material[];
   progress: Map<string, LessonProgress>;
   folders: Folder[];
   showSubject?: boolean;
   label?: string;
+  /** A subject's own page adds to each row: a word before the meta line
+   *  ("Next up") and controls beside the ring (move up, move down). */
+  rowExtras?: (lesson: Material, index: number) => { note?: string; controls?: ReactNode };
 }) {
   const records = useAllMaterialProcessing();
   const retry = useRetryStudyPackage();
@@ -38,7 +43,8 @@ export function LessonRows({
 
   return (
     <ListRows label={label}>
-      {lessons.map((m) => {
+      {lessons.map((m, index) => {
+        const extras = rowExtras?.(m, index);
         const folder = m.folder_id ? byId.get(m.folder_id) : undefined;
         const retrying =
           retry.isPending &&
@@ -47,6 +53,7 @@ export function LessonRows({
         const status = retrying ? "processing" : deriveMaterialStatus(m, 1, records[m.id]).status;
         const p = progress.get(m.id);
         const parts = [
+          extras?.note ?? null,
           showSubject ? (folder?.name ?? "No subject") : null,
           status === "processing"
             ? "Writing notes…"
@@ -68,11 +75,14 @@ export function LessonRows({
                   Retry
                 </Button>
               ) : (
-                <ProgressRing
-                  value={progressValue(p)}
-                  label={progressLabel(p)}
-                  center={p && p.total > 0 ? String(p.practised) : undefined}
-                />
+                <>
+                  {extras?.controls}
+                  <ProgressRing
+                    value={progressValue(p)}
+                    label={progressLabel(p)}
+                    center={p && p.total > 0 ? String(p.practised) : undefined}
+                  />
+                </>
               )
             }
           />

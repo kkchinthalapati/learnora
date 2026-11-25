@@ -49,6 +49,10 @@ const data = {
 
 vi.mock("./useSubjectsData", () => ({ useSubjectsData: () => data }));
 vi.mock("../../hooks/useDecks", () => ({ useAllDecks: () => ({ data: [] }) }));
+const readiness = vi.hoisted(() => ({ tier: "Getting there" as string }));
+vi.mock("../../hooks/useExamReadiness", () => ({
+  useExamReadiness: () => ({ readiness: { tier: readiness.tier }, roadmap: [], isPending: false }),
+}));
 vi.mock("../library/useLibraryActions", () => ({
   useLibraryActions: () => ({ rename: vi.fn(), removeFolder: vi.fn() }),
 }));
@@ -177,6 +181,23 @@ describe("SubjectView", () => {
     expect(week).not.toHaveTextContent("Essay plan");
     expect(screen.getByRole("list", { name: "Lessons in Biology" })).toHaveTextContent("Enzymes.pdf");
     expect(screen.getByRole("button", { name: "Start session" })).toBeInTheDocument();
+  });
+
+  it("says how ready the student is for the exam in a word, never a number", () => {
+    readiness.tier = "Getting there";
+    renderAt("/subjects/f-bio");
+    const exam = screen.getByRole("list", { name: "Exams in Biology" });
+    expect(exam).toHaveTextContent("Getting there");
+    expect(exam).not.toHaveTextContent("%");
+  });
+
+  it("says when there is too little evidence to judge readiness", () => {
+    readiness.tier = "Not enough data";
+    renderAt("/subjects/f-bio");
+    expect(screen.getByRole("list", { name: "Exams in Biology" })).toHaveTextContent(
+      "too little answered yet to say how ready",
+    );
+    readiness.tier = "Getting there";
   });
 
   it("says plainly when a subject has no exam or lessons", () => {

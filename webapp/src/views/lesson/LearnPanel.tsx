@@ -4,6 +4,15 @@ import { Button } from "../../components/Button";
 import { UNFILED_SUBJECT } from "../../lib/lessons";
 import { asSentence } from "../../lib/sentence";
 import { EmptyState } from "../../components/EmptyState";
+import { Icon } from "../../components/Icon";
+import { useLearnerStyle } from "../../hooks/useLearnerStyle";
+import { useLearnerSignals } from "../../hooks/useLearnerSignals";
+import { RateThis } from "../../components/learning/Adapt";
+import { learnerSignalsApi } from "../../api/learnerSignals";
+import { SECTION_SCORE } from "../../lib/learnerSignals";
+import { learnerStyleOption } from "../../lib/learnerStyle";
+import { PodcastPlayer } from "./PodcastPlayer";
+import { TutorCall } from "./TutorCall";
 import { AiErrorCard } from "../../components/learning/AiErrorCard";
 import { TutorTurn } from "../../components/learning/TutorTurn";
 import { AiReply } from "../../components/chat/AiReply";
@@ -28,6 +37,10 @@ import { useEntitlements } from "../../hooks/useSubscription";
 import { learningEventsApi } from "../../api/learningEvents";
 import { learnSections, type LearnSection } from "../../lib/learnSections";
 import { normaliseTopicKey } from "../../lib/topicKey";
+import { learnStorageKey } from "../../lib/learnPosition";
+import { explainParts } from "../../api/explainBack";
+import { ReminderOffer } from "../../components/learning/ReminderOffer";
+import { ExplainBack, type ExplainBackProgress } from "./ExplainBack";
 import type { QuizQuestion } from "../../lib/aiJson";
 import type { MisconceptionCandidate } from "../../lib/misconceptions";
 import styles from "./learn.module.css";
@@ -76,6 +89,8 @@ interface LearnState {
   frame?: LessonFrame;
   /** The student has moved on from the overview. */
   introDone?: boolean;
+  /** The lesson said back in the student's own words, and what came across. */
+  explainBack?: ExplainBackProgress;
 }
 
 const KEYS = ["A", "B", "C", "D", "E"];
@@ -89,7 +104,8 @@ function questionHash(text: string): string {
   }
   return (h >>> 0).toString(36);
 }
-const storageKey = (materialId: string) => `learnora:learn:v1:${materialId}`;
+/* Shared with Home, which reads how far along a lesson is (lib/learnPosition). */
+const storageKey = learnStorageKey;
 
 function freshState(outline: string[]): LearnState {
   return { outline, current: -1, sections: {} };
@@ -131,19 +147,30 @@ const OUTCOME_LABEL: Record<Outcome, string> = {
 
 export function LearnPanel({
   materialId,
+  title,
   lesson,
   subject,
   markdown,
   loading,
+  autoStart = false,
   onOpenTab,
+  onFocusChange,
 }: {
   materialId: string;
+  /** The lesson's title, for the focus bar. */
+  title: string;
   /** What the lesson is about, for the prompt and the evidence's topic. */
   lesson: string;
   subject: string | null;
   markdown: string;
   loading: boolean;
+  /** Arrived straight from making the lesson: go into it rather than
+   *  stopping at the start screen (unless the style question is pending). */
+  autoStart?: boolean;
   onOpenTab: (tab: "notes" | "cards" | "quiz") => void;
+  /** True while a step, the podcast or a call fills the page, so the lesson
+   *  page can hide its header and tabs. */
+  onFocusChange?: (focused: boolean) => void;
 }) {
   const sections = useMemo(() => learnSections(markdown), [markdown]);
   const outline = useMemo(() => sections.map((s) => s.key), [sections]);
@@ -167,31 +194,55 @@ export function LearnPanel({
       /* New notes, new lesson: remount rather than reconcile old answers. */
       key={outline.join("|")}
       materialId={materialId}
+      title={title}
       lesson={lesson}
       subject={subject}
+      markdown={markdown}
       sections={sections}
       outline={outline}
+      autoStart={autoStart}
       onOpenTab={onOpenTab}
+      onFocusChange={onFocusChange}
     />
   );
 }
 
+type Mode = "steps" | "listen" | "call";
+
 function LearnFlow({
   materialId,
+  title,
   lesson,
   subject,
+  markdown,
   sections,
   outline,
+  autoStart,
   onOpenTab,
+  onFocusChange,
 }: {
   materialId: string;
+  title: string;
   lesson: string;
   subject: string | null;
+  markdown: string;
   sections: LearnSection[];
   outline: string[];
+  autoStart: boolean;
   onOpenTab: (tab: "notes" | "cards" | "quiz") => void;
+  onFocusChange?: (focused: boolean) => void;
 }) {
   const [state, setState] = useState<LearnState>(() => loadState(materialId, outline));
+  const [mode, setMode] = useState<Mode>("steps");
+  /* How they learn is set in onboarding and Settings ("How you learn"), never
+     asked here: this only shows what lessons are shaped for. */
+  const learnerStyle = useLearnerStyle();
+  const signals = useLearnerSignals();
+  const focused = mode !== "steps" || state.current >= 0;
+  useEffect(() => {
+    onFocusChange?.(focused);
+  }, [focused, onFocusChange]);
+  useEffect(() => () => onFocusChange?.(false), [onFocusChange]);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   /* Sections being written right now, so a prefetch and a click never ask
@@ -230,6 +281,7 @@ function LearnFlow({
           lesson,
           section: target,
           otherSections: titles.filter((_, i) => i !== index),
+          subject,
         });
         setState((s) =>
           s.sections[target.key]?.step
@@ -246,7 +298,7 @@ function LearnFlow({
         setSettled((n) => n + 1);
       }
     },
-    [sections, materialId, lesson, titles],
+    [sections, materialId, lesson, titles, subject],
   );
 
   /* Arriving at a section with nothing written for it yet: write it. */
@@ -275,22 +327,71 @@ function LearnFlow({
     setFrameBusy(true);
     setFrameError(null);
     try {
-      const frame = await writeLessonFrame({ materialId, lesson, sections });
+      const frame = await writeLessonFrame({ materialId, lesson, sections, subject });
       setState((s) => ({ ...s, frame }));
     } catch (caught) {
       setFrameError(caught instanceof Error && caught.message ? caught.message : "The tutor didn't answer.");
     } finally {
       setFrameBusy(false);
     }
-  }, [materialId, lesson, sections]);
+  }, [materialId, lesson, sections, subject]);
   useEffect(() => {
     if ((showingIntro || showingEnd) && !state.frame && !frameBusy && !frameError) void writeFrame();
   }, [showingIntro, showingEnd, state.frame, frameBusy, frameError, writeFrame]);
 
   const goTo = (index: number) => {
     setError(null);
+    setMode("steps");
     setState((s) => ({ ...s, current: index }));
+    window.scrollTo?.({ top: 0 });
   };
+
+  /* Straight from making the lesson: into the overview, unless there's
+     progress already (the start screen then shows where they got to). */
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!autoStart || autoStarted.current) return;
+    autoStarted.current = true;
+    if (state.current < 0 && !sections.some((s) => state.sections[s.key])) goTo(0);
+    // Once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
+
+  const minutes = Math.max(3, sections.length * 4);
+  const focusFrame = (body: ReactNode, sub: string, progressIndex: number | null) => (
+    <FocusFrame
+      title={title}
+      sub={sub}
+      sections={sections}
+      state={state}
+      progressIndex={progressIndex}
+      mode={mode}
+      onExit={() => {
+        setMode("steps");
+        setState((s) => ({ ...s, current: -1 }));
+      }}
+      onMode={setMode}
+    >
+      {body}
+    </FocusFrame>
+  );
+
+  if (mode === "listen") {
+    /* The parts missed in Learn, for an episode on only those. */
+    const missed = sections.filter((s) => state.sections[s.key]?.outcome === "revisit").map((s) => s.title);
+    return focusFrame(
+      <PodcastPlayer materialId={materialId} lesson={lesson} notes={markdown} subject={subject} missed={missed} />,
+      "Listen · podcast",
+      null,
+    );
+  }
+  if (mode === "call") {
+    return focusFrame(
+      <TutorCall materialId={materialId} lesson={lesson} onEnd={() => setMode("steps")} />,
+      "Talk it through · call",
+      null,
+    );
+  }
 
   /* Evidence for one check answer. The client id is per question, so a
      reload, a replay or a second click never counts twice, while learning a
@@ -335,6 +436,20 @@ function LearnFlow({
     const question = which === "check" ? step.check : step.recheck;
     const right = index === question.correctIndex;
     recordCheck(question, which, right, step);
+    /* How the part went, with the style it was taught in: what a style
+       suggestion is built from (lib/learnerSignals.ts suggestStyle). */
+    const outcome = which === "check" ? (right ? "got" : null) : right ? "relearned" : "revisit";
+    if (outcome) {
+      void signals.record({
+        kind: "section_result",
+        surface: "learn",
+        style: learnerStyle.style,
+        score: SECTION_SCORE[outcome],
+        topicKey: normaliseTopicKey(lesson),
+        ref: `${materialId}:${section.key}`,
+        clientId: `learn-result:${materialId}:${section.key}:${questionHash(question.question)}`,
+      });
+    }
     patch(section.key, {
       [which]: index,
       ...(which === "check" && right ? { outcome: "got" as const } : {}),
@@ -362,27 +477,80 @@ function LearnFlow({
   if (state.current < 0) {
     const started = sections.some((s) => state.sections[s.key]?.guess !== undefined);
     const resumeAt = sections.findIndex((s) => !state.sections[s.key]?.outcome);
+    const done = sections.filter((s) => state.sections[s.key]?.outcome).length;
     return (
-      <div className={styles.flow}>
-        <div className={styles.intro}>
-          <h2 className={styles.introTitle}>Learn this lesson</h2>
-          <p className={styles.lead}>
-            {sections.length === 1
-              ? "The big picture first, then one part taught from your notes: a quick guess, everything in it explained, then a check."
-              : `The big picture first, then ${sections.length} parts taught from your notes one at a time: a quick guess, everything in the part explained, then a check. Miss a check and it's explained another way.`}
+      <div className={styles.cover}>
+        <section className={styles.coverCard} aria-labelledby="learn-cover-title">
+          <p className={styles.eyebrow}>
+            {sections.length} {sections.length === 1 ? "part" : "parts"} · about {minutes} min
+            {started ? ` · ${done} of ${sections.length} done` : ""}
           </p>
+          <h2 id="learn-cover-title" className={styles.coverTitle}>
+            {!started ? "Ready to learn this?" : resumeAt === -1 ? "You've been through it all" : "Pick up where you left off"}
+          </h2>
+          <p className={styles.lead}>
+            The big picture first, then each part taught from your notes: a quick guess, the idea explained, then a
+            check. Miss one and it's explained another way.
+          </p>
+
+          {learnerStyle.style ? (
+            <p className={styles.styleLine}>
+              <Icon name={learnerStyleOption(learnerStyle.style).icon} size={16} />
+              <span>
+                Shaped for <strong>{learnerStyleOption(learnerStyle.style).label.toLowerCase()}</strong>
+              </span>
+              <Link className={styles.quietLink} to="/settings?tab=study#how-you-learn">
+                Change in Settings
+              </Link>
+            </p>
+          ) : (
+            <p className={styles.styleLine}>
+              <Icon name="sparkles" size={16} />
+              <span>Tell us how you learn and every lesson is shaped around it.</span>
+              <Link className={styles.quietLink} to="/settings?tab=study#how-you-learn">
+                How you learn
+              </Link>
+            </p>
+          )}
+          <div className={styles.actions}>
+            <Button variant="primary" size="lg" onClick={() => goTo(resumeAt === -1 ? sections.length : resumeAt)}>
+              {!started ? "Start learning" : resumeAt === -1 ? "See how it went" : `Carry on: ${sections[resumeAt].title}`}
+            </Button>
+            {started ? (
+              <button type="button" className={styles.quietLink} onClick={startOver}>
+                Start over
+              </button>
+            ) : null}
+          </div>
+        </section>
+
+        <div className={styles.modes} role="group" aria-label="Other ways to learn this">
+          <button type="button" className={styles.modeCard} onClick={() => setMode("listen")}>
+            <span className={styles.modeIcon} aria-hidden="true">
+              <Icon name="headphones" size={20} />
+            </span>
+            <span className={styles.modeText}>
+              <span className={styles.modeLabel}>Listen</span>
+              <span className={styles.modeHint}>An episode of this lesson, made your way</span>
+            </span>
+          </button>
+          <button type="button" className={styles.modeCard} onClick={() => setMode("call")}>
+            <span className={styles.modeIcon} aria-hidden="true">
+              <Icon name="phone" size={20} />
+            </span>
+            <span className={styles.modeText}>
+              <span className={styles.modeLabel}>Talk it through</span>
+              <span className={styles.modeHint}>A voice call with your tutor</span>
+            </span>
+          </button>
         </div>
-        <Outline sections={sections} state={state} onPick={goTo} />
-        <div className={styles.actions}>
-          <Button variant="primary" onClick={() => goTo(resumeAt === -1 ? sections.length : resumeAt)}>
-            {!started ? "Start learning" : resumeAt === -1 ? "See how it went" : `Carry on: ${sections[resumeAt].title}`}
-          </Button>
-          {started ? (
-            <button type="button" className={styles.quietLink} onClick={startOver}>
-              Start over
-            </button>
-          ) : null}
-        </div>
+
+        <section aria-labelledby="learn-outline-title">
+          <h3 id="learn-outline-title" className={styles.outlineTitle}>
+            What's in it
+          </h3>
+          <Outline sections={sections} state={state} onPick={goTo} />
+        </section>
       </div>
     );
   }
@@ -392,7 +560,7 @@ function LearnFlow({
     const revisit = sections.filter((s) => state.sections[s.key]?.outcome === "revisit");
     const skipped = sections.filter((s) => !state.sections[s.key]?.outcome);
     const learned = sections.length - revisit.length - skipped.length;
-    return (
+    return focusFrame(
       <div className={styles.flow}>
         <div className={styles.intro}>
           <h2 className={styles.introTitle}>
@@ -404,14 +572,36 @@ function LearnFlow({
           </p>
         </div>
         {state.frame ? (
-          <TutorTurn meta="Putting it together">
+          <TutorTurn variant="card" meta="Putting it together">
             <AiReply text={state.frame.recap} notes />
           </TutorTurn>
         ) : frameBusy ? (
-          <TutorTurn meta="Putting it together" streaming>
+          <TutorTurn variant="card" meta="Putting it together" streaming>
             <p>Writing how it all fits together…</p>
           </TutorTurn>
         ) : null}
+        {/* Only once at least one part was actually worked through: a lesson
+            skipped end to end has nothing to explain back. */}
+        {skipped.length < sections.length ? (
+          <ExplainBack
+            materialId={materialId}
+            lesson={lesson}
+            subject={subject}
+            parts={explainParts(
+              sections,
+              Object.fromEntries(sections.map((s) => [s.key, state.sections[s.key]?.step?.concept])),
+            )}
+            saved={state.explainBack}
+            onSave={(explainBack) => setState((s) => ({ ...s, explainBack }))}
+            onRevisit={learnAgain}
+          />
+        ) : null}
+        <RateThis
+          surface="learn"
+          refId={`learn-lesson:${materialId}:${questionHash(sections.map((s) => s.key).join("|"))}`}
+          style={learnerStyle.style}
+          topicKey={normaliseTopicKey(lesson)}
+        />
         <Outline sections={sections} state={state} onPick={goTo} />
         {revisit.length ? (
           <div className={styles.actions}>
@@ -433,13 +623,19 @@ function LearnFlow({
             Back to the outline
           </button>
         </div>
-      </div>
+        {/* The lesson's cards and anything missed come back on a schedule;
+            this is the moment a reminder is plainly useful. The offer hides
+            itself when reminders are on or were declined recently. */}
+        <ReminderOffer lead="This lesson comes back on a schedule: its cards when they're due, and a check on anything you missed a couple of days later." />
+      </div>,
+      "Finished",
+      sections.length,
     );
   }
 
   /* --- One section ------------------------------------------------------ */
   const step = progress?.step;
-  const meta = `Part ${state.current + 1} of ${sections.length} · ${section.title}`;
+  const meta = "Learn";
   const next = () => goTo(state.current + 1);
   const yourWay = (explanation: string) =>
     step ? (
@@ -477,11 +673,11 @@ function LearnFlow({
       </div>
     );
     body = state.frame ? (
-      <TutorTurn meta="Before you start · The big picture" check={begin}>
+      <TutorTurn variant="card" meta="Before you start · The big picture" check={begin}>
         <AiReply text={state.frame.overview} notes />
       </TutorTurn>
     ) : frameError ? (
-      <TutorTurn meta="Before you start" check={begin}>
+      <TutorTurn variant="card" meta="Before you start" check={begin}>
         <p className={styles.note}>
           {frameError} You can start without the overview; it's only the big picture, and every part is still taught in full.
         </p>
@@ -490,7 +686,7 @@ function LearnFlow({
         </button>
       </TutorTurn>
     ) : (
-      <TutorTurn meta="Before you start · The big picture" streaming check={begin}>
+      <TutorTurn variant="card" meta="Before you start · The big picture" streaming check={begin}>
         <p>Getting the big picture ready…</p>
       </TutorTurn>
     );
@@ -508,15 +704,15 @@ function LearnFlow({
           kept="Your place in the lesson is kept, and nothing you've answered is lost."
         />
       ) : (
-        <TutorTurn meta={meta} streaming>
+        <TutorTurn variant="card" meta={meta} streaming>
           <p>Getting this part ready…</p>
         </TutorTurn>
       );
   } else if (progress.phase === "hook") {
     const guess = progress.guess;
     body = (
-      <TutorTurn
-        meta={`${meta} · Quick guess`}
+      <TutorTurn variant="card"
+        meta="Quick guess"
         check={
           guess === undefined ? (
             <Options question={step.hook} onPick={(i) => patch(section.key, { guess: i })} />
@@ -537,7 +733,7 @@ function LearnFlow({
           )
         }
       >
-        <p>{step.hook.question}</p>
+        <p className={styles.question}>{step.hook.question}</p>
         {guess === undefined ? (
           <p className={styles.note}>Before you're taught it: what do you think? Guessing wrong here costs nothing.</p>
         ) : null}
@@ -545,7 +741,7 @@ function LearnFlow({
     );
   } else if (progress.phase === "teach") {
     body = (
-      <TutorTurn
+      <TutorTurn variant="card"
         meta={meta}
         claim={step.concept}
         claimLevel={2}
@@ -571,8 +767,8 @@ function LearnFlow({
     const picked = progress[which];
     const right = picked === question.correctIndex;
     body = (
-      <TutorTurn
-        meta={which === "check" ? `${meta} · Check` : `${meta} · One more check`}
+      <TutorTurn variant="card"
+        meta={which === "check" ? "Check" : "One more check"}
         check={
           picked === undefined ? (
             <Options question={question} onPick={(i) => answer(which, i)} />
@@ -618,13 +814,13 @@ function LearnFlow({
           )
         }
       >
-        <p>{question.question}</p>
+        <p className={styles.question}>{question.question}</p>
       </TutorTurn>
     );
   } else if (progress.phase === "reteach") {
     body = (
-      <TutorTurn
-        meta={`${meta} · Another way`}
+      <TutorTurn variant="card"
+        meta="Another way"
         claim={step.concept}
         claimLevel={2}
         check={
@@ -644,7 +840,7 @@ function LearnFlow({
       <ProGate feature="learnExam" loadingHeight={220}>
         <ExamPart
           key={progress.exam?.question.question ?? "new"}
-          meta={`${meta} · Exam question`}
+          meta="Exam question"
           materialId={materialId}
           lesson={lesson}
           subject={subject}
@@ -663,7 +859,7 @@ function LearnFlow({
     );
   } else {
     body = (
-      <TutorTurn
+      <TutorTurn variant="card"
         meta={meta}
         claim={step.concept}
         claimLevel={2}
@@ -690,28 +886,84 @@ function LearnFlow({
     );
   }
 
+  return focusFrame(
+    /* Worked examples are uncovered a step at a time here. */
+    <RevealSteps.Provider value>{body}</RevealSteps.Provider>,
+    showingIntro ? "Before you start" : `Part ${state.current + 1} of ${sections.length} · ${section.title}`,
+    state.current,
+  );
+}
+
+/* The page while learning: a slim bar with the way out, where you are and
+   the other ways to learn; a progress strip; then the one step. */
+function FocusFrame({
+  title,
+  sub,
+  sections,
+  state,
+  progressIndex,
+  mode,
+  onExit,
+  onMode,
+  children,
+}: {
+  title: string;
+  sub: string;
+  sections: LearnSection[];
+  state: LearnState;
+  /** The part being shown; null hides the strip (podcast, call). */
+  progressIndex: number | null;
+  mode: Mode;
+  onExit: () => void;
+  onMode: (mode: Mode) => void;
+  children: ReactNode;
+}) {
   return (
-    <div className={styles.flow}>
-      <div className={styles.bar}>
-        <button type="button" className={styles.quietLink} onClick={() => goTo(-1)}>
-          ← Outline
+    <div className={styles.focus}>
+      <header className={styles.focusBar}>
+        <button type="button" className={styles.exit} onClick={onExit} aria-label="Leave and go back to the lesson">
+          <Icon name="x" size={18} />
         </button>
+        <div className={styles.focusTitle}>
+          <span className={styles.focusLesson}>{title}</span>
+          <span className={styles.focusSub}>{sub}</span>
+        </div>
+        <div className={styles.focusTools} role="group" aria-label="Ways to learn">
+          <button type="button" className={styles.tool} aria-pressed={mode === "steps"} onClick={() => onMode("steps")}>
+            <Icon name="book-open" size={16} />
+            <span>Steps</span>
+          </button>
+          <button type="button" className={styles.tool} aria-pressed={mode === "listen"} onClick={() => onMode("listen")}>
+            <Icon name="headphones" size={16} />
+            <span>Listen</span>
+          </button>
+          <button type="button" className={styles.tool} aria-pressed={mode === "call"} onClick={() => onMode("call")}>
+            <Icon name="phone" size={16} />
+            <span>Call</span>
+          </button>
+        </div>
+      </header>
+      {progressIndex !== null ? (
         <div
-          className={styles.segments}
-          role="img"
-          aria-label={`Part ${state.current + 1} of ${sections.length}`}
+          className={styles.strip}
+          role="progressbar"
+          aria-label="Lesson progress"
+          aria-valuemin={0}
+          aria-valuemax={sections.length}
+          aria-valuenow={sections.filter((s) => state.sections[s.key]?.outcome).length}
+          aria-valuetext={`Part ${Math.min(progressIndex + 1, sections.length)} of ${sections.length}`}
         >
           {sections.map((s, i) => (
             <span
               key={s.key}
+              title={s.title}
               data-done={state.sections[s.key]?.outcome ? true : undefined}
-              data-current={i === state.current || undefined}
+              data-current={i === progressIndex || undefined}
             />
           ))}
         </div>
-      </div>
-      {/* Worked examples are uncovered a step at a time here. */}
-      <RevealSteps.Provider value>{body}</RevealSteps.Provider>
+      ) : null}
+      <div className={styles.stage}>{children}</div>
     </div>
   );
 }
@@ -746,6 +998,14 @@ function ExplainYourWay({
   const pick = async (style: LearnStyle) => {
     if (!guard()) return;
     setShown(style);
+    /* Which way of explaining they reach for (lib/learnerSignals.ts). */
+    void learnerSignalsApi.record({
+      kind: "reteach_pick",
+      surface: "learn",
+      value: style,
+      ref: `${materialId}:${section.key}`,
+      clientId: `reteach-pick:${materialId}:${section.key}:${style}`,
+    });
     setError(null);
     if (saved[style] || writing) return;
     setWriting(style);
@@ -924,7 +1184,7 @@ function ExamPart({
         kept="Your place in the lesson is kept."
       />
     ) : (
-      <TutorTurn meta={meta} streaming>
+      <TutorTurn variant="card" meta={meta} streaming>
         <p>Writing an exam question on {concept}…</p>
       </TutorTurn>
     );
@@ -933,7 +1193,7 @@ function ExamPart({
   const { question: exam, marking } = saved;
   const marks = `${exam.total} mark${exam.total === 1 ? "" : "s"}`;
   return (
-    <TutorTurn
+    <TutorTurn variant="card"
       meta={meta}
       check={
         marking && marking.kind === "marked" ? (
@@ -1044,6 +1304,22 @@ function Outline({
 }
 
 function Options({ question, onPick }: { question: QuizQuestion; onPick: (index: number) => void }) {
+  /* 1-4 or A-D picks a choice, unless the student is typing somewhere. */
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      const key = event.key.toUpperCase();
+      const index = /^[1-9]$/.test(key) ? Number(key) - 1 : KEYS.indexOf(key);
+      if (index >= 0 && index < question.choices.length) {
+        event.preventDefault();
+        onPick(index);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [question, onPick]);
   return (
     <ul className={styles.options} aria-label="Choices">
       {question.choices.map((choice, i) => (

@@ -40,6 +40,9 @@ export interface Settings {
   aiDepth: PersonaDepth;
   aiStyle: StudyStyle;
   aiAutoAdapt: boolean;
+  /** The tutor may remember which lessons the student has asked it about
+   *  (lib/tutorMemory.ts). Off: nothing is read or written. */
+  tutorMemory: boolean;
   webAccess: boolean;
   /** Read the chat tutor's replies aloud (browser text-to-speech). Off by
    *  default: a reply suddenly spoken in a classroom, on a bus or in a
@@ -67,6 +70,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   aiDepth: 3,
   aiStyle: "balanced",
   aiAutoAdapt: true,
+  tutorMemory: true,
   webAccess: true,
   aiSpokenReplies: false,
   region: "auto",
@@ -216,6 +220,10 @@ export function loadSettings(): Settings {
       typeof stored.aiAutoAdapt === "boolean"
         ? stored.aiAutoAdapt
         : DEFAULT_SETTINGS.aiAutoAdapt,
+    tutorMemory:
+      typeof stored.tutorMemory === "boolean"
+        ? stored.tutorMemory
+        : DEFAULT_SETTINGS.tutorMemory,
     webAccess:
       typeof stored.webAccess === "boolean"
         ? stored.webAccess

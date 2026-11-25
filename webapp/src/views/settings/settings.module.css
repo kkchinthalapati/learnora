@@ -680,3 +680,102 @@
     transition: none;
   }
 }
+
+/* How you learn (HowYouLearnCard.tsx) */
+.saveStatus {
+  min-height: 1.25em;
+  margin: var(--s-3) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.howYouLearnCard {
+  scroll-margin-top: var(--s-8);
+}
+
+/* What your tutor remembers (TutorMemoryCard): a plain list, one lesson a
+   row, each with its own Remove. */
+.memoryList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memoryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.memoryText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Voice and listening (VoiceListeningCard): two plain groups. */
+.voiceGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hairline);
+}
+
+.voiceGroupTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.voiceSelects {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s-3);
+}
+
+.voiceSelect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.voiceSelect select {
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+}
+
+.voiceSelect select:focus-visible,
+.voiceCheck input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.voiceCheck {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--touch-target-min);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.voiceCheck input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}

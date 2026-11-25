@@ -19,6 +19,9 @@ interface TutorTurnProps {
   check?: ReactNode;
   /** Text is still arriving: show the block cursor after the prose. */
   streaming?: boolean;
+  /** "rail" (default): an accent rule down the left, for a conversation.
+   *  "card": a raised card with the meta as a chip, for Learn's focus mode. */
+  variant?: "rail" | "card";
 }
 
 export function TutorTurn({
@@ -31,11 +34,15 @@ export function TutorTurn({
   deeper,
   check,
   streaming = false,
+  variant = "rail",
 }: TutorTurnProps) {
   const Heading = claimLevel === 2 ? "h2" : "h3";
   return (
-    <article className={styles.tutorTurn} aria-busy={streaming || undefined}>
-      {meta ? <p className={styles.meta}>{meta}</p> : null}
+    <article
+      className={variant === "card" ? styles.tutorTurnCard : styles.tutorTurn}
+      aria-busy={streaming || undefined}
+    >
+      {meta ? <p className={variant === "card" ? styles.metaChip : styles.meta}>{meta}</p> : null}
       {claim ? <Heading className={styles.claim}>{claim}</Heading> : null}
       {children || streaming ? (
         <div className={styles.prose}>

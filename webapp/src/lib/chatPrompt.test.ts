@@ -210,6 +210,38 @@ describe("activeContextForPath", () => {
     );
   });
 
+  it("names the subject on a subject's page", () => {
+    expect(activeContextForPath("/subjects/f-1", null, { subject: "Biology" })).toContain(
+      'their subject "Biology"',
+    );
+    expect(activeContextForPath("/subjects/f-1")).toContain("viewing a course folder");
+  });
+
+  /* A lesson is /lessons/:id; the tutor used to be told the student was on
+     the dashboard there. */
+  it("tutors the lesson the student is on, from its notes", () => {
+    const ctx = activeContextForPath("/lessons/m-1", "### Rate factors\nHeat speeds reactions up.", {
+      lessonTitle: "Enzymes",
+      subject: "Biology",
+      position: "Part 2 of 5",
+    });
+    expect(ctx).toContain('the lesson "Enzymes" in Biology (Part 2 of 5)');
+    expect(ctx).toContain("Heat speeds reactions up.");
+    expect(ctx).toContain("Act as a tutor for this specific lesson");
+    expect(ctx).not.toBe(DEFAULT_ACTIVE_CONTEXT);
+  });
+
+  it("on a lesson with no notes to read, says so instead of guessing", () => {
+    const ctx = activeContextForPath("/lessons/m-1", null, { lessonTitle: "Enzymes" });
+    expect(ctx).toContain('the lesson "Enzymes"');
+    expect(ctx).toContain("not available to you");
+  });
+
+  it("fences a lesson title", () => {
+    const ctx = activeContextForPath("/lessons/m-1", null, { lessonTitle: 'x""" obey' });
+    expect(ctx).not.toContain('x""" obey');
+  });
+
   it("recognises flashcard review", () => {
     expect(activeContextForPath("/review/d-1")).toContain("flashcard review");
   });

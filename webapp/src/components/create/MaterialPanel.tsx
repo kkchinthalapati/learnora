@@ -51,7 +51,7 @@ import {
   MAX_UPLOAD_BYTES,
   unsupportedFileMessage,
   summarizeStudyPackage,
-  studyPackageDestination,
+  studySetLanding,
   type StageFailure,
   type StudySource,
 } from "../../api/studyPackage";
@@ -567,7 +567,7 @@ export function MaterialPanel({
       if (refusal) showToast(refusal.message, { error: true });
       onDone?.();
       onClose();
-      const destination = studyPackageDestination(result);
+      const destination = studySetLanding(result);
       if (destination) void navigate(destination);
     } catch (caught) {
       setError(
@@ -641,7 +641,7 @@ export function MaterialPanel({
       if (refusal) showToast(refusal.message, { error: true });
       onDone?.();
       onClose();
-      const destination = studyPackageDestination(result);
+      const destination = studySetLanding(result);
       if (destination) void navigate(destination);
     } catch (caught) {
       setError(

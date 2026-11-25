@@ -24,6 +24,7 @@ const SYNCED_KEYS = [
   "aiDepth",
   "aiStyle",
   "aiAutoAdapt",
+  "tutorMemory",
   "webAccess",
   "aiSpokenReplies",
 ] as const satisfies readonly (keyof Settings)[];

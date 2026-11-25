@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { AI_PROVIDERS, PRIMARY_PROVIDERS_TEXT } from "../../lib/aiProviders";
 import { LOGO_URL as logoUrl } from "../../lib/logoUrl";
+import { reopenCookieChoice } from "../../lib/cookieConsent";
 import styles from "./privacy.module.css";
 
 /* Privacy Policy — ports privacy.html, expanded to actually cover what the
@@ -44,7 +45,7 @@ export function PrivacyView() {
           <div>
             <h1 className={styles.title}>Privacy Policy</h1>
             <p className={styles.meta}>
-              Effective Date: September 4, 2026 &bull; Last Updated: October 3,
+              Effective Date: September 4, 2026 &bull; Last Updated: November 11,
               2026
             </p>
           </div>
@@ -90,6 +91,19 @@ export function PrivacyView() {
               technical data (IP address, browser type, device) needed to keep
               the service secure and working.
             </p>
+            <p>
+              <strong>Learning records:</strong> what Learnora works out from
+              your study, so it can teach you better. This is: the answers you
+              give to checks and quizzes; the explanations you write in your
+              own words at the end of a lesson; the ideas you got wrong and
+              whether you later got them right (shown to you as things to
+              revisit); which topics your answers show you know, are still
+              learning or are starting to forget (shown to you under Progress
+              → What you know); the order you put a subject&apos;s lessons in;
+              and any ratings you give a lesson. These are kept with your
+              account, are visible to you in the app, and are included when
+              you export your data.
+            </p>
           </section>
 
           <section id="section-2" className={styles.section}>
@@ -121,6 +135,32 @@ export function PrivacyView() {
               only ever sends requests to the providers listed here.
             </p>
             <p>
+              If you fill in <strong>How you learn</strong> (the way you learn
+              best, your preferences, your own description and your interests),
+              it is sent with lesson, notes, podcast, explanation and tutor chat
+              requests so the AI can teach the way you learn. It is optional, and
+              you can change or clear it at any time in Settings → Study.
+            </p>
+            <p>
+              So the tutor can connect a new question to something you have
+              worked on, Learnora keeps a list of <strong>which lessons you
+              have asked the tutor about, and when</strong>. The titles of up
+              to six of those lessons are sent with a tutor chat request. It
+              does not keep what you typed or what the tutor replied. You can
+              see the list, remove any lesson from it, clear it, or switch it
+              off in Settings → Privacy and AI.
+            </p>
+            <p>
+              When you explain a lesson in your own words, your explanation
+              and that lesson&apos;s notes are sent to an AI provider, which
+              tells you what came across and what you left out. When you ask
+              the tutor a question on a lesson&apos;s page, that lesson&apos;s
+              title, its subject and an extract of its notes are sent with
+              your question, along with a short summary of the topics and
+              ideas your answers show you are still learning, so the reply
+              fits you.
+            </p>
+            <p>
               <strong>
                 Learnora does not use your data to train AI models and does not
                 sell it.
@@ -145,6 +185,15 @@ export function PrivacyView() {
               <li>
                 Provide the features you ask for — saving your tasks and
                 exams, generating study aids, and showing your progress.
+              </li>
+              <li>
+                Work out, from your answers, what you know and what is worth
+                revisiting, so that lessons, practice, reminders and the tutor
+                adapt to you. This is done automatically and is only ever an
+                estimate from the questions you have answered: it is not a
+                grade, it is not shared with anyone else, and it is never used
+                for advertising. You can see it under Progress, and deleting
+                your account deletes it.
               </li>
               <li>Respond to support requests you send us.</li>
               <li>
@@ -208,8 +257,24 @@ export function PrivacyView() {
             <h2>6. Cookies &amp; Local Storage</h2>
             <p>
               Learnora uses your browser's local storage to keep you signed in
-              and to remember preferences like your theme. We don't use
-              third-party advertising cookies or cross-site tracking.
+              and to remember preferences like your theme, and one cookie
+              (<code>learnora_cookie_consent</code>) to remember the choice you
+              made in the cookie banner. These are needed for the app to work.
+            </p>
+            <p>
+              If you choose &ldquo;Accept all&rdquo;, we also send crash reports to
+              our error-monitoring provider (Sentry) so we can find and fix bugs.
+              Reports describe what went wrong in the app; sign-in tokens are
+              removed before they are sent, and we don't attach your name or
+              email. With &ldquo;Essential only&rdquo;, no crash reports are sent.
+            </p>
+            <p>
+              We don't use advertising cookies or cross-site tracking.
+            </p>
+            <p>
+              <button type="button" className={styles.cookieButton} onClick={reopenCookieChoice}>
+                Change your cookie choice
+              </button>
             </p>
           </section>
 

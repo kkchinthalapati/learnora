@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "../Icon";
 import styles from "./personaOffset.module.css";
 
@@ -51,41 +51,21 @@ export const STUDY_STYLES: ReadonlyArray<StudyStyleOption> = [
   },
 ];
 
-export type SourceMode = "web" | "notebook" | "hybrid";
-
-export interface SourceModeOption {
-  id: SourceMode;
-  label: string;
-  description: string;
-}
-
-export const SOURCE_MODES: ReadonlyArray<SourceModeOption> = [
-  { id: "web", label: "The web", description: "Searches the web for the answer" },
-  {
-    id: "notebook",
-    label: "My notes only",
-    description: "Answers only from what's in your notebooks",
-  },
-  {
-    id: "hybrid",
-    label: "My notes + web",
-    description: "Uses your notebooks first, then the web",
-  },
-];
-
 export interface PersonaOffsetConfig {
   depth: PersonaDepth;
   style: StudyStyle;
-  sourceMode: SourceMode;
 }
 
 export interface PersonaOffsetToolbarProps {
   depth?: PersonaDepth;
   style?: StudyStyle;
-  sourceMode?: SourceMode;
+  /** Where answers come from, lower-case: "this lesson", "general
+   *  knowledge" (lib/chatSources.ts resolveChatSources). */
+  sourceLabel: string;
+  /** The controls for choosing sources, shown first in the drawer. */
+  sourcesPanel?: ReactNode;
   onDepthChange?: (depth: PersonaDepth) => void;
   onStyleChange?: (style: StudyStyle) => void;
-  onSourceModeChange?: (mode: SourceMode) => void;
   onChange?: (config: PersonaOffsetConfig) => void;
   compact?: boolean;
   className?: string;
@@ -94,23 +74,20 @@ export interface PersonaOffsetToolbarProps {
 export function PersonaOffsetToolbar({
   depth: controlledDepth,
   style: controlledStyle,
-  sourceMode: controlledSourceMode,
+  sourceLabel,
+  sourcesPanel,
   onDepthChange,
   onStyleChange,
-  onSourceModeChange,
   onChange,
   compact = true,
   className,
 }: PersonaOffsetToolbarProps) {
   const [internalDepth, setInternalDepth] = useState<PersonaDepth>(3);
   const [internalStyle, setInternalStyle] = useState<StudyStyle>("balanced");
-  const [internalSourceMode, setInternalSourceMode] =
-    useState<SourceMode>("hybrid");
   const [isDrawerOpen, setIsDrawerOpen] = useState(!compact);
 
   const depth = controlledDepth ?? internalDepth;
   const style = controlledStyle ?? internalStyle;
-  const sourceMode = controlledSourceMode ?? internalSourceMode;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const sliderId = useId();
@@ -118,19 +95,13 @@ export function PersonaOffsetToolbar({
   const updateDepth = (newDepth: PersonaDepth) => {
     setInternalDepth(newDepth);
     onDepthChange?.(newDepth);
-    onChange?.({ depth: newDepth, style, sourceMode });
+    onChange?.({ depth: newDepth, style });
   };
 
   const updateStyle = (newStyle: StudyStyle) => {
     setInternalStyle(newStyle);
     onStyleChange?.(newStyle);
-    onChange?.({ depth, style: newStyle, sourceMode });
-  };
-
-  const updateSourceMode = (newMode: SourceMode) => {
-    setInternalSourceMode(newMode);
-    onSourceModeChange?.(newMode);
-    onChange?.({ depth, style, sourceMode: newMode });
+    onChange?.({ depth, style: newStyle });
   };
 
   // Close drawer on outside click or Escape
@@ -162,7 +133,6 @@ export function PersonaOffsetToolbar({
   }, [isDrawerOpen]);
 
   const activeStyleObj = STUDY_STYLES.find((s) => s.id === style);
-  const activeSourceObj = SOURCE_MODES.find((s) => s.id === sourceMode);
 
   return (
     <div
@@ -182,11 +152,11 @@ export function PersonaOffsetToolbar({
           onClick={() => setIsDrawerOpen((prev) => !prev)}
           aria-expanded={isDrawerOpen}
           aria-controls="persona-offset-drawer"
-          aria-label={`Answer settings: from ${activeSourceObj?.label ?? sourceMode}, ${DEPTH_LABELS[depth]} detail, ${activeStyleObj?.label ?? style}. Change`}
+          aria-label={`Answer settings: from ${sourceLabel}, ${DEPTH_LABELS[depth]} detail, ${activeStyleObj?.label ?? style}. Change`}
         >
           <Icon name="settings" size={14} />
           <span className={styles.summaryText}>
-            Answers from <strong>{activeSourceObj?.label.toLowerCase()}</strong>
+            Answers from <strong>{sourceLabel}</strong>
             {" · "}
             {DEPTH_LABELS[depth]}
             {" · "}
@@ -218,6 +188,18 @@ export function PersonaOffsetToolbar({
               <Icon name="x" size={16} />
             </button>
           </div>
+
+          {sourcesPanel ? (
+            <section className={styles.section} aria-labelledby="persona-source-title">
+              <div className={styles.sectionLabelRow}>
+                <span id="persona-source-title" className={styles.sectionTitle}>
+                  Where answers come from
+                </span>
+                <span className={styles.sectionValue}>{sourceLabel}</span>
+              </div>
+              {sourcesPanel}
+            </section>
+          ) : null}
 
           {/* Depth Level Stepper & Slider */}
           <section className={styles.section} aria-labelledby="persona-depth-title">
@@ -295,35 +277,6 @@ export function PersonaOffsetToolbar({
                   title={s.description}
                 >
                   {s.label}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* Source Mode Toggle Pills */}
-          <section className={styles.section} aria-labelledby="persona-source-title">
-            <div className={styles.sectionLabelRow}>
-              <span id="persona-source-title" className={styles.sectionTitle}>
-                Where answers come from
-              </span>
-              <span className={styles.sectionValue}>
-                {activeSourceObj?.label}
-              </span>
-            </div>
-            <div className={styles.chipGroup} role="radiogroup" aria-label="Where answers come from">
-              {SOURCE_MODES.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={sourceMode === m.id}
-                  className={`${styles.chip}${
-                    sourceMode === m.id ? ` ${styles.chipActive}` : ""
-                  }`}
-                  onClick={() => updateSourceMode(m.id)}
-                  title={m.description}
-                >
-                  {m.label}
                 </button>
               ))}
             </div>
